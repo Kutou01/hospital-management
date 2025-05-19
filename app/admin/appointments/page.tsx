@@ -21,6 +21,7 @@ import {
   Trash2,
   Filter,
   CreditCard,
+  Clock,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -29,6 +30,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Card, CardContent } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
 
 // Dữ liệu mẫu cho cuộc hẹn
 const appointmentsData = [
@@ -114,12 +124,61 @@ const appointmentsData = [
   },
 ]
 
+// Danh sách các bác sĩ mẫu
+const doctorsData = [
+  { id: "DOC001", name: "Dr. Ava Mullins", specialization: "General Medicine" },
+  { id: "DOC002", name: "Dr. Andrew Karin", specialization: "Cardiology" },
+  { id: "DOC003", name: "Dr. Damian Sanchez", specialization: "Pediatrics" },
+  { id: "DOC004", name: "Dr. Chloe Harrington", specialization: "Dermatology" },
+  { id: "DOC005", name: "Dr. Petra Winsbury", specialization: "Internal Medicine" },
+  { id: "DOC006", name: "Dr. Emily Smith", specialization: "General Medicine" },
+  { id: "DOC007", name: "Dr. Samuel Thompson", specialization: "Cardiology" },
+  { id: "DOC008", name: "Dr. Sarah Johnson", specialization: "Pediatrics" },
+]
+
+// Danh sách các loại điều trị mẫu
+const treatmentsData = [
+  "Routine Check-Up",
+  "Cardiac Evaluation",
+  "Pediatric Check-Up",
+  "Skin Allergy",
+  "Follow-Up Visit",
+  "Cardiac Consultation",
+  "Dental Check-Up",
+  "Eye Examination",
+  "Physical Therapy",
+  "Vaccination"
+]
+
+// Danh sách bệnh nhân mẫu
+const patientsData = [
+  { id: "PAT001", name: "Carol C-Simpson" },
+  { id: "PAT002", name: "Steven Bennett" },
+  { id: "PAT003", name: "Ocean Jane Lupre" },
+  { id: "PAT004", name: "Shane Riddick" },
+  { id: "PAT005", name: "Queen Lawriston" },
+  { id: "PAT006", name: "Alice Mitchell" },
+  { id: "PAT007", name: "Mikhail Morozov" },
+  { id: "PAT008", name: "Mateus Fernandes" },
+]
+
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState(appointmentsData)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("All Status")
   const [dateFilter, setDateFilter] = useState("Today")
   const [currentPage, setCurrentPage] = useState(1)
+
+  // State cho dialog thêm lịch khám mới
+  const [isNewAppointmentDialogOpen, setIsNewAppointmentDialogOpen] = useState(false)
+  const [newAppointment, setNewAppointment] = useState({
+    patientName: "",
+    doctorName: "",
+    date: "",
+    time: "",
+    treatment: "",
+    status: "Pending"
+  })
 
   const appointmentsPerPage = 8
   const totalAppointments = 24
@@ -143,6 +202,52 @@ export default function AppointmentsPage() {
   // Xử lý phân trang
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
+  }
+
+  // Xử lý thay đổi giá trị trong form thêm lịch khám mới
+  const handleNewAppointmentChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target
+    setNewAppointment(prev => ({
+      ...prev,
+      [name]: value
+    }))
+  }
+
+  // Xử lý khi nhấn nút "New Appointment"
+  const handleOpenNewAppointmentDialog = () => {
+    setIsNewAppointmentDialogOpen(true)
+  }
+
+  // Xử lý khi submit form thêm lịch khám mới
+  const handleAddNewAppointment = () => {
+    // Tạo ID mới cho lịch khám
+    const newId = `APT${String(appointments.length + 1).padStart(3, '0')}`
+
+    // Tạo lịch khám mới
+    const appointment = {
+      id: newId,
+      patientName: newAppointment.patientName,
+      patientAvatar: "/placeholder.svg?height=40&width=40",
+      date: newAppointment.date,
+      time: newAppointment.time,
+      doctorName: newAppointment.doctorName,
+      treatment: newAppointment.treatment,
+      status: newAppointment.status,
+    }
+
+    // Thêm lịch khám mới vào danh sách
+    setAppointments([...appointments, appointment])
+
+    // Đóng dialog và reset form
+    setIsNewAppointmentDialogOpen(false)
+    setNewAppointment({
+      patientName: "",
+      doctorName: "",
+      date: "",
+      time: "",
+      treatment: "",
+      status: "Pending"
+    })
   }
 
   // Render status badge
@@ -252,7 +357,7 @@ export default function AppointmentsPage() {
                   onChange={handleSearch}
                 />
               </div>
-              <Button size="sm" className="h-9 bg-[#0066CC]">
+              <Button size="sm" className="h-9 bg-[#0066CC]" onClick={handleOpenNewAppointmentDialog}>
                 <Plus size={16} className="mr-1" /> New Appointment
               </Button>
             </div>
@@ -386,6 +491,148 @@ export default function AppointmentsPage() {
           </div>
         </div>
       </div>
+
+      {/* Dialog thêm lịch khám mới */}
+      <Dialog open={isNewAppointmentDialogOpen} onOpenChange={setIsNewAppointmentDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Thêm lịch khám mới</DialogTitle>
+            <DialogDescription>
+              Điền thông tin để tạo lịch khám mới cho bệnh nhân.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="patientName" className="text-right">
+                Bệnh nhân
+              </Label>
+              <Select
+                name="patientName"
+                value={newAppointment.patientName}
+                onValueChange={(value) => setNewAppointment(prev => ({ ...prev, patientName: value }))}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Chọn bệnh nhân" />
+                </SelectTrigger>
+                <SelectContent>
+                  {patientsData.map(patient => (
+                    <SelectItem key={patient.id} value={patient.name}>
+                      {patient.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="doctorName" className="text-right">
+                Bác sĩ
+              </Label>
+              <Select
+                name="doctorName"
+                value={newAppointment.doctorName}
+                onValueChange={(value) => setNewAppointment(prev => ({ ...prev, doctorName: value }))}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Chọn bác sĩ" />
+                </SelectTrigger>
+                <SelectContent>
+                  {doctorsData.map(doctor => (
+                    <SelectItem key={doctor.id} value={doctor.name}>
+                      {doctor.name} - {doctor.specialization}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="date" className="text-right">
+                Ngày khám
+              </Label>
+              <div className="col-span-3 flex items-center">
+                <Calendar className="mr-2 h-4 w-4 opacity-70" />
+                <Input
+                  type="date"
+                  id="date"
+                  name="date"
+                  value={newAppointment.date}
+                  onChange={handleNewAppointmentChange}
+                  className="col-span-3"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="time" className="text-right">
+                Giờ khám
+              </Label>
+              <div className="col-span-3 flex items-center">
+                <Clock className="mr-2 h-4 w-4 opacity-70" />
+                <Input
+                  type="time"
+                  id="time"
+                  name="time"
+                  value={newAppointment.time}
+                  onChange={handleNewAppointmentChange}
+                  className="col-span-3"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="treatment" className="text-right">
+                Loại điều trị
+              </Label>
+              <Select
+                name="treatment"
+                value={newAppointment.treatment}
+                onValueChange={(value) => setNewAppointment(prev => ({ ...prev, treatment: value }))}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Chọn loại điều trị" />
+                </SelectTrigger>
+                <SelectContent>
+                  {treatmentsData.map(treatment => (
+                    <SelectItem key={treatment} value={treatment}>
+                      {treatment}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="status" className="text-right">
+                Trạng thái
+              </Label>
+              <Select
+                name="status"
+                value={newAppointment.status}
+                onValueChange={(value) => setNewAppointment(prev => ({ ...prev, status: value }))}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Chọn trạng thái" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Confirmed">Confirmed</SelectItem>
+                  <SelectItem value="Pending">Pending</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsNewAppointmentDialogOpen(false)}>
+              Hủy
+            </Button>
+            <Button onClick={handleAddNewAppointment}>
+              Thêm lịch khám
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

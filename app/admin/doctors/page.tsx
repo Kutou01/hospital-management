@@ -187,6 +187,18 @@ export default function DoctorsPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [doctorToEdit, setDoctorToEdit] = useState<any | null>(null)
 
+  // State cho dialog thêm bác sĩ mới
+  const [isAddDoctorDialogOpen, setIsAddDoctorDialogOpen] = useState(false)
+  const [newDoctor, setNewDoctor] = useState({
+    name: "",
+    specialization: "",
+    experience: "",
+    schedule: "",
+    patients: 0,
+    rating: 4.0,
+    status: "Available"
+  })
+
   const doctorsPerPage = 10
   const totalDoctors = 120
   const totalPages = Math.ceil(totalDoctors / doctorsPerPage)
@@ -245,6 +257,54 @@ export default function DoctorsPage() {
       setIsEditDialogOpen(false)
       setDoctorToEdit(null)
     }
+  }
+
+  // Xử lý khi nhấn nút "Add Doctor"
+  const handleOpenAddDoctorDialog = () => {
+    setIsAddDoctorDialogOpen(true)
+  }
+
+  // Xử lý thay đổi giá trị trong form thêm bác sĩ mới
+  const handleNewDoctorChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target
+    setNewDoctor(prev => ({
+      ...prev,
+      [name]: value
+    }))
+  }
+
+  // Xử lý khi submit form thêm bác sĩ mới
+  const handleAddNewDoctor = () => {
+    // Tạo ID mới cho bác sĩ
+    const newId = `D${String(doctors.length + 1).padStart(3, '0')}`
+
+    // Tạo bác sĩ mới
+    const doctor = {
+      id: newId,
+      name: newDoctor.name,
+      avatar: "/placeholder.svg?height=40&width=40",
+      specialization: newDoctor.specialization,
+      experience: newDoctor.experience,
+      schedule: newDoctor.schedule,
+      patients: Number(newDoctor.patients),
+      rating: Number(newDoctor.rating),
+      status: newDoctor.status,
+    }
+
+    // Thêm bác sĩ mới vào danh sách
+    setDoctors([...doctors, doctor])
+
+    // Đóng dialog và reset form
+    setIsAddDoctorDialogOpen(false)
+    setNewDoctor({
+      name: "",
+      specialization: "",
+      experience: "",
+      schedule: "",
+      patients: 0,
+      rating: 4.0,
+      status: "Available"
+    })
   }
 
   // Render status badge
@@ -371,7 +431,7 @@ export default function DoctorsPage() {
                   onChange={handleSearch}
                 />
               </div>
-              <Button size="sm" className="h-9 bg-[#0066CC]">
+              <Button size="sm" className="h-9 bg-[#0066CC]" onClick={handleOpenAddDoctorDialog}>
                 <Plus size={16} className="mr-1" /> Add Doctor
               </Button>
             </div>
@@ -663,6 +723,146 @@ export default function DoctorsPage() {
               Cancel
             </Button>
             <Button onClick={confirmEdit}>Save changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Doctor Dialog */}
+      <Dialog open={isAddDoctorDialogOpen} onOpenChange={setIsAddDoctorDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Thêm bác sĩ mới</DialogTitle>
+            <DialogDescription>
+              Điền thông tin để thêm bác sĩ mới vào hệ thống.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="name" className="text-right">
+                Tên bác sĩ
+              </Label>
+              <Input
+                id="name"
+                name="name"
+                value={newDoctor.name}
+                onChange={handleNewDoctorChange}
+                className="col-span-3"
+                placeholder="Dr. John Doe"
+              />
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="specialization" className="text-right">
+                Chuyên khoa
+              </Label>
+              <Select
+                name="specialization"
+                value={newDoctor.specialization}
+                onValueChange={(value) => setNewDoctor(prev => ({ ...prev, specialization: value }))}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Chọn chuyên khoa" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Cardiology">Cardiology</SelectItem>
+                  <SelectItem value="Neurology">Neurology</SelectItem>
+                  <SelectItem value="Pediatrics">Pediatrics</SelectItem>
+                  <SelectItem value="Dermatology">Dermatology</SelectItem>
+                  <SelectItem value="Orthopedics">Orthopedics</SelectItem>
+                  <SelectItem value="Gynecology">Gynecology</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="experience" className="text-right">
+                Kinh nghiệm
+              </Label>
+              <Input
+                id="experience"
+                name="experience"
+                value={newDoctor.experience}
+                onChange={handleNewDoctorChange}
+                className="col-span-3"
+                placeholder="5 years"
+              />
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="schedule" className="text-right">
+                Lịch làm việc
+              </Label>
+              <Input
+                id="schedule"
+                name="schedule"
+                value={newDoctor.schedule}
+                onChange={handleNewDoctorChange}
+                className="col-span-3"
+                placeholder="Mon-Fri, 09:00-17:00"
+              />
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="patients" className="text-right">
+                Số bệnh nhân
+              </Label>
+              <Input
+                id="patients"
+                name="patients"
+                type="number"
+                value={newDoctor.patients}
+                onChange={handleNewDoctorChange}
+                className="col-span-3"
+                min="0"
+              />
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="rating" className="text-right">
+                Đánh giá
+              </Label>
+              <Input
+                id="rating"
+                name="rating"
+                type="number"
+                step="0.1"
+                min="0"
+                max="5"
+                value={newDoctor.rating}
+                onChange={handleNewDoctorChange}
+                className="col-span-3"
+              />
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="status" className="text-right">
+                Trạng thái
+              </Label>
+              <Select
+                name="status"
+                value={newDoctor.status}
+                onValueChange={(value) => setNewDoctor(prev => ({ ...prev, status: value }))}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Chọn trạng thái" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Available">Available</SelectItem>
+                  <SelectItem value="On Leave">On Leave</SelectItem>
+                  <SelectItem value="Unavailable">Unavailable</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddDoctorDialogOpen(false)}>
+              Hủy
+            </Button>
+            <Button onClick={handleAddNewDoctor}>
+              Thêm bác sĩ
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

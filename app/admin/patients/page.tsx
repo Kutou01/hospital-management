@@ -186,6 +186,18 @@ export default function PatientsPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [patientToEdit, setPatientToEdit] = useState<any | null>(null)
 
+  // State cho dialog thêm bệnh nhân mới
+  const [isAddPatientDialogOpen, setIsAddPatientDialogOpen] = useState(false)
+  const [newPatient, setNewPatient] = useState({
+    name: "",
+    age: "",
+    checkIn: "20 July 2023",
+    treatment: "",
+    doctor: "",
+    room: "-",
+    status: "New Patient"
+  })
+
   const patientsPerPage = 12
   const totalPatients = 286
   const totalPages = Math.ceil(totalPatients / patientsPerPage)
@@ -249,6 +261,55 @@ export default function PatientsPage() {
       setIsEditDialogOpen(false)
       setPatientToEdit(null)
     }
+  }
+
+  // Xử lý khi nhấn nút "Add Patient"
+  const handleOpenAddPatientDialog = () => {
+    setIsAddPatientDialogOpen(true)
+  }
+
+  // Xử lý thay đổi giá trị trong form thêm bệnh nhân mới
+  const handleNewPatientChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target
+    setNewPatient(prev => ({
+      ...prev,
+      [name]: value
+    }))
+  }
+
+  // Xử lý khi submit form thêm bệnh nhân mới
+  const handleAddNewPatient = () => {
+    // Tạo ID mới cho bệnh nhân
+    const lastId = parseInt(patients[patients.length - 1].id)
+    const newId = String(lastId + 1)
+
+    // Tạo bệnh nhân mới
+    const patient = {
+      id: newId,
+      name: newPatient.name,
+      avatar: "/placeholder.svg?height=40&width=40",
+      age: parseInt(newPatient.age),
+      checkIn: newPatient.checkIn,
+      treatment: newPatient.treatment,
+      doctor: newPatient.doctor,
+      room: newPatient.room,
+      status: newPatient.status,
+    }
+
+    // Thêm bệnh nhân mới vào danh sách
+    setPatients([...patients, patient])
+
+    // Đóng dialog và reset form
+    setIsAddPatientDialogOpen(false)
+    setNewPatient({
+      name: "",
+      age: "",
+      checkIn: "20 July 2023",
+      treatment: "",
+      doctor: "",
+      room: "-",
+      status: "New Patient"
+    })
   }
 
   // Render status badge
@@ -376,7 +437,7 @@ export default function PatientsPage() {
               />
             </div>
 
-            <Button variant="outline" size="sm" className="h-9">
+            <Button variant="outline" size="sm" className="h-9" onClick={handleOpenAddPatientDialog}>
               <Plus size={16} className="mr-2" />
               Add Patient
             </Button>
@@ -649,6 +710,156 @@ export default function PatientsPage() {
               Cancel
             </Button>
             <Button onClick={confirmEdit}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Patient Dialog */}
+      <Dialog open={isAddPatientDialogOpen} onOpenChange={setIsAddPatientDialogOpen}>
+        <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden bg-white rounded-lg shadow-lg border border-gray-200">
+          <DialogHeader className="px-6 pt-6 pb-2">
+            <DialogTitle className="text-xl font-bold text-gray-900">Thêm bệnh nhân mới</DialogTitle>
+            <DialogDescription className="text-gray-600">
+              Điền thông tin để thêm bệnh nhân mới vào hệ thống.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="px-6 py-5 bg-white">
+            <div className="space-y-5">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="name" className="text-right font-medium text-gray-700">
+                  Họ tên
+                </Label>
+                <Input
+                  id="name"
+                  name="name"
+                  value={newPatient.name}
+                  onChange={handleNewPatientChange}
+                  className="col-span-3 h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md shadow-sm"
+                  placeholder="Nguyễn Văn A"
+                />
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="age" className="text-right font-medium text-gray-700">
+                  Tuổi
+                </Label>
+                <Input
+                  id="age"
+                  name="age"
+                  type="number"
+                  value={newPatient.age}
+                  onChange={handleNewPatientChange}
+                  className="col-span-3 h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md shadow-sm"
+                  min="0"
+                  max="120"
+                />
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="checkIn" className="text-right font-medium text-gray-700">
+                  Ngày nhập viện
+                </Label>
+                <Input
+                  id="checkIn"
+                  name="checkIn"
+                  value={newPatient.checkIn}
+                  onChange={handleNewPatientChange}
+                  className="col-span-3 h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md shadow-sm"
+                  placeholder="20 July 2023"
+                />
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="treatment" className="text-right font-medium text-gray-700">
+                  Điều trị
+                </Label>
+                <div className="col-span-3">
+                  <Select
+                    name="treatment"
+                    value={newPatient.treatment}
+                    onValueChange={(value) => setNewPatient(prev => ({ ...prev, treatment: value }))}
+                  >
+                    <SelectTrigger className="h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md shadow-sm">
+                      <SelectValue placeholder="Chọn loại điều trị" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Routine Check-Up">Routine Check-Up</SelectItem>
+                      <SelectItem value="Cardiac Consultation">Cardiac Consultation</SelectItem>
+                      <SelectItem value="Pediatric Check-Up">Pediatric Check-Up</SelectItem>
+                      <SelectItem value="Skin Allergy">Skin Allergy</SelectItem>
+                      <SelectItem value="Follow-Up Visit">Follow-Up Visit</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="doctor" className="text-right font-medium text-gray-700">
+                  Bác sĩ phụ trách
+                </Label>
+                <Input
+                  id="doctor"
+                  name="doctor"
+                  value={newPatient.doctor}
+                  onChange={handleNewPatientChange}
+                  className="col-span-3 h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md shadow-sm"
+                  placeholder="Dr. John Doe"
+                />
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="room" className="text-right font-medium text-gray-700">
+                  Phòng
+                </Label>
+                <Input
+                  id="room"
+                  name="room"
+                  value={newPatient.room}
+                  onChange={handleNewPatientChange}
+                  className="col-span-3 h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md shadow-sm"
+                  placeholder="Single - 101"
+                />
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="status" className="text-right font-medium text-gray-700">
+                  Trạng thái
+                </Label>
+                <div className="col-span-3">
+                  <Select
+                    name="status"
+                    value={newPatient.status}
+                    onValueChange={(value) => setNewPatient(prev => ({ ...prev, status: value }))}
+                  >
+                    <SelectTrigger className="h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md shadow-sm">
+                      <SelectValue placeholder="Chọn trạng thái" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Active">Active</SelectItem>
+                      <SelectItem value="New Patient">New Patient</SelectItem>
+                      <SelectItem value="Inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end space-x-3">
+            <Button
+              variant="outline"
+              onClick={() => setIsAddPatientDialogOpen(false)}
+              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Hủy
+            </Button>
+            <Button
+              onClick={handleAddNewPatient}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Thêm bệnh nhân
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

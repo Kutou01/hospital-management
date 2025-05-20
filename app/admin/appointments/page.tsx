@@ -2,7 +2,8 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { appointmentsApi, doctorsApi, patientsApi } from "@/lib/supabase"
 import Link from "next/link"
 import {
   Search,
@@ -163,22 +164,54 @@ const patientsData = [
 ]
 
 export default function AppointmentsPage() {
-  const [appointments, setAppointments] = useState(appointmentsData)
+  const [appointments, setAppointments] = useState([])
+  const [doctors, setDoctors] = useState([])
+  const [patients, setPatients] = useState([])
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("All Status")
   const [dateFilter, setDateFilter] = useState("Today")
   const [currentPage, setCurrentPage] = useState(1)
+  const [isLoading, setIsLoading] = useState(true)
 
   // State cho dialog thêm lịch khám mới
   const [isNewAppointmentDialogOpen, setIsNewAppointmentDialogOpen] = useState(false)
   const [newAppointment, setNewAppointment] = useState({
-    patientName: "",
-    doctorName: "",
-    date: "",
-    time: "",
-    treatment: "",
-    status: "Pending"
+    patient_id: "",
+    doctor_id: "",
+    appointment_date: new Date().toISOString(),
+    appointment_time: "09:00",
+    status: "Pending",
+    reason_for_visit: "",
+    notes: ""
   })
+
+  // Lấy dữ liệu từ Supabase khi component được tải
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        // Lấy dữ liệu cuộc hẹn
+        const appointmentsData = await appointmentsApi.getAllAppointments();
+        setAppointments(appointmentsData);
+
+        // Lấy dữ liệu bác sĩ
+        const doctorsData = await doctorsApi.getAllDoctors();
+        setDoctors(doctorsData);
+
+        // Lấy dữ liệu bệnh nhân
+        const patientsData = await patientsApi.getAllPatients();
+        setPatients(patientsData);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        // Sử dụng dữ liệu mẫu nếu có lỗi
+        setAppointments(appointmentsData);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const appointmentsPerPage = 8
   const totalAppointments = 24
@@ -205,8 +238,16 @@ export default function AppointmentsPage() {
   }
 
   // Xử lý thay đổi giá trị trong form thêm lịch khám mới
-  const handleNewAppointmentChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleNewAppointmentChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
+    setNewAppointment(prev => ({
+      ...prev,
+      [name]: value
+    }))
+  }
+
+  // Xử lý thay đổi giá trị select
+  const handleSelectChange = (name: string, value: string) => {
     setNewAppointment(prev => ({
       ...prev,
       [name]: value
@@ -219,35 +260,46 @@ export default function AppointmentsPage() {
   }
 
   // Xử lý khi submit form thêm lịch khám mới
-  const handleAddNewAppointment = () => {
-    // Tạo ID mới cho lịch khám
-    const newId = `APT${String(appointments.length + 1).padStart(3, '0')}`
+  const handleAddNewAppointment = async () => {
+    try {
+      // Tạo cuộc hẹn mới
+      const appointment = {
+        patient_id: newAppointment.patient_id,
+        doctor_id: newAppointment.doctor_id,
+        appointment_date: newAppointment.appointment_date,
+        appointment_time: newAppointment.appointment_time,
+        status: newAppointment.status,
+        reason_for_visit: newAppointment.reason_for_visit,
+        notes: newAppointment.notes,
+        appointment_id: `APT${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`
+      };
 
-    // Tạo lịch khám mới
-    const appointment = {
-      id: newId,
-      patientName: newAppointment.patientName,
-      patientAvatar: "/placeholder.svg?height=40&width=40",
-      date: newAppointment.date,
-      time: newAppointment.time,
-      doctorName: newAppointment.doctorName,
-      treatment: newAppointment.treatment,
-      status: newAppointment.status,
+      // Thêm cuộc hẹn mới vào cơ sở dữ liệu
+      const newAppointmentData = await appointmentsApi.addAppointment(appointment);
+
+      if (newAppointmentData) {
+        // Lấy lại danh sách cuộc hẹn để có dữ liệu mới nhất
+        const updatedAppointments = await appointmentsApi.getAllAppointments();
+        setAppointments(updatedAppointments);
+
+        // Hiển thị thông báo thành công
+        console.log('Thêm lịch khám thành công!');
+      }
+    } catch (error) {
+      console.error('Lỗi khi thêm lịch khám:', error);
     }
 
-    // Thêm lịch khám mới vào danh sách
-    setAppointments([...appointments, appointment])
-
     // Đóng dialog và reset form
-    setIsNewAppointmentDialogOpen(false)
+    setIsNewAppointmentDialogOpen(false);
     setNewAppointment({
-      patientName: "",
-      doctorName: "",
-      date: "",
-      time: "",
-      treatment: "",
-      status: "Pending"
-    })
+      patient_id: "",
+      doctor_id: "",
+      appointment_date: new Date().toISOString(),
+      appointment_time: "09:00",
+      status: "Pending",
+      reason_for_visit: "",
+      notes: ""
+    });
   }
 
   // Render status badge
@@ -383,28 +435,65 @@ export default function AppointmentsPage() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {appointments.map((appointment) => (
+                    {isLoading ? (
+                      <tr>
+                        <td colSpan={8} className="px-6 py-4 text-center">
+                          <div className="flex justify-center items-center space-x-2">
+                            <svg className="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span>Đang tải dữ liệu...</span>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : appointments.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="px-6 py-4 text-center">
+                          <div className="text-gray-500">Không có dữ liệu cuộc hẹn</div>
+                        </td>
+                      </tr>
+                    ) : (
+                      appointments
+                        .filter((appointment) => {
+                          if (searchTerm === "") return true;
+                          const searchTermLower = searchTerm.toLowerCase();
+                          return (
+                            (appointment.patients?.full_name && appointment.patients.full_name.toLowerCase().includes(searchTermLower)) ||
+                            (appointment.appointment_id && appointment.appointment_id.toLowerCase().includes(searchTermLower)) ||
+                            (appointment.doctors?.full_name && appointment.doctors.full_name.toLowerCase().includes(searchTermLower))
+                          );
+                        })
+                        .filter((appointment) => {
+                          if (statusFilter === "All Status") return true;
+                          return appointment.status === statusFilter;
+                        })
+                        .map((appointment) => (
                       <tr key={appointment.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             <Avatar className="h-8 w-8 mr-3">
                               <AvatarImage
-                                src={appointment.patientAvatar || "/placeholder.svg"}
-                                alt={appointment.patientName}
+                                src="/placeholder.svg"
+                                alt={appointment.patients?.full_name}
                               />
-                              <AvatarFallback>{appointment.patientName.charAt(0)}</AvatarFallback>
+                              <AvatarFallback>{appointment.patients?.full_name?.charAt(0) || 'P'}</AvatarFallback>
                             </Avatar>
-                            <div className="text-sm font-medium text-gray-900">{appointment.patientName}</div>
+                            <div className="text-sm font-medium text-gray-900">{appointment.patients?.full_name || 'Unknown Patient'}</div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{appointment.id}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{appointment.date}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{appointment.time}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
-                          {appointment.doctorName}
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{appointment.appointment_id || appointment.id}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(appointment.appointment_date).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {appointment.appointment_time || new Date(appointment.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
-                          {appointment.treatment}
+                          {appointment.doctors?.full_name || 'Unknown Doctor'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
+                          {appointment.reason_for_visit || appointment.notes || 'No treatment specified'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">{renderStatusBadge(appointment.status)}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -418,7 +507,8 @@ export default function AppointmentsPage() {
                           </Button>
                         </td>
                       </tr>
-                    ))}
+                    ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -504,21 +594,21 @@ export default function AppointmentsPage() {
 
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="patientName" className="text-right">
+              <Label htmlFor="patient_id" className="text-right">
                 Bệnh nhân
               </Label>
               <Select
-                name="patientName"
-                value={newAppointment.patientName}
-                onValueChange={(value) => setNewAppointment(prev => ({ ...prev, patientName: value }))}
+                name="patient_id"
+                value={newAppointment.patient_id}
+                onValueChange={(value) => handleSelectChange('patient_id', value)}
               >
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Chọn bệnh nhân" />
                 </SelectTrigger>
                 <SelectContent>
-                  {patientsData.map(patient => (
-                    <SelectItem key={patient.id} value={patient.name}>
-                      {patient.name}
+                  {patients.map(patient => (
+                    <SelectItem key={patient.id} value={String(patient.id)}>
+                      {patient.full_name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -526,21 +616,21 @@ export default function AppointmentsPage() {
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="doctorName" className="text-right">
+              <Label htmlFor="doctor_id" className="text-right">
                 Bác sĩ
               </Label>
               <Select
-                name="doctorName"
-                value={newAppointment.doctorName}
-                onValueChange={(value) => setNewAppointment(prev => ({ ...prev, doctorName: value }))}
+                name="doctor_id"
+                value={newAppointment.doctor_id}
+                onValueChange={(value) => handleSelectChange('doctor_id', value)}
               >
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Chọn bác sĩ" />
                 </SelectTrigger>
                 <SelectContent>
-                  {doctorsData.map(doctor => (
-                    <SelectItem key={doctor.id} value={doctor.name}>
-                      {doctor.name} - {doctor.specialization}
+                  {doctors.map(doctor => (
+                    <SelectItem key={doctor.id} value={String(doctor.id)}>
+                      {doctor.full_name} - {doctor.specialty}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -548,16 +638,16 @@ export default function AppointmentsPage() {
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="date" className="text-right">
+              <Label htmlFor="appointment_date" className="text-right">
                 Ngày khám
               </Label>
               <div className="col-span-3 flex items-center">
                 <Calendar className="mr-2 h-4 w-4 opacity-70" />
                 <Input
                   type="date"
-                  id="date"
-                  name="date"
-                  value={newAppointment.date}
+                  id="appointment_date"
+                  name="appointment_date"
+                  value={new Date(newAppointment.appointment_date).toISOString().slice(0, 10)}
                   onChange={handleNewAppointmentChange}
                   className="col-span-3"
                 />
@@ -565,42 +655,20 @@ export default function AppointmentsPage() {
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="time" className="text-right">
+              <Label htmlFor="appointment_time" className="text-right">
                 Giờ khám
               </Label>
               <div className="col-span-3 flex items-center">
                 <Clock className="mr-2 h-4 w-4 opacity-70" />
                 <Input
                   type="time"
-                  id="time"
-                  name="time"
-                  value={newAppointment.time}
+                  id="appointment_time"
+                  name="appointment_time"
+                  value={newAppointment.appointment_time}
                   onChange={handleNewAppointmentChange}
                   className="col-span-3"
                 />
               </div>
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="treatment" className="text-right">
-                Loại điều trị
-              </Label>
-              <Select
-                name="treatment"
-                value={newAppointment.treatment}
-                onValueChange={(value) => setNewAppointment(prev => ({ ...prev, treatment: value }))}
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Chọn loại điều trị" />
-                </SelectTrigger>
-                <SelectContent>
-                  {treatmentsData.map(treatment => (
-                    <SelectItem key={treatment} value={treatment}>
-                      {treatment}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">
@@ -610,7 +678,7 @@ export default function AppointmentsPage() {
               <Select
                 name="status"
                 value={newAppointment.status}
-                onValueChange={(value) => setNewAppointment(prev => ({ ...prev, status: value }))}
+                onValueChange={(value) => handleSelectChange('status', value)}
               >
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Chọn trạng thái" />
@@ -618,8 +686,38 @@ export default function AppointmentsPage() {
                 <SelectContent>
                   <SelectItem value="Confirmed">Confirmed</SelectItem>
                   <SelectItem value="Pending">Pending</SelectItem>
+                  <SelectItem value="Cancelled">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="reason_for_visit" className="text-right">
+                Lý do khám
+              </Label>
+              <Input
+                id="reason_for_visit"
+                name="reason_for_visit"
+                value={newAppointment.reason_for_visit}
+                onChange={handleNewAppointmentChange}
+                className="col-span-3"
+                placeholder="Nhập lý do khám..."
+              />
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="notes" className="text-right">
+                Ghi chú
+              </Label>
+              <textarea
+                id="notes"
+                name="notes"
+                value={newAppointment.notes}
+                onChange={handleNewAppointmentChange}
+                className="col-span-3 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                rows={3}
+                placeholder="Nhập ghi chú về cuộc hẹn..."
+              />
             </div>
           </div>
 

@@ -2,7 +2,8 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { doctorsApi } from "@/lib/supabase"
 import Link from "next/link"
 import {
   Search,
@@ -177,7 +178,7 @@ const doctorsData = [
 ]
 
 export default function DoctorsPage() {
-  const [doctors, setDoctors] = useState(doctorsData)
+  const [doctors, setDoctors] = useState([])
   const [searchTerm, setSearchTerm] = useState("")
   const [specializationFilter, setSpecializationFilter] = useState("All Specializations")
   const [statusFilter, setStatusFilter] = useState("All Status")
@@ -186,18 +187,40 @@ export default function DoctorsPage() {
   const [doctorToDelete, setDoctorToDelete] = useState<string | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [doctorToEdit, setDoctorToEdit] = useState<any | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   // State cho dialog thêm bác sĩ mới
   const [isAddDoctorDialogOpen, setIsAddDoctorDialogOpen] = useState(false)
   const [newDoctor, setNewDoctor] = useState({
-    name: "",
-    specialization: "",
-    experience: "",
-    schedule: "",
-    patients: 0,
-    rating: 4.0,
-    status: "Available"
+    full_name: "",
+    specialty: "",
+    qualification: "",
+    work_schedule: "",
+    department: "",
+    license_number: "",
+    phone: "",
+    email: "",
+    gender: "Male"
   })
+
+  // Lấy dữ liệu bác sĩ từ Supabase khi component được tải
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      setIsLoading(true);
+      try {
+        const data = await doctorsApi.getAllDoctors();
+        setDoctors(data);
+      } catch (error) {
+        console.error('Error fetching doctors:', error);
+        // Sử dụng dữ liệu mẫu nếu có lỗi khi lấy dữ liệu từ Supabase
+        setDoctors(doctorsData);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDoctors();
+  }, []);
 
   const doctorsPerPage = 10
   const totalDoctors = 120
@@ -229,11 +252,24 @@ export default function DoctorsPage() {
     setIsDeleteDialogOpen(true)
   }
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (doctorToDelete) {
-      setDoctors(doctors.filter((doctor) => doctor.id !== doctorToDelete))
-      setIsDeleteDialogOpen(false)
-      setDoctorToDelete(null)
+      try {
+        // Xóa bác sĩ từ cơ sở dữ liệu
+        const success = await doctorsApi.deleteDoctor(doctorToDelete);
+
+        if (success) {
+          // Cập nhật state nếu xóa thành công
+          setDoctors(doctors.filter((doctor) => doctor.id !== doctorToDelete));
+          console.log('Xóa bác sĩ thành công!');
+        }
+      } catch (error) {
+        console.error('Lỗi khi xóa bác sĩ:', error);
+      }
+
+      // Đóng dialog và reset state
+      setIsDeleteDialogOpen(false);
+      setDoctorToDelete(null);
     }
   }
 
@@ -251,11 +287,36 @@ export default function DoctorsPage() {
     }))
   }
 
-  const confirmEdit = () => {
+  const confirmEdit = async () => {
     if (doctorToEdit) {
-      setDoctors(doctors.map((doctor) => (doctor.id === doctorToEdit.id ? doctorToEdit : doctor)))
-      setIsEditDialogOpen(false)
-      setDoctorToEdit(null)
+      try {
+        // Chuẩn bị dữ liệu cập nhật
+        const updates = {
+          full_name: doctorToEdit.full_name,
+          specialty: doctorToEdit.specialty,
+          qualification: doctorToEdit.qualification,
+          department: doctorToEdit.department,
+          license_number: doctorToEdit.license_number,
+          phone: doctorToEdit.phone,
+          email: doctorToEdit.email,
+          gender: doctorToEdit.gender,
+        };
+
+        // Cập nhật bác sĩ trong cơ sở dữ liệu
+        const updatedDoctor = await doctorsApi.updateDoctor(doctorToEdit.id, updates);
+
+        if (updatedDoctor) {
+          // Cập nhật state nếu cập nhật thành công
+          setDoctors(doctors.map((doctor) => (doctor.id === doctorToEdit.id ? updatedDoctor : doctor)));
+          console.log('Cập nhật bác sĩ thành công!');
+        }
+      } catch (error) {
+        console.error('Lỗi khi cập nhật bác sĩ:', error);
+      }
+
+      // Đóng dialog và reset state
+      setIsEditDialogOpen(false);
+      setDoctorToEdit(null);
     }
   }
 
@@ -274,48 +335,67 @@ export default function DoctorsPage() {
   }
 
   // Xử lý khi submit form thêm bác sĩ mới
-  const handleAddNewDoctor = () => {
-    // Tạo ID mới cho bác sĩ
-    const newId = `D${String(doctors.length + 1).padStart(3, '0')}`
-
+  const handleAddNewDoctor = async () => {
     // Tạo bác sĩ mới
     const doctor = {
-      id: newId,
-      name: newDoctor.name,
-      avatar: "/placeholder.svg?height=40&width=40",
-      specialization: newDoctor.specialization,
-      experience: newDoctor.experience,
-      schedule: newDoctor.schedule,
-      patients: Number(newDoctor.patients),
-      rating: Number(newDoctor.rating),
-      status: newDoctor.status,
+      full_name: newDoctor.full_name,
+      specialty: newDoctor.specialty,
+      qualification: newDoctor.qualification,
+      work_schedule: JSON.stringify({
+        monday: "09:00-17:00",
+        tuesday: "09:00-17:00",
+        wednesday: "09:00-17:00",
+        thursday: "09:00-17:00",
+        friday: "09:00-17:00"
+      }),
+      department: newDoctor.department,
+      license_number: newDoctor.license_number,
+      phone: newDoctor.phone,
+      email: newDoctor.email,
+      gender: newDoctor.gender,
+      doctor_id: `DOC${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`
     }
 
-    // Thêm bác sĩ mới vào danh sách
-    setDoctors([...doctors, doctor])
+    try {
+      // Thêm bác sĩ mới vào cơ sở dữ liệu
+      const newDoctorData = await doctorsApi.addDoctor(doctor);
+
+      if (newDoctorData) {
+        // Thêm bác sĩ mới vào danh sách hiện tại
+        setDoctors([...doctors, newDoctorData]);
+
+        // Hiển thị thông báo thành công (có thể thêm toast notification ở đây)
+        console.log('Thêm bác sĩ thành công!');
+      }
+    } catch (error) {
+      console.error('Lỗi khi thêm bác sĩ:', error);
+      // Hiển thị thông báo lỗi (có thể thêm toast notification ở đây)
+    }
 
     // Đóng dialog và reset form
-    setIsAddDoctorDialogOpen(false)
+    setIsAddDoctorDialogOpen(false);
     setNewDoctor({
-      name: "",
-      specialization: "",
-      experience: "",
-      schedule: "",
-      patients: 0,
-      rating: 4.0,
-      status: "Available"
-    })
+      full_name: "",
+      specialty: "",
+      qualification: "",
+      work_schedule: "",
+      department: "",
+      license_number: "",
+      phone: "",
+      email: "",
+      gender: "Male"
+    });
   }
 
   // Render status badge
   const renderStatusBadge = (status: string) => {
     switch (status) {
-      case "Available":
-        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Available</Badge>
-      case "On Leave":
-        return <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100">On Leave</Badge>
-      case "Unavailable":
-        return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Unavailable</Badge>
+      case "Male":
+        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Male</Badge>
+      case "Female":
+        return <Badge className="bg-pink-100 text-pink-800 hover:bg-pink-100">Female</Badge>
+      case "Other":
+        return <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100">Other</Badge>
       default:
         return <Badge>{status}</Badge>
     }
@@ -391,10 +471,10 @@ export default function DoctorsPage() {
             <div className="flex flex-wrap items-center gap-2">
               <Select value={specializationFilter} onValueChange={handleSpecializationFilter}>
                 <SelectTrigger className="h-9 w-[180px]">
-                  <SelectValue placeholder="All Specializations" />
+                  <SelectValue placeholder="All Specialties" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="All Specializations">All Specializations</SelectItem>
+                  <SelectItem value="All Specializations">All Specialties</SelectItem>
                   <SelectItem value="Cardiology">Cardiology</SelectItem>
                   <SelectItem value="Neurology">Neurology</SelectItem>
                   <SelectItem value="Pediatrics">Pediatrics</SelectItem>
@@ -406,13 +486,13 @@ export default function DoctorsPage() {
 
               <Select value={statusFilter} onValueChange={handleStatusFilter}>
                 <SelectTrigger className="h-9 w-[120px]">
-                  <SelectValue placeholder="All Status" />
+                  <SelectValue placeholder="Gender" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="All Status">All Status</SelectItem>
-                  <SelectItem value="Available">Available</SelectItem>
-                  <SelectItem value="On Leave">On Leave</SelectItem>
-                  <SelectItem value="Unavailable">Unavailable</SelectItem>
+                  <SelectItem value="All Status">All Genders</SelectItem>
+                  <SelectItem value="Male">Male</SelectItem>
+                  <SelectItem value="Female">Female</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -448,40 +528,77 @@ export default function DoctorsPage() {
                     <tr className="bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       <th className="px-6 py-3">Doctor</th>
                       <th className="px-6 py-3">ID</th>
-                      <th className="px-6 py-3">Specialization</th>
-                      <th className="px-6 py-3 hidden md:table-cell">Experience</th>
+                      <th className="px-6 py-3">Specialty</th>
+                      <th className="px-6 py-3 hidden md:table-cell">Qualification</th>
                       <th className="px-6 py-3 hidden md:table-cell">Schedule</th>
-                      <th className="px-6 py-3 hidden md:table-cell">Patients</th>
-                      <th className="px-6 py-3">Rating</th>
-                      <th className="px-6 py-3">Status</th>
+                      <th className="px-6 py-3 hidden md:table-cell">Department</th>
+                      <th className="px-6 py-3">License</th>
+                      <th className="px-6 py-3">Gender</th>
                       <th className="px-6 py-3 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {doctors.map((doctor) => (
+                    {isLoading ? (
+                      <tr>
+                        <td colSpan={9} className="px-6 py-4 text-center">
+                          <div className="flex justify-center items-center space-x-2">
+                            <svg className="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span>Đang tải dữ liệu...</span>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : doctors.length === 0 ? (
+                      <tr>
+                        <td colSpan={9} className="px-6 py-4 text-center">
+                          <div className="text-gray-500">Không có dữ liệu bác sĩ</div>
+                        </td>
+                      </tr>
+                    ) : (
+                      doctors
+                        .filter((doctor) => {
+                          if (searchTerm === "") return true;
+                          const searchTermLower = searchTerm.toLowerCase();
+                          return (
+                            (doctor.full_name && doctor.full_name.toLowerCase().includes(searchTermLower)) ||
+                            (doctor.doctor_id && doctor.doctor_id.toLowerCase().includes(searchTermLower)) ||
+                            (doctor.specialty && doctor.specialty.toLowerCase().includes(searchTermLower))
+                          );
+                        })
+                        .filter((doctor) => {
+                          if (specializationFilter === "All Specializations") return true;
+                          return doctor.specialty === specializationFilter;
+                        })
+                        .filter((doctor) => {
+                          if (statusFilter === "All Status") return true;
+                          return doctor.gender === statusFilter;
+                        })
+                        .map((doctor) => (
                       <tr key={doctor.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             <Avatar className="h-8 w-8 mr-3">
-                              <AvatarImage src={doctor.avatar || "/placeholder.svg"} alt={doctor.name} />
-                              <AvatarFallback>{doctor.name.charAt(3)}</AvatarFallback>
+                              <AvatarImage src="/placeholder.svg" alt={doctor.full_name} />
+                              <AvatarFallback>{doctor.full_name?.charAt(0) || 'D'}</AvatarFallback>
                             </Avatar>
-                            <div className="text-sm font-medium text-gray-900">{doctor.name}</div>
+                            <div className="text-sm font-medium text-gray-900">{doctor.full_name}</div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{doctor.id}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{doctor.specialization}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{doctor.doctor_id}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{doctor.specialty}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
-                          {doctor.experience}
+                          {doctor.qualification}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
-                          {doctor.schedule}
+                          {typeof doctor.work_schedule === 'string' ? 'Mon-Fri, 09:00-17:00' : 'Mon-Fri, 09:00-17:00'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
-                          {doctor.patients}
+                          {doctor.department}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">{renderRating(doctor.rating)}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">{renderStatusBadge(doctor.status)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">{doctor.license_number}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">{renderStatusBadge(doctor.gender)}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <Button
                             variant="ghost"
@@ -503,7 +620,8 @@ export default function DoctorsPage() {
                           </Button>
                         </td>
                       </tr>
-                    ))}
+                    ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -613,27 +731,27 @@ export default function DoctorsPage() {
           {doctorToEdit && (
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="name" className="text-right">
+                <Label htmlFor="full_name" className="text-right">
                   Name
                 </Label>
                 <Input
-                  id="name"
-                  name="name"
-                  value={doctorToEdit.name}
+                  id="full_name"
+                  name="full_name"
+                  value={doctorToEdit.full_name}
                   onChange={handleEditChange}
                   className="col-span-3"
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="specialization" className="text-right">
-                  Specialization
+                <Label htmlFor="specialty" className="text-right">
+                  Specialty
                 </Label>
                 <Select
-                  value={doctorToEdit.specialization}
-                  onValueChange={(value) => setDoctorToEdit({ ...doctorToEdit, specialization: value })}
+                  value={doctorToEdit.specialty}
+                  onValueChange={(value) => setDoctorToEdit({ ...doctorToEdit, specialty: value })}
                 >
                   <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select specialization" />
+                    <SelectValue placeholder="Select specialty" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Cardiology">Cardiology</SelectItem>
@@ -646,73 +764,68 @@ export default function DoctorsPage() {
                 </Select>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="experience" className="text-right">
-                  Experience
+                <Label htmlFor="qualification" className="text-right">
+                  Qualification
                 </Label>
                 <Input
-                  id="experience"
-                  name="experience"
-                  value={doctorToEdit.experience}
+                  id="qualification"
+                  name="qualification"
+                  value={doctorToEdit.qualification}
                   onChange={handleEditChange}
                   className="col-span-3"
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="schedule" className="text-right">
-                  Schedule
+                <Label htmlFor="department" className="text-right">
+                  Department
                 </Label>
                 <Input
-                  id="schedule"
-                  name="schedule"
-                  value={doctorToEdit.schedule}
+                  id="department"
+                  name="department"
+                  value={doctorToEdit.department}
                   onChange={handleEditChange}
                   className="col-span-3"
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="patients" className="text-right">
-                  Patients
+                <Label htmlFor="license_number" className="text-right">
+                  License
                 </Label>
                 <Input
-                  id="patients"
-                  name="patients"
-                  type="number"
-                  value={doctorToEdit.patients}
+                  id="license_number"
+                  name="license_number"
+                  value={doctorToEdit.license_number}
                   onChange={handleEditChange}
                   className="col-span-3"
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="rating" className="text-right">
-                  Rating
+                <Label htmlFor="phone" className="text-right">
+                  Phone
                 </Label>
                 <Input
-                  id="rating"
-                  name="rating"
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="5"
-                  value={doctorToEdit.rating}
+                  id="phone"
+                  name="phone"
+                  value={doctorToEdit.phone}
                   onChange={handleEditChange}
                   className="col-span-3"
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="status" className="text-right">
-                  Status
+                <Label htmlFor="gender" className="text-right">
+                  Gender
                 </Label>
                 <Select
-                  value={doctorToEdit.status}
-                  onValueChange={(value) => setDoctorToEdit({ ...doctorToEdit, status: value })}
+                  value={doctorToEdit.gender}
+                  onValueChange={(value) => setDoctorToEdit({ ...doctorToEdit, gender: value })}
                 >
                   <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select status" />
+                    <SelectValue placeholder="Select gender" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Available">Available</SelectItem>
-                    <SelectItem value="On Leave">On Leave</SelectItem>
-                    <SelectItem value="Unavailable">Unavailable</SelectItem>
+                    <SelectItem value="Male">Male</SelectItem>
+                    <SelectItem value="Female">Female</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -739,13 +852,13 @@ export default function DoctorsPage() {
 
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
+              <Label htmlFor="full_name" className="text-right">
                 Tên bác sĩ
               </Label>
               <Input
-                id="name"
-                name="name"
-                value={newDoctor.name}
+                id="full_name"
+                name="full_name"
+                value={newDoctor.full_name}
                 onChange={handleNewDoctorChange}
                 className="col-span-3"
                 placeholder="Dr. John Doe"
@@ -753,13 +866,13 @@ export default function DoctorsPage() {
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="specialization" className="text-right">
+              <Label htmlFor="specialty" className="text-right">
                 Chuyên khoa
               </Label>
               <Select
-                name="specialization"
-                value={newDoctor.specialization}
-                onValueChange={(value) => setNewDoctor(prev => ({ ...prev, specialization: value }))}
+                name="specialty"
+                value={newDoctor.specialty}
+                onValueChange={(value) => setNewDoctor(prev => ({ ...prev, specialty: value }))}
               >
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Chọn chuyên khoa" />
@@ -776,81 +889,92 @@ export default function DoctorsPage() {
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="experience" className="text-right">
-                Kinh nghiệm
+              <Label htmlFor="qualification" className="text-right">
+                Bằng cấp
               </Label>
               <Input
-                id="experience"
-                name="experience"
-                value={newDoctor.experience}
+                id="qualification"
+                name="qualification"
+                value={newDoctor.qualification}
                 onChange={handleNewDoctorChange}
                 className="col-span-3"
-                placeholder="5 years"
+                placeholder="MD, PhD"
               />
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="schedule" className="text-right">
-                Lịch làm việc
+              <Label htmlFor="department" className="text-right">
+                Khoa
               </Label>
               <Input
-                id="schedule"
-                name="schedule"
-                value={newDoctor.schedule}
+                id="department"
+                name="department"
+                value={newDoctor.department}
                 onChange={handleNewDoctorChange}
                 className="col-span-3"
-                placeholder="Mon-Fri, 09:00-17:00"
+                placeholder="Cardiology Department"
               />
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="patients" className="text-right">
-                Số bệnh nhân
+              <Label htmlFor="license_number" className="text-right">
+                Số giấy phép
               </Label>
               <Input
-                id="patients"
-                name="patients"
-                type="number"
-                value={newDoctor.patients}
+                id="license_number"
+                name="license_number"
+                value={newDoctor.license_number}
                 onChange={handleNewDoctorChange}
                 className="col-span-3"
-                min="0"
+                placeholder="MD12345"
               />
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="rating" className="text-right">
-                Đánh giá
+              <Label htmlFor="phone" className="text-right">
+                Số điện thoại
               </Label>
               <Input
-                id="rating"
-                name="rating"
-                type="number"
-                step="0.1"
-                min="0"
-                max="5"
-                value={newDoctor.rating}
+                id="phone"
+                name="phone"
+                value={newDoctor.phone}
                 onChange={handleNewDoctorChange}
                 className="col-span-3"
+                placeholder="+84 123 456 789"
               />
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="status" className="text-right">
-                Trạng thái
+              <Label htmlFor="email" className="text-right">
+                Email
+              </Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                value={newDoctor.email}
+                onChange={handleNewDoctorChange}
+                className="col-span-3"
+                placeholder="doctor@hospital.com"
+              />
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="gender" className="text-right">
+                Giới tính
               </Label>
               <Select
-                name="status"
-                value={newDoctor.status}
-                onValueChange={(value) => setNewDoctor(prev => ({ ...prev, status: value }))}
+                name="gender"
+                value={newDoctor.gender}
+                onValueChange={(value) => setNewDoctor(prev => ({ ...prev, gender: value }))}
               >
                 <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Chọn trạng thái" />
+                  <SelectValue placeholder="Chọn giới tính" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Available">Available</SelectItem>
-                  <SelectItem value="On Leave">On Leave</SelectItem>
-                  <SelectItem value="Unavailable">Unavailable</SelectItem>
+                  <SelectItem value="Male">Male</SelectItem>
+                  <SelectItem value="Female">Female</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>

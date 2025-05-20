@@ -2,7 +2,8 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { patientsApi } from "@/lib/supabase"
 import Link from "next/link"
 import {
   Search,
@@ -175,7 +176,7 @@ const patientsData = [
 ]
 
 export default function PatientsPage() {
-  const [patients, setPatients] = useState(patientsData)
+  const [patients, setPatients] = useState([])
   const [searchTerm, setSearchTerm] = useState("")
   const [treatmentFilter, setTreatmentFilter] = useState("All Treatment")
   const [statusFilter, setStatusFilter] = useState("All Status")
@@ -185,18 +186,44 @@ export default function PatientsPage() {
   const [patientToDelete, setPatientToDelete] = useState<string | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [patientToEdit, setPatientToEdit] = useState<any | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   // State cho dialog thêm bệnh nhân mới
   const [isAddPatientDialogOpen, setIsAddPatientDialogOpen] = useState(false)
   const [newPatient, setNewPatient] = useState({
-    name: "",
-    age: "",
-    checkIn: "20 July 2023",
-    treatment: "",
-    doctor: "",
-    room: "-",
-    status: "New Patient"
+    full_name: "",
+    date_of_birth: "",
+    gender: "Male",
+    phone: "",
+    email: "",
+    address: "",
+    blood_type: "",
+    allergies: "",
+    chronic_diseases: "",
+    insurance_number: "",
+    insurance_provider: "",
+    emergency_contact_name: "",
+    emergency_contact_phone: ""
   })
+
+  // Lấy dữ liệu bệnh nhân từ Supabase khi component được tải
+  useEffect(() => {
+    const fetchPatients = async () => {
+      setIsLoading(true);
+      try {
+        const data = await patientsApi.getAllPatients();
+        setPatients(data);
+      } catch (error) {
+        console.error('Error fetching patients:', error);
+        // Sử dụng dữ liệu mẫu nếu có lỗi khi lấy dữ liệu từ Supabase
+        setPatients(patientsData);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPatients();
+  }, []);
 
   const patientsPerPage = 12
   const totalPatients = 286
@@ -233,18 +260,31 @@ export default function PatientsPage() {
     setIsDeleteDialogOpen(true)
   }
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (patientToDelete) {
-      setPatients(patients.filter((patient) => patient.id !== patientToDelete))
-      setIsDeleteDialogOpen(false)
-      setPatientToDelete(null)
+      try {
+        // Xóa bệnh nhân từ cơ sở dữ liệu
+        const success = await patientsApi.deletePatient(patientToDelete);
+
+        if (success) {
+          // Cập nhật state nếu xóa thành công
+          setPatients(patients.filter((patient) => patient.id !== patientToDelete));
+          console.log('Xóa bệnh nhân thành công!');
+        }
+      } catch (error) {
+        console.error('Lỗi khi xóa bệnh nhân:', error);
+      }
+
+      // Đóng dialog và reset state
+      setIsDeleteDialogOpen(false);
+      setPatientToDelete(null);
     }
   }
 
   // Xử lý chỉnh sửa bệnh nhân
   const handleEditClick = (patient: any) => {
-    setPatientToEdit({ ...patient })
-    setIsEditDialogOpen(true)
+    setPatientToEdit(patient);
+    setIsEditDialogOpen(true);
   }
 
   const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -255,11 +295,41 @@ export default function PatientsPage() {
     }))
   }
 
-  const confirmEdit = () => {
+  const confirmEdit = async () => {
     if (patientToEdit) {
-      setPatients(patients.map((patient) => (patient.id === patientToEdit.id ? patientToEdit : patient)))
-      setIsEditDialogOpen(false)
-      setPatientToEdit(null)
+      try {
+        // Chuẩn bị dữ liệu cập nhật
+        const updates = {
+          full_name: patientToEdit.full_name,
+          date_of_birth: patientToEdit.date_of_birth,
+          gender: patientToEdit.gender,
+          phone: patientToEdit.phone,
+          email: patientToEdit.email,
+          address: patientToEdit.address,
+          blood_type: patientToEdit.blood_type,
+          allergies: patientToEdit.allergies,
+          chronic_diseases: patientToEdit.chronic_diseases,
+          insurance_number: patientToEdit.insurance_number,
+          insurance_provider: patientToEdit.insurance_provider,
+          emergency_contact_name: patientToEdit.emergency_contact_name,
+          emergency_contact_phone: patientToEdit.emergency_contact_phone
+        };
+
+        // Cập nhật bệnh nhân trong cơ sở dữ liệu
+        const updatedPatient = await patientsApi.updatePatient(patientToEdit.id, updates);
+
+        if (updatedPatient) {
+          // Cập nhật state nếu cập nhật thành công
+          setPatients(patients.map((patient) => (patient.id === patientToEdit.id ? updatedPatient : patient)));
+          console.log('Cập nhật bệnh nhân thành công!');
+        }
+      } catch (error) {
+        console.error('Lỗi khi cập nhật bệnh nhân:', error);
+      }
+
+      // Đóng dialog và reset state
+      setIsEditDialogOpen(false);
+      setPatientToEdit(null);
     }
   }
 
@@ -278,49 +348,70 @@ export default function PatientsPage() {
   }
 
   // Xử lý khi submit form thêm bệnh nhân mới
-  const handleAddNewPatient = () => {
-    // Tạo ID mới cho bệnh nhân
-    const lastId = parseInt(patients[patients.length - 1].id)
-    const newId = String(lastId + 1)
-
+  const handleAddNewPatient = async () => {
     // Tạo bệnh nhân mới
     const patient = {
-      id: newId,
-      name: newPatient.name,
-      avatar: "/placeholder.svg?height=40&width=40",
-      age: parseInt(newPatient.age),
-      checkIn: newPatient.checkIn,
-      treatment: newPatient.treatment,
-      doctor: newPatient.doctor,
-      room: newPatient.room,
-      status: newPatient.status,
+      full_name: newPatient.full_name,
+      date_of_birth: newPatient.date_of_birth ? new Date(newPatient.date_of_birth) : null,
+      gender: newPatient.gender,
+      phone: newPatient.phone,
+      email: newPatient.email,
+      address: newPatient.address,
+      blood_type: newPatient.blood_type,
+      allergies: newPatient.allergies,
+      chronic_diseases: newPatient.chronic_diseases,
+      insurance_number: newPatient.insurance_number,
+      insurance_provider: newPatient.insurance_provider,
+      emergency_contact_name: newPatient.emergency_contact_name,
+      emergency_contact_phone: newPatient.emergency_contact_phone,
+      patient_id: `PAT${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
+      registration_date: new Date().toISOString()
     }
 
-    // Thêm bệnh nhân mới vào danh sách
-    setPatients([...patients, patient])
+    try {
+      // Thêm bệnh nhân mới vào cơ sở dữ liệu
+      const newPatientData = await patientsApi.addPatient(patient);
+
+      if (newPatientData) {
+        // Thêm bệnh nhân mới vào danh sách hiện tại
+        setPatients([...patients, newPatientData]);
+
+        // Hiển thị thông báo thành công (có thể thêm toast notification ở đây)
+        console.log('Thêm bệnh nhân thành công!');
+      }
+    } catch (error) {
+      console.error('Lỗi khi thêm bệnh nhân:', error);
+      // Hiển thị thông báo lỗi (có thể thêm toast notification ở đây)
+    }
 
     // Đóng dialog và reset form
-    setIsAddPatientDialogOpen(false)
+    setIsAddPatientDialogOpen(false);
     setNewPatient({
-      name: "",
-      age: "",
-      checkIn: "20 July 2023",
-      treatment: "",
-      doctor: "",
-      room: "-",
-      status: "New Patient"
-    })
+      full_name: "",
+      date_of_birth: "",
+      gender: "Male",
+      phone: "",
+      email: "",
+      address: "",
+      blood_type: "",
+      allergies: "",
+      chronic_diseases: "",
+      insurance_number: "",
+      insurance_provider: "",
+      emergency_contact_name: "",
+      emergency_contact_phone: ""
+    });
   }
 
   // Render status badge
   const renderStatusBadge = (status: string) => {
     switch (status) {
-      case "Active":
-        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Active</Badge>
-      case "New Patient":
-        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">New Patient</Badge>
-      case "Inactive":
-        return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Inactive</Badge>
+      case "Male":
+        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Nam</Badge>
+      case "Female":
+        return <Badge className="bg-pink-100 text-pink-800 hover:bg-pink-100">Nữ</Badge>
+      case "Other":
+        return <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100">Khác</Badge>
       default:
         return <Badge>{status}</Badge>
     }
@@ -453,25 +544,25 @@ export default function PatientsPage() {
                   <thead>
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Name
+                        Patient
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Age
+                        Date of Birth
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Check In
+                        Registration Date
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Treatment
+                        Phone
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Doctor
+                        Email
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Room
+                        Blood Type
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
+                        Gender
                       </th>
                       <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Actions
@@ -479,51 +570,66 @@ export default function PatientsPage() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {patients
-                      .filter((patient) => {
-                        const searchTermLower = searchTerm.toLowerCase()
-                        return (
-                          patient.name.toLowerCase().includes(searchTermLower) ||
-                          patient.treatment.toLowerCase().includes(searchTermLower) ||
-                          patient.doctor.toLowerCase().includes(searchTermLower)
-                        )
-                      })
-                      .filter((patient) => {
-                        if (treatmentFilter === "All Treatment") return true
-                        return patient.treatment === treatmentFilter
-                      })
-                      .filter((patient) => {
-                        if (statusFilter === "All Status") return true
-                        return patient.status === statusFilter
-                      })
-                      .slice((currentPage - 1) * patientsPerPage, currentPage * patientsPerPage)
-                      .map((patient) => (
+                    {isLoading ? (
+                      <tr>
+                        <td colSpan={8} className="px-6 py-4 text-center">
+                          <div className="flex justify-center items-center space-x-2">
+                            <svg className="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span>Đang tải dữ liệu...</span>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : patients.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="px-6 py-4 text-center">
+                          <div className="text-gray-500">Không có dữ liệu bệnh nhân</div>
+                        </td>
+                      </tr>
+                    ) : (
+                      patients
+                        .filter((patient) => {
+                          const searchTermLower = searchTerm.toLowerCase()
+                          return (
+                            (patient.full_name && patient.full_name.toLowerCase().includes(searchTermLower)) ||
+                            (patient.email && patient.email.toLowerCase().includes(searchTermLower)) ||
+                            (patient.phone && patient.phone.toLowerCase().includes(searchTermLower))
+                          )
+                        })
+                        .slice((currentPage - 1) * patientsPerPage, currentPage * patientsPerPage)
+                        .map((patient) => (
                         <tr key={patient.id}>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
                               <Avatar className="mr-2">
-                                <AvatarImage src={patient.avatar || "/placeholder.svg"} alt={patient.name} />
-                                <AvatarFallback>{patient.name.substring(0, 2)}</AvatarFallback>
+                                <AvatarImage src="/placeholder.svg" alt={patient.full_name} />
+                                <AvatarFallback>{patient.full_name?.substring(0, 2) || 'P'}</AvatarFallback>
                               </Avatar>
-                              <div className="text-sm font-medium text-gray-900">{patient.name}</div>
+                              <div className="text-sm font-medium text-gray-900">{patient.full_name}</div>
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{patient.age}</div>
+                            <div className="text-sm text-gray-900">
+                              {patient.date_of_birth ? new Date(patient.date_of_birth).toLocaleDateString() : '-'}
+                            </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{patient.checkIn}</div>
+                            <div className="text-sm text-gray-900">
+                              {patient.registration_date ? new Date(patient.registration_date).toLocaleDateString() : '-'}
+                            </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{patient.treatment}</div>
+                            <div className="text-sm text-gray-900">{patient.phone || '-'}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{patient.doctor}</div>
+                            <div className="text-sm text-gray-900">{patient.email || '-'}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{patient.room}</div>
+                            <div className="text-sm text-gray-900">{patient.blood_type || '-'}</div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">{renderStatusBadge(patient.status)}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">{renderStatusBadge(patient.gender)}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-right">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
@@ -546,7 +652,8 @@ export default function PatientsPage() {
                             </DropdownMenu>
                           </td>
                         </tr>
-                      ))}
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -609,98 +716,98 @@ export default function PatientsPage() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
-                Name
+              <Label htmlFor="full_name" className="text-right">
+                Full Name
               </Label>
               <Input
                 type="text"
-                id="name"
-                name="name"
-                value={patientToEdit?.name || ""}
+                id="full_name"
+                name="full_name"
+                value={patientToEdit?.full_name || ""}
                 onChange={handleEditChange}
                 className="col-span-3"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="age" className="text-right">
-                Age
+              <Label htmlFor="date_of_birth" className="text-right">
+                Date of Birth
               </Label>
               <Input
-                type="number"
-                id="age"
-                name="age"
-                value={patientToEdit?.age || ""}
+                type="date"
+                id="date_of_birth"
+                name="date_of_birth"
+                value={patientToEdit?.date_of_birth ? new Date(patientToEdit.date_of_birth).toISOString().split('T')[0] : ""}
                 onChange={handleEditChange}
                 className="col-span-3"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="checkIn" className="text-right">
-                Check In
-              </Label>
-              <Input
-                type="text"
-                id="checkIn"
-                name="checkIn"
-                value={patientToEdit?.checkIn || ""}
-                onChange={handleEditChange}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="treatment" className="text-right">
-                Treatment
+              <Label htmlFor="phone" className="text-right">
+                Phone
               </Label>
               <Input
                 type="text"
-                id="treatment"
-                name="treatment"
-                value={patientToEdit?.treatment || ""}
+                id="phone"
+                name="phone"
+                value={patientToEdit?.phone || ""}
                 onChange={handleEditChange}
                 className="col-span-3"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="doctor" className="text-right">
-                Doctor
+              <Label htmlFor="email" className="text-right">
+                Email
+              </Label>
+              <Input
+                type="email"
+                id="email"
+                name="email"
+                value={patientToEdit?.email || ""}
+                onChange={handleEditChange}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="address" className="text-right">
+                Address
               </Label>
               <Input
                 type="text"
-                id="doctor"
-                name="doctor"
-                value={patientToEdit?.doctor || ""}
+                id="address"
+                name="address"
+                value={patientToEdit?.address || ""}
                 onChange={handleEditChange}
                 className="col-span-3"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="room" className="text-right">
-                Room
+              <Label htmlFor="blood_type" className="text-right">
+                Blood Type
               </Label>
               <Input
                 type="text"
-                id="room"
-                name="room"
-                value={patientToEdit?.room || ""}
+                id="blood_type"
+                name="blood_type"
+                value={patientToEdit?.blood_type || ""}
                 onChange={handleEditChange}
                 className="col-span-3"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="status" className="text-right">
-                Status
+              <Label htmlFor="gender" className="text-right">
+                Gender
               </Label>
               <Select
-                value={patientToEdit?.status || ""}
-                onValueChange={(value) => handleEditChange({ target: { name: "status", value } } as any)}
+                value={patientToEdit?.gender || ""}
+                onValueChange={(value) => handleEditChange({ target: { name: "gender", value } } as any)}
               >
                 <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select Status" />
+                  <SelectValue placeholder="Select Gender" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="New Patient">New Patient</SelectItem>
-                  <SelectItem value="Inactive">Inactive</SelectItem>
+                  <SelectItem value="Male">Male</SelectItem>
+                  <SelectItem value="Female">Female</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -727,13 +834,13 @@ export default function PatientsPage() {
           <div className="px-6 py-5 bg-white">
             <div className="space-y-5">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="name" className="text-right font-medium text-gray-700">
+                <Label htmlFor="full_name" className="text-right font-medium text-gray-700">
                   Họ tên
                 </Label>
                 <Input
-                  id="name"
-                  name="name"
-                  value={newPatient.name}
+                  id="full_name"
+                  name="full_name"
+                  value={newPatient.full_name}
                   onChange={handleNewPatientChange}
                   className="col-span-3 h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md shadow-sm"
                   placeholder="Nguyễn Văn A"
@@ -741,107 +848,96 @@ export default function PatientsPage() {
               </div>
 
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="age" className="text-right font-medium text-gray-700">
-                  Tuổi
+                <Label htmlFor="date_of_birth" className="text-right font-medium text-gray-700">
+                  Ngày sinh
                 </Label>
                 <Input
-                  id="age"
-                  name="age"
-                  type="number"
-                  value={newPatient.age}
+                  id="date_of_birth"
+                  name="date_of_birth"
+                  type="date"
+                  value={newPatient.date_of_birth}
                   onChange={handleNewPatientChange}
                   className="col-span-3 h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md shadow-sm"
-                  min="0"
-                  max="120"
                 />
               </div>
 
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="checkIn" className="text-right font-medium text-gray-700">
-                  Ngày nhập viện
-                </Label>
-                <Input
-                  id="checkIn"
-                  name="checkIn"
-                  value={newPatient.checkIn}
-                  onChange={handleNewPatientChange}
-                  className="col-span-3 h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md shadow-sm"
-                  placeholder="20 July 2023"
-                />
-              </div>
-
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="treatment" className="text-right font-medium text-gray-700">
-                  Điều trị
+                <Label htmlFor="gender" className="text-right font-medium text-gray-700">
+                  Giới tính
                 </Label>
                 <div className="col-span-3">
                   <Select
-                    name="treatment"
-                    value={newPatient.treatment}
-                    onValueChange={(value) => setNewPatient(prev => ({ ...prev, treatment: value }))}
+                    name="gender"
+                    value={newPatient.gender}
+                    onValueChange={(value) => setNewPatient(prev => ({ ...prev, gender: value }))}
                   >
                     <SelectTrigger className="h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md shadow-sm">
-                      <SelectValue placeholder="Chọn loại điều trị" />
+                      <SelectValue placeholder="Chọn giới tính" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Routine Check-Up">Routine Check-Up</SelectItem>
-                      <SelectItem value="Cardiac Consultation">Cardiac Consultation</SelectItem>
-                      <SelectItem value="Pediatric Check-Up">Pediatric Check-Up</SelectItem>
-                      <SelectItem value="Skin Allergy">Skin Allergy</SelectItem>
-                      <SelectItem value="Follow-Up Visit">Follow-Up Visit</SelectItem>
+                      <SelectItem value="Male">Nam</SelectItem>
+                      <SelectItem value="Female">Nữ</SelectItem>
+                      <SelectItem value="Other">Khác</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="doctor" className="text-right font-medium text-gray-700">
-                  Bác sĩ phụ trách
+                <Label htmlFor="phone" className="text-right font-medium text-gray-700">
+                  Số điện thoại
                 </Label>
                 <Input
-                  id="doctor"
-                  name="doctor"
-                  value={newPatient.doctor}
+                  id="phone"
+                  name="phone"
+                  value={newPatient.phone}
                   onChange={handleNewPatientChange}
                   className="col-span-3 h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md shadow-sm"
-                  placeholder="Dr. John Doe"
+                  placeholder="+84 123 456 789"
                 />
               </div>
 
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="room" className="text-right font-medium text-gray-700">
-                  Phòng
+                <Label htmlFor="email" className="text-right font-medium text-gray-700">
+                  Email
                 </Label>
                 <Input
-                  id="room"
-                  name="room"
-                  value={newPatient.room}
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={newPatient.email}
                   onChange={handleNewPatientChange}
                   className="col-span-3 h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md shadow-sm"
-                  placeholder="Single - 101"
+                  placeholder="patient@example.com"
                 />
               </div>
 
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="status" className="text-right font-medium text-gray-700">
-                  Trạng thái
+                <Label htmlFor="address" className="text-right font-medium text-gray-700">
+                  Địa chỉ
                 </Label>
-                <div className="col-span-3">
-                  <Select
-                    name="status"
-                    value={newPatient.status}
-                    onValueChange={(value) => setNewPatient(prev => ({ ...prev, status: value }))}
-                  >
-                    <SelectTrigger className="h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md shadow-sm">
-                      <SelectValue placeholder="Chọn trạng thái" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Active">Active</SelectItem>
-                      <SelectItem value="New Patient">New Patient</SelectItem>
-                      <SelectItem value="Inactive">Inactive</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                <Input
+                  id="address"
+                  name="address"
+                  value={newPatient.address}
+                  onChange={handleNewPatientChange}
+                  className="col-span-3 h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md shadow-sm"
+                  placeholder="123 Đường ABC, Quận XYZ, TP. HCM"
+                />
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="blood_type" className="text-right font-medium text-gray-700">
+                  Nhóm máu
+                </Label>
+                <Input
+                  id="blood_type"
+                  name="blood_type"
+                  value={newPatient.blood_type}
+                  onChange={handleNewPatientChange}
+                  className="col-span-3 h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md shadow-sm"
+                  placeholder="A+, B-, O+, AB+..."
+                />
               </div>
             </div>
           </div>

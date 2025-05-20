@@ -44,8 +44,6 @@ export default function Loading() {
           <div className="flex flex-col md:flex-row justify-between mb-4 gap-4">
             <div className="flex flex-col md:flex-row gap-4 md:items-center">
               <Skeleton className="h-10 w-full md:w-[300px]" />
-              <Skeleton className="h-10 w-full md:w-[150px]" />
-              <Skeleton className="h-10 w-full md:w-[150px]" />
             </div>
             <Skeleton className="h-10 w-full md:w-[150px]" />
           </div>
@@ -57,13 +55,8 @@ export default function Loading() {
                 <table className="w-full">
                   <thead>
                     <tr className="bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      <th className="px-6 py-3">Patient</th>
-                      <th className="px-6 py-3">Appointment ID</th>
-                      <th className="px-6 py-3">Date</th>
-                      <th className="px-6 py-3">Time</th>
-                      <th className="px-6 py-3">Doctor</th>
-                      <th className="px-6 py-3 hidden md:table-cell">Treatment</th>
-                      <th className="px-6 py-3">Status</th>
+                      <th className="px-6 py-3">Department ID</th>
+                      <th className="px-6 py-3">Department Name</th>
                       <th className="px-6 py-3 text-right">Actions</th>
                     </tr>
                   </thead>
@@ -73,28 +66,10 @@ export default function Loading() {
                       .map((_, i) => (
                         <tr key={i}>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <Skeleton className="h-8 w-8 rounded-full mr-3" />
-                              <Skeleton className="h-4 w-24" />
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <Skeleton className="h-4 w-16" />
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <Skeleton className="h-4 w-20" />
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <Skeleton className="h-4 w-16" />
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
                             <Skeleton className="h-4 w-24" />
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap hidden md:table-cell">
-                            <Skeleton className="h-4 w-32" />
-                          </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <Skeleton className="h-6 w-20 rounded-full" />
+                            <Skeleton className="h-4 w-40" />
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right">
                             <div className="flex justify-end space-x-2">

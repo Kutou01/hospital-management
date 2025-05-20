@@ -26,6 +26,13 @@ export const doctorsApi = {
 
   // Thêm bác sĩ mới
   addDoctor: async (doctor: any) => {
+    // Generate a unique doctor_id if not provided
+    if (!doctor.doctor_id) {
+      // Format: DOCXXXXXX where X is a random digit (must be exactly 6 digits)
+      const randomDigits = Math.floor(100000 + Math.random() * 900000); // Generates a 6-digit number
+      doctor.doctor_id = 'DOC' + randomDigits;
+    }
+
     const { data, error } = await supabase
       .from('doctors')
       .insert([doctor])
@@ -33,10 +40,10 @@ export const doctorsApi = {
 
     if (error) {
       console.error('Error adding doctor:', error);
-      return null;
+      return { data: null, error };
     }
 
-    return data?.[0] || null;
+    return { data: data?.[0] || null, error: null };
   },
 
   // Cập nhật thông tin bác sĩ
@@ -49,10 +56,10 @@ export const doctorsApi = {
 
     if (error) {
       console.error('Error updating doctor:', error);
-      return null;
+      return { data: null, error };
     }
 
-    return data?.[0] || null;
+    return { data: data?.[0] || null, error: null };
   },
 
   // Xóa bác sĩ
@@ -90,17 +97,51 @@ export const patientsApi = {
 
   // Thêm bệnh nhân mới
   addPatient: async (patient: any) => {
-    const { data, error } = await supabase
-      .from('patients')
-      .insert([patient])
-      .select();
+    try {
+      // Get the latest patient ID to generate a new one
+      const { data: latestPatient, error: fetchError } = await supabase
+        .from('patients')
+        .select('patient_id')
+        .order('patient_id', { ascending: false })
+        .limit(1);
 
-    if (error) {
-      console.error('Error adding patient:', error);
+      if (fetchError) {
+        console.error('Error fetching latest patient ID:', fetchError);
+        return null;
+      }
+
+      // Generate a new patient_id
+      let newId = 'PAT000001'; // Default if no patients exist
+
+      if (latestPatient && latestPatient.length > 0) {
+        const lastId = latestPatient[0].patient_id;
+        const numericPart = parseInt(lastId.substring(3), 10);
+        const newNumericPart = numericPart + 1;
+        newId = `PAT${newNumericPart.toString().padStart(6, '0')}`;
+      }
+
+      // Add the ID to the patient object
+      const patientWithId = {
+        ...patient,
+        patient_id: newId
+      };
+
+      // Insert the patient with the generated ID
+      const { data, error } = await supabase
+        .from('patients')
+        .insert([patientWithId])
+        .select();
+
+      if (error) {
+        console.error('Error adding patient:', error);
+        return null;
+      }
+
+      return data?.[0] || null;
+    } catch (error) {
+      console.error('Exception adding patient:', error);
       return null;
     }
-
-    return data?.[0] || null;
   },
 
   // Cập nhật thông tin bệnh nhân
@@ -108,7 +149,7 @@ export const patientsApi = {
     const { data, error } = await supabase
       .from('patients')
       .update(updates)
-      .eq('patientid', id)
+      .eq('patient_id', id)
       .select();
 
     if (error) {
@@ -124,7 +165,7 @@ export const patientsApi = {
     const { error } = await supabase
       .from('patients')
       .delete()
-      .eq('patientid', id);
+      .eq('patient_id', id);
 
     if (error) {
       console.error('Error deleting patient:', error);
@@ -154,17 +195,51 @@ export const appointmentsApi = {
 
   // Thêm cuộc hẹn mới
   addAppointment: async (appointment: any) => {
-    const { data, error } = await supabase
-      .from('appointments')
-      .insert([appointment])
-      .select();
+    try {
+      // Get the latest appointment ID to generate a new one
+      const { data: latestAppointment, error: fetchError } = await supabase
+        .from('appointments')
+        .select('appointment_id')
+        .order('appointment_id', { ascending: false })
+        .limit(1);
 
-    if (error) {
-      console.error('Error adding appointment:', error);
+      if (fetchError) {
+        console.error('Error fetching latest appointment ID:', fetchError);
+        return null;
+      }
+
+      // Generate a new appointment_id
+      let newId = 'APT000001'; // Default if no appointments exist
+
+      if (latestAppointment && latestAppointment.length > 0) {
+        const lastId = latestAppointment[0].appointment_id;
+        const numericPart = parseInt(lastId.substring(3), 10);
+        const newNumericPart = numericPart + 1;
+        newId = `APT${newNumericPart.toString().padStart(6, '0')}`;
+      }
+
+      // Add the ID to the appointment object
+      const appointmentWithId = {
+        ...appointment,
+        appointment_id: newId
+      };
+
+      // Insert the appointment with the generated ID
+      const { data, error } = await supabase
+        .from('appointments')
+        .insert([appointmentWithId])
+        .select();
+
+      if (error) {
+        console.error('Error adding appointment:', error);
+        return null;
+      }
+
+      return data?.[0] || null;
+    } catch (error) {
+      console.error('Exception adding appointment:', error);
       return null;
     }
-
-    return data?.[0] || null;
   },
 
   // Cập nhật thông tin cuộc hẹn
@@ -218,21 +293,55 @@ export const departmentsApi = {
 
   // Thêm phòng ban mới
   addDepartment: async (department: any) => {
-    const { data, error } = await supabase
-      .from('departments')
-      .insert([department])
-      .select();
+    try {
+      // Get the latest department ID to generate a new one
+      const { data: latestDepartment, error: fetchError } = await supabase
+        .from('departments')
+        .select('department_id')
+        .order('department_id', { ascending: false })
+        .limit(1);
 
-    if (error) {
-      console.error('Error adding department:', error);
+      if (fetchError) {
+        console.error('Error fetching latest department ID:', fetchError);
+        return null;
+      }
+
+      // Generate a new department_id
+      let newId = 'DEP000001'; // Default if no departments exist
+
+      if (latestDepartment && latestDepartment.length > 0) {
+        const lastId = latestDepartment[0].department_id;
+        const numericPart = parseInt(lastId.substring(3), 10);
+        const newNumericPart = numericPart + 1;
+        newId = `DEP${newNumericPart.toString().padStart(6, '0')}`;
+      }
+
+      // Add the ID to the department object
+      const departmentWithId = {
+        ...department,
+        department_id: newId
+      };
+
+      // Insert the department with the generated ID
+      const { data, error } = await supabase
+        .from('departments')
+        .insert([departmentWithId])
+        .select();
+
+      if (error) {
+        console.error('Error adding department:', error);
+        return null;
+      }
+
+      return data?.[0] || null;
+    } catch (error) {
+      console.error('Exception adding department:', error);
       return null;
     }
-
-    return data?.[0] || null;
   },
 
   // Cập nhật thông tin phòng ban
-  updateDepartment: async (id: number, updates: any) => {
+  updateDepartment: async (id: string, updates: any) => {
     const { data, error } = await supabase
       .from('departments')
       .update(updates)
@@ -248,7 +357,7 @@ export const departmentsApi = {
   },
 
   // Xóa phòng ban
-  deleteDepartment: async (id: number) => {
+  deleteDepartment: async (id: string) => {
     const { error } = await supabase
       .from('departments')
       .delete()
@@ -282,21 +391,55 @@ export const roomsApi = {
 
   // Thêm phòng mới
   addRoom: async (room: any) => {
-    const { data, error } = await supabase
-      .from('rooms')
-      .insert([room])
-      .select();
+    try {
+      // Get the latest room ID to generate a new one
+      const { data: latestRoom, error: fetchError } = await supabase
+        .from('rooms')
+        .select('room_id')
+        .order('room_id', { ascending: false })
+        .limit(1);
 
-    if (error) {
-      console.error('Error adding room:', error);
+      if (fetchError) {
+        console.error('Error fetching latest room ID:', fetchError);
+        return null;
+      }
+
+      // Generate a new room_id
+      let newId = 'ROM000001'; // Default if no rooms exist
+
+      if (latestRoom && latestRoom.length > 0) {
+        const lastId = latestRoom[0].room_id;
+        const numericPart = parseInt(lastId.substring(3), 10);
+        const newNumericPart = numericPart + 1;
+        newId = `ROM${newNumericPart.toString().padStart(6, '0')}`;
+      }
+
+      // Add the ID to the room object
+      const roomWithId = {
+        ...room,
+        room_id: newId
+      };
+
+      // Insert the room with the generated ID
+      const { data, error } = await supabase
+        .from('rooms')
+        .insert([roomWithId])
+        .select();
+
+      if (error) {
+        console.error('Error adding room:', error);
+        return null;
+      }
+
+      return data?.[0] || null;
+    } catch (error) {
+      console.error('Exception adding room:', error);
       return null;
     }
-
-    return data?.[0] || null;
   },
 
   // Cập nhật thông tin phòng
-  updateRoom: async (id: number, updates: any) => {
+  updateRoom: async (id: string, updates: any) => {
     const { data, error } = await supabase
       .from('rooms')
       .update(updates)
@@ -312,7 +455,7 @@ export const roomsApi = {
   },
 
   // Xóa phòng
-  deleteRoom: async (id: number) => {
+  deleteRoom: async (id: string) => {
     const { error } = await supabase
       .from('rooms')
       .delete()

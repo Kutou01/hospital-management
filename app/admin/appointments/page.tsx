@@ -491,7 +491,7 @@ export default function AppointmentsPage() {
                           return appointment.status === statusFilter;
                         })
                         .map((appointment) => (
-                      <tr key={appointment.id} className="hover:bg-gray-50">
+                      <tr key={appointment.appointment_id || appointment.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             <Avatar className="h-8 w-8 mr-3">

@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { doctorsApi } from "@/lib/supabase"
+import { doctorsApi, departmentsApi } from "@/lib/supabase"
 import ClientOnly from "@/components/client-only"
 import { SidebarItem, Menu } from "@/components/shared-components"
 
@@ -181,6 +181,7 @@ const doctorsData = [
 
 export default function DoctorsPage() {
   const [doctors, setDoctors] = useState<any[]>([])
+  const [departments, setDepartments] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [specializationFilter, setSpecializationFilter] = useState("All Specializations")
   const [statusFilter, setStatusFilter] = useState("All Status")
@@ -207,15 +208,20 @@ export default function DoctorsPage() {
     email: ""
   })
 
-  // Lấy dữ liệu bác sĩ từ Supabase khi component được tải
+  // Lấy dữ liệu bác sĩ và phòng ban từ Supabase khi component được tải
   useEffect(() => {
-    const fetchDoctors = async () => {
+    const fetchData = async () => {
       setIsLoading(true);
       try {
-        const data = await doctorsApi.getAllDoctors();
-        setDoctors(data);
+        // Lấy dữ liệu bác sĩ
+        const doctorsData = await doctorsApi.getAllDoctors();
+        setDoctors(doctorsData);
+
+        // Lấy dữ liệu phòng ban
+        const departmentsData = await departmentsApi.getAllDepartments();
+        setDepartments(departmentsData);
       } catch (error) {
-        console.error('Error fetching doctors:', error);
+        console.error('Error fetching data:', error);
         // Sử dụng dữ liệu mẫu nếu có lỗi khi lấy dữ liệu từ Supabase
         setDoctors(doctorsData);
       } finally {
@@ -223,7 +229,7 @@ export default function DoctorsPage() {
       }
     };
 
-    fetchDoctors();
+    fetchData();
   }, []);
 
   const doctorsPerPage = 10
@@ -299,7 +305,7 @@ export default function DoctorsPage() {
           full_name: doctorToEdit.full_name,
           specialty: doctorToEdit.specialty,
           qualification: doctorToEdit.qualification,
-          department: doctorToEdit.department,
+          department_id: doctorToEdit.department_id,
           license_number: doctorToEdit.license_number,
           phone: doctorToEdit.phone,
           email: doctorToEdit.email,
@@ -583,7 +589,9 @@ export default function DoctorsPage() {
                           {typeof doctor.work_schedule === 'string' ? 'Mon-Fri, 09:00-17:00' : 'Mon-Fri, 09:00-17:00'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
-                          {doctor.department}
+                          {doctor.department?.department_name ||
+                           departments.find(dept => dept.department_id === doctor.department_id)?.department_name ||
+                           'No Department'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">{doctor.license_number}</td>
                         <td className="px-6 py-4 whitespace-nowrap">{renderStatusBadge(doctor.gender)}</td>
@@ -764,16 +772,24 @@ export default function DoctorsPage() {
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="department" className="text-right">
+                <Label htmlFor="department_id" className="text-right">
                   Department
                 </Label>
-                <Input
-                  id="department"
-                  name="department"
-                  value={doctorToEdit.department}
-                  onChange={handleEditChange}
-                  className="col-span-3"
-                />
+                <Select
+                  value={String(doctorToEdit.department_id)}
+                  onValueChange={(value) => setDoctorToEdit({ ...doctorToEdit, department_id: parseInt(value) })}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map(department => (
+                      <SelectItem key={department.department_id} value={String(department.department_id)}>
+                        {department.department_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="license_number" className="text-right">
@@ -905,17 +921,24 @@ export default function DoctorsPage() {
 
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="department_id" className="text-right">
-                Department ID
+                Department
               </Label>
-              <Input
-                id="department_id"
+              <Select
                 name="department_id"
-                type="number"
-                value={newDoctor.department_id}
-                onChange={handleNewDoctorChange}
-                className="col-span-3"
-                placeholder="1"
-              />
+                value={String(newDoctor.department_id)}
+                onValueChange={(value) => setNewDoctor(prev => ({ ...prev, department_id: parseInt(value) }))}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Chọn phòng ban" />
+                </SelectTrigger>
+                <SelectContent>
+                  {departments.map(department => (
+                    <SelectItem key={department.department_id} value={String(department.department_id)}>
+                      {department.department_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
 

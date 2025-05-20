@@ -13,7 +13,7 @@ export const doctorsApi = {
   getAllDoctors: async () => {
     const { data, error } = await supabase
       .from('doctors')
-      .select('*')
+      .select('*, departments(*)')
       .order('full_name');
 
     if (error) {
@@ -140,7 +140,7 @@ export const appointmentsApi = {
   // Lấy tất cả cuộc hẹn
   getAllAppointments: async () => {
     const { data, error } = await supabase
-      .from('appointment')
+      .from('appointments')
       .select('*, patients!inner(*), doctors!inner(*)')
       .order('appointment_date');
 
@@ -155,7 +155,7 @@ export const appointmentsApi = {
   // Thêm cuộc hẹn mới
   addAppointment: async (appointment: any) => {
     const { data, error } = await supabase
-      .from('appointment')
+      .from('appointments')
       .insert([appointment])
       .select();
 
@@ -170,7 +170,7 @@ export const appointmentsApi = {
   // Cập nhật thông tin cuộc hẹn
   updateAppointment: async (id: string, updates: any) => {
     const { data, error } = await supabase
-      .from('appointment')
+      .from('appointments')
       .update(updates)
       .eq('appointment_id', id)
       .select();
@@ -186,12 +186,140 @@ export const appointmentsApi = {
   // Xóa cuộc hẹn
   deleteAppointment: async (id: string) => {
     const { error } = await supabase
-      .from('appointment')
+      .from('appointments')
       .delete()
       .eq('appointment_id', id);
 
     if (error) {
       console.error('Error deleting appointment:', error);
+      return false;
+    }
+
+    return true;
+  }
+};
+
+// Các hàm tương tác với bảng department
+export const departmentsApi = {
+  // Lấy tất cả phòng ban
+  getAllDepartments: async () => {
+    const { data, error } = await supabase
+      .from('departments')
+      .select('*')
+      .order('department_name');
+
+    if (error) {
+      console.error('Error fetching departments:', error);
+      return [];
+    }
+
+    return data || [];
+  },
+
+  // Thêm phòng ban mới
+  addDepartment: async (department: any) => {
+    const { data, error } = await supabase
+      .from('departments')
+      .insert([department])
+      .select();
+
+    if (error) {
+      console.error('Error adding department:', error);
+      return null;
+    }
+
+    return data?.[0] || null;
+  },
+
+  // Cập nhật thông tin phòng ban
+  updateDepartment: async (id: number, updates: any) => {
+    const { data, error } = await supabase
+      .from('departments')
+      .update(updates)
+      .eq('department_id', id)
+      .select();
+
+    if (error) {
+      console.error('Error updating department:', error);
+      return null;
+    }
+
+    return data?.[0] || null;
+  },
+
+  // Xóa phòng ban
+  deleteDepartment: async (id: number) => {
+    const { error } = await supabase
+      .from('departments')
+      .delete()
+      .eq('department_id', id);
+
+    if (error) {
+      console.error('Error deleting department:', error);
+      return false;
+    }
+
+    return true;
+  }
+};
+
+// Các hàm tương tác với bảng rooms
+export const roomsApi = {
+  // Lấy tất cả phòng
+  getAllRooms: async () => {
+    const { data, error } = await supabase
+      .from('rooms')
+      .select('*, departments(*)')
+      .order('room_number');
+
+    if (error) {
+      console.error('Error fetching rooms:', error);
+      return [];
+    }
+
+    return data || [];
+  },
+
+  // Thêm phòng mới
+  addRoom: async (room: any) => {
+    const { data, error } = await supabase
+      .from('rooms')
+      .insert([room])
+      .select();
+
+    if (error) {
+      console.error('Error adding room:', error);
+      return null;
+    }
+
+    return data?.[0] || null;
+  },
+
+  // Cập nhật thông tin phòng
+  updateRoom: async (id: number, updates: any) => {
+    const { data, error } = await supabase
+      .from('rooms')
+      .update(updates)
+      .eq('room_id', id)
+      .select();
+
+    if (error) {
+      console.error('Error updating room:', error);
+      return null;
+    }
+
+    return data?.[0] || null;
+  },
+
+  // Xóa phòng
+  deleteRoom: async (id: number) => {
+    const { error } = await supabase
+      .from('rooms')
+      .delete()
+      .eq('room_id', id);
+
+    if (error) {
+      console.error('Error deleting room:', error);
       return false;
     }
 

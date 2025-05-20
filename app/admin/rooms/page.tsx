@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import {
   Search,
@@ -25,8 +25,10 @@ import {
   BedDouble,
   CheckCircle2,
   XCircle,
+  Menu,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { roomsApi, departmentsApi } from "@/lib/supabase"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -53,8 +55,10 @@ export default function RoomsPage() {
   const [roomToDelete, setRoomToDelete] = useState<string | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [roomToEdit, setRoomToEdit] = useState<any | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [departments, setDepartments] = useState<any[]>([])
 
-  // Sample rooms data
+  // Sample rooms data for fallback
   const roomsData = [
     { id: "RM101", number: "101", type: "Ward", department: "General Medicine", capacity: 4, status: "Occupied", equipment: "Basic" },
     { id: "RM102", number: "102", type: "Ward", department: "General Medicine", capacity: 4, status: "Available", equipment: "Basic" },
@@ -70,15 +74,62 @@ export default function RoomsPage() {
     { id: "RM303", number: "303", type: "Examination", department: "Neurology", capacity: 0, status: "Available", equipment: "Advanced" },
   ]
 
-  const [rooms, setRooms] = useState(roomsData)
+  const [rooms, setRooms] = useState<any[]>([])
   const [newRoom, setNewRoom] = useState({
     room_id: 0,
     room_number: "",
     department_id: 0,
     room_type: "Ward",
     capacity: 0,
-    status: "Available"
+    status: "Available",
+    equipment: "Basic"
   })
+
+  // Lấy dữ liệu phòng và phòng ban từ Supabase khi component được tải
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        // Lấy dữ liệu phòng
+        const roomsData = await roomsApi.getAllRooms();
+
+        // Lấy dữ liệu phòng ban
+        const departmentsData = await departmentsApi.getAllDepartments();
+        setDepartments(departmentsData);
+
+        // Transform data to match the UI format
+        const formattedRooms = roomsData.map(room => {
+          // Find department name
+          const department = departmentsData.find(
+            dept => dept.department_id === room.department_id
+          );
+
+          return {
+            id: `RM${String(room.room_id).padStart(3, '0')}`,
+            number: room.room_number,
+            type: room.room_type,
+            department: department ? department.department_name : `Department ${room.department_id}`,
+            capacity: room.capacity,
+            status: room.status,
+            equipment: room.equipment || "Basic",
+            // Keep original data
+            room_id: room.room_id,
+            department_id: room.department_id
+          };
+        });
+
+        setRooms(formattedRooms);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        // Sử dụng dữ liệu mẫu nếu có lỗi khi lấy dữ liệu từ Supabase
+        setRooms(roomsData);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const roomsPerPage = 10
   const totalPages = Math.ceil(rooms.length / roomsPerPage)
@@ -121,27 +172,71 @@ export default function RoomsPage() {
     })
   }
 
-  const handleAddNewRoom = () => {
-    const roomWithId = {
-      id: `RM${String(rooms.length + 1).padStart(3, '0')}`,
-      room_id: newRoom.room_id || Math.floor(Math.random() * 10000),
-      number: newRoom.room_number,
-      type: newRoom.room_type,
-      department: `Department ${newRoom.department_id}`,
-      capacity: newRoom.capacity,
-      status: newRoom.status,
-      equipment: "Basic" // Keeping this for display compatibility
+  const handleAddNewRoom = async () => {
+    try {
+      // Prepare room data for Supabase
+      const roomData = {
+        room_number: newRoom.room_number,
+        room_type: newRoom.room_type,
+        department_id: newRoom.department_id,
+        capacity: newRoom.capacity,
+        status: newRoom.status,
+        equipment: newRoom.equipment
+      };
+
+      // Add room to database
+      const newRoomData = await roomsApi.addRoom(roomData);
+
+      if (newRoomData) {
+        // Find department name
+        const department = departments.find(
+          dept => dept.department_id === newRoomData.department_id
+        );
+
+        // Format for UI display
+        const roomWithId = {
+          id: `RM${String(newRoomData.room_id).padStart(3, '0')}`,
+          room_id: newRoomData.room_id,
+          number: newRoomData.room_number,
+          type: newRoomData.room_type,
+          department: department ? department.department_name : `Department ${newRoomData.department_id}`,
+          capacity: newRoomData.capacity,
+          status: newRoomData.status,
+          equipment: newRoomData.equipment || "Basic",
+          department_id: newRoomData.department_id
+        };
+
+        // Update state with new room
+        setRooms([...rooms, roomWithId]);
+        console.log('Room added successfully!');
+      }
+    } catch (error) {
+      console.error('Error adding room:', error);
+      // Fallback to client-side only update if API fails
+      const roomWithId = {
+        id: `RM${String(rooms.length + 1).padStart(3, '0')}`,
+        room_id: newRoom.room_id || Math.floor(Math.random() * 10000),
+        number: newRoom.room_number,
+        type: newRoom.room_type,
+        department: `Department ${newRoom.department_id}`,
+        capacity: newRoom.capacity,
+        status: newRoom.status,
+        equipment: newRoom.equipment
+      };
+      setRooms([...rooms, roomWithId]);
+    } finally {
+      // Reset form
+      setNewRoom({
+        room_id: 0,
+        room_number: "",
+        department_id: 0,
+        room_type: "Ward",
+        capacity: 0,
+        status: "Available",
+        equipment: "Basic"
+      });
+      setIsNewRoomDialogOpen(false);
     }
-    setRooms([...rooms, roomWithId])
-    setNewRoom({
-      room_id: 0,
-      room_number: "",
-      department_id: 0,
-      room_type: "Ward",
-      capacity: 0,
-      status: "Available"
-    })
-    setIsNewRoomDialogOpen(false)
   }
 
   // Handle delete room
@@ -150,11 +245,30 @@ export default function RoomsPage() {
     setIsDeleteDialogOpen(true)
   }
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (roomToDelete) {
-      setRooms(rooms.filter((room) => room.id !== roomToDelete))
-      setRoomToDelete(null)
-      setIsDeleteDialogOpen(false)
+      try {
+        // Find the room to delete
+        const roomToDeleteObj = rooms.find(room => room.id === roomToDelete);
+
+        if (roomToDeleteObj && roomToDeleteObj.room_id) {
+          // Delete from database
+          const success = await roomsApi.deleteRoom(roomToDeleteObj.room_id);
+
+          if (success) {
+            console.log('Room deleted successfully from database');
+          } else {
+            console.error('Failed to delete room from database');
+          }
+        }
+      } catch (error) {
+        console.error('Error deleting room:', error);
+      } finally {
+        // Update UI regardless of API success (optimistic UI update)
+        setRooms(rooms.filter((room) => room.id !== roomToDelete));
+        setRoomToDelete(null);
+        setIsDeleteDialogOpen(false);
+      }
     }
   }
 
@@ -168,7 +282,7 @@ export default function RoomsPage() {
     const { name, value } = e.target
     setRoomToEdit({
       ...roomToEdit,
-      [name]: name === 'capacity' ? parseInt(value) : value,
+      [name]: name === 'capacity' || name === 'department_id' ? parseInt(value) : value,
     })
   }
 
@@ -179,12 +293,38 @@ export default function RoomsPage() {
     })
   }
 
-  const handleSaveEdit = () => {
-    setRooms(
-      rooms.map((room) => (room.id === roomToEdit.id ? roomToEdit : room))
-    )
-    setRoomToEdit(null)
-    setIsEditDialogOpen(false)
+  const handleSaveEdit = async () => {
+    try {
+      if (roomToEdit && roomToEdit.room_id) {
+        // Prepare room data for Supabase
+        const roomData = {
+          room_number: roomToEdit.number,
+          room_type: roomToEdit.type,
+          department_id: roomToEdit.department_id,
+          capacity: roomToEdit.capacity,
+          status: roomToEdit.status,
+          equipment: roomToEdit.equipment
+        };
+
+        // Update room in database
+        const updatedRoom = await roomsApi.updateRoom(roomToEdit.room_id, roomData);
+
+        if (updatedRoom) {
+          console.log('Room updated successfully in database');
+        } else {
+          console.error('Failed to update room in database');
+        }
+      }
+    } catch (error) {
+      console.error('Error updating room:', error);
+    } finally {
+      // Update UI regardless of API success (optimistic UI update)
+      setRooms(
+        rooms.map((room) => (room.id === roomToEdit.id ? roomToEdit : room))
+      );
+      setRoomToEdit(null);
+      setIsEditDialogOpen(false);
+    }
   }
 
   // Filter rooms based on search term and filters
@@ -248,7 +388,7 @@ export default function RoomsPage() {
         <header className="bg-white border-b border-gray-200 p-4 flex justify-between items-center">
           <div className="flex items-center">
             <Button variant="ghost" size="icon" className="md:hidden mr-2">
-              <Menu size={20} />
+              <MenuIcon size={20} />
             </Button>
             <h1 className="text-xl font-bold">Rooms</h1>
           </div>
@@ -316,51 +456,66 @@ export default function RoomsPage() {
           {/* Rooms Table */}
           <Card>
             <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      <th className="px-6 py-3">Room ID</th>
-                      <th className="px-6 py-3">Room Number</th>
-                      <th className="px-6 py-3">Type</th>
-                      <th className="px-6 py-3">Department</th>
-                      <th className="px-6 py-3">Capacity</th>
-                      <th className="px-6 py-3">Status</th>
-                      <th className="px-6 py-3">Equipment</th>
-                      <th className="px-6 py-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {currentRooms.map((room) => (
-                      <tr key={room.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="font-medium">{room.id}</span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="font-medium">{room.number}</span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">{room.type}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">{room.department}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {room.capacity > 0 ? room.capacity : "N/A"}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {getStatusBadge(room.status)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">{room.equipment}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <Button variant="ghost" size="icon" onClick={() => handleEditClick(room)}>
-                            <Edit size={16} />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(room.id)}>
-                            <Trash2 size={16} />
-                          </Button>
-                        </td>
+              {isLoading ? (
+                <div className="flex justify-center items-center p-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <span className="ml-2">Loading rooms...</span>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3">Room ID</th>
+                        <th className="px-6 py-3">Room Number</th>
+                        <th className="px-6 py-3">Type</th>
+                        <th className="px-6 py-3">Department</th>
+                        <th className="px-6 py-3">Capacity</th>
+                        <th className="px-6 py-3">Status</th>
+                        <th className="px-6 py-3">Equipment</th>
+                        <th className="px-6 py-3 text-right">Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {currentRooms.length === 0 ? (
+                        <tr>
+                          <td colSpan={8} className="px-6 py-4 text-center text-gray-500">
+                            No rooms found. Add a new room to get started.
+                          </td>
+                        </tr>
+                      ) : (
+                        currentRooms.map((room) => (
+                          <tr key={room.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className="font-medium">{room.id}</span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className="font-medium">{room.number}</span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">{room.type}</td>
+                            <td className="px-6 py-4 whitespace-nowrap">{room.department}</td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              {room.capacity > 0 ? room.capacity : "N/A"}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              {getStatusBadge(room.status)}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">{room.equipment}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right">
+                              <Button variant="ghost" size="icon" onClick={() => handleEditClick(room)}>
+                                <Edit size={16} />
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(room.id)}>
+                                <Trash2 size={16} />
+                              </Button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -453,16 +608,23 @@ export default function RoomsPage() {
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="department_id" className="text-right">
-                Department ID
+                Department
               </Label>
-              <Input
-                id="department_id"
-                name="department_id"
-                type="number"
-                value={newRoom.department_id}
-                onChange={handleNewRoomChange}
-                className="col-span-3"
-              />
+              <Select
+                value={newRoom.department_id?.toString() || ""}
+                onValueChange={(value) => handleNewRoomSelectChange("department_id", parseInt(value))}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent>
+                  {departments.map((dept) => (
+                    <SelectItem key={dept.department_id} value={dept.department_id.toString()}>
+                      {dept.department_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="capacity" className="text-right">
@@ -566,16 +728,24 @@ export default function RoomsPage() {
                 </Select>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-department" className="text-right">
+                <Label htmlFor="edit-department_id" className="text-right">
                   Department
                 </Label>
-                <Input
-                  id="edit-department"
-                  name="department"
-                  value={roomToEdit.department}
-                  onChange={handleEditChange}
-                  className="col-span-3"
-                />
+                <Select
+                  value={roomToEdit.department_id?.toString() || ""}
+                  onValueChange={(value) => handleEditSelectChange("department_id", parseInt(value))}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept.department_id} value={dept.department_id.toString()}>
+                        {dept.department_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="edit-capacity" className="text-right">
@@ -660,8 +830,8 @@ function SidebarItem({ icon, label, href, active = false }) {
   )
 }
 
-// Menu component for mobile
-function Menu({ size }) {
+// MenuIcon component for mobile
+function MenuIcon({ size }) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"

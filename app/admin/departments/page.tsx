@@ -2,7 +2,9 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { departmentsApi } from "@/lib/supabase"
+import ClientOnly from "@/components/client-only"
 import Link from "next/link"
 import {
   Search,
@@ -49,8 +51,9 @@ export default function DepartmentsPage() {
   const [departmentToDelete, setDepartmentToDelete] = useState<string | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [departmentToEdit, setDepartmentToEdit] = useState<any | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
-  // Sample departments data
+  // Sample departments data for fallback
   const departmentsData = [
     { id: "DEP001", name: "Cardiology", head: "Dr. John Smith", staff_count: 15, rooms: 8, description: "Heart and cardiovascular system" },
     { id: "DEP002", name: "Neurology", head: "Dr. Sarah Johnson", staff_count: 12, rooms: 6, description: "Brain and nervous system" },
@@ -64,7 +67,42 @@ export default function DepartmentsPage() {
     { id: "DEP010", name: "Radiology", head: "Dr. Jennifer Lee", staff_count: 15, rooms: 7, description: "Medical imaging" },
   ]
 
-  const [departments, setDepartments] = useState(departmentsData)
+  const [departments, setDepartments] = useState<any[]>([])
+
+  // Lấy dữ liệu phòng ban từ Supabase khi component được tải
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      setIsLoading(true);
+      try {
+        const data = await departmentsApi.getAllDepartments();
+
+        // Transform data to match the UI format if needed
+        const formattedData = data.map(dept => ({
+          id: `DEP${String(dept.department_id).padStart(3, '0')}`,
+          name: dept.department_name,
+          head: dept.head_doctor,
+          staff_count: 0, // This might need to be calculated or fetched
+          rooms: 0, // This might need to be calculated or fetched
+          description: dept.description || '',
+          // Keep original data
+          department_id: dept.department_id,
+          department_name: dept.department_name,
+          head_doctor: dept.head_doctor,
+          location: dept.location
+        }));
+
+        setDepartments(formattedData);
+      } catch (error) {
+        console.error('Error fetching departments:', error);
+        // Sử dụng dữ liệu mẫu nếu có lỗi khi lấy dữ liệu từ Supabase
+        setDepartments(departmentsData);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDepartments();
+  }, []);
   const [newDepartment, setNewDepartment] = useState({
     department_id: 0,
     department_name: "",
@@ -103,30 +141,52 @@ export default function DepartmentsPage() {
     })
   }
 
-  const handleAddNewDepartment = () => {
-    const newId = `DEP${String(departments.length + 1).padStart(3, '0')}`
-    const departmentWithId = {
-      id: newId,
-      name: newDepartment.department_name,
-      head: newDepartment.head_doctor,
-      staff_count: 0,
-      rooms: 0,
-      description: newDepartment.description,
-      // Store the original data for database compatibility
-      department_id: newDepartment.department_id || departments.length + 1,
-      department_name: newDepartment.department_name,
-      head_doctor: newDepartment.head_doctor,
-      location: newDepartment.location
+  const handleAddNewDepartment = async () => {
+    try {
+      // Prepare department data for API
+      const departmentData = {
+        department_name: newDepartment.department_name,
+        head_doctor: newDepartment.head_doctor,
+        location: newDepartment.location,
+        description: newDepartment.description
+      };
+
+      // Add department to database
+      const newDepartmentData = await departmentsApi.addDepartment(departmentData);
+
+      if (newDepartmentData) {
+        // Format for UI display
+        const departmentWithId = {
+          id: `DEP${String(newDepartmentData.department_id).padStart(3, '0')}`,
+          name: newDepartmentData.department_name,
+          head: newDepartmentData.head_doctor,
+          staff_count: 0,
+          rooms: 0,
+          description: newDepartmentData.description || '',
+          // Store the original data
+          department_id: newDepartmentData.department_id,
+          department_name: newDepartmentData.department_name,
+          head_doctor: newDepartmentData.head_doctor,
+          location: newDepartmentData.location
+        };
+
+        // Update state with new department
+        setDepartments([...departments, departmentWithId]);
+        console.log('Department added successfully!');
+      }
+    } catch (error) {
+      console.error('Error adding department:', error);
     }
-    setDepartments([...departments, departmentWithId])
+
+    // Reset form and close dialog
     setNewDepartment({
       department_id: 0,
       department_name: "",
       head_doctor: "",
       location: "",
       description: ""
-    })
-    setIsNewDepartmentDialogOpen(false)
+    });
+    setIsNewDepartmentDialogOpen(false);
   }
 
   // Handle delete department
@@ -135,11 +195,29 @@ export default function DepartmentsPage() {
     setIsDeleteDialogOpen(true)
   }
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (departmentToDelete) {
-      setDepartments(departments.filter((dept) => dept.id !== departmentToDelete))
-      setDepartmentToDelete(null)
-      setIsDeleteDialogOpen(false)
+      try {
+        // Find the department to get its ID
+        const departmentToRemove = departments.find(dept => dept.id === departmentToDelete);
+
+        if (departmentToRemove) {
+          // Delete from database
+          const success = await departmentsApi.deleteDepartment(departmentToRemove.department_id);
+
+          if (success) {
+            // Update state if deletion was successful
+            setDepartments(departments.filter((dept) => dept.id !== departmentToDelete));
+            console.log('Department deleted successfully!');
+          }
+        }
+      } catch (error) {
+        console.error('Error deleting department:', error);
+      }
+
+      // Reset state and close dialog
+      setDepartmentToDelete(null);
+      setIsDeleteDialogOpen(false);
     }
   }
 
@@ -157,12 +235,43 @@ export default function DepartmentsPage() {
     })
   }
 
-  const handleSaveEdit = () => {
-    setDepartments(
-      departments.map((dept) => (dept.id === departmentToEdit.id ? departmentToEdit : dept))
-    )
-    setDepartmentToEdit(null)
-    setIsEditDialogOpen(false)
+  const handleSaveEdit = async () => {
+    if (departmentToEdit) {
+      try {
+        // Prepare update data
+        const updates = {
+          department_name: departmentToEdit.name,
+          head_doctor: departmentToEdit.head,
+          location: departmentToEdit.location,
+          description: departmentToEdit.description
+        };
+
+        // Update in database
+        const updatedDepartment = await departmentsApi.updateDepartment(departmentToEdit.department_id, updates);
+
+        if (updatedDepartment) {
+          // Update state with edited department
+          setDepartments(
+            departments.map((dept) => (dept.id === departmentToEdit.id ? {
+              ...dept,
+              name: updatedDepartment.department_name,
+              head: updatedDepartment.head_doctor,
+              description: updatedDepartment.description,
+              department_name: updatedDepartment.department_name,
+              head_doctor: updatedDepartment.head_doctor,
+              location: updatedDepartment.location
+            } : dept))
+          );
+          console.log('Department updated successfully!');
+        }
+      } catch (error) {
+        console.error('Error updating department:', error);
+      }
+    }
+
+    // Reset state and close dialog
+    setDepartmentToEdit(null);
+    setIsEditDialogOpen(false);
   }
 
   // Filter departments based on search term
@@ -178,6 +287,7 @@ export default function DepartmentsPage() {
   const currentDepartments = filteredDepartments.slice(indexOfFirstDepartment, indexOfLastDepartment)
 
   return (
+    <ClientOnly>
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
       <div className="w-64 bg-white border-r border-gray-200 hidden md:block">
@@ -264,7 +374,26 @@ export default function DepartmentsPage() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {currentDepartments.map((department) => (
+                    {isLoading ? (
+                      <tr>
+                        <td colSpan={7} className="px-6 py-4 text-center">
+                          <div className="flex justify-center items-center space-x-2">
+                            <svg className="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span>Đang tải dữ liệu...</span>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : departments.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="px-6 py-4 text-center">
+                          <div className="text-gray-500">Không có dữ liệu phòng ban</div>
+                        </td>
+                      </tr>
+                    ) : (
+                      currentDepartments.map((department) => (
                       <tr key={department.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className="font-medium">{department.id}</span>
@@ -285,7 +414,7 @@ export default function DepartmentsPage() {
                           </Button>
                         </td>
                       </tr>
-                    ))}
+                    )))}
                   </tbody>
                 </table>
               </div>
@@ -513,6 +642,7 @@ export default function DepartmentsPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </ClientOnly>
   )
 }
 

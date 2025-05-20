@@ -4,6 +4,8 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { appointmentsApi, doctorsApi, patientsApi } from "@/lib/supabase"
+import ClientOnly from "@/components/client-only"
+import { SidebarItem, Menu } from "@/components/shared-components"
 import Link from "next/link"
 import {
   Search,
@@ -184,12 +186,12 @@ export default function AppointmentsPage() {
   // State cho dialog thêm lịch khám mới
   const [isNewAppointmentDialogOpen, setIsNewAppointmentDialogOpen] = useState(false)
   const [newAppointment, setNewAppointment] = useState({
-    appointmentid: "",
-    patientid: 0,
-    doctorid: "",
-    appointmentdate: "",
-    appointmenttime: "09:00",
-    treatmentdescription: "",
+    appointment_id: "",
+    patient_id: 0,
+    doctor_id: "",
+    appointment_date: "",
+    appointment_time: "09:00",
+    treatment_description: "",
     status: "Pending"
   })
 
@@ -198,7 +200,7 @@ export default function AppointmentsPage() {
     if (isClient) {
       setNewAppointment(prev => ({
         ...prev,
-        appointmentdate: new Date().toISOString().split('T')[0]
+        appointment_date: new Date().toISOString().split('T')[0]
       }))
     }
   }, [isClient])
@@ -282,12 +284,12 @@ export default function AppointmentsPage() {
     try {
       // Tạo cuộc hẹn mới
       const appointment = {
-        appointmentid: `APT${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
-        patientid: newAppointment.patientid,
-        doctorid: newAppointment.doctorid,
-        appointmentdate: newAppointment.appointmentdate,
-        appointmenttime: newAppointment.appointmenttime,
-        treatmentdescription: newAppointment.treatmentdescription,
+        appointment_id: `APT${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
+        patient_id: newAppointment.patient_id,
+        doctor_id: newAppointment.doctor_id,
+        appointment_date: newAppointment.appointment_date,
+        appointment_time: newAppointment.appointment_time,
+        treatment_description: newAppointment.treatment_description,
         status: newAppointment.status
       };
 
@@ -309,12 +311,12 @@ export default function AppointmentsPage() {
     // Đóng dialog và reset form
     setIsNewAppointmentDialogOpen(false);
     setNewAppointment({
-      appointmentid: "",
-      patientid: 0,
-      doctorid: "",
-      appointmentdate: isClient ? new Date().toISOString().split('T')[0] : "",
-      appointmenttime: "09:00",
-      treatmentdescription: "",
+      appointment_id: "",
+      patient_id: 0,
+      doctor_id: "",
+      appointment_date: isClient ? new Date().toISOString().split('T')[0] : "",
+      appointment_time: "09:00",
+      treatment_description: "",
       status: "Pending"
     });
   }
@@ -334,8 +336,9 @@ export default function AppointmentsPage() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
+    <ClientOnly>
+      <div className="flex h-screen bg-gray-50">
+        {/* Sidebar */}
       <div className="w-64 bg-white border-r border-gray-200 hidden md:block">
         <div className="p-4 flex items-center space-x-2">
           <div className="w-8 h-8 rounded-full bg-[#0066CC] flex items-center justify-center">
@@ -751,39 +754,8 @@ export default function AppointmentsPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </ClientOnly>
   )
 }
 
-// Component for sidebar items
-function SidebarItem({ icon, label, href, active = false }) {
-  return (
-    <Link
-      href={href}
-      className={`flex items-center px-4 py-3 space-x-3 ${active ? "bg-blue-50 text-blue-600 border-r-4 border-blue-600" : "text-gray-600 hover:bg-gray-100"}`}
-    >
-      <span>{icon}</span>
-      <span className="font-medium">{label}</span>
-    </Link>
-  )
-}
 
-// Menu component for mobile
-function Menu({ size }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <line x1="3" y1="12" x2="21" y2="12"></line>
-      <line x1="3" y1="6" x2="21" y2="6"></line>
-      <line x1="3" y1="18" x2="21" y2="18"></line>
-    </svg>
-  )
-}

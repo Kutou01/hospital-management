@@ -4,7 +4,9 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { doctorsApi } from "@/lib/supabase"
-import Link from "next/link"
+import ClientOnly from "@/components/client-only"
+import { SidebarItem, Menu } from "@/components/shared-components"
+
 import {
   Search,
   Settings,
@@ -21,8 +23,6 @@ import {
   Edit,
   Trash2,
   Filter,
-  Star,
-  StarHalf,
   CreditCard,
   Building2,
   BedDouble,
@@ -180,7 +180,7 @@ const doctorsData = [
 ]
 
 export default function DoctorsPage() {
-  const [doctors, setDoctors] = useState([])
+  const [doctors, setDoctors] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [specializationFilter, setSpecializationFilter] = useState("All Specializations")
   const [statusFilter, setStatusFilter] = useState("All Status")
@@ -190,24 +190,21 @@ export default function DoctorsPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [doctorToEdit, setDoctorToEdit] = useState<any | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [isClient, setIsClient] = useState(false)
-
-  // Kiểm tra xem chúng ta đang ở phía client hay không
-  useEffect(() => {
-    setIsClient(true)
-  }, [])
 
   // State cho dialog thêm bác sĩ mới
   const [isAddDoctorDialogOpen, setIsAddDoctorDialogOpen] = useState(false)
   const [newDoctor, setNewDoctor] = useState({
-    doctorid: "",
-    fullname: "",
+    doctor_id: "",
+    full_name: "",
     specialty: "",
     qualification: "",
-    department: "",
-    phone: "",
-    email: "",
-    gender: "Male"
+    schedule: "",
+    department_id: 0,
+    license_number: "",
+    gender: "Male",
+    avata_url: "",
+    phone_number: 0,
+    email: ""
   })
 
   // Lấy dữ liệu bác sĩ từ Supabase khi component được tải
@@ -288,7 +285,7 @@ export default function DoctorsPage() {
 
   const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
-    setDoctorToEdit((prev) => ({
+    setDoctorToEdit((prev: any) => ({
       ...prev,
       [name]: value,
     }))
@@ -345,14 +342,17 @@ export default function DoctorsPage() {
   const handleAddNewDoctor = async () => {
     // Tạo bác sĩ mới
     const doctor = {
-      doctorid: `DOC${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
-      fullname: newDoctor.fullname,
+      doctor_id: newDoctor.doctor_id || `DOC${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
+      full_name: newDoctor.full_name,
       specialty: newDoctor.specialty,
       qualification: newDoctor.qualification,
-      department: newDoctor.department,
-      phone: newDoctor.phone,
-      email: newDoctor.email,
-      gender: newDoctor.gender
+      schedule: newDoctor.schedule || "Mon-Fri, 09:00-17:00",
+      department_id: newDoctor.department_id,
+      license_number: newDoctor.license_number,
+      gender: newDoctor.gender,
+      avata_url: newDoctor.avata_url || "",
+      phone_number: newDoctor.phone_number,
+      email: newDoctor.email
     }
 
     try {
@@ -374,14 +374,17 @@ export default function DoctorsPage() {
     // Đóng dialog và reset form
     setIsAddDoctorDialogOpen(false);
     setNewDoctor({
-      doctorid: "",
-      fullname: "",
+      doctor_id: "",
+      full_name: "",
       specialty: "",
       qualification: "",
-      department: "",
-      phone: "",
-      email: "",
-      gender: "Male"
+      schedule: "",
+      department_id: 0,
+      license_number: "",
+      gender: "Male",
+      avata_url: "",
+      phone_number: 0,
+      email: ""
     });
   }
 
@@ -399,27 +402,12 @@ export default function DoctorsPage() {
     }
   }
 
-  // Render rating stars
-  const renderRating = (rating: number) => {
-    const fullStars = Math.floor(rating)
-    const hasHalfStar = rating % 1 >= 0.5
 
-    return (
-      <div className="flex items-center">
-        {Array(fullStars)
-          .fill(0)
-          .map((_, i) => (
-            <Star key={i} size={16} className="text-yellow-500 fill-yellow-500" />
-          ))}
-        {hasHalfStar && <StarHalf size={16} className="text-yellow-500 fill-yellow-500" />}
-        <span className="ml-1 text-sm text-gray-600">{rating.toFixed(1)}</span>
-      </div>
-    )
-  }
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
+    <ClientOnly>
+      <div className="flex h-screen bg-gray-50">
+        {/* Sidebar */}
       <div className="w-64 bg-white border-r border-gray-200 hidden md:block">
         <div className="p-4 flex items-center space-x-2">
           <div className="w-8 h-8 rounded-full bg-[#0066CC] flex items-center justify-center">
@@ -576,7 +564,7 @@ export default function DoctorsPage() {
                           return doctor.gender === statusFilter;
                         })
                         .map((doctor) => (
-                      <tr key={doctor.id} className="hover:bg-gray-50">
+                      <tr key={doctor.doctor_id || doctor.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             <Avatar className="h-8 w-8 mr-3">
@@ -852,13 +840,26 @@ export default function DoctorsPage() {
 
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="fullname" className="text-right">
+              <Label htmlFor="doctor_id" className="text-right">
+                Doctor ID
+              </Label>
+              <Input
+                id="doctor_id"
+                name="doctor_id"
+                value={newDoctor.doctor_id}
+                onChange={handleNewDoctorChange}
+                className="col-span-3"
+                placeholder="DOC1234"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="full_name" className="text-right">
                 Tên bác sĩ
               </Label>
               <Input
-                id="fullname"
-                name="fullname"
-                value={newDoctor.fullname}
+                id="full_name"
+                name="full_name"
+                value={newDoctor.full_name}
                 onChange={handleNewDoctorChange}
                 className="col-span-3"
                 placeholder="Dr. John Doe"
@@ -903,32 +904,34 @@ export default function DoctorsPage() {
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="department" className="text-right">
-                Khoa
+              <Label htmlFor="department_id" className="text-right">
+                Department ID
               </Label>
               <Input
-                id="department"
-                name="department"
-                value={newDoctor.department}
+                id="department_id"
+                name="department_id"
+                type="number"
+                value={newDoctor.department_id}
                 onChange={handleNewDoctorChange}
                 className="col-span-3"
-                placeholder="Cardiology Department"
+                placeholder="1"
               />
             </div>
 
 
 
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="phone" className="text-right">
+              <Label htmlFor="phone_number" className="text-right">
                 Số điện thoại
               </Label>
               <Input
-                id="phone"
-                name="phone"
-                value={newDoctor.phone}
+                id="phone_number"
+                name="phone_number"
+                type="number"
+                value={newDoctor.phone_number}
                 onChange={handleNewDoctorChange}
                 className="col-span-3"
-                placeholder="+84 123 456 789"
+                placeholder="123456789"
               />
             </div>
 
@@ -944,6 +947,34 @@ export default function DoctorsPage() {
                 onChange={handleNewDoctorChange}
                 className="col-span-3"
                 placeholder="doctor@hospital.com"
+              />
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="license_number" className="text-right">
+                License Number
+              </Label>
+              <Input
+                id="license_number"
+                name="license_number"
+                value={newDoctor.license_number}
+                onChange={handleNewDoctorChange}
+                className="col-span-3"
+                placeholder="MD12345"
+              />
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="schedule" className="text-right">
+                Schedule
+              </Label>
+              <Input
+                id="schedule"
+                name="schedule"
+                value={newDoctor.schedule}
+                onChange={handleNewDoctorChange}
+                className="col-span-3"
+                placeholder="Mon-Fri, 09:00-17:00"
               />
             </div>
 
@@ -979,39 +1010,8 @@ export default function DoctorsPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </ClientOnly>
   )
 }
 
-// Component for sidebar items
-function SidebarItem({ icon, label, href, active = false }) {
-  return (
-    <Link
-      href={href}
-      className={`flex items-center px-4 py-3 space-x-3 ${active ? "bg-blue-50 text-blue-600 border-r-4 border-blue-600" : "text-gray-600 hover:bg-gray-100"}`}
-    >
-      <span>{icon}</span>
-      <span className="font-medium">{label}</span>
-    </Link>
-  )
-}
 
-// Menu component for mobile
-function Menu({ size }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <line x1="3" y1="12" x2="21" y2="12"></line>
-      <line x1="3" y1="6" x2="21" y2="6"></line>
-      <line x1="3" y1="18" x2="21" y2="18"></line>
-    </svg>
-  )
-}

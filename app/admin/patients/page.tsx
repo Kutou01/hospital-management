@@ -199,18 +199,18 @@ export default function PatientsPage() {
   // State cho dialog thêm bệnh nhân mới
   const [isAddPatientDialogOpen, setIsAddPatientDialogOpen] = useState(false)
   const [newPatient, setNewPatient] = useState({
-    patientid: 0,
-    fullname: "",
-    dateofbirth: "",
-    registrationdate: "",
-    phonenumber: "",
+    patient_id: 0,
+    full_name: "",
+    date_of_birth: "",
+    registration_date: "",
+    phone_number: "",
     email: "",
-    bloodtype: "",
+    blood_type: "",
     gender: "Male",
     address: "",
     allergies: "",
-    chronicdiseases: "",
-    insuranceinfo: ""
+    chronic_diseases: "",
+    insurance_info: ""
   })
 
   // Lấy dữ liệu bệnh nhân từ Supabase khi component được tải
@@ -358,18 +358,18 @@ export default function PatientsPage() {
   const handleAddNewPatient = async () => {
     // Tạo bệnh nhân mới
     const patient = {
-      patientid: Math.floor(Math.random() * 10000),
-      fullname: newPatient.fullname,
-      dateofbirth: newPatient.dateofbirth || null,
-      registrationdate: isClient ? new Date().toISOString().split('T')[0] : "",
-      phonenumber: newPatient.phonenumber,
+      patient_id: Math.floor(Math.random() * 10000),
+      full_name: newPatient.full_name,
+      date_of_birth: newPatient.date_of_birth || null,
+      registration_date: isClient ? new Date().toISOString().split('T')[0] : "",
+      phone_number: newPatient.phone_number,
       email: newPatient.email,
-      bloodtype: newPatient.bloodtype,
+      blood_type: newPatient.blood_type,
       gender: newPatient.gender,
       address: newPatient.address,
       allergies: newPatient.allergies,
-      chronicdiseases: newPatient.chronicdiseases,
-      insuranceinfo: newPatient.insuranceinfo
+      chronic_diseases: newPatient.chronic_diseases,
+      insurance_info: newPatient.insurance_info
     }
 
     try {
@@ -391,18 +391,18 @@ export default function PatientsPage() {
     // Đóng dialog và reset form
     setIsAddPatientDialogOpen(false);
     setNewPatient({
-      patientid: 0,
-      fullname: "",
-      dateofbirth: "",
-      registrationdate: "",
-      phonenumber: "",
+      patient_id: 0,
+      full_name: "",
+      date_of_birth: "",
+      registration_date: "",
+      phone_number: "",
       email: "",
-      bloodtype: "",
+      blood_type: "",
       gender: "Male",
       address: "",
       allergies: "",
-      chronicdiseases: "",
-      insuranceinfo: ""
+      chronic_diseases: "",
+      insurance_info: ""
     });
   }
 

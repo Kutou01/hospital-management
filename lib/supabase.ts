@@ -25,7 +25,7 @@ export const doctorsApi = {
   },
 
   // Thêm bác sĩ mới
-  addDoctor: async (doctor) => {
+  addDoctor: async (doctor: any) => {
     const { data, error } = await supabase
       .from('doctors')
       .insert([doctor])
@@ -40,11 +40,11 @@ export const doctorsApi = {
   },
 
   // Cập nhật thông tin bác sĩ
-  updateDoctor: async (id, updates) => {
+  updateDoctor: async (id: string, updates: any) => {
     const { data, error } = await supabase
       .from('doctors')
       .update(updates)
-      .eq('id', id)
+      .eq('doctor_id', id)
       .select();
 
     if (error) {
@@ -56,11 +56,11 @@ export const doctorsApi = {
   },
 
   // Xóa bác sĩ
-  deleteDoctor: async (id) => {
+  deleteDoctor: async (id: string) => {
     const { error } = await supabase
       .from('doctors')
       .delete()
-      .eq('id', id);
+      .eq('doctor_id', id);
 
     if (error) {
       console.error('Error deleting doctor:', error);
@@ -89,7 +89,7 @@ export const patientsApi = {
   },
 
   // Thêm bệnh nhân mới
-  addPatient: async (patient) => {
+  addPatient: async (patient: any) => {
     const { data, error } = await supabase
       .from('patients')
       .insert([patient])
@@ -104,11 +104,11 @@ export const patientsApi = {
   },
 
   // Cập nhật thông tin bệnh nhân
-  updatePatient: async (id, updates) => {
+  updatePatient: async (id: any, updates: any) => {
     const { data, error } = await supabase
       .from('patients')
       .update(updates)
-      .eq('id', id)
+      .eq('patientid', id)
       .select();
 
     if (error) {
@@ -120,11 +120,11 @@ export const patientsApi = {
   },
 
   // Xóa bệnh nhân
-  deletePatient: async (id) => {
+  deletePatient: async (id: any) => {
     const { error } = await supabase
       .from('patients')
       .delete()
-      .eq('id', id);
+      .eq('patientid', id);
 
     if (error) {
       console.error('Error deleting patient:', error);
@@ -135,13 +135,13 @@ export const patientsApi = {
   }
 };
 
-// Các hàm tương tác với bảng appointments
+// Các hàm tương tác với bảng appointment
 export const appointmentsApi = {
   // Lấy tất cả cuộc hẹn
   getAllAppointments: async () => {
     const { data, error } = await supabase
-      .from('appointments')
-      .select('*, patients(*), doctors(*)')
+      .from('appointment')
+      .select('*, patients!inner(*), doctors!inner(*)')
       .order('appointment_date');
 
     if (error) {
@@ -153,9 +153,9 @@ export const appointmentsApi = {
   },
 
   // Thêm cuộc hẹn mới
-  addAppointment: async (appointment) => {
+  addAppointment: async (appointment: any) => {
     const { data, error } = await supabase
-      .from('appointments')
+      .from('appointment')
       .insert([appointment])
       .select();
 
@@ -168,11 +168,11 @@ export const appointmentsApi = {
   },
 
   // Cập nhật thông tin cuộc hẹn
-  updateAppointment: async (id, updates) => {
+  updateAppointment: async (id: string, updates: any) => {
     const { data, error } = await supabase
-      .from('appointments')
+      .from('appointment')
       .update(updates)
-      .eq('id', id)
+      .eq('appointment_id', id)
       .select();
 
     if (error) {
@@ -184,11 +184,11 @@ export const appointmentsApi = {
   },
 
   // Xóa cuộc hẹn
-  deleteAppointment: async (id) => {
+  deleteAppointment: async (id: string) => {
     const { error } = await supabase
-      .from('appointments')
+      .from('appointment')
       .delete()
-      .eq('id', id);
+      .eq('appointment_id', id);
 
     if (error) {
       console.error('Error deleting appointment:', error);

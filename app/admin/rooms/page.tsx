@@ -72,10 +72,10 @@ export default function RoomsPage() {
 
   const [rooms, setRooms] = useState(roomsData)
   const [newRoom, setNewRoom] = useState({
-    roomid: 0,
-    roomnumber: "",
-    departmentid: 0,
-    roomtype: "Ward",
+    room_id: 0,
+    room_number: "",
+    department_id: 0,
+    room_type: "Ward",
     capacity: 0,
     status: "Available"
   })
@@ -110,7 +110,7 @@ export default function RoomsPage() {
     const { name, value } = e.target
     setNewRoom({
       ...newRoom,
-      [name]: name === 'capacity' || name === 'roomid' || name === 'departmentid' ? parseInt(value) : value,
+      [name]: name === 'capacity' || name === 'room_id' || name === 'department_id' ? parseInt(value) : value,
     })
   }
 
@@ -124,20 +124,20 @@ export default function RoomsPage() {
   const handleAddNewRoom = () => {
     const roomWithId = {
       id: `RM${String(rooms.length + 1).padStart(3, '0')}`,
-      roomid: newRoom.roomid || Math.floor(Math.random() * 10000),
-      number: newRoom.roomnumber,
-      type: newRoom.roomtype,
-      department: `Department ${newRoom.departmentid}`,
+      room_id: newRoom.room_id || Math.floor(Math.random() * 10000),
+      number: newRoom.room_number,
+      type: newRoom.room_type,
+      department: `Department ${newRoom.department_id}`,
       capacity: newRoom.capacity,
       status: newRoom.status,
       equipment: "Basic" // Keeping this for display compatibility
     }
     setRooms([...rooms, roomWithId])
     setNewRoom({
-      roomid: 0,
-      roomnumber: "",
-      departmentid: 0,
-      roomtype: "Ward",
+      room_id: 0,
+      room_number: "",
+      department_id: 0,
+      room_type: "Ward",
       capacity: 0,
       status: "Available"
     })
@@ -407,37 +407,37 @@ export default function RoomsPage() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="roomid" className="text-right">
+              <Label htmlFor="room_id" className="text-right">
                 Room ID
               </Label>
               <Input
-                id="roomid"
-                name="roomid"
+                id="room_id"
+                name="room_id"
                 type="number"
-                value={newRoom.roomid}
+                value={newRoom.room_id}
                 onChange={handleNewRoomChange}
                 className="col-span-3"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="roomnumber" className="text-right">
+              <Label htmlFor="room_number" className="text-right">
                 Room Number
               </Label>
               <Input
-                id="roomnumber"
-                name="roomnumber"
-                value={newRoom.roomnumber}
+                id="room_number"
+                name="room_number"
+                value={newRoom.room_number}
                 onChange={handleNewRoomChange}
                 className="col-span-3"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="roomtype" className="text-right">
+              <Label htmlFor="room_type" className="text-right">
                 Type
               </Label>
               <Select
-                value={newRoom.roomtype}
-                onValueChange={(value) => handleNewRoomSelectChange("roomtype", value)}
+                value={newRoom.room_type}
+                onValueChange={(value) => handleNewRoomSelectChange("room_type", value)}
               >
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Select room type" />
@@ -452,14 +452,14 @@ export default function RoomsPage() {
               </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="departmentid" className="text-right">
+              <Label htmlFor="department_id" className="text-right">
                 Department ID
               </Label>
               <Input
-                id="departmentid"
-                name="departmentid"
+                id="department_id"
+                name="department_id"
                 type="number"
-                value={newRoom.departmentid}
+                value={newRoom.department_id}
                 onChange={handleNewRoomChange}
                 className="col-span-3"
               />

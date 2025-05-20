@@ -49,7 +49,7 @@ export default function DepartmentsPage() {
   const [departmentToDelete, setDepartmentToDelete] = useState<string | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [departmentToEdit, setDepartmentToEdit] = useState<any | null>(null)
-  
+
   // Sample departments data
   const departmentsData = [
     { id: "DEP001", name: "Cardiology", head: "Dr. John Smith", staff_count: 15, rooms: 8, description: "Heart and cardiovascular system" },
@@ -66,11 +66,11 @@ export default function DepartmentsPage() {
 
   const [departments, setDepartments] = useState(departmentsData)
   const [newDepartment, setNewDepartment] = useState({
-    name: "",
-    head: "",
-    staff_count: 0,
-    rooms: 0,
-    description: "",
+    department_id: 0,
+    department_name: "",
+    head_doctor: "",
+    location: "",
+    description: ""
   })
 
   const departmentsPerPage = 10
@@ -107,15 +107,24 @@ export default function DepartmentsPage() {
     const newId = `DEP${String(departments.length + 1).padStart(3, '0')}`
     const departmentWithId = {
       id: newId,
-      ...newDepartment,
+      name: newDepartment.department_name,
+      head: newDepartment.head_doctor,
+      staff_count: 0,
+      rooms: 0,
+      description: newDepartment.description,
+      // Store the original data for database compatibility
+      department_id: newDepartment.department_id || departments.length + 1,
+      department_name: newDepartment.department_name,
+      head_doctor: newDepartment.head_doctor,
+      location: newDepartment.location
     }
     setDepartments([...departments, departmentWithId])
     setNewDepartment({
-      name: "",
-      head: "",
-      staff_count: 0,
-      rooms: 0,
-      description: "",
+      department_id: 0,
+      department_name: "",
+      head_doctor: "",
+      location: "",
+      description: ""
     })
     setIsNewDepartmentDialogOpen(false)
   }
@@ -326,51 +335,50 @@ export default function DepartmentsPage() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
-                Name
+              <Label htmlFor="department_id" className="text-right">
+                Department ID
               </Label>
               <Input
-                id="name"
-                name="name"
-                value={newDepartment.name}
-                onChange={handleNewDepartmentChange}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="head" className="text-right">
-                Head of Department
-              </Label>
-              <Input
-                id="head"
-                name="head"
-                value={newDepartment.head}
-                onChange={handleNewDepartmentChange}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="staff_count" className="text-right">
-                Staff Count
-              </Label>
-              <Input
-                id="staff_count"
-                name="staff_count"
+                id="department_id"
+                name="department_id"
                 type="number"
-                value={newDepartment.staff_count}
+                value={newDepartment.department_id}
                 onChange={handleNewDepartmentChange}
                 className="col-span-3"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="rooms" className="text-right">
-                Rooms
+              <Label htmlFor="department_name" className="text-right">
+                Department Name
               </Label>
               <Input
-                id="rooms"
-                name="rooms"
-                type="number"
-                value={newDepartment.rooms}
+                id="department_name"
+                name="department_name"
+                value={newDepartment.department_name}
+                onChange={handleNewDepartmentChange}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="head_doctor" className="text-right">
+                Head Doctor
+              </Label>
+              <Input
+                id="head_doctor"
+                name="head_doctor"
+                value={newDepartment.head_doctor}
+                onChange={handleNewDepartmentChange}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="location" className="text-right">
+                Location
+              </Label>
+              <Input
+                id="location"
+                name="location"
+                value={newDepartment.location}
                 onChange={handleNewDepartmentChange}
                 className="col-span-3"
               />

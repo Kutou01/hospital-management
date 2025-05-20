@@ -21,6 +21,8 @@ import {
   Trash2,
   CreditCard,
   UserCog,
+  Building2,
+  BedDouble,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -187,23 +189,28 @@ export default function PatientsPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [patientToEdit, setPatientToEdit] = useState<any | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isClient, setIsClient] = useState(false)
+
+  // Kiểm tra xem chúng ta đang ở phía client hay không
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   // State cho dialog thêm bệnh nhân mới
   const [isAddPatientDialogOpen, setIsAddPatientDialogOpen] = useState(false)
   const [newPatient, setNewPatient] = useState({
-    full_name: "",
-    date_of_birth: "",
-    gender: "Male",
-    phone: "",
+    patientid: 0,
+    fullname: "",
+    dateofbirth: "",
+    registrationdate: "",
+    phonenumber: "",
     email: "",
+    bloodtype: "",
+    gender: "Male",
     address: "",
-    blood_type: "",
     allergies: "",
-    chronic_diseases: "",
-    insurance_number: "",
-    insurance_provider: "",
-    emergency_contact_name: "",
-    emergency_contact_phone: ""
+    chronicdiseases: "",
+    insuranceinfo: ""
   })
 
   // Lấy dữ liệu bệnh nhân từ Supabase khi component được tải
@@ -351,21 +358,18 @@ export default function PatientsPage() {
   const handleAddNewPatient = async () => {
     // Tạo bệnh nhân mới
     const patient = {
-      full_name: newPatient.full_name,
-      date_of_birth: newPatient.date_of_birth ? new Date(newPatient.date_of_birth) : null,
-      gender: newPatient.gender,
-      phone: newPatient.phone,
+      patientid: Math.floor(Math.random() * 10000),
+      fullname: newPatient.fullname,
+      dateofbirth: newPatient.dateofbirth || null,
+      registrationdate: isClient ? new Date().toISOString().split('T')[0] : "",
+      phonenumber: newPatient.phonenumber,
       email: newPatient.email,
+      bloodtype: newPatient.bloodtype,
+      gender: newPatient.gender,
       address: newPatient.address,
-      blood_type: newPatient.blood_type,
       allergies: newPatient.allergies,
-      chronic_diseases: newPatient.chronic_diseases,
-      insurance_number: newPatient.insurance_number,
-      insurance_provider: newPatient.insurance_provider,
-      emergency_contact_name: newPatient.emergency_contact_name,
-      emergency_contact_phone: newPatient.emergency_contact_phone,
-      patient_id: `PAT${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
-      registration_date: new Date().toISOString()
+      chronicdiseases: newPatient.chronicdiseases,
+      insuranceinfo: newPatient.insuranceinfo
     }
 
     try {
@@ -387,19 +391,18 @@ export default function PatientsPage() {
     // Đóng dialog và reset form
     setIsAddPatientDialogOpen(false);
     setNewPatient({
-      full_name: "",
-      date_of_birth: "",
-      gender: "Male",
-      phone: "",
+      patientid: 0,
+      fullname: "",
+      dateofbirth: "",
+      registrationdate: "",
+      phonenumber: "",
       email: "",
+      bloodtype: "",
+      gender: "Male",
       address: "",
-      blood_type: "",
       allergies: "",
-      chronic_diseases: "",
-      insurance_number: "",
-      insurance_provider: "",
-      emergency_contact_name: "",
-      emergency_contact_phone: ""
+      chronicdiseases: "",
+      insuranceinfo: ""
     });
   }
 
@@ -432,6 +435,8 @@ export default function PatientsPage() {
           <SidebarItem icon={<Calendar size={20} />} label="Appointments" href="/admin/appointments" />
           <SidebarItem icon={<UserCog size={20} />} label="Doctors" href="/admin/doctors" />
           <SidebarItem icon={<User size={20} />} label="Patients" href="/admin/patients" active />
+          <SidebarItem icon={<Building2 size={20} />} label="Departments" href="/admin/departments" />
+          <SidebarItem icon={<BedDouble size={20} />} label="Rooms" href="/admin/rooms" />
           <SidebarItem icon={<CreditCard size={20} />} label="Payment" href="/admin/payment" />
           <SidebarItem icon={<Settings2 size={20} />} label="Settings" href="/admin/settings" />
           <SidebarItem icon={<FileBarChart size={20} />} label="Audit Logs" href="/admin/audit-logs" />
@@ -612,12 +617,12 @@ export default function PatientsPage() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">
-                              {patient.date_of_birth ? new Date(patient.date_of_birth).toLocaleDateString() : '-'}
+                              {patient.date_of_birth ? new Date(patient.date_of_birth).toISOString().split('T')[0] : '-'}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">
-                              {patient.registration_date ? new Date(patient.registration_date).toLocaleDateString() : '-'}
+                              {patient.registration_date ? new Date(patient.registration_date).toISOString().split('T')[0] : '-'}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">

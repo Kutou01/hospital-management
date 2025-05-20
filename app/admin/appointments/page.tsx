@@ -23,6 +23,8 @@ import {
   Filter,
   CreditCard,
   Clock,
+  Building2,
+  BedDouble,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -172,18 +174,34 @@ export default function AppointmentsPage() {
   const [dateFilter, setDateFilter] = useState("Today")
   const [currentPage, setCurrentPage] = useState(1)
   const [isLoading, setIsLoading] = useState(true)
+  const [isClient, setIsClient] = useState(false)
+
+  // Kiểm tra xem chúng ta đang ở phía client hay không
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   // State cho dialog thêm lịch khám mới
   const [isNewAppointmentDialogOpen, setIsNewAppointmentDialogOpen] = useState(false)
   const [newAppointment, setNewAppointment] = useState({
-    patient_id: "",
-    doctor_id: "",
-    appointment_date: new Date().toISOString(),
-    appointment_time: "09:00",
-    status: "Pending",
-    reason_for_visit: "",
-    notes: ""
+    appointmentid: "",
+    patientid: 0,
+    doctorid: "",
+    appointmentdate: "",
+    appointmenttime: "09:00",
+    treatmentdescription: "",
+    status: "Pending"
   })
+
+  // Cập nhật ngày mặc định khi ở phía client
+  useEffect(() => {
+    if (isClient) {
+      setNewAppointment(prev => ({
+        ...prev,
+        appointmentdate: new Date().toISOString().split('T')[0]
+      }))
+    }
+  }, [isClient])
 
   // Lấy dữ liệu từ Supabase khi component được tải
   useEffect(() => {
@@ -264,14 +282,13 @@ export default function AppointmentsPage() {
     try {
       // Tạo cuộc hẹn mới
       const appointment = {
-        patient_id: newAppointment.patient_id,
-        doctor_id: newAppointment.doctor_id,
-        appointment_date: newAppointment.appointment_date,
-        appointment_time: newAppointment.appointment_time,
-        status: newAppointment.status,
-        reason_for_visit: newAppointment.reason_for_visit,
-        notes: newAppointment.notes,
-        appointment_id: `APT${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`
+        appointmentid: `APT${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
+        patientid: newAppointment.patientid,
+        doctorid: newAppointment.doctorid,
+        appointmentdate: newAppointment.appointmentdate,
+        appointmenttime: newAppointment.appointmenttime,
+        treatmentdescription: newAppointment.treatmentdescription,
+        status: newAppointment.status
       };
 
       // Thêm cuộc hẹn mới vào cơ sở dữ liệu
@@ -292,13 +309,13 @@ export default function AppointmentsPage() {
     // Đóng dialog và reset form
     setIsNewAppointmentDialogOpen(false);
     setNewAppointment({
-      patient_id: "",
-      doctor_id: "",
-      appointment_date: new Date().toISOString(),
-      appointment_time: "09:00",
-      status: "Pending",
-      reason_for_visit: "",
-      notes: ""
+      appointmentid: "",
+      patientid: 0,
+      doctorid: "",
+      appointmentdate: isClient ? new Date().toISOString().split('T')[0] : "",
+      appointmenttime: "09:00",
+      treatmentdescription: "",
+      status: "Pending"
     });
   }
 
@@ -331,6 +348,8 @@ export default function AppointmentsPage() {
           <SidebarItem icon={<Calendar size={20} />} label="Appointments" href="/admin/appointments" active />
           <SidebarItem icon={<UserCog size={20} />} label="Doctors" href="/admin/doctors" />
           <SidebarItem icon={<User size={20} />} label="Patients" href="/admin/patients" />
+          <SidebarItem icon={<Building2 size={20} />} label="Departments" href="/admin/departments" />
+          <SidebarItem icon={<BedDouble size={20} />} label="Rooms" href="/admin/rooms" />
           <SidebarItem icon={<CreditCard size={20} />} label="Payment" href="/admin/payment" />
           <SidebarItem icon={<Settings2 size={20} />} label="Settings" href="/admin/settings" />
           <SidebarItem icon={<FileBarChart size={20} />} label="Audit Logs" href="/admin/audit-logs" />
@@ -484,10 +503,10 @@ export default function AppointmentsPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{appointment.appointment_id || appointment.id}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {new Date(appointment.appointment_date).toLocaleDateString()}
+                          {appointment.appointment_date ? new Date(appointment.appointment_date).toISOString().split('T')[0] : '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {appointment.appointment_time || new Date(appointment.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {appointment.appointment_time || '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
                           {appointment.doctors?.full_name || 'Unknown Doctor'}
@@ -647,7 +666,7 @@ export default function AppointmentsPage() {
                   type="date"
                   id="appointment_date"
                   name="appointment_date"
-                  value={new Date(newAppointment.appointment_date).toISOString().slice(0, 10)}
+                  value={newAppointment.appointment_date}
                   onChange={handleNewAppointmentChange}
                   className="col-span-3"
                 />

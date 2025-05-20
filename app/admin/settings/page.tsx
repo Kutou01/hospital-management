@@ -23,6 +23,8 @@ import {
   AlertCircle,
   Check,
   CreditCard,
+  Building2,
+  BedDouble,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -72,6 +74,8 @@ export default function SettingsPage() {
           <SidebarItem icon={<Calendar size={20} />} label="Appointments" href="/admin/appointments" />
           <SidebarItem icon={<UserCog size={20} />} label="Doctors" href="/admin/doctors" />
           <SidebarItem icon={<User size={20} />} label="Patients" href="/admin/patients" />
+          <SidebarItem icon={<Building2 size={20} />} label="Departments" href="/admin/departments" />
+          <SidebarItem icon={<BedDouble size={20} />} label="Rooms" href="/admin/rooms" />
           <SidebarItem icon={<CreditCard size={20} />} label="Payment" href="/admin/payment" />
           <SidebarItem icon={<Settings2 size={20} />} label="Settings" href="/admin/settings" active />
           <SidebarItem icon={<FileBarChart size={20} />} label="Audit Logs" href="/admin/audit-logs" />

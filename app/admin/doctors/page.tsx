@@ -24,6 +24,8 @@ import {
   Star,
   StarHalf,
   CreditCard,
+  Building2,
+  BedDouble,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -188,16 +190,21 @@ export default function DoctorsPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [doctorToEdit, setDoctorToEdit] = useState<any | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isClient, setIsClient] = useState(false)
+
+  // Kiểm tra xem chúng ta đang ở phía client hay không
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   // State cho dialog thêm bác sĩ mới
   const [isAddDoctorDialogOpen, setIsAddDoctorDialogOpen] = useState(false)
   const [newDoctor, setNewDoctor] = useState({
-    full_name: "",
+    doctorid: "",
+    fullname: "",
     specialty: "",
     qualification: "",
-    work_schedule: "",
     department: "",
-    license_number: "",
     phone: "",
     email: "",
     gender: "Male"
@@ -338,22 +345,14 @@ export default function DoctorsPage() {
   const handleAddNewDoctor = async () => {
     // Tạo bác sĩ mới
     const doctor = {
-      full_name: newDoctor.full_name,
+      doctorid: `DOC${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
+      fullname: newDoctor.fullname,
       specialty: newDoctor.specialty,
       qualification: newDoctor.qualification,
-      work_schedule: JSON.stringify({
-        monday: "09:00-17:00",
-        tuesday: "09:00-17:00",
-        wednesday: "09:00-17:00",
-        thursday: "09:00-17:00",
-        friday: "09:00-17:00"
-      }),
       department: newDoctor.department,
-      license_number: newDoctor.license_number,
       phone: newDoctor.phone,
       email: newDoctor.email,
-      gender: newDoctor.gender,
-      doctor_id: `DOC${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`
+      gender: newDoctor.gender
     }
 
     try {
@@ -375,12 +374,11 @@ export default function DoctorsPage() {
     // Đóng dialog và reset form
     setIsAddDoctorDialogOpen(false);
     setNewDoctor({
-      full_name: "",
+      doctorid: "",
+      fullname: "",
       specialty: "",
       qualification: "",
-      work_schedule: "",
       department: "",
-      license_number: "",
       phone: "",
       email: "",
       gender: "Male"
@@ -434,6 +432,8 @@ export default function DoctorsPage() {
           <SidebarItem icon={<Calendar size={20} />} label="Appointments" href="/admin/appointments" />
           <SidebarItem icon={<UserCog size={20} />} label="Doctors" href="/admin/doctors" active />
           <SidebarItem icon={<User size={20} />} label="Patients" href="/admin/patients" />
+          <SidebarItem icon={<Building2 size={20} />} label="Departments" href="/admin/departments" />
+          <SidebarItem icon={<BedDouble size={20} />} label="Rooms" href="/admin/rooms" />
           <SidebarItem icon={<CreditCard size={20} />} label="Payment" href="/admin/payment" />
           <SidebarItem icon={<Settings2 size={20} />} label="Settings" href="/admin/settings" />
           <SidebarItem icon={<FileBarChart size={20} />} label="Audit Logs" href="/admin/audit-logs" />
@@ -852,13 +852,13 @@ export default function DoctorsPage() {
 
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="full_name" className="text-right">
+              <Label htmlFor="fullname" className="text-right">
                 Tên bác sĩ
               </Label>
               <Input
-                id="full_name"
-                name="full_name"
-                value={newDoctor.full_name}
+                id="fullname"
+                name="fullname"
+                value={newDoctor.fullname}
                 onChange={handleNewDoctorChange}
                 className="col-span-3"
                 placeholder="Dr. John Doe"
@@ -916,19 +916,7 @@ export default function DoctorsPage() {
               />
             </div>
 
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="license_number" className="text-right">
-                Số giấy phép
-              </Label>
-              <Input
-                id="license_number"
-                name="license_number"
-                value={newDoctor.license_number}
-                onChange={handleNewDoctorChange}
-                className="col-span-3"
-                placeholder="MD12345"
-              />
-            </div>
+
 
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="phone" className="text-right">

@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Hospital } from "lucide-react"
+import { authApi } from "@/lib/supabase"
 // import { loginAction } from "./actions"
 
 export default function LoginPage() {
@@ -32,18 +33,26 @@ export default function LoginPage() {
     setError("")
 
     try {
-      // Kiểm tra thông tin đăng nhập trực tiếp
-      if (formData.email === "admin@hospital.com" && formData.password === "admin123") {
-        // Giả lập đặt cookie (trong ứng dụng thực tế, điều này sẽ được xử lý bởi server)
-        document.cookie = "auth_token=example-token-value; path=/; max-age=86400"
-        document.cookie = "user_role=admin; path=/; max-age=86400"
+      // Sử dụng API đăng nhập mới
+      const { user, sessionToken, error } = await authApi.login(formData.email, formData.password)
 
-        // Chuyển hướng đến trang dashboard
-        router.push("/admin/dashboard")
-      } else {
-        setError("Email hoặc mật khẩu không đúng")
+      if (error || !user) {
+        setError(error || "Đăng nhập thất bại")
+        return
       }
+
+      // Lưu thông tin vào cookies
+      document.cookie = `auth_token=${sessionToken}; path=/; max-age=86400`
+      document.cookie = `user_role=${user.role}; path=/; max-age=86400`
+      document.cookie = `user_email=${user.email}; path=/; max-age=86400`
+      document.cookie = `user_id=${user.user_id}; path=/; max-age=86400`
+      document.cookie = `user_name=${encodeURIComponent(user.full_name)}; path=/; max-age=86400`
+
+      // Chuyển hướng đến dashboard tương ứng
+      const redirectPath = `/${user.role}/dashboard`
+      router.push(redirectPath)
     } catch (err) {
+      console.error('Login error:', err)
       setError("Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.")
     } finally {
       setIsLoading(false)
@@ -129,9 +138,11 @@ export default function LoginPage() {
                     Sign Up
                   </Link>
                 </p>
-                <p className="text-[#555] text-xs mt-2">
-                  <strong>Admin demo:</strong> admin@hospital.com / admin123
-                </p>
+                <div className="text-[#555] text-xs mt-2 space-y-1">
+                  <p><strong>Admin demo:</strong> admin@hospital.com / admin123</p>
+                  <p><strong>Doctor demo:</strong> doctor@hospital.com / doctor123</p>
+                  <p><strong>Patient demo:</strong> patient@hospital.com / patient123</p>
+                </div>
               </div>
             </div>
           </form>

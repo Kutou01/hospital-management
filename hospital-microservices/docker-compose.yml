@@ -1,0 +1,259 @@
+version: '3.8'
+
+services:
+  # API Gateway
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - DOCTOR_SERVICE_URL=http://doctor-service:3002
+      - PATIENT_SERVICE_URL=http://patient-service:3003
+      - APPOINTMENT_SERVICE_URL=http://appointment-service:3004
+      - DEPARTMENT_SERVICE_URL=http://department-service:3005
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - auth-service
+      - doctor-service
+      - patient-service
+      - appointment-service
+      - redis
+    networks:
+      - hospital-network
+
+  # Auth Service
+  auth-service:
+    build: ./services/auth-service
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:password@auth-db:5432/auth_db
+      - JWT_SECRET=your-super-secret-jwt-key
+      - JWT_EXPIRES_IN=24h
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+    depends_on:
+      - auth-db
+      - redis
+      - rabbitmq
+    networks:
+      - hospital-network
+
+  # Doctor Service
+  doctor-service:
+    build: ./services/doctor-service
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:password@doctor-db:5432/doctor_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+      - AUTH_SERVICE_URL=http://auth-service:3001
+    depends_on:
+      - doctor-db
+      - redis
+      - rabbitmq
+    networks:
+      - hospital-network
+
+  # Patient Service
+  patient-service:
+    build: ./services/patient-service
+    ports:
+      - "3003:3003"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:password@patient-db:5432/patient_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+      - AUTH_SERVICE_URL=http://auth-service:3001
+    depends_on:
+      - patient-db
+      - redis
+      - rabbitmq
+    networks:
+      - hospital-network
+
+  # Appointment Service
+  appointment-service:
+    build: ./services/appointment-service
+    ports:
+      - "3004:3004"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:password@appointment-db:5432/appointment_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - DOCTOR_SERVICE_URL=http://doctor-service:3002
+      - PATIENT_SERVICE_URL=http://patient-service:3003
+    depends_on:
+      - appointment-db
+      - redis
+      - rabbitmq
+    networks:
+      - hospital-network
+
+  # Department Service
+  department-service:
+    build: ./services/department-service
+    ports:
+      - "3005:3005"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:password@department-db:5432/department_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+      - AUTH_SERVICE_URL=http://auth-service:3001
+    depends_on:
+      - department-db
+      - redis
+      - rabbitmq
+    networks:
+      - hospital-network
+
+  # Frontend
+  frontend:
+    build: ./frontend
+    ports:
+      - "3100:3000"
+    environment:
+      - NEXT_PUBLIC_API_GATEWAY_URL=http://localhost:3000
+      - NODE_ENV=development
+    depends_on:
+      - api-gateway
+    networks:
+      - hospital-network
+
+  # Databases
+  auth-db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    volumes:
+      - auth_data:/var/lib/postgresql/data
+      - ./services/auth-service/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - hospital-network
+
+  doctor-db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: doctor_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    volumes:
+      - doctor_data:/var/lib/postgresql/data
+      - ./services/doctor-service/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - hospital-network
+
+  patient-db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: patient_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    volumes:
+      - patient_data:/var/lib/postgresql/data
+      - ./services/patient-service/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - hospital-network
+
+  appointment-db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: appointment_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    volumes:
+      - appointment_data:/var/lib/postgresql/data
+      - ./services/appointment-service/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - hospital-network
+
+  department-db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: department_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    volumes:
+      - department_data:/var/lib/postgresql/data
+      - ./services/department-service/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - hospital-network
+
+  # Redis for caching and sessions
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - hospital-network
+
+  # RabbitMQ for message queuing
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - hospital-network
+
+  # Monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - hospital-network
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      - hospital-network
+
+volumes:
+  auth_data:
+  doctor_data:
+  patient_data:
+  appointment_data:
+  department_data:
+  redis_data:
+  rabbitmq_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  hospital-network:
+    driver: bridge

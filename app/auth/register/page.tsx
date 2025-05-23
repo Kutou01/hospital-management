@@ -13,18 +13,23 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 // Import icons directly from lucide-react
 import { User, Stethoscope, Check } from "lucide-react"
+import { authApi } from "@/lib/supabase"
 
 export default function RegisterPage() {
   const router = useRouter()
   const [accountType, setAccountType] = useState<"doctor" | "patient" | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     fullName: "",
+    phoneNumber: "",
     specialization: "",
     licenseNo: "",
     dateOfBirth: "",
     gender: "male",
+    address: "",
   })
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -36,12 +41,40 @@ export default function RegisterPage() {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("Form submitted:", { accountType, ...formData })
-    // Here you would typically send the data to your backend
-    // Then redirect to login or dashboard
-    router.push("/auth/login")
+    if (!accountType) return
+
+    setIsLoading(true)
+    setError("")
+
+    try {
+      const { user, error } = await authApi.register({
+        email: formData.email,
+        password: formData.password,
+        full_name: formData.fullName,
+        phone_number: formData.phoneNumber,
+        role: accountType,
+        specialty: formData.specialization,
+        license_number: formData.licenseNo,
+        date_of_birth: formData.dateOfBirth,
+        gender: formData.gender,
+        address: formData.address,
+      })
+
+      if (error || !user) {
+        setError(error || "Đăng ký thất bại")
+        return
+      }
+
+      // Đăng ký thành công, chuyển về trang login
+      router.push("/auth/login?message=Đăng ký thành công! Vui lòng đăng nhập.")
+    } catch (err) {
+      console.error('Register error:', err)
+      setError("Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -94,6 +127,12 @@ export default function RegisterPage() {
             <p className="text-[#777] text-sm text-center mb-6">
               Hello {accountType === "doctor" ? "Doctor" : "Patient"}! Please fill out the form below to get started.
             </p>
+          )}
+
+          {error && (
+            <div className="bg-red-50 text-red-700 p-3 rounded-md mb-4 text-sm">
+              {error}
+            </div>
           )}
 
           {accountType && (
@@ -149,6 +188,21 @@ export default function RegisterPage() {
                     value={formData.fullName}
                     onChange={handleInputChange}
                     required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="phoneNumber" className="text-[#0066CC]">
+                    Phone Number
+                  </Label>
+                  <Input
+                    id="phoneNumber"
+                    name="phoneNumber"
+                    type="tel"
+                    placeholder="+84 123 456 789"
+                    className="h-10 rounded-md border-[#CCC] focus:border-[#0066CC] focus:ring-1 focus:ring-[#0066CC]"
+                    value={formData.phoneNumber}
+                    onChange={handleInputChange}
                   />
                 </div>
 
@@ -231,14 +285,30 @@ export default function RegisterPage() {
                         </div>
                       </RadioGroup>
                     </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="address" className="text-[#0066CC]">
+                        Address
+                      </Label>
+                      <Input
+                        id="address"
+                        name="address"
+                        type="text"
+                        placeholder="123 Main Street, City"
+                        className="h-10 rounded-md border-[#CCC] focus:border-[#0066CC] focus:ring-1 focus:ring-[#0066CC]"
+                        value={formData.address}
+                        onChange={handleInputChange}
+                      />
+                    </div>
                   </>
                 )}
 
                 <Button
                   type="submit"
                   className="w-full h-[45px] mt-6 bg-[#0066CC] hover:bg-[#0055AA] text-white rounded-md"
+                  disabled={isLoading}
                 >
-                  Sign Up
+                  {isLoading ? "Signing up..." : "Sign Up"}
                 </Button>
 
                 <p className="text-[#555] text-xs text-center mt-4">

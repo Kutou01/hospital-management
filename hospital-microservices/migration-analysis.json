@@ -1,0 +1,245 @@
+{
+  "timestamp": "2025-05-23T16:22:27.647Z",
+  "supabaseUrl": "https://ciasxktujslgsdgylimv.supabase.co",
+  "existingTables": [
+    "users",
+    "doctors",
+    "patients",
+    "appointments",
+    "departments",
+    "rooms",
+    "medical_records",
+    "prescriptions",
+    "billing",
+    "payments",
+    "schedules",
+    "availability"
+  ],
+  "tableAnalysis": {
+    "users": {
+      "exists": true,
+      "rowCount": 3,
+      "error": null
+    },
+    "doctors": {
+      "exists": true,
+      "rowCount": 17,
+      "error": null
+    },
+    "patients": {
+      "exists": true,
+      "rowCount": 16,
+      "error": null
+    },
+    "appointments": {
+      "exists": true,
+      "rowCount": 16,
+      "error": null
+    },
+    "departments": {
+      "exists": true,
+      "rowCount": 8,
+      "error": null
+    },
+    "rooms": {
+      "exists": true,
+      "rowCount": 16,
+      "error": null
+    },
+    "medical_records": {
+      "exists": true,
+      "rowCount": 0,
+      "error": null
+    },
+    "prescriptions": {
+      "exists": true,
+      "rowCount": 0,
+      "error": null
+    },
+    "billing": {
+      "exists": true,
+      "rowCount": 0,
+      "error": null
+    },
+    "payments": {
+      "exists": true,
+      "rowCount": 0,
+      "error": null
+    },
+    "schedules": {
+      "exists": true,
+      "rowCount": 0,
+      "error": null
+    },
+    "availability": {
+      "exists": true,
+      "rowCount": 0,
+      "error": null
+    }
+  },
+  "migrationPlan": {
+    "auth-service": {
+      "foundTables": [
+        "users"
+      ],
+      "missingTables": [
+        "sessions",
+        "user_roles",
+        "permissions"
+      ],
+      "priority": "HIGH",
+      "readyForMigration": true
+    },
+    "doctor-service": {
+      "foundTables": [
+        "doctors",
+        "schedules",
+        "availability"
+      ],
+      "missingTables": [
+        "doctor_profiles",
+        "specializations"
+      ],
+      "priority": "HIGH",
+      "readyForMigration": true
+    },
+    "patient-service": {
+      "foundTables": [
+        "patients"
+      ],
+      "missingTables": [
+        "patient_profiles",
+        "medical_history",
+        "emergency_contacts"
+      ],
+      "priority": "HIGH",
+      "readyForMigration": true
+    },
+    "appointment-service": {
+      "foundTables": [
+        "appointments"
+      ],
+      "missingTables": [
+        "appointment_slots",
+        "bookings"
+      ],
+      "priority": "HIGH",
+      "readyForMigration": true
+    },
+    "department-service": {
+      "foundTables": [
+        "departments",
+        "rooms"
+      ],
+      "missingTables": [
+        "facilities"
+      ],
+      "priority": "HIGH",
+      "readyForMigration": true
+    },
+    "medical-service": {
+      "foundTables": [
+        "medical_records",
+        "prescriptions"
+      ],
+      "missingTables": [
+        "diagnoses",
+        "treatments"
+      ],
+      "priority": "HIGH",
+      "readyForMigration": true
+    },
+    "billing-service": {
+      "foundTables": [
+        "billing",
+        "payments"
+      ],
+      "missingTables": [
+        "invoices",
+        "insurance"
+      ],
+      "priority": "HIGH",
+      "readyForMigration": true
+    }
+  },
+  "recommendations": {
+    "highPriorityServices": [
+      {
+        "service": "doctor-service",
+        "foundTables": [
+          "doctors",
+          "schedules",
+          "availability"
+        ],
+        "missingTables": [
+          "doctor_profiles",
+          "specializations"
+        ]
+      },
+      {
+        "service": "department-service",
+        "foundTables": [
+          "departments",
+          "rooms"
+        ],
+        "missingTables": [
+          "facilities"
+        ]
+      },
+      {
+        "service": "medical-service",
+        "foundTables": [
+          "medical_records",
+          "prescriptions"
+        ],
+        "missingTables": [
+          "diagnoses",
+          "treatments"
+        ]
+      },
+      {
+        "service": "billing-service",
+        "foundTables": [
+          "billing",
+          "payments"
+        ],
+        "missingTables": [
+          "invoices",
+          "insurance"
+        ]
+      },
+      {
+        "service": "auth-service",
+        "foundTables": [
+          "users"
+        ],
+        "missingTables": [
+          "sessions",
+          "user_roles",
+          "permissions"
+        ]
+      },
+      {
+        "service": "patient-service",
+        "foundTables": [
+          "patients"
+        ],
+        "missingTables": [
+          "patient_profiles",
+          "medical_history",
+          "emergency_contacts"
+        ]
+      },
+      {
+        "service": "appointment-service",
+        "foundTables": [
+          "appointments"
+        ],
+        "missingTables": [
+          "appointment_slots",
+          "bookings"
+        ]
+      }
+    ]
+  }
+}

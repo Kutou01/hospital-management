@@ -7,6 +7,271 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 // Tạo Supabase client
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// Types cho authentication
+export interface User {
+  user_id: string;
+  email: string;
+  role: 'admin' | 'doctor' | 'patient';
+  full_name: string;
+  phone_number?: string;
+  is_active: boolean;
+  profile_id?: string;
+  created_at: string;
+  last_login?: string;
+}
+
+export interface LoginSession {
+  session_id: number;
+  user_id: string;
+  login_time: string;
+  logout_time?: string;
+  ip_address?: string;
+  user_agent?: string;
+  device_info?: any;
+  session_token?: string;
+  is_active: boolean;
+}
+
+// Authentication API
+export const authApi = {
+  // Đăng nhập
+  login: async (email: string, password: string) => {
+    try {
+      // Tìm user theo email
+      const { data: user, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .eq('is_active', true)
+        .single();
+
+      if (userError || !user) {
+        return { user: null, error: 'Email hoặc mật khẩu không đúng' };
+      }
+
+      // Trong thực tế, bạn sẽ cần hash password và so sánh
+      // Hiện tại tôi sẽ dùng password đơn giản cho demo
+      const validPasswords = {
+        'admin@hospital.com': 'admin123',
+        'doctor@hospital.com': 'doctor123',
+        'patient@hospital.com': 'patient123'
+      };
+
+      if (validPasswords[email as keyof typeof validPasswords] !== password) {
+        return { user: null, error: 'Email hoặc mật khẩu không đúng' };
+      }
+
+      // Tạo session token
+      const sessionToken = Math.random().toString(36).substring(2, 15) +
+                          Math.random().toString(36).substring(2, 15);
+
+      // Lưu login session
+      const { error: sessionError } = await supabase
+        .from('login_sessions')
+        .insert([{
+          user_id: user.user_id,
+          session_token: sessionToken,
+          user_agent: typeof window !== 'undefined' ? navigator.userAgent : '',
+          device_info: {
+            platform: typeof window !== 'undefined' ? navigator.platform : '',
+            language: typeof window !== 'undefined' ? navigator.language : ''
+          }
+        }]);
+
+      if (sessionError) {
+        console.error('Error creating session:', sessionError);
+      }
+
+      // Cập nhật last_login
+      await supabase
+        .from('users')
+        .update({ last_login: new Date().toISOString() })
+        .eq('user_id', user.user_id);
+
+      return {
+        user: user as User,
+        sessionToken,
+        error: null
+      };
+    } catch (error) {
+      console.error('Login error:', error);
+      return { user: null, error: 'Đã xảy ra lỗi không mong muốn' };
+    }
+  },
+
+  // Đăng ký
+  register: async (userData: {
+    email: string;
+    password: string;
+    full_name: string;
+    phone_number?: string;
+    role: 'doctor' | 'patient';
+    // Thêm các trường khác tùy theo role
+    specialty?: string;
+    license_number?: string;
+    date_of_birth?: string;
+    gender?: string;
+    address?: string;
+  }) => {
+    try {
+      // Kiểm tra email đã tồn tại chưa
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('email')
+        .eq('email', userData.email)
+        .single();
+
+      if (existingUser) {
+        return { user: null, error: 'Email đã được sử dụng' };
+      }
+
+      // Tạo user_id
+      const userIdPrefix = userData.role === 'doctor' ? 'DOC' : 'PAT';
+      const randomNum = Math.floor(100000 + Math.random() * 900000);
+      const userId = userIdPrefix + randomNum;
+
+      // Tạo profile_id cho doctor hoặc patient
+      let profileId = null;
+      if (userData.role === 'doctor') {
+        profileId = 'DOC' + randomNum;
+
+        // Thêm vào bảng doctors
+        const { error: doctorError } = await supabase
+          .from('doctors')
+          .insert([{
+            doctor_id: profileId,
+            full_name: userData.full_name,
+            specialty: userData.specialty || '',
+            license_number: userData.license_number || '',
+            gender: userData.gender || 'Male',
+            phone_number: userData.phone_number || '',
+            email: userData.email
+          }]);
+
+        if (doctorError) {
+          console.error('Error creating doctor profile:', doctorError);
+          return { user: null, error: 'Lỗi tạo hồ sơ bác sĩ' };
+        }
+      } else if (userData.role === 'patient') {
+        profileId = 'PAT' + randomNum;
+
+        // Thêm vào bảng patients
+        const { error: patientError } = await supabase
+          .from('patients')
+          .insert([{
+            patient_id: profileId,
+            full_name: userData.full_name,
+            dateofbirth: userData.date_of_birth || null,
+            gender: userData.gender || 'Male',
+            phone_number: userData.phone_number || '',
+            email: userData.email,
+            address: userData.address || '',
+            registration_date: new Date().toISOString().split('T')[0]
+          }]);
+
+        if (patientError) {
+          console.error('Error creating patient profile:', patientError);
+          return { user: null, error: 'Lỗi tạo hồ sơ bệnh nhân' };
+        }
+      }
+
+      // Tạo user trong bảng users
+      const { data: newUser, error: userError } = await supabase
+        .from('users')
+        .insert([{
+          user_id: userId,
+          email: userData.email,
+          password_hash: '$2b$10$rQZ8kHWKQVz7QGQvQGQvQO', // Trong thực tế cần hash password
+          role: userData.role,
+          full_name: userData.full_name,
+          phone_number: userData.phone_number,
+          profile_id: profileId
+        }])
+        .select()
+        .single();
+
+      if (userError) {
+        console.error('Error creating user:', userError);
+        return { user: null, error: 'Lỗi tạo tài khoản' };
+      }
+
+      return { user: newUser as User, error: null };
+    } catch (error) {
+      console.error('Register error:', error);
+      return { user: null, error: 'Đã xảy ra lỗi không mong muốn' };
+    }
+  },
+
+  // Đăng xuất
+  logout: async (sessionToken: string) => {
+    try {
+      const { error } = await supabase
+        .from('login_sessions')
+        .update({
+          logout_time: new Date().toISOString(),
+          is_active: false
+        })
+        .eq('session_token', sessionToken);
+
+      if (error) {
+        console.error('Logout error:', error);
+        return { error: 'Lỗi đăng xuất' };
+      }
+
+      return { error: null };
+    } catch (error) {
+      console.error('Logout error:', error);
+      return { error: 'Đã xảy ra lỗi không mong muốn' };
+    }
+  },
+
+  // Lấy thông tin user từ session token
+  getUserFromSession: async (sessionToken: string) => {
+    try {
+      const { data: session, error: sessionError } = await supabase
+        .from('login_sessions')
+        .select(`
+          *,
+          users (*)
+        `)
+        .eq('session_token', sessionToken)
+        .eq('is_active', true)
+        .single();
+
+      if (sessionError || !session) {
+        return { user: null, error: 'Session không hợp lệ' };
+      }
+
+      return { user: session.users as User, error: null };
+    } catch (error) {
+      console.error('Get user from session error:', error);
+      return { user: null, error: 'Đã xảy ra lỗi không mong muốn' };
+    }
+  },
+
+  // Lấy lịch sử đăng nhập của user
+  getLoginHistory: async (userId: string, limit: number = 10) => {
+    try {
+      const { data: sessions, error } = await supabase
+        .from('login_sessions')
+        .select('*')
+        .eq('user_id', userId)
+        .order('login_time', { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        console.error('Error fetching login history:', error);
+        return { sessions: [], error: 'Lỗi lấy lịch sử đăng nhập' };
+      }
+
+      return { sessions: sessions as LoginSession[], error: null };
+    } catch (error) {
+      console.error('Get login history error:', error);
+      return { sessions: [], error: 'Đã xảy ra lỗi không mong muốn' };
+    }
+  }
+};
+
 // Các hàm tương tác với bảng doctors
 export const doctorsApi = {
   // Lấy tất cả bác sĩ

@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from 'express';
-import logger from '@hospital/shared/src/utils/logger';
 
 export const errorHandler = (
   error: Error,
@@ -7,7 +6,7 @@ export const errorHandler = (
   res: Response,
   next: NextFunction
 ): void => {
-  logger.error('API Gateway Error', {
+  console.error('API Gateway Error', {
     error: error.message,
     stack: error.stack,
     path: req.path,
@@ -19,8 +18,8 @@ export const errorHandler = (
   res.status(500).json({
     success: false,
     error: 'API Gateway Error',
-    message: process.env.NODE_ENV === 'production' 
-      ? 'Something went wrong' 
+    message: process.env.NODE_ENV === 'production'
+      ? 'Something went wrong'
       : error.message,
     timestamp: new Date().toISOString()
   });

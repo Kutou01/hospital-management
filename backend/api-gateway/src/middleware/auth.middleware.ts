@@ -1,12 +1,18 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { JWTPayload } from '@hospital/shared/src/types/user.types';
-import logger from '@hospital/shared/src/utils/logger';
+
+interface JWTPayload {
+  sub: string;
+  email: string;
+  role: string;
+  iat?: number;
+  exp?: number;
+}
 
 export const authMiddleware = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       res.status(401).json({
         success: false,
@@ -33,7 +39,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
     req.headers['x-user-email'] = decoded.email;
     req.headers['x-user-role'] = decoded.role;
 
-    logger.info('Request authenticated via API Gateway', {
+    console.log('Request authenticated via API Gateway', {
       userId: decoded.sub,
       email: decoded.email,
       role: decoded.role,

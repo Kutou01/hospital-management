@@ -9,6 +9,11 @@ export * from './appointments';
 export * from './departments';
 export * from './rooms';
 
+// Export microservices APIs
+export * from './medical-records';
+export * from './prescriptions';
+export * from './billing';
+
 // Re-export types for convenience
 export type {
   User,

@@ -7,7 +7,7 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 
-import { stream } from '@hospital/shared/src/utils/logger';
+// import { stream } from '@hospital/shared/src/utils/logger';
 import { authMiddleware } from './middleware/auth.middleware';
 import { errorHandler } from './middleware/error.middleware';
 import { ServiceRegistry } from './services/service-registry';
@@ -20,7 +20,7 @@ export function createApp(): express.Application {
   // Security middleware
   app.use(helmet());
   app.use(cors({
-    origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3100'],
+    origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
     credentials: true,
   }));
 
@@ -37,7 +37,7 @@ export function createApp(): express.Application {
   app.use(express.urlencoded({ extended: true }));
 
   // Logging middleware
-  app.use(morgan('combined', { stream }));
+  app.use(morgan('combined'));
 
   // Swagger documentation
   const swaggerOptions = {
@@ -50,7 +50,7 @@ export function createApp(): express.Application {
       },
       servers: [
         {
-          url: process.env.API_URL || 'http://localhost:3000',
+          url: process.env.API_URL || 'http://localhost:3100',
           description: 'API Gateway',
         },
       ],
@@ -73,31 +73,57 @@ export function createApp(): express.Application {
   // Health check endpoint
   app.use('/health', healthRoutes);
 
-  // Auth Service Routes (no auth required for login/register)
-  app.use('/api/auth', createProxyMiddleware({
-    target: process.env.AUTH_SERVICE_URL || 'http://auth-service:3001',
-    changeOrigin: true,
-    pathRewrite: {
-      '^/api/auth': '/api/auth',
-    },
-    onError: (err, req, res) => {
-      console.error('Auth Service Proxy Error:', err);
-      res.status(503).json({ error: 'Auth service unavailable' });
-    },
-  }));
+  // Auth Service Routes (DEPRECATED - Frontend now uses Supabase Auth directly)
+  // console.log('Setting up Auth Service proxy to:', process.env.AUTH_SERVICE_URL || 'http://localhost:3001');
+  // app.use('/api/auth', createProxyMiddleware({
+  //   target: process.env.AUTH_SERVICE_URL || 'http://localhost:3001',
+  //   changeOrigin: true,
+  //   pathRewrite: {
+  //     '^/api/auth': '/api/auth',
+  //   },
+  //   onProxyReq: (proxyReq, req, res) => {
+  //     console.log(`🔄 Proxying ${req.method} ${req.url} to Auth Service`);
+  //     // Forward original headers
+  //     proxyReq.setHeader('X-Forwarded-For', req.ip || 'unknown');
+  //     proxyReq.setHeader('X-Forwarded-Proto', req.protocol);
+  //     proxyReq.setHeader('X-Forwarded-Host', req.get('Host') || 'unknown');
+  //   },
+  //   onProxyRes: (proxyRes, req, res) => {
+  //     console.log(`✅ Auth Service responded with ${proxyRes.statusCode} for ${req.method} ${req.url}`);
+  //   },
+  //   onError: (err, req, res) => {
+  //     console.error('❌ Auth Service Proxy Error:', err.message);
+  //     if (!res.headersSent) {
+  //       res.status(503).json({
+  //         success: false,
+  //         error: 'Auth service unavailable',
+  //         message: 'The authentication service is currently unavailable. Please try again later.',
+  //         timestamp: new Date().toISOString()
+  //       });
+  //     }
+  //   },
+  // }));
 
   // Protected routes - require authentication
-  app.use('/api/users', authMiddleware, createProxyMiddleware({
-    target: process.env.AUTH_SERVICE_URL || 'http://auth-service:3001',
-    changeOrigin: true,
-    pathRewrite: {
-      '^/api/users': '/api/users',
-    },
-    onError: (err, req, res) => {
-      console.error('User Service Proxy Error:', err);
-      res.status(503).json({ error: 'User service unavailable' });
-    },
-  }));
+  // Users route (DEPRECATED - Frontend now uses Supabase Auth directly)
+  // app.use('/api/users', authMiddleware, createProxyMiddleware({
+  //   target: process.env.AUTH_SERVICE_URL || 'http://localhost:3001',
+  //   changeOrigin: true,
+  //   pathRewrite: {
+  //     '^/api/users': '/api/users',
+  //   },
+  //   onError: (err, req, res) => {
+  //     console.error('❌ User Service Proxy Error:', err.message);
+  //     if (!res.headersSent) {
+  //       res.status(503).json({
+  //         success: false,
+  //         error: 'User service unavailable',
+  //         message: 'The user service is currently unavailable. Please try again later.',
+  //         timestamp: new Date().toISOString()
+  //       });
+  //     }
+  //   },
+  // }));
 
   // Doctor Service Routes
   app.use('/api/doctors', authMiddleware, createProxyMiddleware({
@@ -138,9 +164,61 @@ export function createApp(): express.Application {
     },
   }));
 
-  // Department Service Routes
+  // Medical Records Service Routes
+  app.use('/api/medical-records', authMiddleware, createProxyMiddleware({
+    target: process.env.MEDICAL_RECORDS_SERVICE_URL || 'http://medical-records-service:3006',
+    changeOrigin: true,
+    pathRewrite: {
+      '^/api/medical-records': '/api/medical-records',
+    },
+    onError: (err, req, res) => {
+      console.error('Medical Records Service Proxy Error:', err);
+      res.status(503).json({ error: 'Medical records service unavailable' });
+    },
+  }));
+
+  // Prescription Service Routes
+  app.use('/api/prescriptions', authMiddleware, createProxyMiddleware({
+    target: process.env.PRESCRIPTION_SERVICE_URL || 'http://prescription-service:3007',
+    changeOrigin: true,
+    pathRewrite: {
+      '^/api/prescriptions': '/api/prescriptions',
+    },
+    onError: (err, req, res) => {
+      console.error('Prescription Service Proxy Error:', err);
+      res.status(503).json({ error: 'Prescription service unavailable' });
+    },
+  }));
+
+  // Billing Service Routes
+  app.use('/api/billing', authMiddleware, createProxyMiddleware({
+    target: process.env.BILLING_SERVICE_URL || 'http://billing-service:3008',
+    changeOrigin: true,
+    pathRewrite: {
+      '^/api/billing': '/api/billing',
+    },
+    onError: (err, req, res) => {
+      console.error('Billing Service Proxy Error:', err);
+      res.status(503).json({ error: 'Billing service unavailable' });
+    },
+  }));
+
+  // Room Service Routes
+  app.use('/api/rooms', authMiddleware, createProxyMiddleware({
+    target: process.env.ROOM_SERVICE_URL || 'http://room-service:3009',
+    changeOrigin: true,
+    pathRewrite: {
+      '^/api/rooms': '/api/rooms',
+    },
+    onError: (err, req, res) => {
+      console.error('Room Service Proxy Error:', err);
+      res.status(503).json({ error: 'Room service unavailable' });
+    },
+  }));
+
+  // Department Service Routes (placeholder for future implementation)
   app.use('/api/departments', authMiddleware, createProxyMiddleware({
-    target: process.env.DEPARTMENT_SERVICE_URL || 'http://department-service:3005',
+    target: process.env.DEPARTMENT_SERVICE_URL || 'http://department-service:3010',
     changeOrigin: true,
     pathRewrite: {
       '^/api/departments': '/api/departments',
@@ -148,6 +226,19 @@ export function createApp(): express.Application {
     onError: (err, req, res) => {
       console.error('Department Service Proxy Error:', err);
       res.status(503).json({ error: 'Department service unavailable' });
+    },
+  }));
+
+  // Notification Service Routes
+  app.use('/api/notifications', authMiddleware, createProxyMiddleware({
+    target: process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:3011',
+    changeOrigin: true,
+    pathRewrite: {
+      '^/api/notifications': '/api/notifications',
+    },
+    onError: (err, req, res) => {
+      console.error('Notification Service Proxy Error:', err);
+      res.status(503).json({ error: 'Notification service unavailable' });
     },
   }));
 

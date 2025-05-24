@@ -1,4 +1,4 @@
-import logger from '@hospital/shared/src/utils/logger';
+// import logger from '@hospital/shared/src/utils/logger';
 
 interface ServiceInfo {
   name: string;
@@ -26,12 +26,17 @@ export class ServiceRegistry {
     this.registerService('doctor-service', process.env.DOCTOR_SERVICE_URL || 'http://doctor-service:3002');
     this.registerService('patient-service', process.env.PATIENT_SERVICE_URL || 'http://patient-service:3003');
     this.registerService('appointment-service', process.env.APPOINTMENT_SERVICE_URL || 'http://appointment-service:3004');
-    this.registerService('department-service', process.env.DEPARTMENT_SERVICE_URL || 'http://department-service:3005');
+    this.registerService('medical-records-service', process.env.MEDICAL_RECORDS_SERVICE_URL || 'http://medical-records-service:3006');
+    this.registerService('prescription-service', process.env.PRESCRIPTION_SERVICE_URL || 'http://prescription-service:3007');
+    this.registerService('billing-service', process.env.BILLING_SERVICE_URL || 'http://billing-service:3008');
+    this.registerService('room-service', process.env.ROOM_SERVICE_URL || 'http://room-service:3009');
+    this.registerService('department-service', process.env.DEPARTMENT_SERVICE_URL || 'http://department-service:3010');
+    this.registerService('notification-service', process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:3011');
 
     // Start health checking
     this.startHealthChecking();
 
-    logger.info('Service registry initialized', {
+    console.log('Service registry initialized', {
       services: Array.from(this.services.keys())
     });
   }
@@ -44,7 +49,7 @@ export class ServiceRegistry {
       lastCheck: new Date()
     });
 
-    logger.info('Service registered', { name, url });
+    console.log('Service registered', { name, url });
   }
 
   getService(name: string): ServiceInfo | undefined {
@@ -60,10 +65,15 @@ export class ServiceRegistry {
     setInterval(async () => {
       for (const [name, service] of this.services) {
         try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000);
+
           const response = await fetch(`${service.url}/health`, {
             method: 'GET',
-            timeout: 5000
+            signal: controller.signal
           });
+
+          clearTimeout(timeoutId);
 
           if (response.ok) {
             this.updateServiceStatus(name, 'healthy');
@@ -72,7 +82,7 @@ export class ServiceRegistry {
           }
         } catch (error) {
           this.updateServiceStatus(name, 'unhealthy');
-          logger.warn('Service health check failed', {
+          console.warn('Service health check failed', {
             service: name,
             url: service.url,
             error: error instanceof Error ? error.message : 'Unknown error'
@@ -93,6 +103,6 @@ export class ServiceRegistry {
 
   async disconnect(): Promise<void> {
     // Cleanup if needed
-    logger.info('Service registry disconnected');
+    console.log('Service registry disconnected');
   }
 }

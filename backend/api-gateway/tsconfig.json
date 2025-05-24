@@ -12,6 +12,8 @@
     "resolveJsonModule": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
+    "composite": true,
+    "declaration": true,
     "baseUrl": "./",
     "paths": {
       "@/*": ["src/*"],

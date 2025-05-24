@@ -1,5 +1,5 @@
 // Migration helper to gradually transition from Supabase to microservices
-import { apiClient } from './api-client';
+import { apiClient } from './api/client';
 import { supabase, doctorsApi, patientsApi, appointmentsApi, departmentsApi, roomsApi } from './supabase';
 
 // Feature flags to control which APIs to use

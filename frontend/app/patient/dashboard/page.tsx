@@ -10,9 +10,12 @@ import {
   AlertTriangle,
   CheckCircle,
   Pill,
-  Thermometer
+  Thermometer,
+  AlertCircle,
+  MessageCircle,
+  Phone
 } from "lucide-react"
-import { DashboardLayout } from "@/components/layout/DashboardLayout"
+import { PatientLayout } from "@/components/layout/PatientLayout"
 import { StatCard } from "@/components/dashboard/StatCard"
 import { ChartCard, BarChartGroup } from "@/components/dashboard/ChartCard"
 import { RecentActivity } from "@/components/dashboard/RecentActivity"
@@ -20,19 +23,46 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
+import { useAuthProvider } from "@/hooks/useAuthProvider"
 
 export default function PatientDashboard() {
+  const { user, loading } = useAuthProvider()
   const [currentDate, setCurrentDate] = useState("")
 
   useEffect(() => {
     const today = new Date()
-    setCurrentDate(today.toLocaleDateString('vi-VN', { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    setCurrentDate(today.toLocaleDateString('vi-VN', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     }))
   }, [])
+
+  // Show loading state while user data is being fetched
+  if (loading) {
+    return (
+      <PatientLayout title="Patient Dashboard" activePage="dashboard">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      </PatientLayout>
+    )
+  }
+
+  // Redirect if not authenticated or not a patient
+  if (!user || user.role !== 'patient') {
+    return (
+      <PatientLayout title="Patient Dashboard" activePage="dashboard">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <p className="text-gray-600">Access denied. Patient role required.</p>
+          </div>
+        </div>
+      </PatientLayout>
+    )
+  }
 
   // Mock data cho patient dashboard
   const upcomingAppointments = [
@@ -117,11 +147,33 @@ export default function PatientDashboard() {
   }
 
   return (
-    <DashboardLayout title="Patient Dashboard" activePage="dashboard">
+    <PatientLayout title="Patient Dashboard" activePage="dashboard">
       {/* Welcome Section */}
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Welcome back, John!</h2>
+        <div className="flex items-center gap-3 mb-2">
+          <div className="p-2 bg-blue-100 rounded-lg">
+            <Heart className="h-6 w-6 text-blue-600" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">
+              Welcome back, {user.full_name}!
+            </h2>
+            <p className="text-sm text-gray-600">
+              {user.email} • {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+            </p>
+          </div>
+        </div>
         <p className="text-gray-600">{currentDate}</p>
+
+        {/* Health Status Alert */}
+        <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+          <div className="flex items-center gap-2">
+            <CheckCircle className="h-5 w-5 text-green-600" />
+            <span className="text-sm font-medium text-green-800">
+              Your health status is good. Keep up the great work!
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -257,7 +309,7 @@ export default function PatientDashboard() {
         </Card>
 
         {/* Recent Activity */}
-        <RecentActivity 
+        <RecentActivity
           activities={recentActivities}
           title="Recent Activity"
           maxItems={4}
@@ -285,9 +337,17 @@ export default function PatientDashboard() {
               <Pill className="h-6 w-6" />
               <span className="text-xs">Medications</span>
             </Button>
+            <Button className="h-20 flex-col space-y-2" variant="outline">
+              <MessageCircle className="h-6 w-6" />
+              <span className="text-xs">Contact Doctor</span>
+            </Button>
+            <Button className="h-20 flex-col space-y-2" variant="outline">
+              <Phone className="h-6 w-6" />
+              <span className="text-xs">Emergency</span>
+            </Button>
           </div>
         </CardContent>
       </Card>
-    </DashboardLayout>
+    </PatientLayout>
   )
 }

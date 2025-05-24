@@ -26,7 +26,7 @@ const services = [
   {
     name: 'api-gateway',
     path: './api-gateway',
-    port: 3000,
+    port: 3100,
     color: 'cyan',
     description: 'API Gateway & Load Balancer'
   },
@@ -57,6 +57,13 @@ const services = [
     port: 3004,
     color: 'magenta',
     description: 'Appointment Booking'
+  },
+  {
+    name: 'department-service',
+    path: './services/department-service',
+    port: 3010,
+    color: 'blue',
+    description: 'Department Management'
   },
   {
     name: 'medical-records-service',
@@ -127,7 +134,7 @@ function checkServiceExists(service) {
 function startService(service) {
   return new Promise((resolve, reject) => {
     const servicePath = path.resolve(service.path);
-    
+
     if (!checkServiceExists(service)) {
       log('yellow', `Service directory not found, skipping...`, service.name);
       resolve(false);
@@ -151,9 +158,9 @@ function startService(service) {
       const output = data.toString().trim();
       if (output) {
         log(service.color, output, service.name);
-        
+
         // Check if service started successfully
-        if (output.includes(`running on port ${service.port}`) || 
+        if (output.includes(`running on port ${service.port}`) ||
             output.includes(`listening on port ${service.port}`) ||
             output.includes(`started on port ${service.port}`)) {
           if (!startupComplete) {
@@ -213,7 +220,7 @@ async function startAllServices() {
   }
 
   log('blue', '🔍 Checking available services...');
-  
+
   const availableServices = services.filter(service => {
     const exists = checkServiceExists(service);
     if (exists) {
@@ -234,13 +241,13 @@ async function startAllServices() {
   // Start services with delay to avoid port conflicts
   for (let i = 0; i < availableServices.length; i++) {
     const service = availableServices[i];
-    
+
     try {
       const started = await startService(service);
       if (started) {
         log('green', `✅ Started successfully on port ${service.port}`, service.name);
       }
-      
+
       // Add delay between service starts
       if (i < availableServices.length - 1) {
         await new Promise(resolve => setTimeout(resolve, 2000));
@@ -272,7 +279,7 @@ async function startAllServices() {
 // Graceful shutdown
 function gracefulShutdown() {
   log('yellow', '🛑 Shutting down all services...');
-  
+
   runningProcesses.forEach((process, serviceName) => {
     log('yellow', `Stopping...`, serviceName);
     process.kill('SIGTERM');

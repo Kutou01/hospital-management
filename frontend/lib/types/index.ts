@@ -5,11 +5,70 @@ export interface BaseEntity {
   updated_at: string;
 }
 
-// User types
+// User types - Updated to match auth service
 export interface User extends BaseEntity {
   email: string;
-  role: 'admin' | 'doctor' | 'patient';
-  profile?: UserProfile;
+  role: 'admin' | 'doctor' | 'patient' | 'nurse' | 'receptionist';
+  full_name: string;
+  phone_number?: string;
+  is_active: boolean;
+  last_login?: string;
+  profile_id?: string;
+  email_verified: boolean;
+  phone_verified: boolean;
+  profile?: any; // Doctor or Patient profile data
+}
+
+// Auth types
+export interface LoginForm {
+  email: string;
+  password: string;
+}
+
+// Auth register form for API
+export interface AuthRegisterForm {
+  email: string;
+  password: string;
+  role: 'admin' | 'doctor' | 'patient' | 'nurse' | 'receptionist';
+  full_name: string;
+  phone_number?: string;
+  profile_data?: DoctorProfileData | PatientProfileData;
+}
+
+export interface LoginResponse {
+  user: User;
+  access_token: string;
+  refresh_token: string;
+  expires_in: number;
+}
+
+export interface DoctorProfileData {
+  specialization: string;
+  license_number: string;
+  department_id?: string;
+  qualification?: string;
+  experience_years?: number;
+  consultation_fee?: number;
+  bio?: string;
+}
+
+export interface PatientProfileData {
+  date_of_birth: string;
+  gender: 'male' | 'female' | 'other';
+  blood_type?: string;
+  allergies?: string[];
+  emergency_contact?: {
+    name: string;
+    relationship: string;
+    phone_number: string;
+    email?: string;
+  };
+  insurance_info?: {
+    provider: string;
+    policy_number: string;
+    group_number?: string;
+    expiry_date?: string;
+  };
 }
 
 export interface UserProfile {

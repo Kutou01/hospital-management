@@ -3,8 +3,6 @@
     "target": "ES2020",
     "module": "commonjs",
     "lib": ["ES2020"],
-    "outDir": "./dist",
-    "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -27,18 +25,20 @@
     },
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
+    "composite": true
   },
-  "include": [
-    "src/**/*",
-    "api-gateway/src/**/*",
-    "services/*/src/**/*",
-    "shared/src/**/*"
-  ],
+  "files": [],
+  "include": [],
   "exclude": [
     "node_modules",
     "dist",
     "**/*.test.ts",
     "**/*.spec.ts"
+  ],
+  "references": [
+    { "path": "./shared" },
+    { "path": "./api-gateway" },
+    { "path": "./services/auth-service" }
   ]
 }

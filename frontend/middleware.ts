@@ -1,46 +1,155 @@
-import { NextResponse } from "next/server"
-import type { NextRequest } from "next/server"
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
-// This function can be marked `async` if using `await` inside
-export function middleware(request: NextRequest) {
-  // Kiểm tra xem người dùng đã đăng nhập chưa
-  const authToken = request.cookies.get("auth_token")
-  const userRole = request.cookies.get("user_role")?.value
-  const pathname = request.nextUrl.pathname
+export async function middleware(req: NextRequest) {
+  let response = NextResponse.next({
+    request: {
+      headers: req.headers,
+    },
+  })
 
-  // Kiểm tra các protected routes
-  const isAdminPath = pathname.startsWith("/admin")
-  const isDoctorPath = pathname.startsWith("/doctor")
-  const isPatientPath = pathname.startsWith("/patient")
-  const isProtectedPath = isAdminPath || isDoctorPath || isPatientPath
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return req.cookies.get(name)?.value
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          req.cookies.set({
+            name,
+            value,
+            ...options,
+          })
+          response = NextResponse.next({
+            request: {
+              headers: req.headers,
+            },
+          })
+          response.cookies.set({
+            name,
+            value,
+            ...options,
+          })
+        },
+        remove(name: string, options: CookieOptions) {
+          req.cookies.set({
+            name,
+            value: '',
+            ...options,
+          })
+          response = NextResponse.next({
+            request: {
+              headers: req.headers,
+            },
+          })
+          response.cookies.set({
+            name,
+            value: '',
+            ...options,
+          })
+        },
+      },
+    }
+  )
 
-  // Nếu cố gắng truy cập trang protected mà không có xác thực
-  if (isProtectedPath && !authToken) {
-    return NextResponse.redirect(new URL("/auth/login", request.url))
+  // Refresh session if expired - required for Server Components
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  // Define protected routes
+  const protectedRoutes = [
+    '/admin',
+    '/doctor',
+    '/patient',
+    '/nurse',
+    '/receptionist'
+  ]
+
+  // Define public routes that should redirect to dashboard if authenticated
+  const authRoutes = [
+    '/auth/login',
+    '/auth/register'
+  ]
+
+  const { pathname } = req.nextUrl
+
+  // Check if current path is a protected route
+  const isProtectedRoute = protectedRoutes.some(route =>
+    pathname.startsWith(route)
+  )
+
+  // Check if current path is an auth route
+  const isAuthRoute = authRoutes.some(route =>
+    pathname.startsWith(route)
+  )
+
+  // If user is not authenticated and trying to access protected route
+  if (isProtectedRoute && !session) {
+    const redirectUrl = new URL('/auth/login', req.url)
+    redirectUrl.searchParams.set('redirectTo', pathname)
+    return NextResponse.redirect(redirectUrl)
   }
 
-  // Kiểm tra quyền truy cập dựa trên role
-  if (authToken && userRole) {
-    // Admin chỉ có thể truy cập /admin/*
-    if (isAdminPath && userRole !== "admin") {
-      return NextResponse.redirect(new URL(`/${userRole}/dashboard`, request.url))
-    }
+  // If user is authenticated and trying to access auth routes
+  if (isAuthRoute && session) {
+    // Get user role from profiles table
+    const { data: userData } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', session.user.id)
+      .single()
 
-    // Doctor chỉ có thể truy cập /doctor/*
-    if (isDoctorPath && userRole !== "doctor") {
-      return NextResponse.redirect(new URL(`/${userRole}/dashboard`, request.url))
-    }
-
-    // Patient chỉ có thể truy cập /patient/*
-    if (isPatientPath && userRole !== "patient") {
-      return NextResponse.redirect(new URL(`/${userRole}/dashboard`, request.url))
+    if (userData?.role) {
+      const dashboardUrl = new URL(`/${userData.role}/dashboard`, req.url)
+      return NextResponse.redirect(dashboardUrl)
     }
   }
 
-  return NextResponse.next()
+  // Role-based access control for protected routes
+  if (isProtectedRoute && session) {
+    // Get user role from profiles table
+    const { data: userData } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', session.user.id)
+      .single()
+
+    if (userData?.role) {
+      const userRole = userData.role
+
+      // Extract the role from the pathname (e.g., /admin/dashboard -> admin)
+      const pathRole = pathname.split('/')[1]
+
+      // Check if user has access to this role-based route
+      if (pathRole !== userRole) {
+        // Redirect to user's appropriate dashboard
+        const dashboardUrl = new URL(`/${userRole}/dashboard`, req.url)
+        return NextResponse.redirect(dashboardUrl)
+      }
+    } else {
+      // User exists in auth but not in profiles table
+      // Redirect to login to handle this edge case
+      const redirectUrl = new URL('/auth/login', req.url)
+      return NextResponse.redirect(redirectUrl)
+    }
+  }
+
+  return response
 }
 
-// See "Matching Paths" below to learn more
 export const config = {
-  matcher: ["/admin/:path*", "/doctor/:path*", "/patient/:path*"],
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     */
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 }

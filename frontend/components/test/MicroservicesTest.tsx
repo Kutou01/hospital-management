@@ -63,11 +63,11 @@ export function MicroservicesTest() {
 
   const checkAllServices = async () => {
     setIsLoading(true);
-    
+
     const updatedServices = await Promise.all(
       services.map(service => checkServiceHealth(service))
     );
-    
+
     setServices(updatedServices);
     setIsLoading(false);
   };
@@ -212,7 +212,7 @@ export function MicroservicesTest() {
                       {result.success ? 'Success' : 'Failed'}
                     </Badge>
                   </div>
-                  
+
                   {result.success ? (
                     <div className="text-sm text-gray-600">
                       <p>Records found: {result.count}</p>
@@ -247,10 +247,10 @@ export function MicroservicesTest() {
         </CardHeader>
         <CardContent>
           <div className="space-y-2 text-sm">
-            <div><strong>API Gateway URL:</strong> {process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:3000'}</div>
-            <div><strong>Frontend URL:</strong> http://localhost:3001</div>
-            <div><strong>Docs URL:</strong> {process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:3000'}/docs</div>
-            
+            <div><strong>API Gateway URL:</strong> {process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:3100'}</div>
+            <div><strong>Frontend URL:</strong> http://localhost:3000</div>
+            <div><strong>Docs URL:</strong> {process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:3100'}/docs</div>
+
             <div className="mt-4">
               <strong>Feature Flags:</strong>
               <div className="grid grid-cols-2 gap-2 mt-2">

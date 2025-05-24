@@ -13,11 +13,17 @@ import {
   FileBarChart,
   Settings,
   Menu,
-  Clock
+  Clock,
+  Server,
+  FileText,
+  Pill,
+  Receipt
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 import { SidebarItem } from "@/components/shared-components"
+import { useAuthProvider } from "@/hooks/useAuthProvider"
 
 export interface AdminLayoutProps {
   children: React.ReactNode;
@@ -26,6 +32,8 @@ export interface AdminLayoutProps {
 }
 
 export function AdminLayout({ children, title, activePage }: AdminLayoutProps) {
+  const { user } = useAuthProvider();
+
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
@@ -97,6 +105,43 @@ export function AdminLayout({ children, title, activePage }: AdminLayoutProps) {
             href="/admin/login-history"
             active={activePage === "login-history"}
           />
+          <SidebarItem
+            icon={<Server size={20} />}
+            label="Microservices"
+            href="/admin/microservices"
+            active={activePage === "microservices"}
+          />
+
+          {/* Microservices Management */}
+          <div className="px-3 py-2">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              Microservices
+            </h3>
+          </div>
+          <SidebarItem
+            icon={<FileText size={20} />}
+            label="Medical Records"
+            href="/admin/medical-records"
+            active={activePage === "medical-records"}
+          />
+          <SidebarItem
+            icon={<Pill size={20} />}
+            label="Prescriptions"
+            href="/admin/prescriptions"
+            active={activePage === "prescriptions"}
+          />
+          <SidebarItem
+            icon={<Receipt size={20} />}
+            label="Billing"
+            href="/admin/billing"
+            active={activePage === "billing"}
+          />
+          <SidebarItem
+            icon={<BarChart3 size={20} />}
+            label="Analytics Dashboard"
+            href="/admin/microservices-dashboard"
+            active={activePage === "microservices-dashboard"}
+          />
         </div>
       </div>
 
@@ -108,7 +153,20 @@ export function AdminLayout({ children, title, activePage }: AdminLayoutProps) {
             <Button variant="ghost" size="icon" className="md:hidden mr-2">
               <Menu size={20} />
             </Button>
-            <h1 className="text-xl font-bold">{title}</h1>
+            <div>
+              <h1 className="text-xl font-bold">{title}</h1>
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <span>Hospital Management System</span>
+                {user && (
+                  <>
+                    <span className="text-gray-400">•</span>
+                    <Badge className="bg-red-100 text-red-800 text-xs">
+                      {user.role.toUpperCase()}
+                    </Badge>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
           <div className="flex items-center space-x-4">
             <Button variant="ghost" size="icon">
@@ -117,10 +175,13 @@ export function AdminLayout({ children, title, activePage }: AdminLayoutProps) {
             <div className="flex items-center space-x-2">
               <Avatar>
                 <AvatarImage src="/placeholder.svg?height=32&width=32" alt="Admin" />
-                <AvatarFallback>AW</AvatarFallback>
+                <AvatarFallback>
+                  {user?.full_name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'AD'}
+                </AvatarFallback>
               </Avatar>
               <div className="hidden md:block">
-                <span className="font-medium">Admin User</span>
+                <span className="font-medium">{user?.full_name || 'Admin User'}</span>
+                <div className="text-xs text-gray-500">{user?.email}</div>
               </div>
             </div>
           </div>

@@ -9,28 +9,58 @@ import {
   Activity,
   TrendingUp,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  Stethoscope,
+  ClipboardList,
+  TestTube
 } from "lucide-react"
-import { DashboardLayout } from "@/components/layout/DashboardLayout"
+import { DoctorLayout } from "@/components/layout/DoctorLayout"
 import { StatCard } from "@/components/dashboard/StatCard"
 import { ChartCard, BarChartGroup } from "@/components/dashboard/ChartCard"
 import { RecentActivity } from "@/components/dashboard/RecentActivity"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { useAuthProvider } from "@/hooks/useAuthProvider"
 
 export default function DoctorDashboard() {
+  const { user, loading } = useAuthProvider()
   const [currentDate, setCurrentDate] = useState("")
 
   useEffect(() => {
     const today = new Date()
-    setCurrentDate(today.toLocaleDateString('vi-VN', { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    setCurrentDate(today.toLocaleDateString('vi-VN', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     }))
   }, [])
+
+  // Show loading state while user data is being fetched
+  if (loading) {
+    return (
+      <DoctorLayout title="Doctor Dashboard" activePage="dashboard">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+        </div>
+      </DoctorLayout>
+    )
+  }
+
+  // Redirect if not authenticated or not a doctor
+  if (!user || user.role !== 'doctor') {
+    return (
+      <DoctorLayout title="Doctor Dashboard" activePage="dashboard">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <p className="text-gray-600">Access denied. Doctor role required.</p>
+          </div>
+        </div>
+      </DoctorLayout>
+    )
+  }
 
   // Mock data cho doctor dashboard
   const todayAppointments = [
@@ -42,7 +72,7 @@ export default function DoctorDashboard() {
       status: "confirmed"
     },
     {
-      id: "2", 
+      id: "2",
       time: "10:30",
       patient: "Trần Thị B",
       type: "Tái khám",
@@ -51,7 +81,7 @@ export default function DoctorDashboard() {
     {
       id: "3",
       time: "14:00",
-      patient: "Lê Văn C", 
+      patient: "Lê Văn C",
       type: "Khám chuyên khoa",
       status: "pending"
     },
@@ -108,10 +138,22 @@ export default function DoctorDashboard() {
   }
 
   return (
-    <DashboardLayout title="Doctor Dashboard" activePage="dashboard">
+    <DoctorLayout title="Doctor Dashboard" activePage="dashboard">
       {/* Welcome Section */}
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Welcome back, Dr. Smith!</h2>
+        <div className="flex items-center gap-3 mb-2">
+          <div className="p-2 bg-green-100 rounded-lg">
+            <Stethoscope className="h-6 w-6 text-green-600" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">
+              Welcome back, Dr. {user.full_name}!
+            </h2>
+            <p className="text-sm text-gray-600">
+              {user.email} • {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+            </p>
+          </div>
+        </div>
         <p className="text-gray-600">{currentDate}</p>
       </div>
 
@@ -189,11 +231,19 @@ export default function DoctorDashboard() {
               </Button>
               <Button className="w-full justify-start" variant="outline">
                 <Users className="mr-2 h-4 w-4" />
-                View Patients
+                View My Patients
               </Button>
               <Button className="w-full justify-start" variant="outline">
                 <FileText className="mr-2 h-4 w-4" />
                 Medical Records
+              </Button>
+              <Button className="w-full justify-start" variant="outline">
+                <ClipboardList className="mr-2 h-4 w-4" />
+                Prescriptions
+              </Button>
+              <Button className="w-full justify-start" variant="outline">
+                <TestTube className="mr-2 h-4 w-4" />
+                Lab Results
               </Button>
               <Button className="w-full justify-start" variant="outline">
                 <Clock className="mr-2 h-4 w-4" />
@@ -205,8 +255,8 @@ export default function DoctorDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Patient Statistics */}
-        <ChartCard title="Patient Statistics" className="col-span-1">
+        {/* Weekly Appointment Statistics */}
+        <ChartCard title="Weekly Appointment Statistics" className="col-span-1">
           <div className="h-64 flex items-end justify-between">
             <BarChartGroup label="Mon" value1={45} value2={30} />
             <BarChartGroup label="Tue" value1={55} value2={40} />
@@ -219,7 +269,7 @@ export default function DoctorDashboard() {
           <div className="flex justify-center space-x-6 mt-4">
             <div className="flex items-center space-x-2">
               <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-              <span className="text-sm text-gray-600">Appointments</span>
+              <span className="text-sm text-gray-600">Scheduled</span>
             </div>
             <div className="flex items-center space-x-2">
               <div className="w-3 h-3 rounded-full bg-green-500"></div>
@@ -229,12 +279,12 @@ export default function DoctorDashboard() {
         </ChartCard>
 
         {/* Recent Activity */}
-        <RecentActivity 
+        <RecentActivity
           activities={recentActivities}
           title="Recent Activity"
           maxItems={5}
         />
       </div>
-    </DashboardLayout>
+    </DoctorLayout>
   )
 }

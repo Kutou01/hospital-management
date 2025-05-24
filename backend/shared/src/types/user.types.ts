@@ -19,7 +19,45 @@ export interface CreateUserRequest {
   role: UserRole;
   full_name: string;
   phone_number?: string;
-  profile_data?: any;
+  profile_data?: DoctorProfileData | PatientProfileData;
+}
+
+export interface DoctorProfileData {
+  specialization: string;
+  license_number: string;
+  department_id?: string;
+  experience_years?: number;
+  consultation_fee?: number;
+  bio?: string;
+  education?: string[];
+  certifications?: string[];
+  languages?: string[];
+  availability?: DoctorAvailability[];
+}
+
+export interface PatientProfileData {
+  date_of_birth: string;
+  gender: 'male' | 'female' | 'other';
+  address?: Address;
+  emergency_contact?: EmergencyContact;
+  insurance_info?: InsuranceInfo;
+  medical_history?: string[];
+  allergies?: string[];
+  current_medications?: string[];
+}
+
+export interface DoctorAvailability {
+  day_of_week: number; // 0-6 (Sunday-Saturday)
+  start_time: string; // HH:mm format
+  end_time: string; // HH:mm format
+  is_available: boolean;
+}
+
+export interface InsuranceInfo {
+  provider: string;
+  policy_number: string;
+  group_number?: string;
+  expiry_date?: string;
 }
 
 export interface UpdateUserRequest {
@@ -80,6 +118,9 @@ export interface JWTPayload {
   sub: string; // user_id
   email: string;
   role: UserRole;
+  full_name: string;
+  profile_id?: string;
+  permissions: string[];
   iat: number;
   exp: number;
 }
@@ -140,3 +181,80 @@ export interface UserPreferences {
   };
   theme: 'light' | 'dark' | 'auto';
 }
+
+export interface RolePermissions {
+  [UserRole.ADMIN]: string[];
+  [UserRole.DOCTOR]: string[];
+  [UserRole.PATIENT]: string[];
+  [UserRole.NURSE]: string[];
+  [UserRole.RECEPTIONIST]: string[];
+}
+
+export const DEFAULT_PERMISSIONS: RolePermissions = {
+  [UserRole.ADMIN]: [
+    'users:read',
+    'users:write',
+    'users:delete',
+    'doctors:read',
+    'doctors:write',
+    'doctors:delete',
+    'patients:read',
+    'patients:write',
+    'patients:delete',
+    'appointments:read',
+    'appointments:write',
+    'appointments:delete',
+    'medical-records:read',
+    'medical-records:write',
+    'medical-records:delete',
+    'prescriptions:read',
+    'prescriptions:write',
+    'prescriptions:delete',
+    'billing:read',
+    'billing:write',
+    'billing:delete',
+    'reports:read',
+    'system:manage'
+  ],
+  [UserRole.DOCTOR]: [
+    'profile:read',
+    'profile:write',
+    'patients:read',
+    'appointments:read',
+    'appointments:write',
+    'medical-records:read',
+    'medical-records:write',
+    'prescriptions:read',
+    'prescriptions:write',
+    'schedule:read',
+    'schedule:write'
+  ],
+  [UserRole.PATIENT]: [
+    'profile:read',
+    'profile:write',
+    'appointments:read',
+    'appointments:write',
+    'medical-records:read',
+    'prescriptions:read',
+    'billing:read'
+  ],
+  [UserRole.NURSE]: [
+    'profile:read',
+    'profile:write',
+    'patients:read',
+    'patients:write',
+    'appointments:read',
+    'medical-records:read',
+    'medical-records:write',
+    'prescriptions:read'
+  ],
+  [UserRole.RECEPTIONIST]: [
+    'profile:read',
+    'profile:write',
+    'patients:read',
+    'patients:write',
+    'appointments:read',
+    'appointments:write',
+    'billing:read'
+  ]
+};

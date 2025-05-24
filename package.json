@@ -38,7 +38,10 @@
     "docker:down": "cd backend && npm run docker:down",
     "docker:clean": "cd backend && npm run docker:clean",
     "health-check": "cd backend && npm run health-check",
-    "logs": "cd backend && npm run logs"
+    "logs": "cd backend && npm run logs",
+    "microservices:start": "node -e \"require('child_process').spawn('powershell', ['-File', './scripts/start-microservices.ps1'], {stdio: 'inherit'})\"",
+    "microservices:start:bash": "bash ./scripts/start-microservices.sh",
+    "dev:microservices": "concurrently \"npm run microservices:start\" \"npm run dev:frontend\""
   },
   "devDependencies": {
     "concurrently": "^8.2.2",

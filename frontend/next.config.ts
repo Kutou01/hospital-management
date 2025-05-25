@@ -1,9 +1,17 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
   // Move serverComponentsExternalPackages to the correct location
   serverExternalPackages: ['@supabase/ssr'],
   webpack: (config, { isServer }) => {
+    // Fix module resolution for workspace setup
+    config.resolve.modules = [
+      path.resolve(__dirname, '../node_modules'),
+      path.resolve(__dirname, 'node_modules'),
+      'node_modules'
+    ];
+
     // Handle Node.js modules for client-side
     if (!isServer) {
       config.resolve.fallback = {

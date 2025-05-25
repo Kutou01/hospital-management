@@ -125,12 +125,20 @@ export const authApi = {
       console.log(`🔄 Creating ${accountType} specific profile...`);
 
       if (accountType === 'doctor') {
+        // Generate unique doctor ID
+        const doctorId = `DOC${Math.floor(100000 + Math.random() * 900000)}`;
+
         const doctorData = {
+          doctor_id: doctorId,
           profile_id: authData.user.id,
           license_number: profileData.licenseNo || '',
           specialization: profileData.specialization || '',
           qualification: profileData.qualification || '',
-          department_id: profileData.departmentId || 'DEPT001'
+          experience_years: 0,
+          consultation_fee: 100.00,
+          department_id: profileData.departmentId || 'DEPT001',
+          status: 'active',
+          bio: `${profileData.specialization} specialist`
         };
 
         console.log('📋 Doctor data to insert:', doctorData);
@@ -148,16 +156,22 @@ export const authApi = {
         console.log('✅ Doctor profile created successfully:', doctorResult);
 
       } else if (accountType === 'patient') {
+        // Generate unique patient ID
+        const patientId = `PAT${Math.floor(100000 + Math.random() * 900000)}`;
+
         const patientData = {
+          patient_id: patientId,
           profile_id: authData.user.id,
           date_of_birth: profileData.dateOfBirth || '1990-01-01',
           gender: profileData.gender || 'other',
           blood_type: profileData.bloodType || null,
-          address: profileData.address ? JSON.stringify({ street: profileData.address }) : '{}',
+          address: profileData.address ? JSON.stringify({ street: profileData.address }) : null,
           emergency_contact: profileData.emergencyContactName ? JSON.stringify({
             name: profileData.emergencyContactName,
             phone: profileData.emergencyContactPhone
-          }) : '{}'
+          }) : null,
+          registration_date: new Date().toISOString().split('T')[0],
+          status: 'active'
         };
 
         console.log('📋 Patient data to insert:', patientData);
@@ -175,9 +189,15 @@ export const authApi = {
         console.log('✅ Patient profile created successfully:', patientResult);
 
       } else if (accountType === 'admin') {
+        // Generate unique admin ID
+        const adminId = `ADM${Math.floor(100000 + Math.random() * 900000)}`;
+
         const adminData = {
+          admin_id: adminId,
           profile_id: authData.user.id,
           position: 'Administrator',
+          department: 'Administration',
+          hire_date: new Date().toISOString().split('T')[0],
           is_super_admin: false
         };
 

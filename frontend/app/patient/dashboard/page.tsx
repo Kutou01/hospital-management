@@ -15,7 +15,6 @@ import {
   MessageCircle,
   Phone
 } from "lucide-react"
-import { PatientLayout } from "@/components/layout/PatientLayout"
 import { StatCard } from "@/components/dashboard/StatCard"
 import { ChartCard, BarChartGroup } from "@/components/dashboard/ChartCard"
 import { RecentActivity } from "@/components/dashboard/RecentActivity"
@@ -42,25 +41,21 @@ export default function PatientDashboard() {
   // Show loading state while user data is being fetched
   if (loading) {
     return (
-      <PatientLayout title="Patient Dashboard" activePage="dashboard">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-      </PatientLayout>
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
     )
   }
 
   // Redirect if not authenticated or not a patient
   if (!user || user.role !== 'patient') {
     return (
-      <PatientLayout title="Patient Dashboard" activePage="dashboard">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <p className="text-gray-600">Access denied. Patient role required.</p>
-          </div>
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <p className="text-gray-600">Access denied. Patient role required.</p>
         </div>
-      </PatientLayout>
+      </div>
     )
   }
 
@@ -147,7 +142,7 @@ export default function PatientDashboard() {
   }
 
   return (
-    <PatientLayout title="Patient Dashboard" activePage="dashboard">
+    <div className="space-y-6">
       {/* Welcome Section */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
@@ -348,6 +343,6 @@ export default function PatientDashboard() {
           </div>
         </CardContent>
       </Card>
-    </PatientLayout>
+    </div>
   )
 }

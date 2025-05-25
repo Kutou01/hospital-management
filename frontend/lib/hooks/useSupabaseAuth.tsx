@@ -86,10 +86,11 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     try {
       const result = await supabaseAuth.signUp(userData);
-      if (result.user && result.session) {
-        setUser(result.user);
-        setSession(result.session);
-      }
+      // Don't auto-login after registration - user should login manually
+      // if (result.user && result.session) {
+      //   setUser(result.user);
+      //   setSession(result.session);
+      // }
       return result;
     } finally {
       setLoading(false);

@@ -35,6 +35,15 @@ export default function LoginPage() {
   // Check if user is already logged in
   useEffect(() => {
     const checkAuth = async () => {
+      // Don't auto-redirect if coming from registration
+      const fromRegister = searchParams.get('from_register')
+      const hasMessage = searchParams.get('message')
+
+      if (fromRegister || hasMessage) {
+        console.log('🔄 [Login] Skipping auth check - coming from registration')
+        return
+      }
+
       const { data } = await authApi.getCurrentUser()
       if (data?.user && data?.profile) {
         const redirectPath = `/${data.profile.role}/dashboard`
@@ -42,7 +51,7 @@ export default function LoginPage() {
       }
     }
     checkAuth()
-  }, [router])
+  }, [router, searchParams])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target

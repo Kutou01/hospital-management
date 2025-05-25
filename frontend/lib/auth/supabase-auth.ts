@@ -153,9 +153,18 @@ export class SupabaseAuthService {
         full_name: hospitalUser.full_name
       });
 
+      // Sign out the user immediately after successful registration
+      // This ensures they need to login manually after registration
+      console.log('🚪 Signing out user after successful registration...');
+      await supabaseClient.auth.signOut();
+
+      // Wait a bit to ensure session is fully cleared
+      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('✅ User signed out successfully after registration');
+
       return {
         user: hospitalUser,
-        session: authData.session,
+        session: null, // Don't return session to prevent auto-login
         error: null
       };
 

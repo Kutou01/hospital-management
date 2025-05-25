@@ -112,10 +112,17 @@ export async function middleware(req: NextRequest) {
     const hasLoginMessage = url.searchParams.has('message')
     const hasRedirectParam = url.searchParams.has('redirectTo')
     const isFromLogin = url.searchParams.has('from_login')
+    const isFromRegister = url.searchParams.has('from_register')
 
-    // Allow access if there are specific query parameters or if coming from login
-    if (hasLoginMessage || hasRedirectParam || isFromLogin) {
+    // Allow access if there are specific query parameters or if coming from login/register
+    if (hasLoginMessage || hasRedirectParam || isFromLogin || isFromRegister) {
       console.log(`🛡️ [Middleware] Allowing access to auth route due to query params`)
+      return response
+    }
+
+    // Special case: Allow access to login page if there's a success message from registration
+    if (pathname === '/auth/login' && hasLoginMessage) {
+      console.log(`🛡️ [Middleware] Allowing access to login page with success message`)
       return response
     }
 

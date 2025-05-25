@@ -200,7 +200,7 @@ export default function RegisterPage() {
         setTimeout(() => {
           console.log('🔄 Redirecting to login page...')
           setIsLoading(false) // Reset loading before redirect
-          router.push("/auth/login?message=" + encodeURIComponent("Đăng ký thành công! Vui lòng đăng nhập để tiếp tục."))
+          router.push("/auth/login?message=" + encodeURIComponent("Đăng ký thành công! Vui lòng đăng nhập để tiếp tục.") + "&from_register=true")
         }, 2000)
 
       } else {

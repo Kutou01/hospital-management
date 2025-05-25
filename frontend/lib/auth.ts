@@ -1,9 +1,6 @@
-import { createClient } from '@supabase/supabase-js';
+import { supabaseClient } from './supabase-client';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = supabaseClient;
 
 // Types for auth
 export interface SignUpData {
@@ -217,7 +214,17 @@ export const authApi = {
       }
 
       console.log('✅ Registration completed successfully for user:', authUserId);
-      return { data: authData, error: null };
+
+      // Sign out the user immediately after successful registration
+      // This ensures they need to login manually after registration
+      console.log('🚪 Signing out user after successful registration...');
+      await supabase.auth.signOut();
+
+      // Wait a bit to ensure session is fully cleared
+      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('✅ User signed out successfully after registration');
+
+      return { data: { ...authData, session: null }, error: null };
     } catch (error) {
       console.error('Error in signUp:', error);
 
@@ -304,16 +311,24 @@ export const authApi = {
 
       if (error) {
         console.error('🚪 [authApi] Supabase signOut error:', error);
-        throw error;
+        return { error: error.message };
       }
 
       console.log('🚪 [authApi] Sign out successful');
 
       // Clear any local storage if needed
       if (typeof window !== 'undefined') {
-        // Clear any cached data
+        // Clear all Supabase related data
         localStorage.removeItem('supabase.auth.token');
+        localStorage.removeItem('sb-ciasxktujslgsdgylimv-auth-token');
         sessionStorage.clear();
+
+        // Clear all localStorage items that start with 'sb-'
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith('sb-')) {
+            localStorage.removeItem(key);
+          }
+        });
       }
 
       return { error: null };

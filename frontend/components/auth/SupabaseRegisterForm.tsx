@@ -14,7 +14,7 @@ import { Loader2, Eye, EyeOff } from 'lucide-react';
 export function SupabaseRegisterForm() {
   const router = useRouter();
   const { signUp, loading } = useSupabaseAuth();
-  
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -30,7 +30,7 @@ export function SupabaseRegisterForm() {
     gender: 'Male',
     address: ''
   });
-  
+
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -81,7 +81,7 @@ export function SupabaseRegisterForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -124,7 +124,7 @@ export function SupabaseRegisterForm() {
         setError(result.error);
       } else {
         setSuccess('Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.');
-        router.push('/auth/login');
+        router.push('/auth/login?message=' + encodeURIComponent('Đăng ký thành công! Vui lòng đăng nhập để tiếp tục.') + '&from_register=true');
       }
     } catch (err) {
       console.error('Register error:', err);

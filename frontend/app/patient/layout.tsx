@@ -14,6 +14,7 @@ export default function PatientLayout({
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -37,8 +38,12 @@ export default function PatientLayout({
   }, [router])
 
   const handleLogout = async () => {
+    if (isLoggingOut) return; // Prevent multiple clicks
+
     try {
-      console.log('🚪 [PatientLayout] Starting logout...');
+      console.log('🚪 [PatientLayout] Button clicked - Starting logout...');
+      setIsLoggingOut(true);
+
       const { error } = await authApi.signOut();
 
       if (error) {
@@ -49,11 +54,24 @@ export default function PatientLayout({
       }
 
       // Force redirect to login page
-      router.push("/auth/login");
+      console.log('🚪 [PatientLayout] Redirecting to login...');
+
+      // Try multiple redirect methods
+      if (typeof window !== 'undefined') {
+        window.location.href = '/auth/login';
+      } else {
+        router.push("/auth/login");
+      }
     } catch (error) {
       console.error('🚪 [PatientLayout] Logout exception:', error);
       // Force redirect even on exception
-      router.push("/auth/login");
+      if (typeof window !== 'undefined') {
+        window.location.href = '/auth/login';
+      } else {
+        router.push("/auth/login");
+      }
+    } finally {
+      setIsLoggingOut(false);
     }
   }
 
@@ -95,10 +113,20 @@ export default function PatientLayout({
               onClick={handleLogout}
               variant="outline"
               size="sm"
-              className="flex items-center gap-2"
+              disabled={isLoggingOut}
+              className="flex items-center gap-2 hover:bg-red-50 hover:text-red-600 hover:border-red-300"
             >
-              <LogOut className="h-4 w-4" />
-              Đăng xuất
+              {isLoggingOut ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Đang đăng xuất...
+                </>
+              ) : (
+                <>
+                  <LogOut className="h-4 w-4" />
+                  Đăng xuất
+                </>
+              )}
             </Button>
           </div>
         </div>

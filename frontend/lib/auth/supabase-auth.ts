@@ -46,6 +46,7 @@ export interface RegisterData {
 
 // Supabase Auth Service
 export class SupabaseAuthService {
+  private lastError: string | null = null;
 
   // Sign up with email and password
   async signUp(userData: RegisterData): Promise<AuthResponse> {
@@ -78,7 +79,7 @@ export class SupabaseAuthService {
 
         // Translate common Supabase errors to Vietnamese
         if (authError.message.includes('already registered') || authError.message.includes('already been registered')) {
-          errorMessage = 'Email này đã được đăng ký. Vui lòng sử dụng email khác.';
+          errorMessage = `Email "${userData.email}" đã được đăng ký. Vui lòng sử dụng email khác hoặc đăng nhập.`;
         } else if (authError.message.includes('Invalid email')) {
           errorMessage = 'Email không hợp lệ. Vui lòng kiểm tra lại.';
         } else if (authError.message.includes('Password')) {
@@ -106,9 +107,15 @@ export class SupabaseAuthService {
       const profileId = await this.createUserProfile(authData.user.id, userData);
 
       if (!profileId) {
-        // Note: Cannot delete auth user from client side, user will need to be cleaned up manually
         console.error('❌ Failed to create user profile for auth user:', authData.user.id);
-        return { user: null, session: null, error: 'Không thể tạo hồ sơ người dùng. Vui lòng thử lại sau.' };
+
+        // Use the specific error message if available
+        let errorMessage = this.lastError || 'Không thể tạo hồ sơ người dùng. Vui lòng thử lại sau.';
+
+        // Reset the error after using it
+        this.lastError = null;
+
+        return { user: null, session: null, error: errorMessage };
       }
 
       console.log('✅ User profile created successfully with ID:', profileId);
@@ -124,33 +131,39 @@ export class SupabaseAuthService {
         console.log('✅ User metadata updated successfully');
       }
 
-      // 4. Convert to HospitalUser format with retry
-      console.log('🔄 Converting to hospital user format...');
-      let hospitalUser = null;
-      let retryCount = 0;
-      const maxRetries = 3;
+      // 4. Wait for trigger to create profile and verify it exists
+      console.log('🔄 Waiting for trigger to create profile...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      while (!hospitalUser && retryCount < maxRetries) {
-        console.log(`🔄 Conversion attempt ${retryCount + 1}/${maxRetries}`);
-        hospitalUser = await this.convertToHospitalUser(authData.user);
+      // Verify profile was created by trigger
+      console.log('🔄 Verifying profile creation...');
+      const { data: profileData, error: profileError } = await supabaseClient
+        .from('profiles')
+        .select('id, email, full_name, role')
+        .eq('id', authData.user.id)
+        .single();
 
-        if (!hospitalUser && retryCount < maxRetries - 1) {
-          console.log(`⏳ Waiting before retry ${retryCount + 1}...`);
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-        retryCount++;
+      if (profileError || !profileData) {
+        console.error('❌ Profile not created by trigger:', profileError);
+        return { user: null, session: null, error: 'Không thể tạo hồ sơ người dùng. Vui lòng thử lại.' };
       }
 
-      if (!hospitalUser) {
-        console.error('❌ Failed to convert to hospital user after all retries');
-        return { user: null, session: null, error: 'Không thể tải thông tin người dùng. Vui lòng thử lại.' };
-      }
+      console.log('✅ Profile created successfully by trigger:', {
+        id: profileData.id,
+        email: profileData.email,
+        full_name: profileData.full_name,
+        role: profileData.role
+      });
 
-      console.log('✅ Successfully created and converted user:', {
-        id: hospitalUser.id,
-        email: hospitalUser.email,
-        role: hospitalUser.role,
-        full_name: hospitalUser.full_name
+      // For registration, we don't need to convert to HospitalUser immediately
+      // Just return the auth data and let the login flow handle the conversion
+      console.log('✅ Registration completed successfully');
+
+      console.log('✅ Successfully created user and profile:', {
+        id: authData.user.id,
+        email: authData.user.email,
+        role: profileData.role,
+        full_name: profileData.full_name
       });
 
       // Sign out the user immediately after successful registration
@@ -163,7 +176,7 @@ export class SupabaseAuthService {
       console.log('✅ User signed out successfully after registration');
 
       return {
-        user: hospitalUser,
+        user: authData.user,
         session: null, // Don't return session to prevent auto-login
         error: null
       };
@@ -235,14 +248,14 @@ export class SupabaseAuthService {
       // Convert to HospitalUser format with retry logic
       let hospitalUser = null;
       let retryCount = 0;
-      const maxRetries = 5;
+      const maxRetries = 2; // Reduced from 5 to 2
 
       while (!hospitalUser && retryCount < maxRetries) {
         console.log(`🔐 [SupabaseAuth] Converting user data attempt ${retryCount + 1}/${maxRetries}`)
         hospitalUser = await this.convertToHospitalUser(data.user);
         if (!hospitalUser && retryCount < maxRetries - 1) {
           console.log(`🔐 [SupabaseAuth] Retry ${retryCount + 1}/${maxRetries} to convert user data...`);
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 500)); // Reduced from 1000ms to 500ms
         }
         retryCount++;
       }
@@ -459,19 +472,24 @@ export class SupabaseAuthService {
 
       if (userData.role === 'doctor') {
         console.log('🏥 Starting doctor profile creation...');
-        profileId = await this.createDoctorProfile(authUserId, userData);
-        if (!profileId) {
-          console.error('❌ Failed to create doctor profile - this will cause registration to fail');
+        const result = await this.createDoctorProfile(authUserId, userData);
+        if (!result.success) {
+          console.error('❌ Failed to create doctor profile:', result.error);
+          // Store the specific error for later use
+          this.lastError = result.error;
           return null;
         }
+        profileId = result.profileId;
         console.log('✅ Doctor profile created successfully');
       } else if (userData.role === 'patient') {
         console.log('🏥 Starting patient profile creation...');
-        profileId = await this.createPatientProfile(authUserId, userData);
-        if (!profileId) {
-          console.error('❌ Failed to create patient profile - this will cause registration to fail');
+        const result = await this.createPatientProfile(authUserId, userData);
+        if (!result.success) {
+          console.error('❌ Failed to create patient profile:', result.error);
+          this.lastError = result.error;
           return null;
         }
+        profileId = result.profileId;
         console.log('✅ Patient profile created successfully');
       }
 
@@ -485,7 +503,7 @@ export class SupabaseAuthService {
     }
   }
 
-  private async createDoctorProfile(authUserId: string, userData: RegisterData): Promise<string | null> {
+  private async createDoctorProfile(authUserId: string, userData: RegisterData): Promise<{success: boolean, profileId?: string, error?: string}> {
     try {
       console.log('👨‍⚕️ Creating doctor profile for auth user:', authUserId);
       console.log('👨‍⚕️ Input data:', {
@@ -501,12 +519,12 @@ export class SupabaseAuthService {
       // Validate required fields
       if (!userData.specialty) {
         console.error('❌ Specialty is required for doctor profile');
-        return null;
+        return { success: false, error: 'Chuyên khoa là bắt buộc cho bác sĩ.' };
       }
 
       if (!userData.license_number) {
         console.error('❌ License number is required for doctor profile');
-        return null;
+        return { success: false, error: 'Số giấy phép hành nghề là bắt buộc cho bác sĩ.' };
       }
 
       console.log('✅ Required fields validation passed');
@@ -573,16 +591,30 @@ export class SupabaseAuthService {
         });
         console.error('❌ Doctor data that failed to insert:', doctorData);
 
-        // Try to provide more specific error information
+        // Provide specific error messages based on error type
+        let errorMessage = 'Không thể tạo hồ sơ bác sĩ. Vui lòng thử lại.';
+
         if (error.message.includes('duplicate key')) {
-          console.error('❌ Doctor ID or license number already exists');
+          if (error.message.includes('license_number')) {
+            errorMessage = `Số giấy phép "${userData.license_number}" đã tồn tại. Vui lòng sử dụng số giấy phép khác.`;
+          } else if (error.message.includes('doctor_id')) {
+            errorMessage = 'ID bác sĩ đã tồn tại. Vui lòng thử lại.';
+          } else {
+            errorMessage = 'Thông tin bác sĩ đã tồn tại trong hệ thống. Vui lòng kiểm tra lại.';
+          }
         } else if (error.message.includes('foreign key')) {
-          console.error('❌ Foreign key constraint violation');
+          if (error.message.includes('department_id')) {
+            errorMessage = `Chuyên khoa "${userData.specialty}" không tồn tại trong hệ thống.`;
+          } else {
+            errorMessage = 'Thông tin liên kết không hợp lệ. Vui lòng kiểm tra lại.';
+          }
         } else if (error.message.includes('not null')) {
-          console.error('❌ Required field is missing');
+          errorMessage = 'Thiếu thông tin bắt buộc. Vui lòng điền đầy đủ thông tin.';
+        } else if (error.code === '23505') {
+          errorMessage = `Số giấy phép "${userData.license_number}" đã được sử dụng. Vui lòng sử dụng số khác.`;
         }
 
-        return null;
+        return { success: false, error: errorMessage };
       }
 
       console.log('✅ Doctor profile created successfully:', {
@@ -591,14 +623,14 @@ export class SupabaseAuthService {
         full_name: data.full_name,
         specialty: data.specialty
       });
-      return doctorId;
+      return { success: true, profileId: doctorId };
     } catch (error) {
       console.error('❌ Exception in createDoctorProfile:', error);
-      return null;
+      return { success: false, error: 'Đã xảy ra lỗi không mong muốn khi tạo hồ sơ bác sĩ.' };
     }
   }
 
-  private async createPatientProfile(authUserId: string, userData: RegisterData): Promise<string | null> {
+  private async createPatientProfile(authUserId: string, userData: RegisterData): Promise<{success: boolean, profileId?: string, error?: string}> {
     try {
       console.log('Creating patient profile for auth user:', authUserId);
       const patientId = `PAT${Math.floor(100000 + Math.random() * 900000)}`;
@@ -606,7 +638,7 @@ export class SupabaseAuthService {
       // Validate required fields for patients
       if (!userData.date_of_birth) {
         console.error('Date of birth is required for patient profile');
-        return null;
+        return { success: false, error: 'Ngày sinh là bắt buộc cho bệnh nhân.' };
       }
 
       // Prepare patient data with all required fields
@@ -642,14 +674,25 @@ export class SupabaseAuthService {
           code: error.code
         });
         console.error('Patient data that failed to insert:', patientData);
-        return null;
+
+        let errorMessage = 'Không thể tạo hồ sơ bệnh nhân. Vui lòng thử lại.';
+
+        if (error.message.includes('duplicate key')) {
+          errorMessage = 'Thông tin bệnh nhân đã tồn tại trong hệ thống.';
+        } else if (error.message.includes('foreign key')) {
+          errorMessage = 'Thông tin liên kết không hợp lệ.';
+        } else if (error.message.includes('not null')) {
+          errorMessage = 'Thiếu thông tin bắt buộc cho bệnh nhân.';
+        }
+
+        return { success: false, error: errorMessage };
       }
 
       console.log('Patient profile created successfully:', data);
-      return patientId;
+      return { success: true, profileId: patientId };
     } catch (error) {
       console.error('Error creating patient profile:', error);
-      return null;
+      return { success: false, error: 'Đã xảy ra lỗi không mong muốn khi tạo hồ sơ bệnh nhân.' };
     }
   }
 
@@ -662,13 +705,22 @@ export class SupabaseAuthService {
         user_metadata: supabaseUser.user_metadata
       });
 
-      // Get user data from profiles table
+      // Get user data from profiles table with timeout
       console.log('🔄 [convertToHospitalUser] Querying profiles table...');
-      const { data: userData, error } = await supabaseClient
+
+      // Create a promise that rejects after 10 seconds
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Profile query timeout')), 10000);
+      });
+
+      // Race between the query and timeout
+      const queryPromise = supabaseClient
         .from('profiles')
         .select('*')
         .eq('id', supabaseUser.id)
         .single();
+
+      const { data: userData, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
 
       console.log('🔄 [convertToHospitalUser] Profile query result:', {
         hasData: !!userData,

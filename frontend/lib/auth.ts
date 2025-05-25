@@ -104,18 +104,23 @@ export const authApi = {
         throw new Error('Không thể tạo hồ sơ người dùng. Vui lòng thử lại.');
       }
 
-      // Update profile with additional data if needed
-      if (profileData.phoneNumber) {
-        const { error: profileUpdateError } = await supabase
-          .from('profiles')
-          .update({
-            phone_number: profileData.phoneNumber
-          })
-          .eq('id', authData.user.id);
+      // Update profile with correct role and additional data
+      const profileUpdateData: any = {
+        role: accountType
+      };
 
-        if (profileUpdateError) {
-          console.warn('Profile phone update warning:', profileUpdateError);
-        }
+      if (profileData.phoneNumber) {
+        profileUpdateData.phone_number = profileData.phoneNumber;
+      }
+
+      const { error: profileUpdateError } = await supabase
+        .from('profiles')
+        .update(profileUpdateData)
+        .eq('id', authData.user.id);
+
+      if (profileUpdateError) {
+        console.error('Profile update error:', profileUpdateError);
+        throw new Error('Không thể cập nhật thông tin hồ sơ. Vui lòng thử lại.');
       }
 
       // Create role-specific profile
@@ -125,6 +130,23 @@ export const authApi = {
         // Generate unique doctor ID
         const doctorId = `DOC${Math.floor(100000 + Math.random() * 900000)}`;
 
+        // Ensure we have a valid department_id
+        let departmentId = profileData.departmentId;
+        if (!departmentId) {
+          // Get the first available department
+          const { data: departments } = await supabase
+            .from('departments')
+            .select('department_id')
+            .eq('is_active', true)
+            .limit(1);
+
+          if (departments && departments.length > 0) {
+            departmentId = departments[0].department_id;
+          } else {
+            departmentId = null; // Allow null if no departments exist
+          }
+        }
+
         const doctorData = {
           doctor_id: doctorId,
           profile_id: authData.user.id,
@@ -133,12 +155,14 @@ export const authApi = {
           qualification: profileData.qualification || '',
           experience_years: 0,
           consultation_fee: 100.00,
-          department_id: profileData.departmentId || 'DEPT001',
+          department_id: departmentId,
           status: 'active',
           bio: `${profileData.specialization} specialist`
         };
 
         console.log('📋 Doctor data to insert:', doctorData);
+        console.log('📋 Profile data received:', profileData);
+        console.log('📋 Department ID selected:', departmentId);
 
         const { data: doctorResult, error: doctorError } = await supabase
           .from('doctors')
@@ -147,7 +171,23 @@ export const authApi = {
 
         if (doctorError) {
           console.error('❌ Doctor profile creation error:', doctorError);
-          throw new Error('Không thể tạo hồ sơ bác sĩ. Vui lòng thử lại.');
+          console.error('❌ Error details:', {
+            message: doctorError.message,
+            details: doctorError.details,
+            hint: doctorError.hint,
+            code: doctorError.code
+          });
+
+          // Rollback: Delete the auth user since doctor profile creation failed
+          try {
+            console.log('🔄 Rolling back auth user due to doctor profile creation failure...');
+            await supabase.auth.admin.deleteUser(authData.user.id);
+            console.log('✅ Auth user rollback completed');
+          } catch (rollbackError) {
+            console.error('❌ Failed to rollback auth user:', rollbackError);
+          }
+
+          throw new Error(`Không thể tạo hồ sơ bác sĩ: ${doctorError.message}`);
         }
 
         console.log('✅ Doctor profile created successfully:', doctorResult);
@@ -227,20 +267,6 @@ export const authApi = {
       return { data: { ...authData, session: null }, error: null };
     } catch (error) {
       console.error('Error in signUp:', error);
-
-      // If we created an auth user but failed later, we need to clean up
-      if (authUserId) {
-        console.log('🧹 Attempting to clean up auth user due to registration failure:', authUserId);
-        try {
-          // Note: We can't delete the auth user from client side with current Supabase setup
-          // The user will exist in auth but won't have proper profile data
-          // This is a limitation of Supabase - auth users can only be deleted from server side
-          console.warn('⚠️ Auth user cleanup not possible from client side. User may exist in auth without proper profile.');
-        } catch (cleanupError) {
-          console.error('Failed to cleanup auth user:', cleanupError);
-        }
-      }
-
       return { data: null, error };
     }
   },

@@ -239,10 +239,27 @@ export class SupabaseAuthService {
   // Sign out
   async signOut(): Promise<{ error: string | null }> {
     try {
+      console.log('🚪 [SupabaseAuth] Starting sign out process...');
+
       const { error } = await supabaseClient.auth.signOut();
-      return { error: error?.message || null };
+
+      if (error) {
+        console.error('🚪 [SupabaseAuth] Sign out error:', error);
+        return { error: error.message };
+      }
+
+      console.log('🚪 [SupabaseAuth] Sign out successful');
+
+      // Clear any local storage or session data if needed
+      if (typeof window !== 'undefined') {
+        // Force redirect to login page
+        console.log('🚪 [SupabaseAuth] Redirecting to login page...');
+        window.location.href = '/auth/login';
+      }
+
+      return { error: null };
     } catch (error) {
-      console.error('Sign out error:', error);
+      console.error('🚪 [SupabaseAuth] Sign out error:', error);
       return { error: 'An unexpected error occurred during logout' };
     }
   }

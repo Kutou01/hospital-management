@@ -98,12 +98,22 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
   const signOut = async (): Promise<{ error: string | null }> => {
     setLoading(true);
     try {
+      console.log('🚪 [useSupabaseAuth] Starting logout process...');
+
       const result = await supabaseAuth.signOut();
+
       if (!result.error) {
+        console.log('🚪 [useSupabaseAuth] Logout successful, clearing state...');
         setUser(null);
         setSession(null);
+      } else {
+        console.error('🚪 [useSupabaseAuth] Logout error:', result.error);
       }
+
       return result;
+    } catch (error) {
+      console.error('🚪 [useSupabaseAuth] Logout exception:', error);
+      return { error: 'Logout failed' };
     } finally {
       setLoading(false);
     }

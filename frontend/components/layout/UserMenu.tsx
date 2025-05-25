@@ -56,7 +56,10 @@ export const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout }) => {
           <span>Settings</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={onLogout}>
+        <DropdownMenuItem onClick={() => {
+          console.log('🚪 [UserMenu] Logout clicked');
+          onLogout();
+        }}>
           <LogOut className="mr-2 h-4 w-4" />
           <span>Log out</span>
         </DropdownMenuItem>

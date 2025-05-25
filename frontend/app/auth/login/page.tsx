@@ -86,11 +86,17 @@ export default function LoginPage() {
 
         // Chuyển hướng đến dashboard tương ứng
         const redirectPath = `/${result.user.role}/dashboard`
-        console.log('🔐 SIMPLE REDIRECT to:', redirectPath)
+        console.log('🔐 REDIRECT to:', redirectPath)
 
-        // Simple immediate redirect
-        console.log('🔐 Using window.location.href immediately')
-        window.location.href = redirectPath
+        // Try multiple redirect methods
+        console.log('🔐 Method 1: Using router.push')
+        router.push(redirectPath)
+
+        // Fallback after delay
+        setTimeout(() => {
+          console.log('🔐 Method 2: Using window.location.href as fallback')
+          window.location.href = redirectPath
+        }, 1000)
       } else {
         console.error('🔐 Login succeeded but missing user or session data')
         setError("Đăng nhập không thành công. Vui lòng thử lại.")

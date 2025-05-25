@@ -278,14 +278,28 @@ export const authApi = {
   // Sign out
   signOut: async () => {
     try {
+      console.log('🚪 [authApi] Starting sign out process...');
+
       const { error } = await supabase.auth.signOut();
+
       if (error) {
+        console.error('🚪 [authApi] Supabase signOut error:', error);
         throw error;
       }
+
+      console.log('🚪 [authApi] Sign out successful');
+
+      // Clear any local storage if needed
+      if (typeof window !== 'undefined') {
+        // Clear any cached data
+        localStorage.removeItem('supabase.auth.token');
+        sessionStorage.clear();
+      }
+
       return { error: null };
     } catch (error) {
-      console.error('Error in signOut:', error);
-      return { error };
+      console.error('🚪 [authApi] Error in signOut:', error);
+      return { error: error instanceof Error ? error.message : 'Sign out failed' };
     }
   },
 

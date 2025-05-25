@@ -37,8 +37,24 @@ export default function DoctorLayout({
   }, [router])
 
   const handleLogout = async () => {
-    await authApi.signOut()
-    router.push("/auth/login")
+    try {
+      console.log('🚪 [DoctorLayout] Starting logout...');
+      const { error } = await authApi.signOut();
+
+      if (error) {
+        console.error('🚪 [DoctorLayout] Logout error:', error);
+        // Still redirect even if there's an error
+      } else {
+        console.log('🚪 [DoctorLayout] Logout successful');
+      }
+
+      // Force redirect to login page
+      router.push("/auth/login");
+    } catch (error) {
+      console.error('🚪 [DoctorLayout] Logout exception:', error);
+      // Force redirect even on exception
+      router.push("/auth/login");
+    }
   }
 
   if (loading) {

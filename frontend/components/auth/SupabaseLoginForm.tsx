@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSupabaseAuth } from '@/lib/hooks/useSupabaseAuth';
+import { useToast } from '@/components/ui/toast-provider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,7 +14,8 @@ import { Loader2, Eye, EyeOff } from 'lucide-react';
 export function SupabaseLoginForm() {
   const router = useRouter();
   const { signIn, loading } = useSupabaseAuth();
-  
+  const { showToast } = useToast();
+
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -37,65 +39,84 @@ export function SupabaseLoginForm() {
     setIsSubmitting(true);
     setError('');
 
+    let result = null;
     try {
-      const result = await signIn({
+      result = await signIn({
         email: formData.email,
         password: formData.password
       });
 
       if (result.error) {
         setError(result.error);
-      } else if (result.user) {
-        // Redirect based on user role
+        showToast("Đăng nhập thất bại", result.error, "error");
+      } else if (result.user && result.session) {
+        // Hiển thị thông báo thành công
+        const roleText = result.user.role === 'admin' ? 'Quản trị viên' :
+                        result.user.role === 'doctor' ? 'Bác sĩ' :
+                        result.user.role === 'patient' ? 'Bệnh nhân' : 'Người dùng';
+
+        showToast(
+          "Đăng nhập thành công!",
+          `Chào mừng ${roleText} ${result.user.full_name}`,
+          "success"
+        );
+
+        // Wait a moment for the session to be fully established
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Redirect based on user role using useRouter
         const redirectPath = `/${result.user.role}/dashboard`;
         router.push(redirectPath);
+      } else {
+        setError("Đăng nhập không thành công. Vui lòng thử lại.");
+        showToast("Đăng nhập thất bại", "Không thể lấy thông tin người dùng", "error");
       }
     } catch (err) {
       console.error('Login error:', err);
       setError('Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.');
+      showToast("Đăng nhập thất bại", "Đã xảy ra lỗi không mong muốn", "error");
     } finally {
-      setIsSubmitting(false);
+      // Don't set loading to false if we're redirecting
+      if (!result?.user) {
+        setIsSubmitting(false);
+      }
     }
   };
 
   const isFormValid = formData.email && formData.password;
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold text-center">
-          Đăng nhập
-        </CardTitle>
-        <CardDescription className="text-center">
-          Nhập thông tin đăng nhập của bạn
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <Card className="w-full shadow-md">
+      <CardContent className="p-8">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+              {error}
+            </div>
           )}
 
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+          <div>
+            <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+              Email
+            </Label>
             <Input
               id="email"
               name="email"
               type="email"
-              placeholder="admin@hospital.com"
+              placeholder="Nhập email của bạn"
               value={formData.email}
               onChange={handleInputChange}
               required
               disabled={isSubmitting || loading}
-              className="w-full"
+              className="mt-1"
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="password">Mật khẩu</Label>
-            <div className="relative">
+          <div>
+            <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+              Mật khẩu
+            </Label>
+            <div className="relative mt-1">
               <Input
                 id="password"
                 name="password"
@@ -105,7 +126,7 @@ export function SupabaseLoginForm() {
                 onChange={handleInputChange}
                 required
                 disabled={isSubmitting || loading}
-                className="w-full pr-10"
+                className="pr-10"
               />
               <button
                 type="button"
@@ -122,9 +143,32 @@ export function SupabaseLoginForm() {
             </div>
           </div>
 
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="remember"
+                title="Remember me"
+                className="rounded border-gray-300 text-[#0066CC] focus:ring-[#0066CC]"
+              />
+              <Label htmlFor="remember" className="text-sm text-gray-600">
+                Ghi nhớ đăng nhập
+              </Label>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => router.push('/auth/forgot-password')}
+              className="text-sm text-[#0066CC] hover:text-[#0052A3] font-medium"
+              disabled={isSubmitting || loading}
+            >
+              Quên mật khẩu?
+            </button>
+          </div>
+
           <Button
             type="submit"
-            className="w-full"
+            className="w-full bg-[#0066CC] hover:bg-[#0052A3] text-white py-2 px-4 rounded-md transition duration-200"
             disabled={!isFormValid || isSubmitting || loading}
           >
             {isSubmitting || loading ? (
@@ -137,29 +181,21 @@ export function SupabaseLoginForm() {
             )}
           </Button>
 
-          <div className="text-center space-y-2">
+        </form>
+
+        <div className="mt-6 text-center">
+          <p className="text-sm text-gray-600">
+            Chưa có tài khoản?{" "}
             <button
               type="button"
-              onClick={() => router.push('/auth/forgot-password')}
-              className="text-sm text-blue-600 hover:text-blue-800 underline"
+              onClick={() => router.push('/auth/register')}
+              className="text-[#0066CC] hover:text-[#0052A3] font-medium"
               disabled={isSubmitting || loading}
             >
-              Quên mật khẩu?
+              Đăng ký ngay
             </button>
-            
-            <div className="text-sm text-gray-600">
-              Chưa có tài khoản?{' '}
-              <button
-                type="button"
-                onClick={() => router.push('/auth/register')}
-                className="text-blue-600 hover:text-blue-800 underline"
-                disabled={isSubmitting || loading}
-              >
-                Đăng ký ngay
-              </button>
-            </div>
-          </div>
-        </form>
+          </p>
+        </div>
 
         {/* Demo credentials */}
         <div className="mt-6 p-4 bg-gray-50 rounded-lg">
@@ -168,7 +204,7 @@ export function SupabaseLoginForm() {
           </h4>
           <div className="text-xs text-gray-600 space-y-1">
             <div>Admin: admin@hospital.com / admin123</div>
-            <div>Bác sĩ: doctor@hospital.com / doctor123</div>
+            <div>Bác sĩ: test@hospital.com / test123</div>
             <div>Bệnh nhân: patient@hospital.com / patient123</div>
           </div>
         </div>
@@ -196,10 +232,10 @@ interface ProtectedRouteProps {
   fallback?: React.ReactNode;
 }
 
-export function ProtectedRoute({ 
-  children, 
-  allowedRoles = [], 
-  fallback 
+export function ProtectedRoute({
+  children,
+  allowedRoles = [],
+  fallback
 }: ProtectedRouteProps) {
   const { user, loading } = useSupabaseAuth();
   const router = useRouter();

@@ -102,13 +102,16 @@ export class SupabaseAuthService {
       });
 
       // 2. Create user profile in custom users table
+      console.log('🏥 Creating user profile for auth user:', authData.user.id);
       const profileId = await this.createUserProfile(authData.user.id, userData);
 
       if (!profileId) {
         // Note: Cannot delete auth user from client side, user will need to be cleaned up manually
-        console.error('Failed to create user profile for auth user:', authData.user.id);
+        console.error('❌ Failed to create user profile for auth user:', authData.user.id);
         return { user: null, session: null, error: 'Không thể tạo hồ sơ người dùng. Vui lòng thử lại sau.' };
       }
+
+      console.log('✅ User profile created successfully with ID:', profileId);
 
       // 3. Update auth user metadata with profile_id
       const { error: updateError } = await supabaseClient.auth.updateUser({
@@ -116,11 +119,39 @@ export class SupabaseAuthService {
       });
 
       if (updateError) {
-        console.warn('Failed to update user metadata:', updateError);
+        console.warn('⚠️ Failed to update user metadata:', updateError);
+      } else {
+        console.log('✅ User metadata updated successfully');
       }
 
-      // 4. Convert to HospitalUser format
-      const hospitalUser = await this.convertToHospitalUser(authData.user);
+      // 4. Convert to HospitalUser format with retry
+      console.log('🔄 Converting to hospital user format...');
+      let hospitalUser = null;
+      let retryCount = 0;
+      const maxRetries = 3;
+
+      while (!hospitalUser && retryCount < maxRetries) {
+        console.log(`🔄 Conversion attempt ${retryCount + 1}/${maxRetries}`);
+        hospitalUser = await this.convertToHospitalUser(authData.user);
+
+        if (!hospitalUser && retryCount < maxRetries - 1) {
+          console.log(`⏳ Waiting before retry ${retryCount + 1}...`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        retryCount++;
+      }
+
+      if (!hospitalUser) {
+        console.error('❌ Failed to convert to hospital user after all retries');
+        return { user: null, session: null, error: 'Không thể tải thông tin người dùng. Vui lòng thử lại.' };
+      }
+
+      console.log('✅ Successfully created and converted user:', {
+        id: hospitalUser.id,
+        email: hospitalUser.email,
+        role: hospitalUser.role,
+        full_name: hospitalUser.full_name
+      });
 
       return {
         user: hospitalUser,
@@ -147,6 +178,8 @@ export class SupabaseAuthService {
       };
     }
   }
+
+
 
   // Sign in with email and password
   async signIn(credentials: LoginCredentials): Promise<AuthResponse> {
@@ -326,7 +359,14 @@ export class SupabaseAuthService {
   // Private helper methods
   private async createUserProfile(authUserId: string, userData: RegisterData): Promise<string | null> {
     try {
-      console.log('Creating user profile for auth user:', authUserId);
+      console.log('🚀 [createUserProfile] Starting profile creation for auth user:', authUserId);
+      console.log('🚀 [createUserProfile] User data:', {
+        full_name: userData.full_name,
+        role: userData.role,
+        phone_number: userData.phone_number,
+        specialty: userData.specialty,
+        license_number: userData.license_number
+      });
 
       // First, try to create profile manually (in case trigger doesn't work)
       const { data: manualProfile, error: manualError } = await supabaseClient
@@ -380,6 +420,7 @@ export class SupabaseAuthService {
 
         if (existingProfile) {
           // Update existing profile with additional data
+          console.log('📝 Updating existing profile with phone number...');
           const { error: updateError } = await supabaseClient
             .from('profiles')
             .update({
@@ -389,13 +430,13 @@ export class SupabaseAuthService {
             .eq('id', authUserId);
 
           if (updateError) {
-            console.error('Error updating profile:', updateError);
+            console.error('❌ Error updating profile:', updateError);
             return null;
           }
 
-          console.log('Profile updated successfully');
+          console.log('✅ Profile updated successfully');
         } else {
-          console.error('Profile not created by trigger and manual creation failed');
+          console.error('❌ Profile not created by trigger and manual creation failed');
           return null;
         }
       } else {
@@ -404,23 +445,29 @@ export class SupabaseAuthService {
 
       // Create role-specific profile
       let profileId = null;
-      console.log('Creating role-specific profile for role:', userData.role);
+      console.log('🎯 Creating role-specific profile for role:', userData.role);
+      console.log('🎯 About to check role and create profile...');
 
       if (userData.role === 'doctor') {
+        console.log('🏥 Starting doctor profile creation...');
         profileId = await this.createDoctorProfile(authUserId, userData);
         if (!profileId) {
-          console.error('Failed to create doctor profile');
+          console.error('❌ Failed to create doctor profile - this will cause registration to fail');
           return null;
         }
+        console.log('✅ Doctor profile created successfully');
       } else if (userData.role === 'patient') {
+        console.log('🏥 Starting patient profile creation...');
         profileId = await this.createPatientProfile(authUserId, userData);
         if (!profileId) {
-          console.error('Failed to create patient profile');
+          console.error('❌ Failed to create patient profile - this will cause registration to fail');
           return null;
         }
+        console.log('✅ Patient profile created successfully');
       }
 
-      console.log('Role-specific profile created with ID:', profileId);
+      console.log('🎯 Role-specific profile created with ID:', profileId);
+      console.log('🎯 Returning auth user ID:', authUserId);
 
       return authUserId;
     } catch (error) {
@@ -431,19 +478,59 @@ export class SupabaseAuthService {
 
   private async createDoctorProfile(authUserId: string, userData: RegisterData): Promise<string | null> {
     try {
-      console.log('Creating doctor profile for auth user:', authUserId);
+      console.log('👨‍⚕️ Creating doctor profile for auth user:', authUserId);
+      console.log('👨‍⚕️ Input data:', {
+        specialty: userData.specialty,
+        license_number: userData.license_number,
+        full_name: userData.full_name,
+        gender: userData.gender
+      });
+
       const doctorId = `DOC${Math.floor(100000 + Math.random() * 900000)}`;
+      console.log('👨‍⚕️ Generated doctor ID:', doctorId);
 
       // Validate required fields
       if (!userData.specialty) {
-        console.error('Specialty is required for doctor profile');
+        console.error('❌ Specialty is required for doctor profile');
         return null;
       }
 
       if (!userData.license_number) {
-        console.error('License number is required for doctor profile');
+        console.error('❌ License number is required for doctor profile');
         return null;
       }
+
+      console.log('✅ Required fields validation passed');
+
+      // Get a default department (first available department)
+      const { data: departments, error: deptError } = await supabaseClient
+        .from('departments')
+        .select('department_id')
+        .limit(1)
+        .single();
+
+      if (deptError || !departments) {
+        console.error('❌ Failed to get default department:', deptError);
+        return null;
+      }
+
+      // Ensure license number is unique by appending short random suffix (max 20 chars total)
+      const maxLicenseLength = 20;
+      const suffix = Math.floor(Math.random() * 9999).toString().padStart(4, '0');
+      const baseLength = maxLicenseLength - suffix.length - 1; // -1 for underscore
+      const baseLicense = userData.license_number.substring(0, baseLength);
+      const uniqueLicenseNumber = `${baseLicense}_${suffix}`;
+
+      console.log('👨‍⚕️ License number generation:', {
+        original: userData.license_number,
+        originalLength: userData.license_number.length,
+        maxLength: maxLicenseLength,
+        suffix: suffix,
+        baseLength: baseLength,
+        baseLicense: baseLicense,
+        final: uniqueLicenseNumber,
+        finalLength: uniqueLicenseNumber.length
+      });
 
       // Check required fields for doctors table
       const doctorData = {
@@ -451,15 +538,15 @@ export class SupabaseAuthService {
         auth_user_id: authUserId,
         full_name: userData.full_name,
         specialty: userData.specialty,
-        license_number: userData.license_number,
+        license_number: uniqueLicenseNumber,
         gender: userData.gender || 'Male',
-        department_id: null, // Allow null if not required
+        department_id: departments.department_id, // Use first available department
         qualification: 'MD',
         schedule: 'Mon-Fri 9AM-5PM',
         photo_url: null
       };
 
-      console.log('Doctor data to insert:', doctorData);
+      console.log('👨‍⚕️ Doctor data to insert:', doctorData);
 
       const { data, error } = await supabaseClient
         .from('doctors')
@@ -468,21 +555,36 @@ export class SupabaseAuthService {
         .single();
 
       if (error) {
-        console.error('Error creating doctor profile:', error);
-        console.error('Error details:', {
+        console.error('❌ Error creating doctor profile:', error);
+        console.error('❌ Error details:', {
           message: error.message,
           details: error.details,
           hint: error.hint,
           code: error.code
         });
-        console.error('Doctor data that failed to insert:', doctorData);
+        console.error('❌ Doctor data that failed to insert:', doctorData);
+
+        // Try to provide more specific error information
+        if (error.message.includes('duplicate key')) {
+          console.error('❌ Doctor ID or license number already exists');
+        } else if (error.message.includes('foreign key')) {
+          console.error('❌ Foreign key constraint violation');
+        } else if (error.message.includes('not null')) {
+          console.error('❌ Required field is missing');
+        }
+
         return null;
       }
 
-      console.log('Doctor profile created successfully:', data);
+      console.log('✅ Doctor profile created successfully:', {
+        doctor_id: data.doctor_id,
+        auth_user_id: data.auth_user_id,
+        full_name: data.full_name,
+        specialty: data.specialty
+      });
       return doctorId;
     } catch (error) {
-      console.error('Error creating doctor profile:', error);
+      console.error('❌ Exception in createDoctorProfile:', error);
       return null;
     }
   }
@@ -544,19 +646,26 @@ export class SupabaseAuthService {
 
   private async convertToHospitalUser(supabaseUser: SupabaseUser): Promise<HospitalUser | null> {
     try {
-      console.log('🔄 [SupabaseAuth] Converting user to hospital user for ID:', supabaseUser.id)
+      console.log('🔄 [convertToHospitalUser] Starting conversion for user ID:', supabaseUser.id)
+      console.log('🔄 [convertToHospitalUser] Supabase user data:', {
+        id: supabaseUser.id,
+        email: supabaseUser.email,
+        user_metadata: supabaseUser.user_metadata
+      });
 
       // Get user data from profiles table
+      console.log('🔄 [convertToHospitalUser] Querying profiles table...');
       const { data: userData, error } = await supabaseClient
         .from('profiles')
         .select('*')
         .eq('id', supabaseUser.id)
         .single();
 
-      console.log('🔄 [SupabaseAuth] Profile query result:', {
+      console.log('🔄 [convertToHospitalUser] Profile query result:', {
         hasData: !!userData,
         error: error?.message,
-        errorCode: error?.code
+        errorCode: error?.code,
+        userData: userData
       })
 
       if (error) {
@@ -594,16 +703,23 @@ export class SupabaseAuthService {
         phone_verified: userData.phone_verified
       };
 
-      console.log('🔄 [SupabaseAuth] Successfully converted to hospital user:', {
+      console.log('🔄 [convertToHospitalUser] Successfully converted to hospital user:', {
         id: hospitalUser.id,
         email: hospitalUser.email,
         role: hospitalUser.role,
         full_name: hospitalUser.full_name
       })
 
+      console.log('🔄 [convertToHospitalUser] Returning hospital user object');
       return hospitalUser;
     } catch (error) {
-      console.error('🔄 [SupabaseAuth] Error converting to hospital user:', error);
+      console.error('🔄 [convertToHospitalUser] Error converting to hospital user:', error);
+      if (error instanceof Error) {
+        console.error('🔄 [convertToHospitalUser] Error details:', {
+          message: error.message,
+          stack: error.stack
+        });
+      }
       return null;
     }
   }

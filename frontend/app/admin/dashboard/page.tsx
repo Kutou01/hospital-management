@@ -1,422 +1,439 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  FileText,
-  Activity,
-  Calendar,
   Users,
-  Settings,
-  User,
+  UserCog,
+  Calendar,
+  Activity,
+  AlertCircle,
+  CheckCircle,
+  Building2,
+  BedDouble,
+  FileText,
+  DollarSign,
+  Shield,
+  Server,
+  BarChart3
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Card, CardContent } from "@/components/ui/card"
 import { AdminLayout } from "@/components/layout/AdminLayout"
 import { StatCard } from "@/components/dashboard/StatCard"
 import { ChartCard, BarChartGroup } from "@/components/dashboard/ChartCard"
 import { RecentActivity } from "@/components/dashboard/RecentActivity"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
+import { useAuthProvider } from "@/hooks/useAuthProvider"
 
 export default function AdminDashboard() {
-  const [currentMonth, setCurrentMonth] = useState("July 2023")
+  const { user, loading } = useAuthProvider()
+  const [currentDate, setCurrentDate] = useState("")
 
-  // Mock data cho admin dashboard
+  // Debug logs
+  console.log('🏥 [AdminDashboard] Render state:', {
+    user,
+    loading,
+    userRole: user?.role,
+    hasUser: !!user
+  })
+
+  useEffect(() => {
+    const today = new Date()
+    setCurrentDate(today.toLocaleDateString('vi-VN', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    }))
+  }, [])
+
+  // Show loading state while user data is being fetched
+  if (loading) {
+    return (
+      <AdminLayout title="Admin Dashboard" activePage="dashboard">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      </AdminLayout>
+    )
+  }
+
+  // Redirect if not authenticated or not an admin
+  if (!user || user.role !== 'admin') {
+    return (
+      <AdminLayout title="Admin Dashboard" activePage="dashboard">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <p className="text-gray-600">Access denied. Admin role required.</p>
+          </div>
+        </div>
+      </AdminLayout>
+    )
+  }
+
+  // Mock data for admin dashboard
+  const systemStats = {
+    totalUsers: 1247,
+    totalDoctors: 45,
+    totalPatients: 1156,
+    totalStaff: 46,
+    activeAppointments: 89,
+    completedToday: 34,
+    pendingAppointments: 23,
+    cancelledToday: 2,
+    totalRevenue: 125000,
+    monthlyRevenue: 45000,
+    occupancyRate: 78,
+    availableRooms: 12
+  }
+
   const recentActivities = [
     {
       id: "1",
-      type: "appointment" as const,
-      title: "New appointment scheduled",
-      description: "Dr. Smith with patient John Doe",
+      type: "doctor" as const,
+      title: "New doctor registered",
+      description: "Dr. Nguyễn Văn A đã được thêm vào hệ thống",
       time: "2 hours ago",
-      status: "pending" as const,
-      initials: "JS"
+      status: "completed" as const,
+      initials: "NVA"
     },
     {
       id: "2",
-      type: "doctor" as const,
-      title: "New doctor registered",
-      description: "Dr. Jane Wilson joined Cardiology",
-      time: "4 hours ago",
-      status: "completed" as const,
-      initials: "JW"
+      type: "patient" as const,
+      title: "Patient registration spike",
+      description: "15 bệnh nhân mới đăng ký trong 1 giờ qua",
+      time: "3 hours ago",
+      status: "pending" as const,
+      initials: "REG"
     },
     {
       id: "3",
-      type: "patient" as const,
-      title: "Patient discharged",
-      description: "Mary Johnson completed treatment",
-      time: "1 day ago",
+      type: "appointment" as const,
+      title: "High appointment volume",
+      description: "89 lịch hẹn đang hoạt động",
+      time: "4 hours ago",
       status: "completed" as const,
-      initials: "MJ"
+      initials: "APT"
+    },
+    {
+      id: "4",
+      type: "report" as const,
+      title: "System backup completed",
+      description: "Sao lưu dữ liệu hệ thống thành công",
+      time: "6 hours ago",
+      status: "completed" as const,
+      initials: "SYS"
     }
   ]
 
+  const departmentStats = [
+    { name: "Khoa Nội", patients: 45, doctors: 8, occupancy: 85 },
+    { name: "Khoa Ngoại", patients: 32, doctors: 6, occupancy: 70 },
+    { name: "Khoa Sản", patients: 28, doctors: 5, occupancy: 90 },
+    { name: "Khoa Nhi", patients: 38, doctors: 7, occupancy: 75 },
+    { name: "Khoa Tim mạch", patients: 25, doctors: 4, occupancy: 65 }
+  ]
+
+  const systemHealth = {
+    database: { status: "healthy", uptime: "99.9%" },
+    apiGateway: { status: "healthy", uptime: "99.8%" },
+    authService: { status: "healthy", uptime: "99.9%" },
+    microservices: { status: "warning", uptime: "98.5%" }
+  }
+
+  const getHealthColor = (status: string) => {
+    switch (status) {
+      case 'healthy':
+        return 'text-green-600 bg-green-100'
+      case 'warning':
+        return 'text-yellow-600 bg-yellow-100'
+      case 'error':
+        return 'text-red-600 bg-red-100'
+      default:
+        return 'text-gray-600 bg-gray-100'
+    }
+  }
+
   return (
     <AdminLayout title="Admin Dashboard" activePage="dashboard">
-      {/* Month selector */}
-      <div className="mb-6 flex items-center space-x-2">
-        <div className="text-sm text-gray-500 flex items-center">
-          {currentMonth}
-          <ChevronDown size={16} className="ml-1" />
+      <div className="p-6">
+        {/* Welcome Section */}
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Shield className="h-6 w-6 text-blue-600" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">
+                Chào mừng trở lại, {user.full_name}!
+              </h2>
+              <p className="text-sm text-gray-600">
+                {user.email} • Quản trị viên
+              </p>
+            </div>
+          </div>
+          <p className="text-gray-600">{currentDate}</p>
+
+          {/* System Status Alert */}
+          <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              <span className="text-sm font-medium text-green-800">
+                Tất cả hệ thống hoạt động bình thường. Quản lý bệnh viện đang chạy ổn định.
+              </span>
+            </div>
+          </div>
         </div>
-      </div>
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        <StatCard title="Total Invoices" value="1,287" change={2.1} icon={<FileText className="text-blue-500" />} />
-        <StatCard title="Total Patients" value="965" change={3.7} icon={<Users className="text-green-500" />} />
-        <StatCard title="Appointments" value="128" change={-1.5} icon={<Calendar className="text-red-500" />} />
-        <StatCard title="Revenue" value="$315K" change={18} icon={<Activity className="text-purple-500" />} />
-      </div>
 
-      {/* Middle Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        {/* Calendar */}
-        <Card>
-          <CardContent className="p-0">
-            <div className="p-4 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h3 className="font-medium">{currentMonth}</h3>
-                <div className="flex space-x-1">
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <ChevronLeft size={16} />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <ChevronRight size={16} />
-                  </Button>
-                </div>
+        {/* Key Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+          <StatCard
+            title="Tổng người dùng"
+            value={systemStats.totalUsers}
+            change={8}
+            icon={<Users className="text-blue-500" />}
+            description={`${systemStats.totalDoctors} bác sĩ, ${systemStats.totalPatients} bệnh nhân`}
+          />
+          <StatCard
+            title="Lịch hẹn đang hoạt động"
+            value={systemStats.activeAppointments}
+            change={12}
+            icon={<Calendar className="text-green-500" />}
+            description={`${systemStats.completedToday} hoàn thành hôm nay`}
+          />
+          <StatCard
+            title="Doanh thu tháng"
+            value={`${systemStats.monthlyRevenue.toLocaleString()} VNĐ`}
+            change={15}
+            icon={<DollarSign className="text-purple-500" />}
+            description="Tháng này"
+          />
+          <StatCard
+            title="Tỷ lệ lấp đầy giường"
+            value={`${systemStats.occupancyRate}%`}
+            change={-3}
+            icon={<BedDouble className="text-orange-500" />}
+            description={`${systemStats.availableRooms} phòng còn trống`}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          {/* Department Overview */}
+          <Card className="lg:col-span-2">
+            <CardContent className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-lg font-medium">Tổng quan các khoa</h3>
+                <Button variant="outline" size="sm">
+                  Xem tất cả
+                </Button>
               </div>
-            </div>
-            <div className="p-4">
-              <div className="grid grid-cols-7 gap-1 text-center text-sm mb-2">
-                <div>S</div>
-                <div>M</div>
-                <div>T</div>
-                <div>W</div>
-                <div>T</div>
-                <div>F</div>
-                <div>S</div>
-              </div>
-              <div className="grid grid-cols-7 gap-1 text-center">
-                {[
-                  9, 1, 2, 3, 4, 5, 6, 7, 5, 5, 10, 11, 12, 13, 14, 15, 10,
-                  { day: 14, current: true }, 13, 19, 30, 21, 22, 23, 24, 25, 20, 27, 28, 29, 30, 31,
-                ].map((day, i) => (
-                  <div
-                    key={i}
-                    className={`h-8 w-8 flex items-center justify-center rounded-full text-sm
-                    ${typeof day === "object" && day.current ? "bg-blue-500 text-white" : "hover:bg-gray-100"}`}
-                  >
-                    {typeof day === "object" ? day.day : day}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Patient Overview */}
-        <ChartCard
-          title="Patient Overview"
-          className="col-span-2"
-          actions={
-            <Button variant="outline" className="text-sm">
-              Last 8 Days <ChevronRight size={16} className="ml-1" />
-            </Button>
-          }
-        >
-          <div className="h-64 flex items-end justify-between">
-            <BarChartGroup label="Child" value1={60} value2={40} />
-            <BarChartGroup label="Adv" value1={80} value2={50} />
-            <BarChartGroup label="Adult" value1={90} value2={60} />
-            <BarChartGroup label="Elderly" value1={85} value2={55} />
-            <BarChartGroup label="260+" value1={75} value2={45} />
-            <BarChartGroup label="All" value1={70} value2={40} />
-          </div>
-        </ChartCard>
-      </div>
-
-          {/* Revenue Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-            {/* Revenue Chart */}
-            <Card className="col-span-2">
-              <CardContent className="p-6">
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-lg font-medium">Revenue</h3>
-                  <div className="flex space-x-2">
-                    <Button variant="outline" size="sm" className="text-sm">
-                      Week
-                    </Button>
-                    <Button variant="outline" size="sm" className="text-sm bg-gray-100">
-                      Month
-                    </Button>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                    <span className="text-sm text-gray-600">Income</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                    <span className="text-sm text-gray-600">Expense</span>
-                  </div>
-                </div>
-                <div className="h-64 mt-4 relative">
-                  {/* Placeholder for line chart */}
-                  <div className="absolute inset-0 flex items-center justify-center text-gray-400">
-                    Revenue Chart Visualization
-                  </div>
-                </div>
-                <div className="flex justify-between mt-4">
-                  <Button variant="ghost" size="sm" className="text-xs">
-                    Week
-                  </Button>
-                  <Button variant="ghost" size="sm" className="text-xs">
-                    Month
-                  </Button>
-                  <Button variant="ghost" size="sm" className="text-xs">
-                    Yar
-                  </Button>
-                  <Button variant="ghost" size="sm" className="text-xs">
-                    Max
-                  </Button>
-                  <Button variant="ghost" size="sm" className="text-xs">
-                    Year
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Schedule */}
-            <Card>
-              <CardContent className="p-0">
-                <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-                  <h3 className="font-medium">Schedule</h3>
-                  <Badge variant="outline" className="text-xs">
-                    0 / 4
-                  </Badge>
-                </div>
-                <div className="p-0">
-                  <ScheduleItem title="Morning Staff Meeting" time="08:50" subtitle="$6.50" bgColor="bg-green-50" />
-                  <ScheduleItem
-                    title="Patient Consultation:"
-                    subtitle="@eneel Check Up"
-                    time="09:00"
-                    subtitleLine2="46.50"
-                    bgColor="bg-blue-50"
-                  />
-                  <ScheduleItem
-                    title="Surgery"
-                    subtitle="@campriate"
-                    time="11:00"
-                    subtitleLine2="11.90"
-                    bgColor="bg-orange-50"
-                  />
-                  <ScheduleItem title="Training Session" subtitle="18.00" time="12:00" bgColor="bg-teal-50" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Bottom Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-            {/* Patient Overview Donut */}
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="text-lg font-medium mb-6">Patient Overview</h3>
-                <div className="flex justify-center mb-6">
-                  <div className="relative w-40 h-40">
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="text-center">
-                        <div className="text-2xl font-bold">1,287</div>
-                        <div className="text-sm text-blue-500">↑ 3.81%</div>
+              <div className="space-y-4">
+                {departmentStats.map((dept, index) => (
+                  <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center space-x-4">
+                      <div className="p-2 bg-blue-100 rounded-lg">
+                        <Building2 className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{dept.name}</p>
+                        <p className="text-sm text-gray-500">
+                          {dept.patients} bệnh nhân • {dept.doctors} bác sĩ
+                        </p>
                       </div>
                     </div>
-                    {/* Placeholder for donut chart */}
-                    <div className="absolute inset-0 border-8 border-blue-500 rounded-full"></div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium">{dept.occupancy}%</p>
+                      <Progress value={dept.occupancy} className="w-20 h-2 mt-1" />
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span>Child</span>
-                    <span>55%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Elderly</span>
-                    <span>28%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span></span>
-                    <span>15%</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Doctors' Schedule */}
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-lg font-medium">Doctors' Schedule</h3>
-                  <Button variant="link" className="text-blue-500 p-0">
-                    Avisulice <ChevronRight size={16} />
-                  </Button>
-                </div>
-                <div className="space-y-4">
-                  <DoctorSchedule name="Dr. Ava Mullins" available={true} time="07:00-18:00" />
-                  <DoctorSchedule name="Dr. Andrew Karlin" available={false} />
-                  <DoctorSchedule name="Dr. Ethan Jones" available={true} time="12:00-18:00" />
-                  <DoctorSchedule name="Dr. Chloe Harrington" available={true} time="12:00-18:00" />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Report */}
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="text-lg font-medium mb-6">Report</h3>
-                <div className="space-y-4">
-                  <ReportItem icon={<FileText className="text-blue-500" />} title="Room Cleaning Needed" count={1} />
-                  <ReportItem icon={<Settings className="text-green-500" />} title="Equipment Maintenance" count={3} />
-                  <ReportItem icon={<Activity className="text-orange-500" />} title="Medication Restock" count={22} />
-                  <ReportItem
-                    icon={<Users className="text-purple-500" />}
-                    title="Patient Transport Required"
-                    count={null}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Patient Appointment Table */}
-          <Card>
-            <CardContent className="p-0">
-              <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-                <h3 className="font-medium">Patient Appointment</h3>
-                <div className="flex items-center text-blue-500">
-                  <span>19 Jul</span>
-                  <ChevronRight size={16} />
-                </div>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="text-left text-sm text-gray-500 border-b border-gray-200">
-                      <th className="p-4 font-medium">Name</th>
-                      <th className="p-4 font-medium">Date</th>
-                      <th className="p-4 font-medium">Tom</th>
-                      <th className="p-4 font-medium">Time</th>
-                      <th className="p-4 font-medium">Doctor</th>
-                      <th className="p-4 font-medium">Treatment</th>
-                      <th className="p-4 font-medium">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="border-b border-gray-100">
-                      <td className="p-4">Carol C-Simpson</td>
-                      <td className="p-4">19 Jul 2023</td>
-                      <td className="p-4">99:00</td>
-                      <td className="p-4">12:00</td>
-                      <td className="p-4">Dr. Ava Mullins</td>
-                      <td className="p-4">Routine Check-Up</td>
-                      <td className="p-4">
-                        <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Confirmed</Badge>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="p-4">Steven Bennett</td>
-                      <td className="p-4">19 Jul 2022</td>
-                      <td className="p-4">10:50</td>
-                      <td className="p-4">18:50</td>
-                      <td className="p-4">Dr. Andrew Karin</td>
-                      <td className="p-4">Cardiac Evaluation</td>
-                      <td className="p-4">
-                        <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Pending</Badge>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+                ))}
               </div>
             </CardContent>
           </Card>
 
-      {/* Recent Activity */}
-      <div className="mt-6">
-        <RecentActivity
-          activities={recentActivities}
-          title="Recent Activity"
-          maxItems={5}
-        />
+          {/* System Health */}
+          <Card>
+            <CardContent className="p-6">
+              <h3 className="text-lg font-medium mb-4">Tình trạng hệ thống</h3>
+              <div className="space-y-4">
+                {Object.entries(systemHealth).map(([service, health]) => (
+                  <div key={service} className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Server className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm capitalize">{service.replace(/([A-Z])/g, ' $1')}</span>
+                    </div>
+                    <div className="text-right">
+                      <Badge className={`text-xs ${getHealthColor(health.status)}`}>
+                        {health.status}
+                      </Badge>
+                      <p className="text-xs text-gray-500 mt-1">{health.uptime}</p>
+                    </div>
+                  </div>
+                ))}
+                <div className="pt-4">
+                  <Button className="w-full" variant="outline" size="sm">
+                    <BarChart3 className="h-4 w-4 mr-2" />
+                    Xem phân tích
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {/* Appointment Statistics */}
+          <ChartCard title="Thống kê lịch hẹn theo tuần" className="col-span-1">
+            <div className="h-64 flex items-end justify-between">
+              <BarChartGroup label="T2" value1={65} value2={45} />
+              <BarChartGroup label="T3" value1={75} value2={55} />
+              <BarChartGroup label="T4" value1={55} value2={35} />
+              <BarChartGroup label="T5" value1={85} value2={65} />
+              <BarChartGroup label="T6" value1={70} value2={50} />
+              <BarChartGroup label="T7" value1={40} value2={25} />
+              <BarChartGroup label="CN" value1={30} value2={20} />
+            </div>
+            <div className="flex justify-center space-x-6 mt-4">
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                <span className="text-sm text-gray-600">Đã đặt lịch</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                <span className="text-sm text-gray-600">Đã hoàn thành</span>
+              </div>
+            </div>
+          </ChartCard>
+
+          {/* Recent Activity */}
+          <RecentActivity
+            activities={recentActivities}
+            title="Hoạt động gần đây của hệ thống"
+            maxItems={5}
+          />
+        </div>
+
+        {/* Quick Actions */}
+        <Card>
+          <CardContent className="p-6">
+            <h3 className="text-lg font-medium mb-4">Thao tác nhanh</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              <Button className="h-20 flex-col space-y-2" variant="outline">
+                <UserCog className="h-6 w-6" />
+                <span className="text-xs">Quản lý bác sĩ</span>
+              </Button>
+              <Button className="h-20 flex-col space-y-2" variant="outline">
+                <Users className="h-6 w-6" />
+                <span className="text-xs">Quản lý bệnh nhân</span>
+              </Button>
+              <Button className="h-20 flex-col space-y-2" variant="outline">
+                <Calendar className="h-6 w-6" />
+                <span className="text-xs">Lịch hẹn</span>
+              </Button>
+              <Button className="h-20 flex-col space-y-2" variant="outline">
+                <Building2 className="h-6 w-6" />
+                <span className="text-xs">Các khoa</span>
+              </Button>
+              <Button className="h-20 flex-col space-y-2" variant="outline">
+                <BedDouble className="h-6 w-6" />
+                <span className="text-xs">Quản lý phòng</span>
+              </Button>
+              <Button className="h-20 flex-col space-y-2" variant="outline">
+                <FileText className="h-6 w-6" />
+                <span className="text-xs">Báo cáo</span>
+              </Button>
+              <Button className="h-20 flex-col space-y-2" variant="outline">
+                <DollarSign className="h-6 w-6" />
+                <span className="text-xs">Thanh toán</span>
+              </Button>
+              <Button className="h-20 flex-col space-y-2" variant="outline">
+                <Server className="h-6 w-6" />
+                <span className="text-xs">Cài đặt hệ thống</span>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Today's Summary */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Lịch hẹn hôm nay
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Đã hoàn thành</span>
+                  <span className="font-medium text-green-600">{systemStats.completedToday}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Đang chờ</span>
+                  <span className="font-medium text-yellow-600">{systemStats.pendingAppointments}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Đã hủy</span>
+                  <span className="font-medium text-red-600">{systemStats.cancelledToday}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5" />
+                Tổng quan doanh thu
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Tổng doanh thu</span>
+                  <span className="font-medium">{systemStats.totalRevenue.toLocaleString()} VNĐ</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Tháng này</span>
+                  <span className="font-medium text-green-600">{systemStats.monthlyRevenue.toLocaleString()} VNĐ</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Tăng trưởng</span>
+                  <span className="font-medium text-green-600">+15%</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5" />
+                Hiệu suất hệ thống
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Thời gian hoạt động</span>
+                  <span className="font-medium text-green-600">99.9%</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Thời gian phản hồi</span>
+                  <span className="font-medium">120ms</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Người dùng đang hoạt động</span>
+                  <span className="font-medium">234</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </AdminLayout>
   )
 }
-
-
-
-
-
-// Component for schedule items
-function ScheduleItem({ title, subtitle, time, subtitleLine2, bgColor }) {
-  return (
-    <div className={`p-4 border-b border-gray-100 ${bgColor}`}>
-      <div className="flex justify-between">
-        <div>
-          <h4 className="font-medium">{title}</h4>
-          <p className="text-sm text-gray-600">{subtitle}</p>
-          {subtitleLine2 && <p className="text-sm text-gray-600">{subtitleLine2}</p>}
-        </div>
-        <div className="text-right">
-          <span className="text-sm font-medium">{time}</span>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// Component for doctor schedule
-function DoctorSchedule({ name, available, time }) {
-  return (
-    <div className="flex items-center space-x-3">
-      <Avatar>
-        <AvatarFallback>
-          {name
-            .split(" ")
-            .map((n) => n[0])
-            .join("")}
-        </AvatarFallback>
-      </Avatar>
-      <div className="flex-1">
-        <p className="font-medium">{name}</p>
-        <p className={`text-sm ${available ? "text-green-600" : "text-red-600"}`}>
-          {available ? "Available" : "Unavailable"}
-          {time && <span className="text-gray-500 ml-1">{time}</span>}
-        </p>
-      </div>
-    </div>
-  )
-}
-
-// Component for report items
-function ReportItem({ icon, title, count }) {
-  return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center space-x-3">
-        <div className="p-2 bg-gray-100 rounded-full">{icon}</div>
-        <span className="font-medium">{title}</span>
-      </div>
-      {count !== null && (
-        <Badge variant="outline" className="font-bold">
-          {count}
-        </Badge>
-      )}
-    </div>
-  )
-}
-
-

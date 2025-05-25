@@ -107,13 +107,14 @@ export async function middleware(req: NextRequest) {
   if (isAuthRoute && session) {
     console.log(`🛡️ [Middleware] Authenticated user ${session.user.id} accessing auth route: ${pathname}`)
 
-    // Check if this is a fresh login/register by looking for specific query params only
+    // Check if this is a fresh login/register by looking for specific query params
     const url = new URL(req.url)
     const hasLoginMessage = url.searchParams.has('message')
     const hasRedirectParam = url.searchParams.has('redirectTo')
+    const isFromLogin = url.searchParams.has('from_login')
 
-    // Only skip redirect if there are specific query parameters indicating fresh login
-    if (hasLoginMessage || hasRedirectParam) {
+    // Allow access if there are specific query parameters or if coming from login
+    if (hasLoginMessage || hasRedirectParam || isFromLogin) {
       console.log(`🛡️ [Middleware] Allowing access to auth route due to query params`)
       return response
     }

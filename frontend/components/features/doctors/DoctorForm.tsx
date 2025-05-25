@@ -3,13 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  FormField, 
-  FormLabel, 
-  FormInput, 
-  FormSelect, 
-  FormTextarea, 
-  FormError 
+import {
+  FormField,
+  FormLabel,
+  FormInput,
+  FormSelect,
+  FormTextarea,
+  FormError
 } from '@/components/forms/FormField';
 import { doctorSchema, DoctorFormData, validateForm } from '@/lib/validations/schemas';
 import { Doctor, Department } from '@/lib/types';
@@ -47,7 +47,7 @@ export const DoctorForm: React.FC<DoctorFormProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const { submit, isSubmitting, error: submitError } = useApiForm(
-    doctor 
+    doctor
       ? (data: DoctorFormData) => doctorsApi.update(doctor.id, data)
       : (data: DoctorFormData) => doctorsApi.create(data),
     onSuccess,
@@ -56,7 +56,7 @@ export const DoctorForm: React.FC<DoctorFormProps> = ({
 
   const handleInputChange = (field: keyof DoctorFormData, value: string | number | undefined) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    
+
     // Clear field error when user starts typing
     if (errors[field]) {
       setErrors(prev => {
@@ -72,7 +72,7 @@ export const DoctorForm: React.FC<DoctorFormProps> = ({
 
     // Validate form
     const validation = validateForm(doctorSchema, formData);
-    
+
     if (!validation.success) {
       setErrors(validation.errors || {});
       return;
@@ -104,20 +104,21 @@ export const DoctorForm: React.FC<DoctorFormProps> = ({
   }));
 
   const specializationOptions = [
-    { value: 'Cardiology', label: 'Cardiology' },
-    { value: 'Dermatology', label: 'Dermatology' },
-    { value: 'Emergency Medicine', label: 'Emergency Medicine' },
-    { value: 'Family Medicine', label: 'Family Medicine' },
-    { value: 'Internal Medicine', label: 'Internal Medicine' },
-    { value: 'Neurology', label: 'Neurology' },
-    { value: 'Oncology', label: 'Oncology' },
-    { value: 'Orthopedics', label: 'Orthopedics' },
-    { value: 'Pediatrics', label: 'Pediatrics' },
-    { value: 'Psychiatry', label: 'Psychiatry' },
-    { value: 'Radiology', label: 'Radiology' },
-    { value: 'Surgery', label: 'Surgery' },
-    { value: 'Urology', label: 'Urology' },
-    { value: 'Other', label: 'Other' },
+    { value: 'Nội tổng hợp', label: 'Nội tổng hợp' },
+    { value: 'Ngoại tổng hợp', label: 'Ngoại tổng hợp' },
+    { value: 'Sản phụ khoa', label: 'Sản phụ khoa' },
+    { value: 'Nhi khoa', label: 'Nhi khoa' },
+    { value: 'Tim mạch can thiệp', label: 'Tim mạch can thiệp' },
+    { value: 'Thần kinh học', label: 'Thần kinh học' },
+    { value: 'Chấn thương và chỉnh hình', label: 'Chấn thương và chỉnh hình' },
+    { value: 'Cấp cứu và hồi sức', label: 'Cấp cứu và hồi sức' },
+    { value: 'Da liễu', label: 'Da liễu' },
+    { value: 'Mắt', label: 'Mắt' },
+    { value: 'Tai mũi họng', label: 'Tai mũi họng' },
+    { value: 'Răng hàm mặt', label: 'Răng hàm mặt' },
+    { value: 'Tâm thần', label: 'Tâm thần' },
+    { value: 'Ung bướu', label: 'Ung bướu' },
+    { value: 'Khác', label: 'Khác' },
   ];
 
   return (

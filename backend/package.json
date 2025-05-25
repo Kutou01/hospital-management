@@ -70,6 +70,7 @@
     "lint:appointment": "cd services/appointment-service && npm run lint",
     "format": "prettier --write \"**/*.{js,ts,json,md}\"",
     "health-check": "node scripts/health-check.js",
+    "cleanup:incomplete-users": "node scripts/cleanup-incomplete-users.js",
     "logs": "docker-compose logs -f",
 
     "logs:doctor": "docker-compose logs -f doctor-service",

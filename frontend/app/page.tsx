@@ -62,7 +62,10 @@ export default function Home() {
             Pages
           </Link>
           <Link href="/auth/login" className="font-medium">
-            Sign up
+            Đăng nhập
+          </Link>
+          <Link href="/auth/register" className="font-medium">
+            Đăng ký
           </Link>
         </nav>
 
@@ -95,9 +98,18 @@ export default function Home() {
                   <br />
                   uloh niu launlch muulsm em edet.
                 </p>
-                <Button className="bg-[#003087] hover:bg-[#002266] text-white px-8 py-6 rounded font-bold">
-                  BOOK AN APPOINTMENT
-                </Button>
+                <div className="flex gap-4">
+                  <Link href="/auth/login">
+                    <Button className="bg-[#003087] hover:bg-[#002266] text-white px-8 py-6 rounded font-bold">
+                      ĐĂNG NHẬP
+                    </Button>
+                  </Link>
+                  <Link href="/auth/register">
+                    <Button variant="outline" className="border-[#003087] text-[#003087] hover:bg-[#003087] hover:text-white px-8 py-6 rounded font-bold">
+                      ĐĂNG KÝ
+                    </Button>
+                  </Link>
+                </div>
               </div>
               <div className="flex justify-center">
                 <div className="relative w-[300px] h-[300px] md:w-[400px] md:h-[400px] rounded-full bg-[#a8e0f7]">

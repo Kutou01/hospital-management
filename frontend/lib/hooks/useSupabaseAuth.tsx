@@ -48,7 +48,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
     getInitialSession();
 
     // Listen for auth state changes
-    const { data: { subscription } } = supabaseAuth.onAuthStateChange((user, session) => {
+    const authListener = supabaseAuth.onAuthStateChange((user, session) => {
       console.log('🔄 [useSupabaseAuth] Auth state changed:', {
         hasUser: !!user,
         hasSession: !!session,
@@ -60,7 +60,9 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => {
-      subscription.unsubscribe();
+      if (authListener?.data?.subscription) {
+        authListener.data.subscription.unsubscribe();
+      }
     };
   }, []);
 

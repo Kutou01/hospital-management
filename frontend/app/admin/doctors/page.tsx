@@ -38,21 +38,22 @@ export default function DoctorsPage() {
 
   // Specialty options for dropdown
   const specialties = [
-    "All Specialties", // This will be sliced out when used
-    "Cardiology",
-    "Dermatology",
-    "Emergency Medicine",
-    "Family Medicine",
-    "Internal Medicine",
-    "Neurology",
-    "Oncology",
-    "Orthopedics",
-    "Pediatrics",
-    "Psychiatry",
-    "Radiology",
-    "Surgery",
-    "Urology",
-    "Other"
+    "Tất cả chuyên khoa", // This will be sliced out when used
+    "Nội tổng hợp",
+    "Ngoại tổng hợp",
+    "Sản phụ khoa",
+    "Nhi khoa",
+    "Tim mạch can thiệp",
+    "Thần kinh học",
+    "Chấn thương và chỉnh hình",
+    "Cấp cứu và hồi sức",
+    "Da liễu",
+    "Mắt",
+    "Tai mũi họng",
+    "Răng hàm mặt",
+    "Tâm thần",
+    "Ung bướu",
+    "Khác"
   ]
 
   // New doctor state

@@ -27,6 +27,14 @@ export default function DoctorDashboard() {
   const { user, loading } = useAuthProvider()
   const [currentDate, setCurrentDate] = useState("")
 
+  // Debug logs
+  console.log('🏥 [DoctorDashboard] Render state:', {
+    user,
+    loading,
+    userRole: user?.role,
+    hasUser: !!user
+  })
+
   useEffect(() => {
     const today = new Date()
     setCurrentDate(today.toLocaleDateString('vi-VN', {

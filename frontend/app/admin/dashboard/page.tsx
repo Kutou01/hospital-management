@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent } from "@/components/ui/card"
-import { DashboardLayout } from "@/components/layout/DashboardLayout"
+import { AdminLayout } from "@/components/layout/AdminLayout"
 import { StatCard } from "@/components/dashboard/StatCard"
 import { ChartCard, BarChartGroup } from "@/components/dashboard/ChartCard"
 import { RecentActivity } from "@/components/dashboard/RecentActivity"
@@ -56,7 +56,7 @@ export default function AdminDashboard() {
   ]
 
   return (
-    <DashboardLayout title="Admin Dashboard" activePage="dashboard">
+    <AdminLayout title="Admin Dashboard" activePage="dashboard">
       {/* Month selector */}
       <div className="mb-6 flex items-center space-x-2">
         <div className="text-sm text-gray-500 flex items-center">
@@ -353,7 +353,7 @@ export default function AdminDashboard() {
           maxItems={5}
         />
       </div>
-    </DashboardLayout>
+    </AdminLayout>
   )
 }
 

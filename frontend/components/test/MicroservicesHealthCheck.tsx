@@ -4,14 +4,13 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   CheckCircle, 
   AlertCircle, 
-  RefreshCw, 
-  Server, 
-  Clock,
-  Zap
+  Clock, 
+  RefreshCw,
+  Server,
+  Activity
 } from 'lucide-react';
 
 interface ServiceHealth {
@@ -27,24 +26,24 @@ export const MicroservicesHealthCheck: React.FC = () => {
   const [services, setServices] = useState<ServiceHealth[]>([
     {
       name: 'API Gateway',
-      url: process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:3000',
-      status: 'unknown',
+      url: 'http://localhost:3100/health',
+      status: 'unknown'
     },
     {
       name: 'Medical Records Service',
-      url: 'http://localhost:3006',
-      status: 'unknown',
+      url: 'http://localhost:3006/health',
+      status: 'unknown'
     },
     {
-      name: 'Prescription Service',
-      url: 'http://localhost:3007',
-      status: 'unknown',
+      name: 'Prescriptions Service',
+      url: 'http://localhost:3007/health',
+      status: 'unknown'
     },
     {
       name: 'Billing Service',
-      url: 'http://localhost:3008',
-      status: 'unknown',
-    },
+      url: 'http://localhost:3008/health',
+      status: 'unknown'
+    }
   ]);
 
   const [isChecking, setIsChecking] = useState(false);
@@ -53,18 +52,13 @@ export const MicroservicesHealthCheck: React.FC = () => {
     const startTime = Date.now();
     
     try {
-      // For API Gateway, check the root endpoint
-      const healthEndpoint = service.name === 'API Gateway' 
-        ? `${service.url}/` 
-        : `${service.url}/health`;
-      
-      const response = await fetch(healthEndpoint, {
+      const response = await fetch(service.url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
         // Add timeout
-        signal: AbortSignal.timeout(5000),
+        signal: AbortSignal.timeout(5000)
       });
 
       const responseTime = Date.now() - startTime;
@@ -75,7 +69,7 @@ export const MicroservicesHealthCheck: React.FC = () => {
           status: 'healthy',
           responseTime,
           lastChecked: new Date(),
-          error: undefined,
+          error: undefined
         };
       } else {
         return {
@@ -83,7 +77,7 @@ export const MicroservicesHealthCheck: React.FC = () => {
           status: 'unhealthy',
           responseTime,
           lastChecked: new Date(),
-          error: `HTTP ${response.status}: ${response.statusText}`,
+          error: `HTTP ${response.status}: ${response.statusText}`
         };
       }
     } catch (error) {
@@ -93,7 +87,7 @@ export const MicroservicesHealthCheck: React.FC = () => {
         status: 'unhealthy',
         responseTime,
         lastChecked: new Date(),
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
   };
@@ -105,10 +99,11 @@ export const MicroservicesHealthCheck: React.FC = () => {
     setServices(prev => prev.map(service => ({ ...service, status: 'checking' as const })));
 
     try {
-      const results = await Promise.all(
+      const healthChecks = await Promise.all(
         services.map(service => checkServiceHealth(service))
       );
-      setServices(results);
+      
+      setServices(healthChecks);
     } catch (error) {
       console.error('Error checking services:', error);
     } finally {
@@ -116,22 +111,7 @@ export const MicroservicesHealthCheck: React.FC = () => {
     }
   };
 
-  const checkSingleService = async (index: number) => {
-    const service = services[index];
-    setServices(prev => prev.map((s, i) => 
-      i === index ? { ...s, status: 'checking' as const } : s
-    ));
-
-    const result = await checkServiceHealth(service);
-    setServices(prev => prev.map((s, i) => i === index ? result : s));
-  };
-
-  useEffect(() => {
-    // Check services on component mount
-    checkAllServices();
-  }, []);
-
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: ServiceHealth['status']) => {
     switch (status) {
       case 'healthy':
         return <CheckCircle className="h-4 w-4 text-green-600" />;
@@ -140,11 +120,11 @@ export const MicroservicesHealthCheck: React.FC = () => {
       case 'checking':
         return <RefreshCw className="h-4 w-4 text-blue-600 animate-spin" />;
       default:
-        return <Server className="h-4 w-4 text-gray-400" />;
+        return <Clock className="h-4 w-4 text-gray-400" />;
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: ServiceHealth['status']) => {
     switch (status) {
       case 'healthy':
         return 'bg-green-100 text-green-800';
@@ -157,8 +137,10 @@ export const MicroservicesHealthCheck: React.FC = () => {
     }
   };
 
-  const healthyCount = services.filter(s => s.status === 'healthy').length;
-  const totalCount = services.length;
+  // Auto-check on component mount
+  useEffect(() => {
+    checkAllServices();
+  }, []);
 
   return (
     <Card>
@@ -167,84 +149,69 @@ export const MicroservicesHealthCheck: React.FC = () => {
           <CardTitle className="flex items-center gap-2">
             <Server className="h-5 w-5" />
             Microservices Health Check
-            <Badge variant={healthyCount === totalCount ? 'default' : 'destructive'}>
-              {healthyCount}/{totalCount} Healthy
-            </Badge>
           </CardTitle>
           <Button 
             onClick={checkAllServices} 
             disabled={isChecking}
-            className="flex items-center gap-2"
+            size="sm"
+            variant="outline"
           >
-            <RefreshCw className={`h-4 w-4 ${isChecking ? 'animate-spin' : ''}`} />
-            Check All
+            <RefreshCw className={`h-4 w-4 mr-2 ${isChecking ? 'animate-spin' : ''}`} />
+            {isChecking ? 'Checking...' : 'Refresh'}
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {healthyCount < totalCount && (
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Some services are not responding. Make sure all microservices are running.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <div className="grid gap-4">
+      <CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {services.map((service, index) => (
-            <div key={service.name} className="flex items-center justify-between p-4 border rounded-lg">
-              <div className="flex items-center gap-3">
+            <div key={index} className="p-4 border rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-medium text-sm">{service.name}</h4>
                 {getStatusIcon(service.status)}
-                <div>
-                  <h3 className="font-medium">{service.name}</h3>
-                  <p className="text-sm text-gray-600">{service.url}</p>
-                  {service.error && (
-                    <p className="text-sm text-red-600 mt-1">{service.error}</p>
-                  )}
-                </div>
               </div>
               
-              <div className="flex items-center gap-3">
+              <div className="space-y-2">
+                <Badge className={`text-xs ${getStatusColor(service.status)}`}>
+                  {service.status.toUpperCase()}
+                </Badge>
+                
                 {service.responseTime && (
-                  <div className="flex items-center gap-1 text-sm text-gray-600">
-                    <Zap className="h-3 w-3" />
-                    {service.responseTime}ms
-                  </div>
+                  <p className="text-xs text-gray-600">
+                    Response: {service.responseTime}ms
+                  </p>
                 )}
                 
                 {service.lastChecked && (
-                  <div className="flex items-center gap-1 text-sm text-gray-600">
-                    <Clock className="h-3 w-3" />
-                    {service.lastChecked.toLocaleTimeString()}
-                  </div>
+                  <p className="text-xs text-gray-600">
+                    Last checked: {service.lastChecked.toLocaleTimeString()}
+                  </p>
                 )}
                 
-                <Badge className={getStatusColor(service.status)}>
-                  {service.status}
-                </Badge>
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => checkSingleService(index)}
-                  disabled={service.status === 'checking'}
-                >
-                  Test
-                </Button>
+                {service.error && (
+                  <p className="text-xs text-red-600 truncate" title={service.error}>
+                    {service.error}
+                  </p>
+                )}
               </div>
             </div>
           ))}
         </div>
-
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-          <h4 className="font-medium mb-2">Quick Setup Guide:</h4>
-          <ol className="text-sm text-gray-600 space-y-1">
-            <li>1. Start the API Gateway: <code className="bg-white px-1 rounded">cd backend/api-gateway && npm start</code></li>
-            <li>2. Start Medical Records Service: <code className="bg-white px-1 rounded">cd backend/services/medical-records-service && npm start</code></li>
-            <li>3. Start Prescription Service: <code className="bg-white px-1 rounded">cd backend/services/prescription-service && npm start</code></li>
-            <li>4. Start Billing Service: <code className="bg-white px-1 rounded">cd backend/services/billing-service && npm start</code></li>
-          </ol>
+        
+        <div className="mt-4 text-sm text-gray-600">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1">
+              <Activity className="h-4 w-4" />
+              <span>Total Services: {services.length}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <span>Healthy: {services.filter(s => s.status === 'healthy').length}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <AlertCircle className="h-4 w-4 text-red-600" />
+              <span>Unhealthy: {services.filter(s => s.status === 'unhealthy').length}</span>
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>

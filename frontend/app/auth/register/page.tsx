@@ -14,10 +14,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 // Import icons directly from lucide-react
 import { User, Stethoscope, Check } from "lucide-react"
 import { useSupabaseAuth } from "@/lib/hooks/useSupabaseAuth"
+import { useToast } from "@/components/ui/toast-provider"
+import { AuthDebug } from "@/components/debug/AuthDebug"
 
 export default function RegisterPage() {
   const router = useRouter()
   const { signUp, loading } = useSupabaseAuth()
+  const { showToast } = useToast()
   const [accountType, setAccountType] = useState<"doctor" | "patient" | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
@@ -121,8 +124,11 @@ export default function RegisterPage() {
       })
 
       console.log('SignUp result:', result)
+      console.log('result.user:', result.user)
+      console.log('result.error:', result.error)
 
       if (result.error) {
+        console.log('SignUp has error:', result.error)
         // Translate common Supabase errors to Vietnamese
         let errorMessage = result.error
         if (result.error.includes('already registered')) {
@@ -133,13 +139,53 @@ export default function RegisterPage() {
           errorMessage = 'Mật khẩu không đủ mạnh. Vui lòng sử dụng mật khẩu khác.'
         }
         setError(errorMessage)
+        showToast("Đăng ký thất bại", errorMessage, "error")
       } else if (result.user) {
-        // Đăng ký thành công, chuyển về trang login
-        router.push("/auth/login?message=Đăng ký thành công! Vui lòng đăng nhập.")
+        console.log('📝 SignUp successful, user found:', {
+          id: result.user.id,
+          email: result.user.email,
+          role: result.user.role,
+          full_name: result.user.full_name
+        })
+
+        // Đăng ký thành công
+        const roleText = accountType === "doctor" ? "Bác sĩ" : "Bệnh nhân"
+
+        // Clear any existing errors
+        setError("")
+
+        // Show success toast
+        showToast(
+          "Đăng ký thành công!",
+          `Tài khoản ${roleText} đã được tạo thành công. Đang chuyển đến trang đăng nhập...`,
+          "success"
+        )
+
+        // Đợi để đảm bảo registration hoàn tất
+        console.log('📝 Waiting for registration to complete...')
+        await new Promise(resolve => setTimeout(resolve, 1500))
+
+        // Log trạng thái đăng ký trước khi chuyển hướng
+        console.log('📝 Registration state before redirect:', {
+          success: true,
+          accountType,
+          userId: result.user.id
+        })
+
+        // Sử dụng window.location.href để force navigation
+        console.log('📝 Redirecting with window.location.href...')
+        window.location.href = "/auth/login?message=Đăng ký thành công! Vui lòng đăng nhập để tiếp tục."
+      } else {
+        // Handle case where no error but also no user (shouldn't happen but just in case)
+        console.log('No error but no user returned')
+        setError("Đăng ký không thành công. Vui lòng thử lại.")
+        showToast("Đăng ký thất bại", "Đăng ký không thành công. Vui lòng thử lại.", "error")
       }
     } catch (err) {
       console.error('Register error:', err)
-      setError("Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.")
+      const errorMessage = "Đã xảy ra lỗi không mong muốn. Vui lòng thử lại."
+      setError(errorMessage)
+      showToast("Đăng ký thất bại", errorMessage, "error")
     } finally {
       setIsLoading(false)
     }
@@ -404,6 +450,9 @@ export default function RegisterPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Debug component - remove in production */}
+      <AuthDebug />
     </div>
   )
 }

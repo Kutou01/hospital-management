@@ -7,7 +7,7 @@ import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 export interface HospitalUser {
   id: string;
   email: string;
-  role: 'admin' | 'doctor' | 'patient' | 'nurse' | 'receptionist';
+  role: 'admin' | 'doctor' | 'patient';
   full_name: string;
   phone_number?: string;
   is_active: boolean;
@@ -35,7 +35,7 @@ export interface RegisterData {
   password: string;
   full_name: string;
   phone_number?: string;
-  role: 'doctor' | 'patient' | 'nurse' | 'receptionist';
+  role: 'doctor' | 'patient';
   // Role-specific data
   specialty?: string; // for doctors
   license_number?: string; // for doctors
@@ -151,21 +151,71 @@ export class SupabaseAuthService {
   // Sign in with email and password
   async signIn(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
+      console.log('🔐 [SupabaseAuth] Starting sign in process...')
+
       const { data, error } = await supabaseClient.auth.signInWithPassword({
         email: credentials.email,
         password: credentials.password
       });
 
+      console.log('🔐 [SupabaseAuth] Auth response:', {
+        hasUser: !!data.user,
+        hasSession: !!data.session,
+        error: error?.message
+      })
+
       if (error) {
-        return { user: null, session: null, error: error.message };
+        console.error('🔐 [SupabaseAuth] Auth error:', error)
+        let errorMessage = error.message
+
+        // Translate common errors to Vietnamese
+        if (error.message.includes('Invalid login credentials')) {
+          errorMessage = 'Email hoặc mật khẩu không đúng. Vui lòng kiểm tra lại.'
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = 'Email chưa được xác thực. Vui lòng kiểm tra email và xác thực tài khoản.'
+        } else if (error.message.includes('Too many requests')) {
+          errorMessage = 'Quá nhiều lần thử. Vui lòng đợi một lúc rồi thử lại.'
+        }
+
+        return { user: null, session: null, error: errorMessage };
       }
 
-      if (!data.user) {
-        return { user: null, session: null, error: 'Login failed' };
+      if (!data.user || !data.session) {
+        console.error('🔐 [SupabaseAuth] Missing user or session data')
+        return { user: null, session: null, error: 'Đăng nhập thất bại. Vui lòng thử lại.' };
       }
 
-      // Convert to HospitalUser format
-      const hospitalUser = await this.convertToHospitalUser(data.user);
+      console.log('🔐 [SupabaseAuth] Auth successful, converting to hospital user...')
+
+      // Wait for session to be properly established
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Convert to HospitalUser format with retry logic
+      let hospitalUser = null;
+      let retryCount = 0;
+      const maxRetries = 5;
+
+      while (!hospitalUser && retryCount < maxRetries) {
+        console.log(`🔐 [SupabaseAuth] Converting user data attempt ${retryCount + 1}/${maxRetries}`)
+        hospitalUser = await this.convertToHospitalUser(data.user);
+        if (!hospitalUser && retryCount < maxRetries - 1) {
+          console.log(`🔐 [SupabaseAuth] Retry ${retryCount + 1}/${maxRetries} to convert user data...`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        retryCount++;
+      }
+
+      if (!hospitalUser) {
+        console.error('🔐 [SupabaseAuth] Failed to convert to hospital user after all retries')
+        return { user: null, session: null, error: 'Không thể tải thông tin người dùng. Vui lòng thử lại.' };
+      }
+
+      console.log('🔐 [SupabaseAuth] Successfully converted to hospital user:', {
+        id: hospitalUser.id,
+        email: hospitalUser.email,
+        role: hospitalUser.role,
+        full_name: hospitalUser.full_name
+      })
 
       // Update last login
       await this.updateLastLogin(data.user.id);
@@ -177,11 +227,11 @@ export class SupabaseAuthService {
       };
 
     } catch (error) {
-      console.error('Sign in error:', error);
+      console.error('🔐 [SupabaseAuth] Sign in error:', error);
       return {
         user: null,
         session: null,
-        error: 'An unexpected error occurred during login'
+        error: 'Đã xảy ra lỗi không mong muốn trong quá trình đăng nhập'
       };
     }
   }
@@ -477,6 +527,8 @@ export class SupabaseAuthService {
 
   private async convertToHospitalUser(supabaseUser: SupabaseUser): Promise<HospitalUser | null> {
     try {
+      console.log('🔄 [SupabaseAuth] Converting user to hospital user for ID:', supabaseUser.id)
+
       // Get user data from profiles table
       const { data: userData, error } = await supabaseClient
         .from('profiles')
@@ -484,12 +536,34 @@ export class SupabaseAuthService {
         .eq('id', supabaseUser.id)
         .single();
 
-      if (error || !userData) {
-        console.error('Error fetching user data:', error);
+      console.log('🔄 [SupabaseAuth] Profile query result:', {
+        hasData: !!userData,
+        error: error?.message,
+        errorCode: error?.code
+      })
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          console.error('🔄 [SupabaseAuth] Profile not found for user:', supabaseUser.id)
+        } else {
+          console.error('🔄 [SupabaseAuth] Error fetching user profile:', error)
+        }
         return null;
       }
 
-      return {
+      if (!userData) {
+        console.error('🔄 [SupabaseAuth] No profile data found for user:', supabaseUser.id)
+        return null;
+      }
+
+      console.log('🔄 [SupabaseAuth] Profile data found:', {
+        id: userData.id,
+        role: userData.role,
+        full_name: userData.full_name,
+        is_active: userData.is_active
+      })
+
+      const hospitalUser: HospitalUser = {
         id: supabaseUser.id,
         email: supabaseUser.email || '',
         role: userData.role,
@@ -502,8 +576,17 @@ export class SupabaseAuthService {
         email_verified: supabaseUser.email_confirmed_at ? true : false,
         phone_verified: userData.phone_verified
       };
+
+      console.log('🔄 [SupabaseAuth] Successfully converted to hospital user:', {
+        id: hospitalUser.id,
+        email: hospitalUser.email,
+        role: hospitalUser.role,
+        full_name: hospitalUser.full_name
+      })
+
+      return hospitalUser;
     } catch (error) {
-      console.error('Error converting to hospital user:', error);
+      console.error('🔄 [SupabaseAuth] Error converting to hospital user:', error);
       return null;
     }
   }

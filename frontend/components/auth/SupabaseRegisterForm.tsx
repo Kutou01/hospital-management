@@ -91,16 +91,40 @@ export function SupabaseRegisterForm() {
     setSuccess('');
 
     try {
-      const result = await signUp(formData);
+      // Prepare data based on role
+      const { email, password, full_name, phone_number, role, ...rest } = formData;
+      let submissionData: any = {
+        email,
+        password,
+        full_name,
+        phone_number,
+        role,
+      };
+
+      if (role === 'doctor') {
+        submissionData = {
+          ...submissionData,
+          specialty: formData.specialty,
+          license_number: formData.license_number,
+        };
+      } else if (role === 'patient') {
+        submissionData = {
+          ...submissionData,
+          date_of_birth: formData.date_of_birth,
+          gender: formData.gender,
+          address: formData.address,
+        };
+      }
+      // Log the data being sent to signUp
+      console.log('Form data to submit:', submissionData);
+
+      const result = await signUp(submissionData);
 
       if (result.error) {
         setError(result.error);
       } else {
         setSuccess('Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.');
-        // Optionally redirect to login or dashboard
-        setTimeout(() => {
-          router.push('/auth/login');
-        }, 2000);
+        router.push('/auth/login');
       }
     } catch (err) {
       console.error('Register error:', err);

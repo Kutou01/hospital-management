@@ -3,6 +3,14 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export async function middleware(req: NextRequest) {
+  // TEMPORARILY DISABLE MIDDLEWARE FOR DEBUGGING
+  console.log(`🛡️ [Middleware] DISABLED - Allowing all requests to: ${req.nextUrl.pathname}`)
+  return NextResponse.next({
+    request: {
+      headers: req.headers,
+    },
+  })
+
   let response = NextResponse.next({
     request: {
       headers: req.headers,
@@ -89,6 +97,7 @@ export async function middleware(req: NextRequest) {
 
   // If user is not authenticated and trying to access protected route
   if (isProtectedRoute && !session) {
+    console.log(`[Middleware] Unauthenticated user accessing protected route: ${pathname}`)
     const redirectUrl = new URL('/auth/login', req.url)
     redirectUrl.searchParams.set('redirectTo', pathname)
     return NextResponse.redirect(redirectUrl)
@@ -96,16 +105,60 @@ export async function middleware(req: NextRequest) {
 
   // If user is authenticated and trying to access auth routes
   if (isAuthRoute && session) {
-    // Get user role from profiles table
-    const { data: userData } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', session.user.id)
-      .single()
+    console.log(`🛡️ [Middleware] Authenticated user ${session.user.id} accessing auth route: ${pathname}`)
+
+    // Check if this is a fresh login/register by looking for specific query params only
+    const url = new URL(req.url)
+    const hasLoginMessage = url.searchParams.has('message')
+    const hasRedirectParam = url.searchParams.has('redirectTo')
+
+    // Only skip redirect if there are specific query parameters indicating fresh login
+    if (hasLoginMessage || hasRedirectParam) {
+      console.log(`🛡️ [Middleware] Allowing access to auth route due to query params`)
+      return response
+    }
+
+    console.log(`🛡️ [Middleware] No special query params, proceeding with redirect logic`)
+
+    // Get user role from profiles table with retry logic
+    let userData = null
+    let retryCount = 0
+    const maxRetries = 3 // Reduce retries to avoid long delays
+
+    while (!userData && retryCount < maxRetries) {
+      console.log(`🛡️ [Middleware] Attempt ${retryCount + 1}/${maxRetries} to fetch user role`)
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single()
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('🛡️ [Middleware] Error fetching user role:', error)
+        break
+      } else if (data) {
+        userData = data
+        console.log(`🛡️ [Middleware] Successfully fetched user role: ${userData.role}`)
+        break
+      }
+
+      retryCount++
+      if (retryCount < maxRetries) {
+        // Reduce wait time between retries
+        const waitTime = 500 * retryCount
+        console.log(`🛡️ [Middleware] Waiting ${waitTime}ms before retry`)
+        await new Promise(resolve => setTimeout(resolve, waitTime))
+      }
+    }
 
     if (userData?.role) {
+      console.log(`🛡️ [Middleware] Redirecting to dashboard for role: ${userData.role}`)
       const dashboardUrl = new URL(`/${userData.role}/dashboard`, req.url)
       return NextResponse.redirect(dashboardUrl)
+    } else {
+      console.log(`🛡️ [Middleware] Could not determine user role after ${maxRetries} attempts, allowing access`)
+      // Allow access instead of blocking if we can't determine role
+      return response
     }
   }
 

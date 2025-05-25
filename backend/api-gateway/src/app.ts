@@ -73,57 +73,7 @@ export function createApp(): express.Application {
   // Health check endpoint
   app.use('/health', healthRoutes);
 
-  // Auth Service Routes (DEPRECATED - Frontend now uses Supabase Auth directly)
-  // console.log('Setting up Auth Service proxy to:', process.env.AUTH_SERVICE_URL || 'http://localhost:3001');
-  // app.use('/api/auth', createProxyMiddleware({
-  //   target: process.env.AUTH_SERVICE_URL || 'http://localhost:3001',
-  //   changeOrigin: true,
-  //   pathRewrite: {
-  //     '^/api/auth': '/api/auth',
-  //   },
-  //   onProxyReq: (proxyReq, req, res) => {
-  //     console.log(`🔄 Proxying ${req.method} ${req.url} to Auth Service`);
-  //     // Forward original headers
-  //     proxyReq.setHeader('X-Forwarded-For', req.ip || 'unknown');
-  //     proxyReq.setHeader('X-Forwarded-Proto', req.protocol);
-  //     proxyReq.setHeader('X-Forwarded-Host', req.get('Host') || 'unknown');
-  //   },
-  //   onProxyRes: (proxyRes, req, res) => {
-  //     console.log(`✅ Auth Service responded with ${proxyRes.statusCode} for ${req.method} ${req.url}`);
-  //   },
-  //   onError: (err, req, res) => {
-  //     console.error('❌ Auth Service Proxy Error:', err.message);
-  //     if (!res.headersSent) {
-  //       res.status(503).json({
-  //         success: false,
-  //         error: 'Auth service unavailable',
-  //         message: 'The authentication service is currently unavailable. Please try again later.',
-  //         timestamp: new Date().toISOString()
-  //       });
-  //     }
-  //   },
-  // }));
-
-  // Protected routes - require authentication
-  // Users route (DEPRECATED - Frontend now uses Supabase Auth directly)
-  // app.use('/api/users', authMiddleware, createProxyMiddleware({
-  //   target: process.env.AUTH_SERVICE_URL || 'http://localhost:3001',
-  //   changeOrigin: true,
-  //   pathRewrite: {
-  //     '^/api/users': '/api/users',
-  //   },
-  //   onError: (err, req, res) => {
-  //     console.error('❌ User Service Proxy Error:', err.message);
-  //     if (!res.headersSent) {
-  //       res.status(503).json({
-  //         success: false,
-  //         error: 'User service unavailable',
-  //         message: 'The user service is currently unavailable. Please try again later.',
-  //         timestamp: new Date().toISOString()
-  //       });
-  //     }
-  //   },
-  // }));
+  // Protected routes - require Supabase authentication
 
   // Doctor Service Routes
   app.use('/api/doctors', authMiddleware, createProxyMiddleware({

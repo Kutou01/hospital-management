@@ -22,7 +22,9 @@ import {
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { SidebarItem } from "@/components/shared-components"
-import { useAuth, UserRole } from "@/hooks/useAuth"
+import { useAuthProvider, HospitalUser } from "@/hooks/useAuthProvider"
+
+type UserRole = 'admin' | 'doctor' | 'patient' | 'nurse' | 'receptionist'
 
 export interface DashboardLayoutProps {
   children: React.ReactNode
@@ -183,7 +185,7 @@ const getMenuItems = (role: UserRole) => {
 }
 
 export function DashboardLayout({ children, title, activePage }: DashboardLayoutProps) {
-  const { user, logout } = useAuth()
+  const { user, logout } = useAuthProvider()
 
   if (!user) {
     return <div>Loading...</div>

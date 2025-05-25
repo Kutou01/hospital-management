@@ -1,13 +1,6 @@
 import { apiClient } from './client';
 import { Doctor, DoctorForm, ApiResponse, FilterOptions } from '../types';
 
-// Export all other APIs
-export * from './auth';
-export * from './patients';
-export * from './appointments';
-export * from './departments';
-export * from './rooms';
-
 // Doctors API endpoints
 export const doctorsApi = {
   // Get all doctors

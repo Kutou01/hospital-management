@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuthProvider } from '@/hooks/useAuthProvider';
-import { SidebarItem } from './SidebarItem';
+import { SidebarItem } from '@/components/shared-components';
 import { UserMenu } from './UserMenu';
 import {
   LayoutDashboard,

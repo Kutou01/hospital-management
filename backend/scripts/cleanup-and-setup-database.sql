@@ -119,15 +119,33 @@ CREATE TABLE admins (
 -- Enable RLS for admins
 ALTER TABLE admins ENABLE ROW LEVEL SECURITY;
 
+-- Allow admins to view their own data
 CREATE POLICY "Admins can view own data" ON admins
   FOR SELECT USING (profile_id = auth.uid());
 
+-- Allow admins to update their own data
+CREATE POLICY "Admins can update own data" ON admins
+  FOR UPDATE USING (profile_id = auth.uid());
+
+-- Allow INSERT for admin creation (no recursion)
+CREATE POLICY "Allow admin creation" ON admins
+  FOR INSERT WITH CHECK (true);
+
+-- Allow super admins to view all admins (avoid recursion by checking profiles table directly)
 CREATE POLICY "Super admins can view all admins" ON admins
   FOR SELECT USING (
     EXISTS (
-      SELECT 1 FROM admins a
-      JOIN profiles p ON a.profile_id = p.id
-      WHERE p.id = auth.uid() AND a.is_super_admin = true
+      SELECT 1 FROM profiles p
+      WHERE p.id = auth.uid() AND p.role = 'admin'
+    )
+  );
+
+-- Allow super admins to manage all admins
+CREATE POLICY "Super admins can manage all admins" ON admins
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM profiles p
+      WHERE p.id = auth.uid() AND p.role = 'admin'
     )
   );
 

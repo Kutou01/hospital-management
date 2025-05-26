@@ -44,28 +44,25 @@ export default function Home() {
 
         <nav className="hidden md:flex space-x-6 ml-10">
           <Link href="/" className="font-medium">
-            Home
+            Trang chủ
           </Link>
           <Link href="/about" className="font-medium">
-            About
+            Giới thiệu
           </Link>
           <Link href="/doctors" className="font-medium">
-            Doctors
+            Bác sĩ
           </Link>
           <Link href="/services" className="font-medium">
-            Services
+            Dịch vụ
           </Link>
-          <Link href="/blog" className="font-medium">
-            Blog
+          <Link href="/patient/appointments" className="font-medium">
+            Đặt lịch khám
           </Link>
-          <Link href="/pages" className="font-medium">
-            Pages
+          <Link href="/contact" className="font-medium">
+            Liên hệ
           </Link>
           <Link href="/auth/login" className="font-medium">
-            Đăng nhập
-          </Link>
-          <Link href="/auth/register" className="font-medium">
-            Đăng ký
+            Đăng nhập / Đăng ký
           </Link>
         </nav>
 
@@ -94,19 +91,14 @@ export default function Home() {
                   Health and Wellness
                 </h1>
                 <p className="text-gray-600 mb-8">
-                  Lorem ipsum dolor sit amet, consetetur uigredi
+                  Hệ thống quản lý bệnh viện hiện đại, cung cấp dịch vụ y tế
                   <br />
-                  uloh niu launlch muulsm em edet.
+                  chất lượng cao với đội ngũ bác sĩ chuyên nghiệp.
                 </p>
                 <div className="flex gap-4">
-                  <Link href="/auth/login">
+                  <Link href="/patient/appointments/new">
                     <Button className="bg-[#003087] hover:bg-[#002266] text-white px-8 py-6 rounded font-bold">
-                      ĐĂNG NHẬP
-                    </Button>
-                  </Link>
-                  <Link href="/auth/register">
-                    <Button variant="outline" className="border-[#003087] text-[#003087] hover:bg-[#003087] hover:text-white px-8 py-6 rounded font-bold">
-                      ĐĂNG KÝ
+                      ĐẶT LỊCH KHÁM NGAY
                     </Button>
                   </Link>
                 </div>

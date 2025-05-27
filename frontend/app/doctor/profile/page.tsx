@@ -23,10 +23,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { useAuthProvider } from "@/hooks/useAuthProvider"
+import { useSupabaseAuth } from "@/lib/hooks/useSupabaseAuth"
 
 export default function DoctorProfile() {
-  const { user, loading } = useAuthProvider()
+  const { user, loading } = useSupabaseAuth()
   const [isEditing, setIsEditing] = useState(false)
   const [formData, setFormData] = useState({
     full_name: "",

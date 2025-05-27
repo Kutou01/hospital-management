@@ -20,10 +20,10 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { useAuthProvider } from "@/hooks/useAuthProvider"
+import { useSupabaseAuth } from "@/lib/hooks/useSupabaseAuth"
 
 export default function DoctorAppointments() {
-  const { user, loading } = useAuthProvider()
+  const { user, loading } = useSupabaseAuth()
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState("all")
 

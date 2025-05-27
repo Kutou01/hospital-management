@@ -9,8 +9,50 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { User, Stethoscope, Shield, Eye, EyeOff, Loader2 } from "lucide-react"
-import { authApi, SignUpData } from "@/lib/auth"
+import { supabaseAuth } from "@/lib/auth/supabase-auth"
 import { useToast } from "@/components/ui/toast-provider"
+
+// Define SignUpData interface for this component
+interface SignUpData {
+  email: string
+  password: string
+  accountType: "doctor" | "patient" | "admin"
+  fullName: string
+  phoneNumber?: string
+  // Doctor specific
+  specialization?: string
+  licenseNo?: string
+  qualification?: string
+  departmentId?: string
+  // Patient specific
+  dateOfBirth?: string
+  gender?: "male" | "female" | "other"
+  bloodType?: string
+  address?: string
+  emergencyContactName?: string
+  emergencyContactPhone?: string
+}
+
+// Mapping chuyên khoa -> khoa (dựa trên database hiện tại)
+const SPECIALIZATION_TO_DEPARTMENT: Record<string, string> = {
+  "Nội tổng hợp": "DEPT001",        // Khoa Nội tổng hợp
+  "Ngoại tổng hợp": "DEPT006",      // Khoa Ngoại
+  "Sản phụ khoa": "DEPT007",        // Khoa Sản
+  "Nhi khoa": "DEPT003",            // Khoa Nhi
+  "Tim mạch can thiệp": "DEPT002",  // Khoa Tim mạch
+  "Thần kinh học": "DEPT008",       // Khoa Thần kinh
+  "Chấn thương và chỉnh hình": "DEPT004", // Khoa Chấn thương chỉnh hình
+  "Cấp cứu và hồi sức": "DEPT005",  // Khoa Cấp cứu
+  "Da liễu": "DEPT001",             // Fallback to Khoa Nội (chưa có khoa riêng)
+  "Mắt": "DEPT001",                 // Fallback to Khoa Nội (chưa có khoa riêng)
+  "Tai mũi họng": "DEPT001",        // Fallback to Khoa Nội (chưa có khoa riêng)
+  "Răng hàm mặt": "DEPT001"         // Fallback to Khoa Nội (chưa có khoa riêng)
+}
+
+// Function để tự động gán khoa dựa trên chuyên khoa
+const getDepartmentBySpecialization = (specialization: string): string => {
+  return SPECIALIZATION_TO_DEPARTMENT[specialization] || "DEPT001" // Default to Khoa Nội
+}
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -21,7 +63,6 @@ export default function RegisterPage() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  const [departments, setDepartments] = useState<any[]>([])
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -41,16 +82,17 @@ export default function RegisterPage() {
     emergencyContactPhone: "",
   })
 
-  // Load departments for doctor registration
-  useEffect(() => {
-    const loadDepartments = async () => {
-      const { data } = await authApi.getDepartments()
-      if (data) {
-        setDepartments(data)
-      }
-    }
-    loadDepartments()
-  }, [])
+  // Departments mapping for display purposes (khớp với database)
+  const departments = [
+    { department_id: 'DEPT001', name: 'Khoa Nội tổng hợp' },
+    { department_id: 'DEPT002', name: 'Khoa Tim mạch' },
+    { department_id: 'DEPT003', name: 'Khoa Nhi' },
+    { department_id: 'DEPT004', name: 'Khoa Chấn thương chỉnh hình' },
+    { department_id: 'DEPT005', name: 'Khoa Cấp cứu' },
+    { department_id: 'DEPT006', name: 'Khoa Ngoại' },
+    { department_id: 'DEPT007', name: 'Khoa Sản' },
+    { department_id: 'DEPT008', name: 'Khoa Thần kinh' }
+  ]
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -143,13 +185,38 @@ export default function RegisterPage() {
         emergencyContactPhone: accountType === "patient" ? formData.emergencyContactPhone : undefined,
       }
 
-      const result = await authApi.signUp(signUpData)
+      // Tự động gán khoa dựa trên chuyên khoa cho bác sĩ
+      let departmentId = signUpData.departmentId
+      if (signUpData.accountType === "doctor" && signUpData.specialization) {
+        departmentId = getDepartmentBySpecialization(signUpData.specialization)
+        console.log(`🏥 Auto-assigned department ${departmentId} for specialization: ${signUpData.specialization}`)
+      }
+
+      // Convert to RegisterData format expected by supabaseAuth
+      const registerData = {
+        email: signUpData.email,
+        password: signUpData.password,
+        full_name: signUpData.fullName,
+        phone_number: signUpData.phoneNumber,
+        role: signUpData.accountType as "doctor" | "patient",
+        // Doctor specific
+        specialty: signUpData.specialization,
+        license_number: signUpData.licenseNo,
+        qualification: signUpData.qualification,
+        department_id: departmentId, // Thêm department_id
+        // Patient specific
+        date_of_birth: signUpData.dateOfBirth,
+        gender: signUpData.gender,
+        address: signUpData.address,
+      }
+
+      const result = await supabaseAuth.signUp(registerData)
 
       console.log('🔍 [Register] Registration result:', {
         hasError: !!result.error,
-        hasUser: !!result.data?.user,
+        hasUser: !!result.user,
         error: result.error,
-        userId: result.data?.user?.id
+        userId: result.user?.id
       })
 
       if (result.error) {
@@ -178,11 +245,11 @@ export default function RegisterPage() {
         setError(errorMessage)
         showToast("Đăng ký thất bại", errorMessage, "error")
         setIsLoading(false)
-      } else if (result.data?.user) {
+      } else if (result.user) {
         // Registration successful
         console.log('✅ Registration successful for user:', {
-          id: result.data.user.id,
-          email: result.data.user.email
+          id: result.user.id,
+          email: result.user.email
         })
 
         const roleText = accountType === "doctor" ? "bác sĩ" : accountType === "patient" ? "bệnh nhân" : "quản trị viên"
@@ -462,27 +529,21 @@ export default function RegisterPage() {
                       </Select>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="departmentId" className="text-[#0066CC]">
-                        Khoa
-                      </Label>
-                      <Select
-                        value={formData.departmentId}
-                        onValueChange={(value) => handleSelectChange("departmentId", value)}
-                        disabled={isLoading}
-                      >
-                        <SelectTrigger className="h-10 rounded-md border-[#CCC] focus:border-[#0066CC] focus:ring-1 focus:ring-[#0066CC]">
-                          <SelectValue placeholder="Chọn khoa" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {departments.map((dept) => (
-                            <SelectItem key={dept.department_id} value={dept.department_id}>
-                              {dept.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {/* Khoa sẽ được tự động gán dựa trên chuyên khoa */}
+                    {formData.specialization && (
+                      <div className="space-y-2">
+                        <Label className="text-[#0066CC]">
+                          Khoa được gán tự động
+                        </Label>
+                        <div className="h-10 px-3 py-2 border border-[#CCC] rounded-md bg-gray-50 flex items-center text-sm text-gray-600">
+                          {departments.find(dept => dept.department_id === getDepartmentBySpecialization(formData.specialization))?.name ||
+                           `Khoa tương ứng với ${formData.specialization}`}
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          Khoa sẽ được tự động gán dựa trên chuyên khoa bạn chọn
+                        </p>
+                      </div>
+                    )}
                   </>
                 )}
 

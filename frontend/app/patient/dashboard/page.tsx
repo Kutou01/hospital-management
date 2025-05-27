@@ -27,10 +27,10 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { useAuthProvider } from "@/hooks/useAuthProvider"
+import { useSupabaseAuth } from "@/lib/hooks/useSupabaseAuth"
 
 export default function PatientDashboard() {
-  const { user, loading } = useAuthProvider()
+  const { user, loading } = useSupabaseAuth()
   const [currentDate, setCurrentDate] = useState("")
 
   useEffect(() => {

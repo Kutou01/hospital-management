@@ -24,10 +24,10 @@ import { RecentActivity } from "@/components/dashboard/RecentActivity"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { useAuthProvider } from "@/hooks/useAuthProvider"
+import { useSupabaseAuth } from "@/lib/hooks/useSupabaseAuth"
 
 export default function DoctorDashboard() {
-  const { user, loading } = useAuthProvider()
+  const { user, loading } = useSupabaseAuth()
   const [currentDate, setCurrentDate] = useState("")
 
   // Debug logs

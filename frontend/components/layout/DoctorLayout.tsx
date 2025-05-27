@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAuthProvider } from '@/hooks/useAuthProvider';
+import { useSupabaseAuth } from '@/lib/hooks/useSupabaseAuth';
 import { SidebarItem } from '@/components/shared-components';
 import { UserMenu } from './UserMenu';
 import {
@@ -30,7 +30,8 @@ export const DoctorLayout: React.FC<DoctorLayoutProps> = ({
   title,
   activePage,
 }) => {
-  const { user, logout } = useAuthProvider();
+  const { user, signOut } = useSupabaseAuth();
+  const logout = () => signOut();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (

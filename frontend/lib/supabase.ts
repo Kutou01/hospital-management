@@ -291,7 +291,8 @@ export const departmentsApi = {
     const { data, error } = await supabase
       .from('departments')
       .select('*')
-      .order('department_name');
+      .eq('is_active', true)
+      .order('name');
 
     if (error) {
       console.error('Error fetching departments:', error);

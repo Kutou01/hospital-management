@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { authApi } from "@/lib/auth"
+import { supabaseAuth } from "@/lib/auth/supabase-auth"
 import { Button } from "@/components/ui/button"
 import { User, LogOut, Loader2 } from "lucide-react"
 
@@ -18,7 +18,7 @@ export default function PatientLayout({
 
   useEffect(() => {
     const checkAuth = async () => {
-      const { data } = await authApi.getCurrentUser()
+      const { data } = await supabaseAuth.getCurrentUser()
 
       if (!data?.user || !data?.profile) {
         router.push("/auth/login")
@@ -44,7 +44,7 @@ export default function PatientLayout({
       console.log('🚪 [PatientLayout] Button clicked - Starting logout...');
       setIsLoggingOut(true);
 
-      const { error } = await authApi.signOut();
+      const { error } = await supabaseAuth.signOut();
 
       if (error) {
         console.error('🚪 [PatientLayout] Logout error:', error);

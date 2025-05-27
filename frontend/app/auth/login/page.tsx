@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Hospital, Eye, EyeOff, Loader2 } from "lucide-react"
-import { authApi, SignInData } from "@/lib/auth"
+import { supabaseAuth, LoginCredentials } from "@/lib/auth/supabase-auth"
 import { useToast } from "@/components/ui/toast-provider"
 
 export default function LoginPage() {
@@ -44,11 +44,8 @@ export default function LoginPage() {
         return
       }
 
-      const { data } = await authApi.getCurrentUser()
-      if (data?.user && data?.profile) {
-        const redirectPath = `/${data.profile.role}/dashboard`
-        router.push(redirectPath)
-      }
+      // Check current user with Supabase Auth
+      // This will be handled by the auth provider
     }
     checkAuth()
   }, [router, searchParams])
@@ -90,23 +87,23 @@ export default function LoginPage() {
     setError("")
 
     try {
-      const signInData: SignInData = {
+      const signInData: LoginCredentials = {
         email: formData.email,
         password: formData.password
       }
 
-      const result = await authApi.signIn(signInData)
+      const result = await supabaseAuth.signIn(signInData)
 
       console.log('🔍 [Login] Sign in result:', {
         hasError: !!result.error,
-        hasUser: !!result.data?.user,
-        hasProfile: !!result.data?.profile,
-        role: result.data?.profile?.role
+        hasUser: !!result.user,
+        role: result.user?.role,
+        fullResult: result
       })
 
       if (result.error) {
         console.error('❌ Login failed:', result.error)
-        let errorMessage = result.error.message || result.error.toString()
+        let errorMessage = result.error || 'Unknown error'
 
         // Handle specific error cases
         if (errorMessage.includes('Invalid login credentials') || errorMessage.includes('Invalid email or password')) {
@@ -120,25 +117,33 @@ export default function LoginPage() {
         setError(errorMessage)
         showToast("Đăng nhập thất bại", errorMessage, "error")
         setIsLoading(false)
-      } else if (result.data?.user && result.data?.profile) {
+      } else if (result.user && result.user.role) {
         // Login successful
         console.log('✅ Login successful for user:', {
-          id: result.data.user.id,
-          email: result.data.user.email,
-          role: result.data.profile.role
+          id: result.user.id,
+          email: result.user.email,
+          role: result.user.role,
+          full_name: result.user.full_name
         })
 
-        const role = result.data.profile.role
+        const role = result.user.role
         const roleText = role === "doctor" ? "bác sĩ" : role === "patient" ? "bệnh nhân" : "quản trị viên"
 
-        showToast("🎉 Đăng nhập thành công!", `Chào mừng ${roleText} ${result.data.profile.full_name}!`, "success")
+        showToast("🎉 Đăng nhập thành công!", `Chào mừng ${roleText} ${result.user.full_name}!`, "success")
 
-        // Redirect to role-specific dashboard
+        // Clear loading state first
+        setIsLoading(false)
+
+        // Redirect to role-specific dashboard with a small delay
         const redirectPath = `/${role}/dashboard`
         console.log('🔄 Redirecting to:', redirectPath)
-        router.push(redirectPath)
+
+        // Use setTimeout to ensure state is updated before redirect
+        setTimeout(() => {
+          router.replace(redirectPath)
+        }, 100)
       } else {
-        console.warn('⚠️ No error but no user/profile returned from login')
+        console.warn('⚠️ No error but no user/role returned from login:', result)
         setError("Đăng nhập không thành công. Vui lòng thử lại.")
         showToast("Đăng nhập thất bại", "Đăng nhập không thành công. Vui lòng thử lại.", "error")
         setIsLoading(false)

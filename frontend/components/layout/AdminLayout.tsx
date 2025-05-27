@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { SidebarItem } from "@/components/shared-components"
-import { useAuthProvider } from "@/hooks/useAuthProvider"
+import { useSupabaseAuth } from "@/lib/hooks/useSupabaseAuth"
 
 export interface AdminLayoutProps {
   children: React.ReactNode;
@@ -32,7 +32,7 @@ export interface AdminLayoutProps {
 }
 
 export function AdminLayout({ children, title, activePage }: AdminLayoutProps) {
-  const { user } = useAuthProvider();
+  const { user } = useSupabaseAuth();
 
   return (
     <div className="flex h-screen bg-gray-50">

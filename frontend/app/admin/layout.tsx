@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { authApi } from "@/lib/auth"
+import { supabaseAuth } from "@/lib/auth/supabase-auth"
 import { Button } from "@/components/ui/button"
 import { Hospital, LogOut, Loader2 } from "lucide-react"
 
@@ -14,31 +14,82 @@ export default function AdminLayout({
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   useEffect(() => {
     const checkAuth = async () => {
-      const { data } = await authApi.getCurrentUser()
+      try {
+        console.log('🔍 [AdminLayout] Checking auth...')
+        const { data } = await supabaseAuth.getCurrentUser()
 
-      if (!data?.user || !data?.profile) {
+        console.log('🔍 [AdminLayout] Current user data:', {
+          hasData: !!data,
+          hasUser: !!data?.user,
+          hasProfile: !!data?.profile,
+          role: data?.profile?.role,
+          email: data?.user?.email
+        })
+
+        if (!data?.user || !data?.profile) {
+          console.log('❌ [AdminLayout] No user or profile found, redirecting to login')
+          router.push("/auth/login")
+          return
+        }
+
+        if (data.profile.role !== "admin") {
+          console.log(`❌ [AdminLayout] User role is ${data.profile.role}, redirecting to their dashboard`)
+          router.push(`/${data.profile.role}/dashboard`)
+          return
+        }
+
+        console.log('✅ [AdminLayout] Admin user authenticated')
+        setUser(data)
+        setLoading(false)
+      } catch (error) {
+        console.error('❌ [AdminLayout] Auth check failed:', error)
         router.push("/auth/login")
-        return
       }
-
-      if (data.profile.role !== "admin") {
-        router.push(`/${data.profile.role}/dashboard`)
-        return
-      }
-
-      setUser(data)
-      setLoading(false)
     }
 
     checkAuth()
   }, [router])
 
   const handleLogout = async () => {
-    await authApi.signOut()
-    router.push("/auth/login")
+    if (isLoggingOut) return; // Prevent multiple clicks
+
+    try {
+      console.log('🚪 [AdminLayout] Button clicked - Starting logout...');
+      setIsLoggingOut(true);
+
+      const { error } = await supabaseAuth.signOut();
+
+      if (error) {
+        console.error('🚪 [AdminLayout] Logout error:', error);
+        // Still redirect even if there's an error
+      } else {
+        console.log('🚪 [AdminLayout] Logout successful');
+      }
+
+      // Force redirect to login page
+      console.log('🚪 [AdminLayout] Redirecting to login...');
+
+      // Try multiple redirect methods
+      if (typeof window !== 'undefined') {
+        window.location.href = '/auth/login';
+      } else {
+        router.push("/auth/login");
+      }
+    } catch (error) {
+      console.error('🚪 [AdminLayout] Logout exception:', error);
+      // Force redirect even on exception
+      if (typeof window !== 'undefined') {
+        window.location.href = '/auth/login';
+      } else {
+        router.push("/auth/login");
+      }
+    } finally {
+      setIsLoggingOut(false);
+    }
   }
 
   if (loading) {
@@ -79,10 +130,20 @@ export default function AdminLayout({
               onClick={handleLogout}
               variant="outline"
               size="sm"
-              className="flex items-center gap-2"
+              disabled={isLoggingOut}
+              className="flex items-center gap-2 hover:bg-red-50 hover:text-red-600 hover:border-red-300"
             >
-              <LogOut className="h-4 w-4" />
-              Đăng xuất
+              {isLoggingOut ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Đang đăng xuất...
+                </>
+              ) : (
+                <>
+                  <LogOut className="h-4 w-4" />
+                  Đăng xuất
+                </>
+              )}
             </Button>
           </div>
         </div>

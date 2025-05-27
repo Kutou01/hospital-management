@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useAuthProvider } from '@/hooks/useAuthProvider';
+import { useSupabaseAuth } from '@/lib/hooks/useSupabaseAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,12 @@ import {
 } from 'lucide-react';
 
 export const RoleDetector: React.FC = () => {
-  const { user, loading, isAdmin, isDoctor, isPatient, logout } = useAuthProvider();
+  const { user, loading, signOut } = useSupabaseAuth();
+
+  const isAdmin = () => user?.role === 'admin';
+  const isDoctor = () => user?.role === 'doctor';
+  const isPatient = () => user?.role === 'patient';
+  const logout = () => signOut();
 
   if (loading) {
     return (

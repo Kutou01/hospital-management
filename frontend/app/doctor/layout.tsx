@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { authApi } from "@/lib/auth"
+import { supabaseAuth } from "@/lib/auth/supabase-auth"
 import { Button } from "@/components/ui/button"
 import { Stethoscope, LogOut, Loader2 } from "lucide-react"
 
@@ -14,10 +14,11 @@ export default function DoctorLayout({
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   useEffect(() => {
     const checkAuth = async () => {
-      const { data } = await authApi.getCurrentUser()
+      const { data } = await supabaseAuth.getCurrentUser()
 
       if (!data?.user || !data?.profile) {
         router.push("/auth/login")
@@ -37,9 +38,13 @@ export default function DoctorLayout({
   }, [router])
 
   const handleLogout = async () => {
+    if (isLoggingOut) return; // Prevent multiple clicks
+
     try {
-      console.log('🚪 [DoctorLayout] Starting logout...');
-      const { error } = await authApi.signOut();
+      console.log('🚪 [DoctorLayout] Button clicked - Starting logout...');
+      setIsLoggingOut(true);
+
+      const { error } = await supabaseAuth.signOut();
 
       if (error) {
         console.error('🚪 [DoctorLayout] Logout error:', error);
@@ -49,11 +54,24 @@ export default function DoctorLayout({
       }
 
       // Force redirect to login page
-      router.push("/auth/login");
+      console.log('🚪 [DoctorLayout] Redirecting to login...');
+
+      // Try multiple redirect methods
+      if (typeof window !== 'undefined') {
+        window.location.href = '/auth/login';
+      } else {
+        router.push("/auth/login");
+      }
     } catch (error) {
       console.error('🚪 [DoctorLayout] Logout exception:', error);
       // Force redirect even on exception
-      router.push("/auth/login");
+      if (typeof window !== 'undefined') {
+        window.location.href = '/auth/login';
+      } else {
+        router.push("/auth/login");
+      }
+    } finally {
+      setIsLoggingOut(false);
     }
   }
 
@@ -95,10 +113,20 @@ export default function DoctorLayout({
               onClick={handleLogout}
               variant="outline"
               size="sm"
-              className="flex items-center gap-2"
+              disabled={isLoggingOut}
+              className="flex items-center gap-2 hover:bg-red-50 hover:text-red-600 hover:border-red-300"
             >
-              <LogOut className="h-4 w-4" />
-              Đăng xuất
+              {isLoggingOut ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Đang đăng xuất...
+                </>
+              ) : (
+                <>
+                  <LogOut className="h-4 w-4" />
+                  Đăng xuất
+                </>
+              )}
             </Button>
           </div>
         </div>

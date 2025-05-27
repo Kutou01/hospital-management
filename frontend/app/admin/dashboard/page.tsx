@@ -16,7 +16,7 @@ import {
   Server,
   BarChart3
 } from "lucide-react"
-import { AdminLayout } from "@/components/layout/AdminLayout"
+
 import { StatCard } from "@/components/dashboard/StatCard"
 import { ChartCard, BarChartGroup } from "@/components/dashboard/ChartCard"
 import { RecentActivity } from "@/components/dashboard/RecentActivity"
@@ -24,10 +24,10 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { useAuthProvider } from "@/hooks/useAuthProvider"
+import { useSupabaseAuth } from "@/lib/hooks/useSupabaseAuth"
 
 export default function AdminDashboard() {
-  const { user, loading } = useAuthProvider()
+  const { user, loading } = useSupabaseAuth()
   const [currentDate, setCurrentDate] = useState("")
 
   // Debug logs
@@ -51,25 +51,51 @@ export default function AdminDashboard() {
   // Show loading state while user data is being fetched
   if (loading) {
     return (
-      <AdminLayout title="Admin Dashboard" activePage="dashboard">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-      </AdminLayout>
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
     )
   }
 
-  // Redirect if not authenticated or not an admin
+  // Enhanced debug and redirect logic
+  console.log('🏥 [AdminDashboard] Access check:', {
+    hasUser: !!user,
+    userRole: user?.role,
+    isAdmin: user?.role === 'admin',
+    loading
+  })
+
   if (!user || user.role !== 'admin') {
-    return (
-      <AdminLayout title="Admin Dashboard" activePage="dashboard">
+    console.log('🏥 [AdminDashboard] Access denied - redirecting to login')
+
+    // If not loading and no user, redirect to login
+    if (!loading && !user) {
+      if (typeof window !== 'undefined') {
+        console.log('🏥 [AdminDashboard] No user - redirecting to login')
+        window.location.href = '/auth/login'
+        return null
+      }
+    }
+
+    // If user exists but wrong role, show access denied
+    if (user && user.role !== 'admin') {
+      console.log('🏥 [AdminDashboard] Wrong role - showing access denied')
+      return (
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
             <p className="text-gray-600">Access denied. Admin role required.</p>
+            <p className="text-sm text-gray-500 mt-2">Current role: {user.role}</p>
           </div>
         </div>
-      </AdminLayout>
+      )
+    }
+
+    // Still loading or no user yet
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
     )
   }
 
@@ -157,8 +183,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <AdminLayout title="Admin Dashboard" activePage="dashboard">
-      <div className="p-6">
+    <div className="p-6">
         {/* Welcome Section */}
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-2">
@@ -434,6 +459,5 @@ export default function AdminDashboard() {
           </Card>
         </div>
       </div>
-    </AdminLayout>
   )
 }

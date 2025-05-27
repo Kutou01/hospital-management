@@ -38,10 +38,12 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
         const { session: initialSession, user: initialUser } = await supabaseAuth.getCurrentSession();
         setSession(initialSession);
         setUser(initialUser);
+        setLoading(false); // Set loading to false after initial session check
       } catch (error) {
         console.error('Error getting initial session:', error);
         setSession(null);
         setUser(null);
+        setLoading(false); // Set loading to false even on error
       }
     };
 
@@ -57,6 +59,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
       });
       setUser(user);
       setSession(session);
+      setLoading(false); // Set loading to false when auth state changes
     });
 
     return () => {

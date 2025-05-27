@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search, Filter, Download, Eye } from "lucide-react"
-import { authApi, LoginSession } from "@/lib/supabase"
+// TODO: Implement login history with new auth system
+// import { LoginSession } from "@/lib/types"
 
 export default function LoginHistoryPage() {
   const [sessions, setSessions] = useState<LoginSession[]>([])

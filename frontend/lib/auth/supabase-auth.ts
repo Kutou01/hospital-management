@@ -48,6 +48,11 @@ export interface RegisterData {
 export class SupabaseAuthService {
   private lastError: string | null = null;
 
+  // Add cache and debounce properties
+  private userCache = new Map<string, { user: HospitalUser; timestamp: number }>();
+  private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+  private authStateChangeTimeout: NodeJS.Timeout | null = null;
+
   // Sign up with email and password
   async signUp(userData: RegisterData): Promise<AuthResponse> {
     try {
@@ -295,6 +300,7 @@ export class SupabaseAuthService {
   async signOut(): Promise<{ error: string | null }> {
     try {
       console.log('🚪 [SupabaseAuth] Starting sign out process...');
+      this.clearUserCache();
 
       const { error } = await supabaseClient.auth.signOut();
 
@@ -367,17 +373,29 @@ export class SupabaseAuthService {
 
   // Listen to auth state changes
   onAuthStateChange(callback: (user: HospitalUser | null, session: Session | null) => void) {
-    return supabaseClient.auth.onAuthStateChange(async (_event, session) => {
-      let hospitalUser: HospitalUser | null = null;
-
-      if (session?.user) {
-        hospitalUser = await this.convertToHospitalUser(session.user);
+    return supabaseClient.auth.onAuthStateChange(async (event, session) => {
+      console.log('🔄 [onAuthStateChange] Auth state changed:', event);
+      
+      // Clear previous timeout to debounce rapid changes
+      if (this.authStateChangeTimeout) {
+        clearTimeout(this.authStateChangeTimeout);
       }
-
-      callback(hospitalUser, session);
+  
+      // Debounce auth state changes by 500ms
+      this.authStateChangeTimeout = setTimeout(async () => {
+        let hospitalUser: HospitalUser | null = null;
+  
+        if (session?.user) {
+          hospitalUser = await this.convertToHospitalUser(session.user);
+        } else {
+          // Clear cache when user logs out
+          this.clearUserCache();
+        }
+  
+        callback(hospitalUser, session);
+      }, 500);
     });
   }
-
   // Private helper methods
   private async createUserProfile(authUserId: string, userData: RegisterData): Promise<string | null> {
     try {
@@ -699,6 +717,12 @@ export class SupabaseAuthService {
   private async convertToHospitalUser(supabaseUser: SupabaseUser): Promise<HospitalUser | null> {
     try {
       console.log('🔄 [convertToHospitalUser] Starting conversion for user ID:', supabaseUser.id)
+// Check cache first
+const cached = this.userCache.get(supabaseUser.id);
+if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
+  console.log('🔄 [convertToHospitalUser] Returning cached user data');
+  return cached.user;
+}
       console.log('🔄 [convertToHospitalUser] Supabase user data:', {
         id: supabaseUser.id,
         email: supabaseUser.email,
@@ -710,7 +734,7 @@ export class SupabaseAuthService {
 
       // Create a promise that rejects after 10 seconds
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Profile query timeout')), 10000);
+        setTimeout(() => reject(new Error('Profile query timeout')), 5000);
       });
 
       // Race between the query and timeout
@@ -749,7 +773,6 @@ export class SupabaseAuthService {
         full_name: userData.full_name,
         is_active: userData.is_active
       })
-
       const hospitalUser: HospitalUser = {
         id: supabaseUser.id,
         email: supabaseUser.email || '',
@@ -757,13 +780,20 @@ export class SupabaseAuthService {
         full_name: userData.full_name,
         phone_number: userData.phone_number,
         is_active: userData.is_active,
-        profile_id: userData.id, // Use the auth user id as profile_id
+        profile_id: userData.id,
         created_at: userData.created_at,
         last_login: userData.last_login,
         email_verified: supabaseUser.email_confirmed_at ? true : false,
         phone_verified: userData.phone_verified
       };
-
+      
+      // Cache the result
+      this.userCache.set(supabaseUser.id, {
+        user: hospitalUser,
+        timestamp: Date.now()
+      });
+      
+      console.log('🔄 [convertToHospitalUser] Successfully converted and cached hospital user');
       console.log('🔄 [convertToHospitalUser] Successfully converted to hospital user:', {
         id: hospitalUser.id,
         email: hospitalUser.email,
@@ -784,7 +814,6 @@ export class SupabaseAuthService {
       return null;
     }
   }
-
   private async updateLastLogin(authUserId: string): Promise<void> {
     try {
       await supabaseClient
@@ -795,7 +824,10 @@ export class SupabaseAuthService {
       console.error('Error updating last login:', error);
     }
   }
-}
+  
+  // Add method to clear cache
+  public clearUserCache(): void {
+    this.userCache.clear();
+    console.log('🔄 [SupabaseAuth] User cache cleared');
+  }}export const supabaseAuth = new SupabaseAuthService();
 
-// Export singleton instance
-export const supabaseAuth = new SupabaseAuthService();

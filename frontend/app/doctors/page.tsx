@@ -1,10 +1,13 @@
 'use client';
+import Swal from 'sweetalert2';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import PublicLayout from '@/components/layout/PublicLayout';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, Star, Calendar, Award, Clock, Users, Filter, MapPin, Phone, Mail, GraduationCap, Stethoscope, Heart, Shield, Video, MessageCircle } from 'lucide-react';
+import { Search, Star, Calendar, Award, Clock, Users, Filter, MapPin, Phone, Mail, GraduationCap, Stethoscope, Heart, Shield } from 'lucide-react';
+import { authApi } from "@/lib/auth";
 
 interface Doctor {
   id: number;
@@ -29,9 +32,10 @@ interface Doctor {
 }
 
 export default function DoctorsPage() {
+  const router = useRouter();
   const [selectedSpecialty, setSelectedSpecialty] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
+  const [checkingAuth, setCheckingAuth] = useState(false);
 
   const doctors: Doctor[] = [
     {
@@ -136,7 +140,7 @@ export default function DoctorsPage() {
     },
     {
       id: 5,
-      name: 'Dr. Hoàng Văn Đức',
+      name: 'Dr. Hoàng Đức',
       specialty: 'Chấn thương chỉnh hình',
       title: 'Trưởng khoa Chấn thương Chỉnh hình',
       experience: '14 năm',
@@ -203,6 +207,68 @@ export default function DoctorsPage() {
                          doctor.title.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSpecialty && matchesSearch;
   });
+
+  // Function to check authentication and redirect
+  const checkAuthAndRedirect = async (doctorId: number) => {
+    setCheckingAuth(true);
+    
+    try {
+      // Check if user is logged in using your auth system
+      const { data } = await authApi.getCurrentUser();
+      
+      if (data?.user && data?.profile) {
+        // User is logged in, store selected doctor and redirect based on role
+        localStorage.setItem('selectedDoctorId', doctorId.toString());
+        
+        if (data.profile.role === 'patient') {
+          // Redirect to patient profile for booking
+          router.push('/patient/profile?action=booking');
+        } else if (data.profile.role === 'doctor') {
+          // Doctor trying to book - redirect to doctor dashboard
+          router.push('/doctor/dashboard');
+        } else if (data.profile.role === 'admin') {
+          // Admin trying to book - redirect to admin dashboard
+          router.push('/admin/dashboard');
+        }
+      } else {
+        // User not logged in, store doctor ID and redirect to login
+        localStorage.setItem('selectedDoctorId', doctorId.toString());
+        router.push('/auth/login?redirect=booking');
+      }
+    } catch (error) {
+      // Error checking auth, assume not logged in
+      console.error('Auth check error:', error);
+      localStorage.setItem('selectedDoctorId', doctorId.toString());
+      router.push('/auth/login?redirect=booking');
+    } finally {
+      setCheckingAuth(false);
+    }
+  };
+
+  // Alternative simpler version using localStorage (backup method)
+  const checkAuthSimple = (doctorId: number) => {
+    const userToken = localStorage.getItem('userToken');
+    const userData = localStorage.getItem('userData');
+    
+    if (userToken && userData) {
+      try {
+        const user = JSON.parse(userData);
+        // User is logged in
+        localStorage.setItem('selectedDoctorId', doctorId.toString());
+        
+        // Redirect to patient profile for booking
+        router.push('/patient/profile?action=booking');
+      } catch (error) {
+        // Error parsing user data, redirect to login
+        localStorage.setItem('selectedDoctorId', doctorId.toString());
+        router.push('/auth/login?redirect=booking');
+      }
+    } else {
+      // User not logged in
+      localStorage.setItem('selectedDoctorId', doctorId.toString());
+      router.push('/auth/login?redirect=booking');
+    }
+  };
 
   return (
     <PublicLayout currentPage="doctors">
@@ -366,23 +432,53 @@ export default function DoctorsPage() {
 
                       {/* Action Buttons */}
                       <div className="space-y-3">
-                        <Button className="w-full bg-[#003087] hover:bg-[#002266] text-white py-3 rounded-xl font-semibold transition-all">
-                          <Calendar className="mr-2" size={18} />
-                          Đặt lịch khám
+                        <Button 
+                          className="w-full bg-[#003087] hover:bg-[#002266] text-white py-3 rounded-xl font-semibold transition-all disabled:opacity-50"
+                          onClick={() => checkAuthAndRedirect(doctor.id)}
+                          disabled={checkingAuth}
+                        >
+                          {checkingAuth ? (
+                            <div className="flex items-center">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                              Đang kiểm tra...
+                            </div>
+                          ) : (
+                            <>
+                              <Calendar className="mr-2" size={18} />
+                              Đặt lịch khám
+                            </>
+                          )}
                         </Button>
-                        <div className="grid grid-cols-3 gap-2">
-                          <Button variant="outline" className="border-[#003087] text-[#003087] hover:bg-[#003087] hover:text-white rounded-lg">
-                            <Phone size={16} />
-                          </Button>
-                          <Button variant="outline" className="border-[#003087] text-[#003087] hover:bg-[#003087] hover:text-white rounded-lg">
-                            <Video size={16} />
-                          </Button>
+                        <div className="grid grid-cols-2 gap-2">
+                        <Button 
+  variant="outline"
+  className="bg-white text-[#003087] border-2 border-[#003087] hover:bg-[#003087] hover:text-white px-6 py-3 font-bold rounded-lg shadow-md hover:shadow-lg transition duration-200 flex items-center"
+  onClick={() => {
+    Swal.fire({
+      title: 'Gọi điện thoại?',
+      text: `Bạn có muốn gọi tới số ${doctor.phone}?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#003087',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Gọi ngay',
+      cancelButtonText: 'Hủy',
+    }).then((result) => {
+      if (result.isConfirmed) {
+        window.open(`tel:${doctor.phone}`, '_self');
+      }
+    });
+  }}
+>
+  <Phone className="mr-2" size={20} />
+  Gọi điện
+</Button>
                           <Button 
                             variant="outline" 
                             className="border-[#003087] text-[#003087] hover:bg-[#003087] hover:text-white rounded-lg"
-                            onClick={() => setSelectedDoctor(doctor)}
+                            onClick={() => router.push(`/doctors/${doctor.id}`)}
                           >
-                            <MessageCircle size={16} />
+                            Xem chi tiết
                           </Button>
                         </div>
                       </div>
@@ -476,18 +572,21 @@ export default function DoctorsPage() {
                 Đặt lịch hẹn ngay hôm nay và nhận được sự chăm sóc y tế tốt nhất từ đội ngũ chuyên gia
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <Button className="bg-white text-[#003087] hover:bg-gray-100 px-8 py-4 rounded-xl font-bold text-lg min-w-[200px] transition-all">
+                <Button 
+                  className="bg-white text-[#003087] hover:bg-gray-100 px-8 py-4 rounded-xl font-bold text-lg min-w-[200px] transition-all"
+                  onClick={() => router.push('/auth/login')}
+                >
                   <Calendar className="mr-2" size={20} />
                   Đặt Lịch Ngay
                 </Button>
                 <Button
-  variant="outline"
-  className="border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white px-8 py-4 rounded-xl font-bold text-lg min-w-[200px] transition-all"
->
-  <Phone className="mr-2" size={20} />
-  Gọi: +1-123-5663582
-</Button>
-
+                  variant="outline"
+                  className="border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white px-8 py-4 rounded-xl font-bold text-lg min-w-[200px] transition-all"
+                  onClick={() => window.open('tel:+1-123-5663582', '_self')}
+                >
+                  <Phone className="mr-2" size={20} />
+                  Gọi: +1-123-5663582
+                </Button>
               </div>
               
               {/* Trust Indicators */}
@@ -510,172 +609,7 @@ export default function DoctorsPage() {
         </div>
       </section>
 
-      {/* Doctor Detail Modal */}
-      {selectedDoctor && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <Card className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <CardContent className="p-0">
-              {/* Modal Header */}
-              <div className="relative bg-gradient-to-r from-[#003087] to-[#0056b3] text-white p-6">
-                <button 
-                  onClick={() => setSelectedDoctor(null)}
-                  className="absolute top-4 right-4 text-white hover:text-gray-200 text-2xl font-bold"
-                >
-                  ×
-                </button>
-                <div className="flex items-start gap-6">
-                  <div className="w-24 h-24 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center ring-4 ring-white/30">
-                    <span className="text-3xl font-bold">
-                      {selectedDoctor.name.split(' ').pop()?.charAt(0)}
-                    </span>
-                  </div>
-                  <div className="flex-1">
-                    <h2 className="text-2xl font-bold mb-2">{selectedDoctor.name}</h2>
-                    <p className="text-blue-100 text-lg mb-2">{selectedDoctor.title}</p>
-                    <p className="text-blue-100 mb-3">{selectedDoctor.specialty}</p>
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center">
-                        {[...Array(5)].map((_, i) => (
-                          <Star 
-                            key={i}
-                            className={`w-5 h-5 ${i < Math.floor(selectedDoctor.rating) ? 'text-yellow-300 fill-current' : 'text-white/30'}`}
-                          />
-                        ))}
-                        <span className="ml-2 font-semibold text-lg">{selectedDoctor.rating}</span>
-                      </div>
-                      <span className="text-blue-100">({selectedDoctor.reviews} đánh giá)</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-6">
-                {/* Description */}
-                <div className="mb-6">
-                  <h3 className="text-xl font-bold text-[#1a3b5d] mb-3">Giới Thiệu</h3>
-                  <p className="text-gray-600 leading-relaxed">{selectedDoctor.description}</p>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-8">
-                  {/* Left Column */}
-                  <div className="space-y-6">
-                    {/* Education */}
-                    <div>
-                      <h4 className="text-lg font-semibold text-[#1a3b5d] mb-3 flex items-center">
-                        <GraduationCap className="mr-2 text-[#003087]" size={20} />
-                        Trình Độ Đào Tạo
-                      </h4>
-                      <ul className="space-y-2">
-                        {selectedDoctor.education.map((edu, index) => (
-                          <li key={index} className="text-gray-600 flex items-start">
-                            <span className="text-[#003087] mr-2">•</span>
-                            {edu}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {/* Specialties */}
-                    <div>
-                      <h4 className="text-lg font-semibold text-[#1a3b5d] mb-3">Chuyên Môn</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedDoctor.specialties.map(spec => (
-                          <span key={spec} className="bg-blue-50 text-[#003087] px-3 py-2 rounded-full text-sm font-medium">
-                            {spec}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Languages */}
-                    <div>
-                      <h4 className="text-lg font-semibold text-[#1a3b5d] mb-3">Ngôn Ngữ</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedDoctor.languages.map(lang => (
-                          <span key={lang} className="bg-gray-100 text-gray-700 px-3 py-2 rounded-full text-sm">
-                            {lang}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Right Column */}
-                  <div className="space-y-6">
-                    {/* Contact Info */}
-                    <div>
-                      <h4 className="text-lg font-semibold text-[#1a3b5d] mb-3 flex items-center">
-                        <MapPin className="mr-2 text-[#003087]" size={20} />
-                        Thông Tin Liên Hệ
-                      </h4>
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-3">
-                          <MapPin size={16} className="text-gray-500" />
-                          <span className="text-gray-600">{selectedDoctor.location}</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <Phone size={16} className="text-gray-500" />
-                          <span className="text-gray-600">{selectedDoctor.phone}</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <Mail size={16} className="text-gray-500" />
-                          <span className="text-gray-600">{selectedDoctor.email}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Schedule */}
-                    <div>
-                      <h4 className="text-lg font-semibold text-[#1a3b5d] mb-3 flex items-center">
-                        <Calendar className="mr-2 text-[#003087]" size={20} />
-                        Lịch Khám
-                      </h4>
-                      <ul className="space-y-2">
-                        {selectedDoctor.schedule.map((time, index) => (
-                          <li key={index} className="text-gray-600 flex items-center">
-                            <Clock size={14} className="mr-2 text-[#003087]" />
-                            {time}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {/* Achievements */}
-                    <div>
-                      <h4 className="text-lg font-semibold text-[#1a3b5d] mb-3 flex items-center">
-                        <Award className="mr-2 text-[#003087]" size={20} />
-                        Thành Tựu
-                      </h4>
-                      <ul className="space-y-2">
-                        {selectedDoctor.achievements.map((achievement, index) => (
-                          <li key={index} className="text-gray-600 flex items-start">
-                            <span className="text-[#003087] mr-2">•</span>
-                            {achievement}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex gap-4 mt-8 pt-6 border-t">
-                  <Button className="flex-1 bg-[#003087] hover:bg-[#002266] text-white py-4 rounded-xl font-semibold text-lg">
-                    <Calendar className="mr-2" size={20} />
-                    Đặt Lịch Khám - {selectedDoctor.consultationFee}
-                  </Button>
-                  <Button variant="outline" className="px-6 border-[#003087] text-[#003087] hover:bg-[#003087] hover:text-white rounded-xl">
-                    <Phone size={20} />
-                  </Button>
-                  <Button variant="outline" className="px-6 border-[#003087] text-[#003087] hover:bg-[#003087] hover:text-white rounded-xl">
-                    <Video size={20} />
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      {/* Removed Doctor Detail Modal - now using separate page */}
     </PublicLayout>
   );
 }

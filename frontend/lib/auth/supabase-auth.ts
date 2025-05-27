@@ -47,6 +47,11 @@ export interface AuthResponse {
 
 // Supabase Auth Service Class
 class SupabaseAuthService {
+  // Add cache and debounce properties
+  private userCache = new Map<string, { user: HospitalUser; timestamp: number }>();
+  private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+  private authStateChangeTimeout: NodeJS.Timeout | null = null;
+
   // Sign up new user
   async signUp(userData: RegisterData): Promise<AuthResponse> {
     try {
@@ -281,6 +286,7 @@ class SupabaseAuthService {
   async signOut(): Promise<{ error: string | null }> {
     try {
       console.log('🚪 [SupabaseAuth] Starting sign out process...');
+      this.clearUserCache();
 
       const { error } = await supabaseClient.auth.signOut();
 
@@ -412,102 +418,124 @@ class SupabaseAuthService {
     }
   }
 
-  // Listen for auth state changes
+  // Listen to auth state changes
   onAuthStateChange(callback: (user: HospitalUser | null, session: Session | null) => void) {
-    console.log('🔄 [SupabaseAuth] Setting up auth state listener...');
-
     return supabaseClient.auth.onAuthStateChange(async (event, session) => {
-      console.log('🔄 [SupabaseAuth] Auth state change event:', event, 'Session:', !!session);
+      console.log('🔄 [onAuthStateChange] Auth state changed:', event);
 
-      if (event === 'SIGNED_IN' && session?.user) {
-        // User signed in, get their profile
-        try {
-          const { data: profileData, error: profileError } = await supabaseClient
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-
-          if (profileError || !profileData) {
-            console.error('❌ Profile not found during auth state change:', profileError);
-            callback(null, null);
-            return;
-          }
-
-          // Create HospitalUser object
-          const hospitalUser: HospitalUser = {
-            id: profileData.id,
-            email: profileData.email,
-            full_name: profileData.full_name,
-            phone_number: profileData.phone_number,
-            role: profileData.role,
-            is_active: profileData.is_active,
-            email_verified: profileData.email_verified,
-            phone_verified: profileData.phone_verified,
-            profile_data: profileData.profile_data,
-            created_at: profileData.created_at,
-            updated_at: profileData.updated_at,
-            last_login: profileData.last_login,
-          };
-
-          console.log('✅ User profile loaded during auth state change:', hospitalUser.email);
-          callback(hospitalUser, session);
-
-        } catch (error) {
-          console.error('❌ Error loading profile during auth state change:', error);
-          callback(null, null);
-        }
-
-      } else if (event === 'SIGNED_OUT') {
-        // User signed out
-        console.log('🚪 User signed out');
-        callback(null, null);
-
-      } else if (event === 'TOKEN_REFRESHED' && session?.user) {
-        // Token refreshed, get updated profile
-        try {
-          const { data: profileData, error: profileError } = await supabaseClient
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-
-          if (profileError || !profileData) {
-            console.error('❌ Profile not found during token refresh:', profileError);
-            callback(null, null);
-            return;
-          }
-
-          // Create HospitalUser object
-          const hospitalUser: HospitalUser = {
-            id: profileData.id,
-            email: profileData.email,
-            full_name: profileData.full_name,
-            phone_number: profileData.phone_number,
-            role: profileData.role,
-            is_active: profileData.is_active,
-            email_verified: profileData.email_verified,
-            phone_verified: profileData.phone_verified,
-            profile_data: profileData.profile_data,
-            created_at: profileData.created_at,
-            updated_at: profileData.updated_at,
-            last_login: profileData.last_login,
-          };
-
-          console.log('🔄 Token refreshed, profile updated');
-          callback(hospitalUser, session);
-
-        } catch (error) {
-          console.error('❌ Error loading profile during token refresh:', error);
-          callback(null, null);
-        }
-
-      } else {
-        // Other events or no session
-        console.log('🔄 Auth state change - no active session');
-        callback(null, null);
+      // Clear previous timeout to debounce rapid changes
+      if (this.authStateChangeTimeout) {
+        clearTimeout(this.authStateChangeTimeout);
       }
+
+      // Debounce auth state changes by 500ms
+      this.authStateChangeTimeout = setTimeout(async () => {
+        let hospitalUser: HospitalUser | null = null;
+
+        if (session?.user) {
+          hospitalUser = await this.convertToHospitalUser(session.user);
+        } else {
+          // Clear cache when user logs out
+          this.clearUserCache();
+        }
+
+        callback(hospitalUser, session);
+      }, 500);
     });
+  }
+
+  // Private helper methods
+  private async convertToHospitalUser(supabaseUser: any): Promise<HospitalUser | null> {
+    try {
+      console.log('🔄 [convertToHospitalUser] Starting conversion for user ID:', supabaseUser.id)
+
+      // Check cache first
+      const cached = this.userCache.get(supabaseUser.id);
+      if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
+        console.log('🔄 [convertToHospitalUser] Returning cached user data');
+        return cached.user;
+      }
+
+      console.log('🔄 [convertToHospitalUser] Supabase user data:', {
+        id: supabaseUser.id,
+        email: supabaseUser.email,
+        user_metadata: supabaseUser.user_metadata
+      });
+
+      // Get user data from profiles table with timeout
+      console.log('🔄 [convertToHospitalUser] Querying profiles table...');
+
+      // Create a promise that rejects after 5 seconds
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Profile query timeout')), 5000);
+      });
+
+      // Race between the query and timeout
+      const queryPromise = supabaseClient
+        .from('profiles')
+        .select('*')
+        .eq('id', supabaseUser.id)
+        .single();
+
+      const { data: userData, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
+
+      if (error || !userData) {
+        console.error('🔄 [SupabaseAuth] No profile data found for user:', supabaseUser.id)
+        return null;
+      }
+
+      console.log('🔄 [SupabaseAuth] Profile data found:', {
+        id: userData.id,
+        role: userData.role,
+        full_name: userData.full_name,
+        is_active: userData.is_active
+      })
+
+      const hospitalUser: HospitalUser = {
+        id: supabaseUser.id,
+        email: supabaseUser.email || '',
+        role: userData.role,
+        full_name: userData.full_name,
+        phone_number: userData.phone_number,
+        is_active: userData.is_active,
+        created_at: userData.created_at,
+        updated_at: userData.updated_at,
+        last_login: userData.last_login,
+        email_verified: supabaseUser.email_confirmed_at ? true : false,
+        phone_verified: userData.phone_verified,
+        profile_data: userData.profile_data
+      };
+
+      // Cache the result
+      this.userCache.set(supabaseUser.id, {
+        user: hospitalUser,
+        timestamp: Date.now()
+      });
+
+      console.log('🔄 [convertToHospitalUser] Successfully converted and cached hospital user');
+      return hospitalUser;
+
+    } catch (error) {
+      console.error('❌ Error converting to hospital user:', error);
+      return null;
+    }
+  }
+
+  private async updateLastLogin(authUserId: string): Promise<void> {
+    try {
+      await supabaseClient
+        .from('profiles')
+        .update({ last_login: new Date().toISOString() })
+        .eq('id', authUserId);
+    } catch (error) {
+      console.error('Error updating last login:', error);
+    }
+  }
+
+  // Add method to clear cache
+  public clearUserCache(): void {
+    this.userCache.clear();
+    console.log('🔄 [SupabaseAuth] User cache cleared');
   }
 }
 

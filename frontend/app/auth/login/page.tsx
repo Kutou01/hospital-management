@@ -159,15 +159,14 @@ export default function LoginPage() {
           showToast("Thông báo", `Chức năng đặt lịch khám dành cho bệnh nhân. Bạn đang được chuyển đến trang ${roleText}.`, "info")
           localStorage.removeItem('selectedDoctorId') // Clear booking data
           const redirectPath = `/${role}/dashboard`
+          console.log('🔄 Booking redirect to:', redirectPath)
           router.push(redirectPath)
         } else {
           // Normal login, redirect to role-specific dashboard
           const redirectPath = `/${role}/dashboard`
           console.log('🔄 Normal login redirect to:', redirectPath)
-          // Use setTimeout to ensure state is updated before redirect
-          setTimeout(() => {
-            router.replace(redirectPath)
-          }, 100)
+          console.log('🔄 Using router.push instead of router.replace')
+          router.push(redirectPath)
         }
       } else {
         console.warn('⚠️ No error but no user/role returned from login:', result)

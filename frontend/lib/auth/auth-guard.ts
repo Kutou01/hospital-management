@@ -1,5 +1,5 @@
 import { GetServerSideProps, GetServerSidePropsContext } from 'next';
-import { createServerSupabaseClient } from '../supabase-server';
+import { createSupabaseServerClient } from '../supabase-server';
 import { HospitalUser } from './supabase-auth';
 
 // Types for auth guard
@@ -27,11 +27,11 @@ export function withServerAuth(
     } = options;
 
     try {
-      const supabase = createServerSupabaseClient();
-      
+      const supabase = await createSupabaseServerClient();
+
       // Get session
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
+
       if (sessionError) {
         console.error('Session error:', sessionError);
         return {
@@ -107,8 +107,8 @@ export function withServerAuth(
         full_name: profile.full_name,
         phone_number: profile.phone_number,
         is_active: profile.is_active,
-        profile_id: profile.id,
         created_at: profile.created_at,
+        updated_at: profile.updated_at || profile.created_at,
         last_login: profile.last_login,
         email_verified: profile.email_verified,
         phone_verified: profile.phone_verified,
@@ -117,7 +117,7 @@ export function withServerAuth(
       // Call the original getServerSideProps if provided
       if (getServerSidePropsFunc) {
         const result = await getServerSidePropsFunc(context);
-        
+
         if ('props' in result) {
           return {
             props: {
@@ -127,7 +127,7 @@ export function withServerAuth(
             },
           };
         }
-        
+
         return result;
       }
 

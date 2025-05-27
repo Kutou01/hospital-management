@@ -32,22 +32,50 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Get initial session
-    const getInitialSession = async () => {
+    // Get initial user and session
+    const getInitialAuth = async () => {
       try {
-        const { session: initialSession, user: initialUser } = await supabaseAuth.getCurrentSession();
-        setSession(initialSession);
-        setUser(initialUser);
-        setLoading(false); // Set loading to false after initial session check
+        console.log('🔄 [useSupabaseAuth] Getting initial auth state...');
+        setLoading(true);
+
+        // Get current user
+        const userResult = await supabaseAuth.getCurrentUser();
+        console.log('🔄 [useSupabaseAuth] User result:', {
+          hasUser: !!userResult.user,
+          hasError: !!userResult.error,
+          userRole: userResult.user?.role
+        });
+
+        if (userResult.user && !userResult.error) {
+          setUser(userResult.user);
+        } else {
+          setUser(null);
+        }
+
+        // Get current session
+        const sessionResult = await supabaseAuth.getCurrentSession();
+        console.log('🔄 [useSupabaseAuth] Session result:', {
+          hasSession: !!sessionResult.session,
+          hasError: !!sessionResult.error
+        });
+
+        if (sessionResult.session && !sessionResult.error) {
+          setSession(sessionResult.session);
+        } else {
+          setSession(null);
+        }
+
+        setLoading(false);
+        console.log('🔄 [useSupabaseAuth] Initial auth state loaded');
       } catch (error) {
-        console.error('Error getting initial session:', error);
+        console.error('🔄 [useSupabaseAuth] Error getting initial auth state:', error);
         setSession(null);
         setUser(null);
-        setLoading(false); // Set loading to false even on error
+        setLoading(false);
       }
     };
 
-    getInitialSession();
+    getInitialAuth();
 
     // Listen for auth state changes
     const authListener = supabaseAuth.onAuthStateChange((user, session) => {

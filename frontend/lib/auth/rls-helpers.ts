@@ -1,7 +1,6 @@
 'use client';
 
 import { supabaseClient } from '../supabase-client';
-import { createServerSupabaseClient } from '../supabase-server';
 
 // Types for RLS operations
 export interface RLSQueryOptions {
@@ -18,7 +17,7 @@ export class ClientRLSHelper {
 
   // Generic method to fetch data with RLS
   async fetchWithRLS<T>(
-    table: string, 
+    table: string,
     options: RLSQueryOptions = {}
   ): Promise<{ data: T[] | null; error: any }> {
     try {
@@ -39,8 +38,8 @@ export class ClientRLSHelper {
 
       // Apply ordering
       if (options.orderBy) {
-        query = query.order(options.orderBy.column, { 
-          ascending: options.orderBy.ascending ?? true 
+        query = query.order(options.orderBy.column, {
+          ascending: options.orderBy.ascending ?? true
         });
       }
 
@@ -190,60 +189,5 @@ export class ClientRLSHelper {
   }
 }
 
-// Server-side RLS helpers
-export class ServerRLSHelper {
-  private supabase = createServerSupabaseClient();
-
-  // Generic server-side fetch with RLS
-  async fetchWithRLS<T>(
-    table: string, 
-    options: RLSQueryOptions = {}
-  ): Promise<{ data: T[] | null; error: any }> {
-    try {
-      let query = this.supabase
-        .from(table)
-        .select(options.select || '*');
-
-      // Apply filters
-      if (options.filters) {
-        Object.entries(options.filters).forEach(([key, value]) => {
-          if (Array.isArray(value)) {
-            query = query.in(key, value);
-          } else if (value !== null && value !== undefined) {
-            query = query.eq(key, value);
-          }
-        });
-      }
-
-      // Apply ordering
-      if (options.orderBy) {
-        query = query.order(options.orderBy.column, { 
-          ascending: options.orderBy.ascending ?? true 
-        });
-      }
-
-      // Apply pagination
-      if (options.limit) {
-        query = query.limit(options.limit);
-      }
-
-      const { data, error } = await query;
-      return { data, error };
-    } catch (error) {
-      console.error(`Server RLS fetch error for table ${table}:`, error);
-      return { data: null, error };
-    }
-  }
-
-  // Server-side user profile fetch
-  async fetchUserProfile(userId: string) {
-    return this.fetchWithRLS('profiles', {
-      select: '*',
-      filters: { id: userId }
-    });
-  }
-}
-
-// Export singleton instances
+// Export singleton instance
 export const clientRLS = new ClientRLSHelper();
-export const serverRLS = new ServerRLSHelper();

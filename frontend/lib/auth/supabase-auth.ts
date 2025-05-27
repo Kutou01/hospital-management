@@ -51,6 +51,7 @@ class SupabaseAuthService {
   private userCache = new Map<string, { user: HospitalUser; timestamp: number }>();
   private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
   private authStateChangeTimeout: NodeJS.Timeout | null = null;
+  private currentUserPromise: Promise<AuthResponse> | null = null;
 
   // Sign up new user
   async signUp(userData: RegisterData): Promise<AuthResponse> {
@@ -120,12 +121,12 @@ class SupabaseAuthService {
         if (!departmentId && userData.specialty) {
           const { data: department } = await supabaseClient
             .from('departments')
-            .select('id')
+            .select('department_id')
             .ilike('name', `%${userData.specialty}%`)
             .single();
 
           if (department) {
-            departmentId = department.id;
+            departmentId = department.department_id;
             console.log('🏥 Found department for specialty:', userData.specialty, '-> Department ID:', departmentId);
           }
         }
@@ -133,8 +134,8 @@ class SupabaseAuthService {
         const { error: doctorError } = await supabaseClient
           .from('doctors')
           .insert({
-            id: authData.user.id,
-            specialty: userData.specialty,
+            profile_id: authData.user.id,
+            specialization: userData.specialty,
             license_number: userData.license_number,
             qualification: userData.qualification,
             department_id: departmentId,
@@ -152,10 +153,10 @@ class SupabaseAuthService {
         const { error: patientError } = await supabaseClient
           .from('patients')
           .insert({
-            id: authData.user.id,
+            profile_id: authData.user.id,
             date_of_birth: userData.date_of_birth,
             gender: userData.gender,
-            address: userData.address,
+            address: userData.address ? { street: userData.address } : {},
           });
 
         if (patientError) {
@@ -370,7 +371,27 @@ class SupabaseAuthService {
 
   // Get current user
   async getCurrentUser(): Promise<AuthResponse> {
+    // Return existing promise if one is already running
+    if (this.currentUserPromise) {
+      console.log('🔄 [getCurrentUser] Returning existing promise');
+      return this.currentUserPromise;
+    }
+
+    // Create new promise
+    this.currentUserPromise = this._getCurrentUserInternal();
+
     try {
+      const result = await this.currentUserPromise;
+      return result;
+    } finally {
+      // Clear the promise when done
+      this.currentUserPromise = null;
+    }
+  }
+
+  private async _getCurrentUserInternal(): Promise<AuthResponse> {
+    try {
+      console.log('🔄 [getCurrentUser] Starting user retrieval...');
       const { data: { user }, error } = await supabaseClient.auth.getUser();
 
       if (error) {
@@ -379,8 +400,11 @@ class SupabaseAuthService {
       }
 
       if (!user) {
+        console.log('🔄 [getCurrentUser] No authenticated user found');
         return { user: null, session: null, error: null };
       }
+
+      console.log('🔄 [getCurrentUser] Auth user found, getting profile...');
 
       // Get user profile from database
       const { data: profileData, error: profileError } = await supabaseClient
@@ -393,6 +417,12 @@ class SupabaseAuthService {
         console.error('❌ Profile not found:', profileError);
         return { user: null, session: null, error: 'Không tìm thấy thông tin người dùng.' };
       }
+
+      console.log('🔄 [getCurrentUser] Profile found:', {
+        id: profileData.id,
+        role: profileData.role,
+        full_name: profileData.full_name
+      });
 
       // Create HospitalUser object
       const hospitalUser: HospitalUser = {

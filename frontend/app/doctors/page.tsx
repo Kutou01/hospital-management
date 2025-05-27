@@ -7,7 +7,7 @@ import PublicLayout from '@/components/layout/PublicLayout';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Search, Star, Calendar, Award, Clock, Users, Filter, MapPin, Phone, Mail, GraduationCap, Stethoscope, Heart, Shield } from 'lucide-react';
-import { authApi } from "@/lib/auth";
+import { supabaseAuth } from "@/lib/auth/supabase-auth";
 
 interface Doctor {
   id: number;
@@ -193,7 +193,7 @@ export default function DoctorsPage() {
   const specialties = [
     'all',
     'Tim mạch',
-    'Nhi khoa', 
+    'Nhi khoa',
     'Thần kinh',
     'Phụ khoa',
     'Chấn thương chỉnh hình',
@@ -211,22 +211,22 @@ export default function DoctorsPage() {
   // Function to check authentication and redirect
   const checkAuthAndRedirect = async (doctorId: number) => {
     setCheckingAuth(true);
-    
+
     try {
       // Check if user is logged in using your auth system
-      const { data } = await authApi.getCurrentUser();
-      
-      if (data?.user && data?.profile) {
+      const { user } = await supabaseAuth.getCurrentUser();
+
+      if (user) {
         // User is logged in, store selected doctor and redirect based on role
         localStorage.setItem('selectedDoctorId', doctorId.toString());
-        
-        if (data.profile.role === 'patient') {
+
+        if (user.role === 'patient') {
           // Redirect to patient profile for booking
           router.push('/patient/profile?action=booking');
-        } else if (data.profile.role === 'doctor') {
+        } else if (user.role === 'doctor') {
           // Doctor trying to book - redirect to doctor dashboard
           router.push('/doctor/dashboard');
-        } else if (data.profile.role === 'admin') {
+        } else if (user.role === 'admin') {
           // Admin trying to book - redirect to admin dashboard
           router.push('/admin/dashboard');
         }
@@ -249,13 +249,13 @@ export default function DoctorsPage() {
   const checkAuthSimple = (doctorId: number) => {
     const userToken = localStorage.getItem('userToken');
     const userData = localStorage.getItem('userData');
-    
+
     if (userToken && userData) {
       try {
         const user = JSON.parse(userData);
         // User is logged in
         localStorage.setItem('selectedDoctorId', doctorId.toString());
-        
+
         // Redirect to patient profile for booking
         router.push('/patient/profile?action=booking');
       } catch (error) {
@@ -281,7 +281,7 @@ export default function DoctorsPage() {
               <span className="text-[#003087]">Phù Hợp Với Bạn</span>
             </h1>
             <p className="text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
-              Đội ngũ bác sĩ chuyên gia hàng đầu với nhiều năm kinh nghiệm, 
+              Đội ngũ bác sĩ chuyên gia hàng đầu với nhiều năm kinh nghiệm,
               cam kết mang đến dịch vụ chăm sóc sức khỏe tốt nhất cho bạn và gia đình
             </p>
           </div>
@@ -305,7 +305,7 @@ export default function DoctorsPage() {
               <div className="text-sm text-gray-600">Hỗ trợ khách hàng</div>
             </div>
           </div>
-          
+
           {/* Background elements */}
           <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
             <div className="absolute top-[10%] left-[5%] w-16 h-16 rounded-full bg-[#a8e0f7] opacity-30"></div>
@@ -330,7 +330,7 @@ export default function DoctorsPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            
+
             <div className="flex items-center gap-4">
               <Filter size={20} className="text-gray-600" />
               <select
@@ -370,7 +370,7 @@ export default function DoctorsPage() {
                           <div className="flex items-center gap-4 text-sm">
                             <div className="flex items-center">
                               {[...Array(5)].map((_, i) => (
-                                <Star 
+                                <Star
                                   key={i}
                                   className={`w-4 h-4 ${i < Math.floor(doctor.rating) ? 'text-yellow-300 fill-current' : 'text-white/30'}`}
                                 />
@@ -381,7 +381,7 @@ export default function DoctorsPage() {
                           </div>
                         </div>
                       </div>
-                      
+
                       {/* Specialty Badge */}
                       <div className="absolute top-4 right-4">
                         <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium">
@@ -432,7 +432,7 @@ export default function DoctorsPage() {
 
                       {/* Action Buttons */}
                       <div className="space-y-3">
-                        <Button 
+                        <Button
                           className="w-full bg-[#003087] hover:bg-[#002266] text-white py-3 rounded-xl font-semibold transition-all disabled:opacity-50"
                           onClick={() => checkAuthAndRedirect(doctor.id)}
                           disabled={checkingAuth}
@@ -450,7 +450,7 @@ export default function DoctorsPage() {
                           )}
                         </Button>
                         <div className="grid grid-cols-2 gap-2">
-                        <Button 
+                        <Button
   variant="outline"
   className="bg-white text-[#003087] border-2 border-[#003087] hover:bg-[#003087] hover:text-white px-6 py-3 font-bold rounded-lg shadow-md hover:shadow-lg transition duration-200 flex items-center"
   onClick={() => {
@@ -473,8 +473,8 @@ export default function DoctorsPage() {
   <Phone className="mr-2" size={20} />
   Gọi điện
 </Button>
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             className="border-[#003087] text-[#003087] hover:bg-[#003087] hover:text-white rounded-lg"
                             onClick={() => router.push(`/doctors/${doctor.id}`)}
                           >
@@ -494,7 +494,7 @@ export default function DoctorsPage() {
                   <Stethoscope size={64} className="text-gray-300 mx-auto mb-6" />
                   <h3 className="text-xl font-semibold text-[#1a3b5d] mb-2">Không tìm thấy bác sĩ</h3>
                   <p className="text-gray-600 mb-4">Không có bác sĩ nào phù hợp với tiêu chí tìm kiếm của bạn.</p>
-                  <Button 
+                  <Button
                     onClick={() => {setSearchTerm(''); setSelectedSpecialty('all')}}
                     variant="outline"
                     className="border-[#003087] text-[#003087]"
@@ -572,7 +572,7 @@ export default function DoctorsPage() {
                 Đặt lịch hẹn ngay hôm nay và nhận được sự chăm sóc y tế tốt nhất từ đội ngũ chuyên gia
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <Button 
+                <Button
                   className="bg-white text-[#003087] hover:bg-gray-100 px-8 py-4 rounded-xl font-bold text-lg min-w-[200px] transition-all"
                   onClick={() => router.push('/auth/login')}
                 >
@@ -588,7 +588,7 @@ export default function DoctorsPage() {
                   Gọi: +1-123-5663582
                 </Button>
               </div>
-              
+
               {/* Trust Indicators */}
               <div className="grid grid-cols-3 gap-8 mt-12 pt-8 border-t border-white/20">
                 <div className="text-center">

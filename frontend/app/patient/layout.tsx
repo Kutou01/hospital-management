@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { supabaseAuth } from "@/lib/auth/supabase-auth"
+import { useSupabaseAuth } from "@/lib/hooks/useSupabaseAuth"
 import { Button } from "@/components/ui/button"
 import { User, LogOut, Loader2 } from "lucide-react"
 
@@ -12,30 +12,36 @@ export default function PatientLayout({
   children: React.ReactNode
 }) {
   const router = useRouter()
-  const [user, setUser] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
+  const { user, loading, signOut } = useSupabaseAuth()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data } = await supabaseAuth.getCurrentUser()
-
-      if (!data?.user || !data?.profile) {
-        router.push("/auth/login")
-        return
-      }
-
-      if (data.profile.role !== "patient") {
-        router.push(`/${data.profile.role}/dashboard`)
-        return
-      }
-
-      setUser(data)
-      setLoading(false)
+    // Only redirect if not loading and we have a definitive answer
+    if (loading) {
+      console.log('🏥 [PatientLayout] Still loading auth state...')
+      return
     }
 
-    checkAuth()
-  }, [router])
+    console.log('🏥 [PatientLayout] Auth state loaded:', {
+      hasUser: !!user,
+      userRole: user?.role,
+      isActive: user?.is_active
+    })
+
+    if (!user) {
+      console.log('🏥 [PatientLayout] No user, redirecting to login')
+      router.push("/auth/login")
+      return
+    }
+
+    if (user.role !== "patient") {
+      console.log('🏥 [PatientLayout] User is not patient, redirecting to:', `/${user.role}/dashboard`)
+      router.push(`/${user.role}/dashboard`)
+      return
+    }
+
+    console.log('🏥 [PatientLayout] Patient auth check passed')
+  }, [user, loading, router])
 
   const handleLogout = async () => {
     if (isLoggingOut) return; // Prevent multiple clicks
@@ -44,32 +50,20 @@ export default function PatientLayout({
       console.log('🚪 [PatientLayout] Button clicked - Starting logout...');
       setIsLoggingOut(true);
 
-      const { error } = await supabaseAuth.signOut();
+      const { error } = await signOut();
 
       if (error) {
         console.error('🚪 [PatientLayout] Logout error:', error);
-        // Still redirect even if there's an error
       } else {
         console.log('🚪 [PatientLayout] Logout successful');
       }
 
-      // Force redirect to login page
+      // Redirect to login page
       console.log('🚪 [PatientLayout] Redirecting to login...');
-
-      // Try multiple redirect methods
-      if (typeof window !== 'undefined') {
-        window.location.href = '/auth/login';
-      } else {
-        router.push("/auth/login");
-      }
+      router.push("/auth/login");
     } catch (error) {
       console.error('🚪 [PatientLayout] Logout exception:', error);
-      // Force redirect even on exception
-      if (typeof window !== 'undefined') {
-        window.location.href = '/auth/login';
-      } else {
-        router.push("/auth/login");
-      }
+      router.push("/auth/login");
     } finally {
       setIsLoggingOut(false);
     }
@@ -105,7 +99,7 @@ export default function PatientLayout({
                   Bệnh nhân
                 </h1>
                 <p className="text-sm text-gray-500">
-                  Chào mừng, {user.profile.full_name}
+                  Chào mừng, {user.full_name}
                 </p>
               </div>
             </div>

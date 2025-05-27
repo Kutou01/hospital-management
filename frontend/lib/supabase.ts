@@ -44,17 +44,11 @@ export const doctorsApi = {
     return data || [];
   },
 
-  // Thêm bác sĩ mới (chỉ dành cho admin, user đã có auth_user_id)
+  // Thêm bác sĩ mới (chỉ dành cho admin, user đã có profile_id)
   addDoctor: async (doctor: any) => {
-    // Generate a unique doctor_id if not provided
-    if (!doctor.doctor_id) {
-      const randomDigits = Math.floor(100000 + Math.random() * 900000);
-      doctor.doctor_id = 'DOC' + randomDigits;
-    }
-
-    // Ensure auth_user_id is provided
-    if (!doctor.auth_user_id) {
-      return { data: null, error: 'auth_user_id is required' };
+    // Ensure profile_id is provided
+    if (!doctor.profile_id) {
+      return { data: null, error: 'profile_id is required' };
     }
 
     const { data, error } = await supabase
@@ -122,18 +116,12 @@ export const patientsApi = {
     return data || [];
   },
 
-  // Thêm bệnh nhân mới (chỉ dành cho admin, user đã có auth_user_id)
+  // Thêm bệnh nhân mới (chỉ dành cho admin, user đã có profile_id)
   addPatient: async (patient: any) => {
     try {
-      // Generate a unique patient_id if not provided
-      if (!patient.patient_id) {
-        const randomDigits = Math.floor(100000 + Math.random() * 900000);
-        patient.patient_id = 'PAT' + randomDigits;
-      }
-
-      // Ensure auth_user_id is provided
-      if (!patient.auth_user_id) {
-        return { data: null, error: 'auth_user_id is required' };
+      // Ensure profile_id is provided
+      if (!patient.profile_id) {
+        return { data: null, error: 'profile_id is required' };
       }
 
       // Insert the patient

@@ -24,6 +24,7 @@ DROP TABLE IF EXISTS audit_logs CASCADE;
 DROP TABLE IF EXISTS prescriptions CASCADE;
 DROP TABLE IF EXISTS medical_records CASCADE;
 DROP TABLE IF EXISTS appointments CASCADE;
+DROP TABLE IF EXISTS rooms CASCADE;
 DROP TABLE IF EXISTS patients CASCADE;
 DROP TABLE IF EXISTS doctors CASCADE;
 DROP TABLE IF EXISTS admins CASCADE;
@@ -233,6 +234,42 @@ CREATE POLICY "Admins can manage patients" ON patients
     EXISTS (
       SELECT 1 FROM profiles
       WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+
+-- Rooms table
+CREATE TABLE rooms (
+  room_id TEXT PRIMARY KEY DEFAULT ('ROOM' || EXTRACT(EPOCH FROM NOW())::BIGINT),
+  room_number TEXT NOT NULL,
+  room_type TEXT NOT NULL CHECK (room_type IN ('consultation', 'surgery', 'emergency', 'ward', 'icu', 'laboratory', 'Phòng khám', 'Phòng mổ', 'Phòng bệnh', 'Phòng hồi sức')),
+  department_id TEXT NOT NULL REFERENCES departments(department_id),
+  capacity INTEGER DEFAULT 1 CHECK (capacity > 0),
+  status TEXT DEFAULT 'available' CHECK (status IN ('available', 'occupied', 'maintenance', 'out_of_service')),
+  equipment JSONB DEFAULT '[]',
+  location TEXT,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable RLS for rooms
+ALTER TABLE rooms ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Everyone can view available rooms" ON rooms
+  FOR SELECT USING (status = 'available');
+
+CREATE POLICY "Admins can manage all rooms" ON rooms
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+
+CREATE POLICY "Doctors can view rooms in their department" ON rooms
+  FOR SELECT USING (
+    department_id IN (
+      SELECT department_id FROM doctors WHERE profile_id = auth.uid()
     )
   );
 

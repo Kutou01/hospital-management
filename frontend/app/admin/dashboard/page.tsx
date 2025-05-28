@@ -25,10 +25,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { useEnhancedAuth } from "@/lib/auth/enhanced-auth-context"
+import { AdminPageWrapper } from "../page-wrapper"
+import { dashboardApi, appointmentsApi } from "@/lib/supabase"
 
 export default function AdminDashboard() {
   const { user, loading } = useEnhancedAuth()
   const [currentDate, setCurrentDate] = useState("")
+  const [dashboardStats, setDashboardStats] = useState<any>(null)
+  const [recentAppointments, setRecentAppointments] = useState<any[]>([])
+  const [isLoadingData, setIsLoadingData] = useState(true)
 
   // Debug logs
   console.log('🏥 [AdminDashboard] Render state:', {
@@ -48,8 +53,35 @@ export default function AdminDashboard() {
     }))
   }, [])
 
+  // Load dashboard data
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      try {
+        setIsLoadingData(true)
+
+        // Load dashboard statistics
+        const stats = await dashboardApi.getDashboardStats()
+        setDashboardStats(stats)
+
+        // Load recent appointments
+        const appointments = await appointmentsApi.getAllAppointments()
+        setRecentAppointments(appointments.slice(0, 5)) // Get latest 5 appointments
+
+        console.log('📊 Dashboard data loaded:', { stats, appointmentsCount: appointments.length })
+      } catch (error) {
+        console.error('Error loading dashboard data:', error)
+      } finally {
+        setIsLoadingData(false)
+      }
+    }
+
+    if (user && user.role === 'admin') {
+      loadDashboardData()
+    }
+  }, [user])
+
   // Show loading state while user data is being fetched
-  if (loading) {
+  if (loading || isLoadingData) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -99,21 +131,25 @@ export default function AdminDashboard() {
     )
   }
 
-  // Mock data for admin dashboard
-  const systemStats = {
-    totalUsers: 1247,
-    totalDoctors: 45,
-    totalPatients: 1156,
-    totalStaff: 46,
-    activeAppointments: 89,
-    completedToday: 34,
-    pendingAppointments: 23,
-    cancelledToday: 2,
-    totalRevenue: 125000,
-    monthlyRevenue: 45000,
-    occupancyRate: 78,
-    availableRooms: 12
+  // Use real data from Supabase or fallback to defaults
+  const systemStats = dashboardStats || {
+    total_patients: 0,
+    total_doctors: 0,
+    total_departments: 0,
+    total_rooms: 0,
+    available_rooms: 0,
+    occupied_rooms: 0,
+    appointments_today: 0,
+    appointments_pending: 0,
+    appointments_confirmed: 0,
+    appointments_completed: 0
   }
+
+  // Calculate additional stats
+  const totalUsers = Number(systemStats.total_patients) + Number(systemStats.total_doctors)
+  const occupancyRate = systemStats.total_rooms > 0
+    ? Math.round((Number(systemStats.occupied_rooms) / Number(systemStats.total_rooms)) * 100)
+    : 0
 
   const recentActivities = [
     {
@@ -183,7 +219,22 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="p-6">
+    <AdminPageWrapper
+      title="Dashboard"
+      activePage="dashboard"
+      subtitle="Hospital Management Overview"
+      headerActions={
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm">
+            Export Report
+          </Button>
+          <Button size="sm">
+            Quick Actions
+          </Button>
+        </div>
+      }
+    >
+      <div className="space-y-6">
         {/* Welcome Section */}
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-2">
@@ -216,31 +267,31 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
           <StatCard
             title="Tổng người dùng"
-            value={systemStats.totalUsers}
+            value={totalUsers}
             change={8}
             icon={<Users className="text-blue-500" />}
-            description={`${systemStats.totalDoctors} bác sĩ, ${systemStats.totalPatients} bệnh nhân`}
+            description={`${systemStats.total_doctors} bác sĩ, ${systemStats.total_patients} bệnh nhân`}
           />
           <StatCard
             title="Lịch hẹn đang hoạt động"
-            value={systemStats.activeAppointments}
+            value={Number(systemStats.appointments_confirmed) + Number(systemStats.appointments_pending)}
             change={12}
             icon={<Calendar className="text-green-500" />}
-            description={`${systemStats.completedToday} hoàn thành hôm nay`}
+            description={`${systemStats.appointments_completed} hoàn thành`}
           />
           <StatCard
-            title="Doanh thu tháng"
-            value={`${systemStats.monthlyRevenue.toLocaleString()} VNĐ`}
-            change={15}
-            icon={<DollarSign className="text-purple-500" />}
-            description="Tháng này"
+            title="Tổng phòng"
+            value={systemStats.total_rooms}
+            change={0}
+            icon={<BedDouble className="text-purple-500" />}
+            description={`${systemStats.available_rooms} phòng trống`}
           />
           <StatCard
-            title="Tỷ lệ lấp đầy giường"
-            value={`${systemStats.occupancyRate}%`}
-            change={-3}
-            icon={<BedDouble className="text-orange-500" />}
-            description={`${systemStats.availableRooms} phòng còn trống`}
+            title="Tỷ lệ lấp đầy"
+            value={`${occupancyRate}%`}
+            change={occupancyRate > 70 ? 5 : -3}
+            icon={<Activity className="text-orange-500" />}
+            description={`${systemStats.total_departments} khoa hoạt động`}
           />
         </div>
 
@@ -394,15 +445,19 @@ export default function AdminDashboard() {
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Đã hoàn thành</span>
-                  <span className="font-medium text-green-600">{systemStats.completedToday}</span>
+                  <span className="font-medium text-green-600">{systemStats.appointments_completed}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Đã xác nhận</span>
+                  <span className="font-medium text-blue-600">{systemStats.appointments_confirmed}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Đang chờ</span>
-                  <span className="font-medium text-yellow-600">{systemStats.pendingAppointments}</span>
+                  <span className="font-medium text-yellow-600">{systemStats.appointments_pending}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Đã hủy</span>
-                  <span className="font-medium text-red-600">{systemStats.cancelledToday}</span>
+                  <span className="text-sm text-gray-600">Hôm nay</span>
+                  <span className="font-medium text-purple-600">{systemStats.appointments_today}</span>
                 </div>
               </div>
             </CardContent>
@@ -411,19 +466,19 @@ export default function AdminDashboard() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5" />
-                Tổng quan doanh thu
+                <Calendar className="h-5 w-5" />
+                Tổng quan cuộc hẹn
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Tổng doanh thu</span>
-                  <span className="font-medium">{systemStats.totalRevenue.toLocaleString()} VNĐ</span>
+                  <span className="text-sm text-gray-600">Tổng cuộc hẹn</span>
+                  <span className="font-medium">{Number(systemStats.appointments_completed) + Number(systemStats.appointments_confirmed) + Number(systemStats.appointments_pending)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Tháng này</span>
-                  <span className="font-medium text-green-600">{systemStats.monthlyRevenue.toLocaleString()} VNĐ</span>
+                  <span className="text-sm text-gray-600">Hoàn thành</span>
+                  <span className="font-medium text-green-600">{systemStats.appointments_completed}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Tăng trưởng</span>
@@ -459,5 +514,6 @@ export default function AdminDashboard() {
           </Card>
         </div>
       </div>
+    </AdminPageWrapper>
   )
 }

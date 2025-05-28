@@ -27,7 +27,7 @@ import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AdminLayout } from "@/components/layout/AdminLayout"
+import { AdminPageWrapper } from "../page-wrapper"
 
 export default function SettingsPage() {
   const [saveSuccess, setSaveSuccess] = useState<boolean | null>(null)
@@ -52,7 +52,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <AdminLayout title="Settings" activePage="settings">
+    <AdminPageWrapper title="Settings" activePage="settings">
 
         {/* Settings Content */}
         <div className="p-6">
@@ -768,6 +768,6 @@ export default function SettingsPage() {
             </TabsContent>
           </Tabs>
         </div>
-    </AdminLayout>
+    </AdminPageWrapper>
   )
 }

@@ -23,13 +23,24 @@ interface SupabaseAppointmentsTableProps {
 
 // Helper function to format date
 const formatDate = (dateString: string): string => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('vi-VN');
+  if (!dateString) return 'Chưa xác định';
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('vi-VN');
+  } catch (error) {
+    return 'Ngày không hợp lệ';
+  }
 };
 
 // Helper function to format time
 const formatTime = (timeString: string): string => {
-  return timeString.slice(0, 5); // Remove seconds
+  if (!timeString) return 'Chưa xác định';
+  try {
+    // Handle both HH:MM and HH:MM:SS formats
+    return timeString.slice(0, 5); // Remove seconds if present
+  } catch (error) {
+    return 'Giờ không hợp lệ';
+  }
 };
 
 // Helper function to get status variant
@@ -87,9 +98,9 @@ export function SupabaseAppointmentsTable({
       accessor: (appointment) => (
         <div className="flex items-center">
           <Avatar className="h-8 w-8 mr-3">
-            <AvatarImage 
-              src="/placeholder.svg" 
-              alt={appointment.patient_name || appointment.patients?.full_name || 'Patient'} 
+            <AvatarImage
+              src="/placeholder.svg"
+              alt={appointment.patient_name || appointment.patients?.full_name || 'Patient'}
             />
             <AvatarFallback>
               <User className="h-4 w-4" />
@@ -112,9 +123,9 @@ export function SupabaseAppointmentsTable({
       accessor: (appointment) => (
         <div className="flex items-center">
           <Avatar className="h-8 w-8 mr-3">
-            <AvatarImage 
-              src="/placeholder.svg" 
-              alt={appointment.doctor_name || appointment.doctors?.full_name || 'Doctor'} 
+            <AvatarImage
+              src="/placeholder.svg"
+              alt={appointment.doctor_name || appointment.doctors?.full_name || 'Doctor'}
             />
             <AvatarFallback>
               <UserCheck className="h-4 w-4" />

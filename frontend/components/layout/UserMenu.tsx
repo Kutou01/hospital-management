@@ -55,6 +55,20 @@ export const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout }) => {
           <Settings className="mr-2 h-4 w-4" />
           <span>Settings</span>
         </DropdownMenuItem>
+        {process.env.NODE_ENV === 'development' && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => {
+              console.log('🧹 [UserMenu] Clear session clicked');
+              localStorage.removeItem('hospital_auth_session');
+              sessionStorage.removeItem('hospital_auth_state');
+              window.location.reload();
+            }}>
+              <Settings className="mr-2 h-4 w-4" />
+              <span>Clear Session (Dev)</span>
+            </DropdownMenuItem>
+          </>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => {
           console.log('🚪 [UserMenu] Logout clicked');

@@ -1,18 +1,18 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { AdminLayout } from '@/components/layout/AdminLayout';
+import { AdminPageWrapper } from '../page-wrapper';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PrescriptionsTable } from '@/components/features/prescriptions/PrescriptionsTable';
 import { prescriptionsApi, Prescription, Medication } from '@/lib/api/prescriptions';
-import { 
-  Pill, 
-  Plus, 
-  TrendingUp, 
-  DollarSign, 
+import {
+  Pill,
+  Plus,
+  TrendingUp,
+  DollarSign,
   Package,
   AlertTriangle,
   CheckCircle,
@@ -56,7 +56,7 @@ function PrescriptionsPageContent() {
 
       if (prescriptionsResponse.success && prescriptionsResponse.data) {
         const prescriptions = prescriptionsResponse.data;
-        
+
         // Calculate statistics
         const totalPrescriptions = prescriptions.length;
         const pendingPrescriptions = prescriptions.filter(p => p.status === 'pending').length;
@@ -69,16 +69,16 @@ function PrescriptionsPageContent() {
           const date = new Date();
           date.setMonth(date.getMonth() - i);
           const monthName = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-          
+
           const monthPrescriptions = prescriptions.filter(p => {
             const prescriptionDate = new Date(p.prescription_date);
-            return prescriptionDate.getMonth() === date.getMonth() && 
+            return prescriptionDate.getMonth() === date.getMonth() &&
                    prescriptionDate.getFullYear() === date.getFullYear();
           });
-          
+
           const count = monthPrescriptions.length;
           const revenue = monthPrescriptions.reduce((sum, p) => sum + p.total_cost, 0);
-          
+
           prescriptionsByMonth.push({ month: monthName, count, revenue });
         }
 
@@ -285,10 +285,10 @@ function PrescriptionsPageContent() {
                     </div>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-blue-600 h-2 rounded-full" 
-                      style={{ 
-                        width: `${Math.max((item.count / Math.max(...stats.prescriptionsByMonth.map(r => r.count))) * 100, 5)}%` 
+                    <div
+                      className="bg-blue-600 h-2 rounded-full"
+                      style={{
+                        width: `${Math.max((item.count / Math.max(...stats.prescriptionsByMonth.map(r => r.count))) * 100, 5)}%`
                       }}
                     ></div>
                   </div>
@@ -424,8 +424,8 @@ function PrescriptionsPageContent() {
 
 export default function PrescriptionsPage() {
   return (
-    <AdminLayout title="Prescriptions" activePage="prescriptions">
+    <AdminPageWrapper title="Prescriptions" activePage="prescriptions">
       <PrescriptionsPageContent />
-    </AdminLayout>
+    </AdminPageWrapper>
   );
 }

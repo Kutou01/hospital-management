@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { AdminLayout } from '@/components/layout/AdminLayout';
+import { AdminPageWrapper } from '../page-wrapper';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,12 +12,12 @@ import { Label } from '@/components/ui/label';
 import { medicalRecordsApi } from '@/lib/api/medical-records';
 import { prescriptionsApi } from '@/lib/api/prescriptions';
 import { billingApi } from '@/lib/api/billing';
-import { 
-  FileBarChart, 
-  Download, 
-  Calendar, 
-  TrendingUp, 
-  Users, 
+import {
+  FileBarChart,
+  Download,
+  Calendar,
+  TrendingUp,
+  Users,
   DollarSign,
   FileText,
   Pill,
@@ -159,13 +159,13 @@ function ReportsPageContent() {
       const date = new Date();
       date.setMonth(date.getMonth() - i);
       const monthName = date.toLocaleDateString('en-US', { month: 'short' });
-      
+
       const count = data.filter(item => {
         const itemDate = new Date(item[dateField]);
-        return itemDate.getMonth() === date.getMonth() && 
+        return itemDate.getMonth() === date.getMonth() &&
                itemDate.getFullYear() === date.getFullYear();
       }).length;
-      
+
       monthlyData.push({ month: monthName, count });
     }
     return monthlyData;
@@ -178,16 +178,16 @@ function ReportsPageContent() {
       const date = new Date();
       date.setMonth(date.getMonth() - i);
       const monthName = date.toLocaleDateString('en-US', { month: 'short' });
-      
+
       const monthItems = data.filter(item => {
         const itemDate = new Date(item[dateField]);
-        return itemDate.getMonth() === date.getMonth() && 
+        return itemDate.getMonth() === date.getMonth() &&
                itemDate.getFullYear() === date.getFullYear();
       });
-      
+
       const count = monthItems.length;
       const revenue = monthItems.reduce((sum, item) => sum + (item[revenueField] || 0), 0);
-      
+
       monthlyData.push({ month: monthName, count, revenue });
     }
     return monthlyData;
@@ -213,8 +213,8 @@ function ReportsPageContent() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button 
-            onClick={fetchReportData} 
+          <Button
+            onClick={fetchReportData}
             disabled={loading}
             variant="outline"
             className="flex items-center gap-2"
@@ -353,10 +353,10 @@ function ReportsPageContent() {
                         <span className="text-sm text-gray-600">{item.count} records</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-blue-600 h-2 rounded-full" 
-                          style={{ 
-                            width: `${Math.max((item.count / Math.max(...reportData.medicalRecords.byMonth.map(r => r.count))) * 100, 5)}%` 
+                        <div
+                          className="bg-blue-600 h-2 rounded-full"
+                          style={{
+                            width: `${Math.max((item.count / Math.max(...reportData.medicalRecords.byMonth.map(r => r.count))) * 100, 5)}%`
                           }}
                         ></div>
                       </div>
@@ -381,10 +381,10 @@ function ReportsPageContent() {
                       <span className="text-sm font-medium">{item.department}</span>
                       <div className="flex items-center gap-2">
                         <div className="w-20 bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-green-600 h-2 rounded-full" 
-                            style={{ 
-                              width: `${(item.count / reportData.medicalRecords.total) * 100}%` 
+                          <div
+                            className="bg-green-600 h-2 rounded-full"
+                            style={{
+                              width: `${(item.count / reportData.medicalRecords.total) * 100}%`
                             }}
                           ></div>
                         </div>
@@ -489,10 +489,10 @@ function ReportsPageContent() {
                         </div>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-green-600 h-2 rounded-full" 
-                          style={{ 
-                            width: `${Math.max((item.revenue / Math.max(...reportData.prescriptions.byMonth.map(r => r.revenue))) * 100, 5)}%` 
+                        <div
+                          className="bg-green-600 h-2 rounded-full"
+                          style={{
+                            width: `${Math.max((item.revenue / Math.max(...reportData.prescriptions.byMonth.map(r => r.revenue))) * 100, 5)}%`
                           }}
                         ></div>
                       </div>
@@ -517,8 +517,8 @@ function ReportsPageContent() {
                       <span className="font-medium">{item.method}</span>
                       <div className="flex items-center gap-2">
                         <div className="w-20 bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-purple-600 h-2 rounded-full" 
+                          <div
+                            className="bg-purple-600 h-2 rounded-full"
                             style={{ width: `${item.percentage}%` }}
                           ></div>
                         </div>
@@ -547,10 +547,10 @@ function ReportsPageContent() {
                         </div>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-purple-600 h-2 rounded-full" 
-                          style={{ 
-                            width: `${Math.max((item.revenue / Math.max(...reportData.billing.byMonth.map(r => r.revenue))) * 100, 5)}%` 
+                        <div
+                          className="bg-purple-600 h-2 rounded-full"
+                          style={{
+                            width: `${Math.max((item.revenue / Math.max(...reportData.billing.byMonth.map(r => r.revenue))) * 100, 5)}%`
                           }}
                         ></div>
                       </div>
@@ -591,8 +591,12 @@ function ReportsPageContent() {
 
 export default function ReportsPage() {
   return (
-    <AdminLayout title="Reports & Analytics" activePage="reports">
+    <AdminPageWrapper
+      title="Reports & Analytics"
+      activePage="reports"
+      subtitle="Comprehensive analytics and reporting dashboard"
+    >
       <ReportsPageContent />
-    </AdminLayout>
+    </AdminPageWrapper>
   );
 }

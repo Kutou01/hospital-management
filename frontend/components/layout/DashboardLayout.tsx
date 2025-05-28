@@ -110,31 +110,31 @@ const getMenuItems = (role: UserRole) => {
         {
           icon: <Calendar size={20} />,
           label: "My Appointments",
-          href: "/doctor/appointments",
+          href: "/doctors/appointments",
           page: "appointments"
         },
         {
           icon: <User size={20} />,
           label: "My Patients",
-          href: "/doctor/patients",
+          href: "/doctors/patients",
           page: "patients"
         },
         {
           icon: <FileText size={20} />,
           label: "Medical Records",
-          href: "/doctor/records",
+          href: "/doctors/records",
           page: "records"
         },
         {
           icon: <Clock size={20} />,
           label: "Schedule",
-          href: "/doctor/schedule",
+          href: "/doctors/schedule",
           page: "schedule"
         },
         {
           icon: <Settings2 size={20} />,
           label: "Profile",
-          href: "/doctor/profile",
+          href: "/doctors/profile",
           page: "profile"
         }
       ]

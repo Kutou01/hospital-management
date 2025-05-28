@@ -25,19 +25,31 @@ export interface Profile {
 
 // Các hàm tương tác với bảng doctors
 export const doctorsApi = {
-  // Lấy tất cả bác sĩ với thông tin từ profiles
+  // Lấy tất cả bác sĩ với thông tin chi tiết
   getAllDoctors: async () => {
     const { data, error } = await supabase
-      .from('doctors')
-      .select(`
-        *,
-        departments(*),
-        profiles!inner(full_name, phone_number, email_verified)
-      `)
+      .from('doctor_details')
+      .select('*')
       .order('full_name');
 
     if (error) {
       console.error('Error fetching doctors:', error);
+      return [];
+    }
+
+    return data || [];
+  },
+
+  // Lấy bác sĩ theo khoa
+  getDoctorsByDepartment: async (departmentId: string) => {
+    const { data, error } = await supabase
+      .from('doctor_details')
+      .select('*')
+      .eq('department_id', departmentId)
+      .order('full_name');
+
+    if (error) {
+      console.error('Error fetching doctors by department:', error);
       return [];
     }
 
@@ -98,18 +110,32 @@ export const doctorsApi = {
 
 // Các hàm tương tác với bảng patients
 export const patientsApi = {
-  // Lấy tất cả bệnh nhân với thông tin từ profiles
+  // Lấy tất cả bệnh nhân với thông tin chi tiết
   getAllPatients: async () => {
     const { data, error } = await supabase
-      .from('patients')
-      .select(`
-        *,
-        profiles!inner(full_name, phone_number, email_verified)
-      `)
+      .from('patient_details')
+      .select('*')
       .order('full_name');
 
     if (error) {
       console.error('Error fetching patients:', error);
+      return [];
+    }
+
+    return data || [];
+  },
+
+  // Lấy bệnh nhân theo độ tuổi
+  getPatientsByAgeRange: async (minAge: number, maxAge: number) => {
+    const { data, error } = await supabase
+      .from('patient_details')
+      .select('*')
+      .gte('age', minAge)
+      .lte('age', maxAge)
+      .order('full_name');
+
+    if (error) {
+      console.error('Error fetching patients by age range:', error);
       return [];
     }
 
@@ -176,15 +202,49 @@ export const patientsApi = {
 
 // Các hàm tương tác với bảng appointment
 export const appointmentsApi = {
-  // Lấy tất cả cuộc hẹn
+  // Lấy tất cả cuộc hẹn với thông tin chi tiết
   getAllAppointments: async () => {
     const { data, error } = await supabase
-      .from('appointments')
-      .select('*, patients!inner(*), doctors!inner(*)')
-      .order('appointment_date');
+      .from('appointment_details')
+      .select('*')
+      .order('appointment_datetime', { ascending: false });
 
     if (error) {
       console.error('Error fetching appointments:', error);
+      return [];
+    }
+
+    return data || [];
+  },
+
+  // Lấy cuộc hẹn theo trạng thái
+  getAppointmentsByStatus: async (status: string) => {
+    const { data, error } = await supabase
+      .from('appointment_details')
+      .select('*')
+      .eq('status', status)
+      .order('appointment_datetime', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching appointments by status:', error);
+      return [];
+    }
+
+    return data || [];
+  },
+
+  // Lấy cuộc hẹn hôm nay
+  getTodayAppointments: async () => {
+    const today = new Date().toISOString().split('T')[0];
+    const { data, error } = await supabase
+      .from('appointment_details')
+      .select('*')
+      .gte('appointment_datetime', `${today}T00:00:00`)
+      .lt('appointment_datetime', `${today}T23:59:59`)
+      .order('appointment_datetime');
+
+    if (error) {
+      console.error('Error fetching today appointments:', error);
       return [];
     }
 
@@ -377,7 +437,15 @@ export const roomsApi = {
   getAllRooms: async () => {
     const { data, error } = await supabase
       .from('rooms')
-      .select('*, departments(*)')
+      .select(`
+        *,
+        departments:department_id (
+          department_id,
+          name,
+          description,
+          location
+        )
+      `)
       .order('room_number');
 
     if (error) {
@@ -466,5 +534,67 @@ export const roomsApi = {
     }
 
     return true;
+  }
+};
+
+// API cho dashboard statistics
+export const dashboardApi = {
+  // Lấy thống kê tổng quan
+  getDashboardStats: async () => {
+    const { data, error } = await supabase
+      .rpc('get_dashboard_stats');
+
+    if (error) {
+      console.error('Error fetching dashboard stats:', error);
+      return {
+        total_patients: 0,
+        total_doctors: 0,
+        total_departments: 0,
+        total_rooms: 0,
+        available_rooms: 0,
+        occupied_rooms: 0,
+        appointments_today: 0,
+        appointments_pending: 0,
+        appointments_confirmed: 0,
+        appointments_completed: 0
+      };
+    }
+
+    return data[0] || {};
+  },
+
+  // Lấy thống kê theo tháng
+  getMonthlyStats: async (year: number, month: number) => {
+    const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
+    const endDate = new Date(year, month, 0).toISOString().split('T')[0];
+
+    const { data: appointments, error: appointmentsError } = await supabase
+      .from('appointments')
+      .select('*')
+      .gte('appointment_datetime', startDate)
+      .lte('appointment_datetime', endDate);
+
+    const { data: patients, error: patientsError } = await supabase
+      .from('patients')
+      .select('*')
+      .gte('registration_date', startDate)
+      .lte('registration_date', endDate);
+
+    if (appointmentsError || patientsError) {
+      console.error('Error fetching monthly stats:', appointmentsError || patientsError);
+      return {
+        appointments: 0,
+        newPatients: 0,
+        completedAppointments: 0,
+        cancelledAppointments: 0
+      };
+    }
+
+    return {
+      appointments: appointments?.length || 0,
+      newPatients: patients?.length || 0,
+      completedAppointments: appointments?.filter(a => a.status === 'completed').length || 0,
+      cancelledAppointments: appointments?.filter(a => a.status === 'cancelled').length || 0
+    };
   }
 };

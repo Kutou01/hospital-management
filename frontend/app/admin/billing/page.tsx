@@ -1,18 +1,18 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { AdminLayout } from '@/components/layout/AdminLayout';
+import { AdminPageWrapper } from '../page-wrapper';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BillingTable } from '@/components/features/billing/BillingTable';
 import { billingApi, Bill, PaymentSummary } from '@/lib/api/billing';
-import { 
-  Receipt, 
-  Plus, 
-  TrendingUp, 
-  DollarSign, 
+import {
+  Receipt,
+  Plus,
+  TrendingUp,
+  DollarSign,
   CreditCard,
   AlertCircle,
   CheckCircle,
@@ -61,13 +61,13 @@ function BillingPageContent() {
 
       if (billsResponse.success && billsResponse.data) {
         const bills = billsResponse.data;
-        
+
         // Calculate statistics
         const totalBills = bills.length;
         const paidBills = bills.filter(b => b.status === 'paid').length;
         const pendingBills = bills.filter(b => b.status === 'pending').length;
         const overdueBills = bills.filter(b => b.status === 'overdue').length;
-        
+
         const totalRevenue = bills.reduce((sum, b) => sum + b.amount_paid, 0);
         const pendingAmount = bills
           .filter(b => b.status === 'pending')
@@ -82,16 +82,16 @@ function BillingPageContent() {
           const date = new Date();
           date.setMonth(date.getMonth() - i);
           const monthName = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-          
+
           const monthBills = bills.filter(b => {
             const billDate = new Date(b.bill_date);
-            return billDate.getMonth() === date.getMonth() && 
+            return billDate.getMonth() === date.getMonth() &&
                    billDate.getFullYear() === date.getFullYear();
           });
-          
+
           const count = monthBills.length;
           const revenue = monthBills.reduce((sum, b) => sum + b.amount_paid, 0);
-          
+
           billsByMonth.push({ month: monthName, count, revenue });
         }
 
@@ -321,10 +321,10 @@ function BillingPageContent() {
                     </div>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-green-600 h-2 rounded-full" 
-                      style={{ 
-                        width: `${Math.max((item.revenue / Math.max(...stats.billsByMonth.map(r => r.revenue))) * 100, 5)}%` 
+                    <div
+                      className="bg-green-600 h-2 rounded-full"
+                      style={{
+                        width: `${Math.max((item.revenue / Math.max(...stats.billsByMonth.map(r => r.revenue))) * 100, 5)}%`
                       }}
                     ></div>
                   </div>
@@ -477,8 +477,8 @@ function BillingPageContent() {
 
 export default function BillingPage() {
   return (
-    <AdminLayout title="Billing & Payments" activePage="billing">
+    <AdminPageWrapper title="Billing & Payments" activePage="billing">
       <BillingPageContent />
-    </AdminLayout>
+    </AdminPageWrapper>
   );
 }

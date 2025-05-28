@@ -17,7 +17,7 @@ import {
   Shield,
   Award
 } from "lucide-react"
-import { DoctorLayout } from "@/components/layout/DoctorLayout"
+import { DoctorLayout } from "@/components/layout/UniversalLayout"
 import { StatCard } from "@/components/dashboard/StatCard"
 import { ChartCard, BarChartGroup } from "@/components/dashboard/ChartCard"
 import { RecentActivity } from "@/components/dashboard/RecentActivity"
@@ -149,7 +149,23 @@ export default function DoctorDashboard() {
   }
 
   return (
-    <DoctorLayout title="Doctor Dashboard" activePage="dashboard">
+    <DoctorLayout
+      title="Doctor Dashboard"
+      activePage="dashboard"
+      subtitle="Welcome to your medical practice portal"
+      headerActions={
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm">
+            <Calendar className="h-4 w-4 mr-2" />
+            View Schedule
+          </Button>
+          <Button size="sm">
+            <Users className="h-4 w-4 mr-2" />
+            My Patients
+          </Button>
+        </div>
+      }
+    >
       <div className="p-6 space-y-6">
         {/* Welcome Section */}
         <div className="mb-6">

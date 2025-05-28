@@ -20,7 +20,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 
-import { AdminLayout } from '@/components/layout/AdminLayout';
+import { AdminPageWrapper } from '../page-wrapper';
 
 function MicroservicesPageContent() {
   const [activeTab, setActiveTab] = useState('medical-records');
@@ -262,8 +262,8 @@ function MicroservicesPageContent() {
 
 export default function MicroservicesPage() {
   return (
-    <AdminLayout title="Microservices Integration" activePage="microservices">
+    <AdminPageWrapper title="Microservices Integration" activePage="microservices-dashboard">
       <MicroservicesPageContent />
-    </AdminLayout>
+    </AdminPageWrapper>
   );
 }

@@ -15,7 +15,7 @@ import {
   Filter,
   Plus
 } from "lucide-react"
-import { DoctorLayout } from "@/components/layout/DoctorLayout"
+import { DoctorLayout } from "@/components/layout/UniversalLayout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -152,22 +152,20 @@ export default function DoctorAppointments() {
   }
 
   return (
-    <DoctorLayout title="My Appointments" activePage="appointments">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">My Appointments</h2>
-            <p className="text-gray-600">Manage your patient appointments</p>
-          </div>
-          <Button className="bg-green-600 hover:bg-green-700">
-            <Plus className="h-4 w-4 mr-2" />
-            Schedule New
-          </Button>
-        </div>
-
+    <DoctorLayout
+      title="My Appointments"
+      activePage="appointments"
+      subtitle="Manage your patient appointments"
+      headerActions={
+        <Button className="bg-green-600 hover:bg-green-700">
+          <Plus className="h-4 w-4 mr-2" />
+          Schedule New
+        </Button>
+      }
+    >
+      <div className="space-y-6">
         {/* Search and Filter */}
-        <div className="flex gap-4 mb-6">
+        <div className="flex gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
@@ -190,10 +188,9 @@ export default function DoctorAppointments() {
             <option value="cancelled">Cancelled</option>
           </select>
         </div>
-      </div>
 
-      {/* Appointments List */}
-      <div className="space-y-4">
+        {/* Appointments List */}
+        <div className="space-y-4">
         {filteredAppointments.map((appointment) => (
           <Card key={appointment.id} className="hover:shadow-md transition-shadow">
             <CardContent className="p-6">
@@ -279,6 +276,7 @@ export default function DoctorAppointments() {
             </CardContent>
           </Card>
         )}
+        </div>
       </div>
     </DoctorLayout>
   )

@@ -12,7 +12,7 @@ import {
 import { patientsApi } from "@/lib/supabase"
 
 // Shared components
-import { AdminLayout } from "@/components/layout/AdminLayout"
+import { AdminPageWrapper } from "../page-wrapper"
 import { SupabaseSearchableTable } from "@/components/data-display/SupabaseSearchableTable"
 import { ConfirmDeleteDialog } from "@/components/dialogs/ConfirmDeleteDialog"
 
@@ -304,7 +304,7 @@ export default function PatientsPage() {
   }
 
   return (
-    <AdminLayout title="Patients" activePage="patients">
+    <AdminPageWrapper title="Patients" activePage="patients">
       {/* Supabase Searchable Table */}
       <SupabaseSearchableTable
         type="patients"
@@ -643,6 +643,6 @@ export default function PatientsPage() {
         description="Are you sure you want to delete this patient? This action cannot be undone."
         itemType="patient"
       />
-    </AdminLayout>
+    </AdminPageWrapper>
   )
 }

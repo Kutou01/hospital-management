@@ -12,7 +12,7 @@ import {
 import { departmentsApi } from "@/lib/supabase"
 
 // Shared components
-import { AdminLayout } from "@/components/layout/AdminLayout"
+import { AdminPageWrapper } from "../page-wrapper"
 import { LoadingIndicator } from "@/components/feedback/LoadingIndicator"
 import { ConfirmDeleteDialog } from "@/components/dialogs/ConfirmDeleteDialog"
 
@@ -70,8 +70,10 @@ export default function DepartmentsPage() {
 
   // Filter departments based on search term
   const filteredDepartments = departments.filter((department) =>
-    (department.department_name && department.department_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (department.department_id && department.department_id.toString().includes(searchTerm))
+    (department.name && department.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (department.department_id && department.department_id.toString().includes(searchTerm)) ||
+    (department.description && department.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (department.location && department.location.toLowerCase().includes(searchTerm.toLowerCase()))
   )
 
   const totalPages = Math.ceil(filteredDepartments.length / departmentsPerPage)
@@ -226,7 +228,7 @@ export default function DepartmentsPage() {
   }
 
   return (
-    <AdminLayout title="Departments" activePage="departments">
+    <AdminPageWrapper title="Departments" activePage="departments">
       {/* Filters and Actions */}
       <div className="flex flex-col md:flex-row justify-between mb-4 gap-4">
         <div className="flex flex-col md:flex-row gap-4 md:items-center">
@@ -258,14 +260,18 @@ export default function DepartmentsPage() {
                 <thead>
                   <tr className="bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     <th className="px-6 py-3">Department ID</th>
-                    <th className="px-6 py-3">Department Name</th>
+                    <th className="px-6 py-3">Name</th>
+                    <th className="px-6 py-3">Description</th>
+                    <th className="px-6 py-3">Location</th>
+                    <th className="px-6 py-3">Contact</th>
+                    <th className="px-6 py-3">Status</th>
                     <th className="px-6 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredDepartments.length === 0 ? (
                     <tr>
-                      <td colSpan={3} className="px-6 py-4 text-center text-gray-500">
+                      <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
                         No departments found
                       </td>
                     </tr>
@@ -278,7 +284,28 @@ export default function DepartmentsPage() {
                             <div className="text-sm font-medium text-gray-900">{department.department_id}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{department.department_name}</div>
+                            <div className="text-sm font-bold text-gray-900">{department.name}</div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-sm text-gray-600 max-w-xs truncate">{department.description || '-'}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-600">{department.location || '-'}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-600">
+                              {department.phone_number && <div>{department.phone_number}</div>}
+                              {department.email && <div className="text-blue-600">{department.email}</div>}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              department.is_active
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-red-100 text-red-800'
+                            }`}>
+                              {department.is_active ? 'Active' : 'Inactive'}
+                            </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <Button variant="ghost" size="sm" onClick={() => handleEditClick(department)}>
@@ -390,6 +417,6 @@ export default function DepartmentsPage() {
         description="Are you sure you want to delete this department? This action cannot be undone."
         itemType="department"
       />
-    </AdminLayout>
+    </AdminPageWrapper>
   )
 }

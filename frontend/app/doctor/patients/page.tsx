@@ -16,7 +16,7 @@ import {
   MapPin,
   Clock
 } from "lucide-react"
-import { DoctorLayout } from "@/components/layout/DoctorLayout"
+import { DoctorLayout } from "@/components/layout/UniversalLayout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"

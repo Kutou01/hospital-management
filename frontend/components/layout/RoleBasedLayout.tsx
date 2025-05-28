@@ -2,9 +2,7 @@
 
 import React from 'react';
 import { useSupabaseAuth, useIsAdmin, useIsDoctor, useIsPatient } from '@/lib/hooks/useSupabaseAuth';
-import { AdminLayout } from './AdminLayout';
-import { DoctorLayout } from './DoctorLayout';
-import { PatientLayout } from './PatientLayout';
+import { AdminLayout, DoctorLayout, PatientLayout } from './UniversalLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertCircle, Loader2 } from 'lucide-react';
 

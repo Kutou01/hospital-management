@@ -16,17 +16,17 @@ import {
   X,
   AlertCircle
 } from "lucide-react"
-import { DoctorLayout } from "@/components/layout/DoctorLayout"
+import { DoctorLayout } from "@/components/layout/UniversalLayout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { useSupabaseAuth } from "@/lib/hooks/useSupabaseAuth"
+import { useEnhancedAuth } from "@/lib/auth/enhanced-auth-context"
 
 export default function DoctorProfile() {
-  const { user, loading } = useSupabaseAuth()
+  const { user, loading } = useEnhancedAuth()
   const [isEditing, setIsEditing] = useState(false)
   const [formData, setFormData] = useState({
     full_name: "",

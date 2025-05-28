@@ -1,5 +1,9 @@
-// Layout components
-export * from './layout/AdminLayout';
+// Legacy Layout components removed - use Universal Layout instead
+
+// Universal Layout Components (New)
+export * from './layout/UniversalSidebar';
+export * from './layout/UniversalLayout';
+export * from './layout/SidebarConfig';
 
 // Data display components
 export * from './data-display/StatusBadge';

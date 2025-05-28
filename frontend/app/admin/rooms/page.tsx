@@ -13,7 +13,7 @@ import {
 import { roomsApi, departmentsApi } from "@/lib/supabase"
 
 // Shared components
-import { AdminLayout } from "@/components/layout/AdminLayout"
+import { AdminPageWrapper } from "../page-wrapper"
 import { SupabaseSearchableTable } from "@/components/data-display/SupabaseSearchableTable"
 import { ConfirmDeleteDialog } from "@/components/dialogs/ConfirmDeleteDialog"
 
@@ -276,7 +276,7 @@ export default function RoomsPage() {
   };
 
   return (
-    <AdminLayout title="Rooms" activePage="rooms">
+    <AdminPageWrapper title="Rooms" activePage="rooms">
       {/* Supabase Searchable Table */}
       <SupabaseSearchableTable
         type="rooms"
@@ -513,6 +513,6 @@ export default function RoomsPage() {
         title="Delete Room"
         description="Are you sure you want to delete this room? This action cannot be undone."
       />
-    </AdminLayout>
+    </AdminPageWrapper>
   )
 }

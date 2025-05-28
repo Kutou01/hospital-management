@@ -1,18 +1,18 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { AdminLayout } from '@/components/layout/AdminLayout';
+import { AdminPageWrapper } from '../page-wrapper';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MedicalRecordsTable } from '@/components/features/medical-records/MedicalRecordsTable';
 import { medicalRecordsApi, MedicalRecord } from '@/lib/api/medical-records';
-import { 
-  FileText, 
-  Plus, 
-  TrendingUp, 
-  Users, 
+import {
+  FileText,
+  Plus,
+  TrendingUp,
+  Users,
   Calendar,
   Activity,
   AlertCircle,
@@ -47,16 +47,16 @@ function MedicalRecordsPageContent() {
       const response = await medicalRecordsApi.getAllMedicalRecords();
       if (response.success && response.data) {
         const records = response.data;
-        
+
         // Calculate statistics
         const totalRecords = records.length;
         const activeRecords = records.filter(r => r.status === 'active').length;
         const archivedRecords = records.filter(r => r.status === 'archived').length;
-        
+
         // Recent records (last 30 days)
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        const recentRecords = records.filter(r => 
+        const recentRecords = records.filter(r =>
           new Date(r.created_at) >= thirtyDaysAgo
         ).length;
 
@@ -68,7 +68,7 @@ function MedicalRecordsPageContent() {
           const monthName = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
           const count = records.filter(r => {
             const recordDate = new Date(r.created_at);
-            return recordDate.getMonth() === date.getMonth() && 
+            return recordDate.getMonth() === date.getMonth() &&
                    recordDate.getFullYear() === date.getFullYear();
           }).length;
           recordsByMonth.push({ month: monthName, count });
@@ -82,7 +82,7 @@ function MedicalRecordsPageContent() {
             diagnosisCount[diagnosis] = (diagnosisCount[diagnosis] || 0) + 1;
           }
         });
-        
+
         const topDiagnoses = Object.entries(diagnosisCount)
           .map(([diagnosis, count]) => ({ diagnosis, count }))
           .sort((a, b) => b.count - a.count)
@@ -226,10 +226,10 @@ function MedicalRecordsPageContent() {
                   <span className="text-sm font-medium">{item.month}</span>
                   <div className="flex items-center gap-2">
                     <div className="w-32 bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-blue-600 h-2 rounded-full" 
-                        style={{ 
-                          width: `${Math.max((item.count / Math.max(...stats.recordsByMonth.map(r => r.count))) * 100, 5)}%` 
+                      <div
+                        className="bg-blue-600 h-2 rounded-full"
+                        style={{
+                          width: `${Math.max((item.count / Math.max(...stats.recordsByMonth.map(r => r.count))) * 100, 5)}%`
                         }}
                       ></div>
                     </div>
@@ -284,8 +284,12 @@ function MedicalRecordsPageContent() {
 
 export default function MedicalRecordsPage() {
   return (
-    <AdminLayout title="Medical Records" activePage="medical-records">
+    <AdminPageWrapper
+      title="Medical Records"
+      activePage="medical-records"
+      subtitle="Manage patient medical records, lab results, and vital signs"
+    >
       <MedicalRecordsPageContent />
-    </AdminLayout>
+    </AdminPageWrapper>
   );
 }

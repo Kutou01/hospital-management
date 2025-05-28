@@ -19,7 +19,7 @@ import {
   Shield,
   Zap
 } from "lucide-react"
-import { PatientLayout } from "@/components/layout/PatientLayout"
+import { PatientLayout } from "@/components/layout/UniversalLayout"
 import { StatCard } from "@/components/dashboard/StatCard"
 import { ChartCard, BarChartGroup } from "@/components/dashboard/ChartCard"
 import { RecentActivity } from "@/components/dashboard/RecentActivity"
@@ -151,7 +151,23 @@ export default function PatientDashboard() {
   }
 
   return (
-    <PatientLayout title="Patient Dashboard" activePage="dashboard">
+    <PatientLayout
+      title="Patient Dashboard"
+      activePage="dashboard"
+      subtitle="Your personal health management portal"
+      headerActions={
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm">
+            <Calendar className="h-4 w-4 mr-2" />
+            Book Appointment
+          </Button>
+          <Button size="sm">
+            <Heart className="h-4 w-4 mr-2" />
+            Health Tracking
+          </Button>
+        </div>
+      }
+    >
       <div className="p-6 space-y-6">
         {/* Welcome Section */}
         <div className="mb-6">

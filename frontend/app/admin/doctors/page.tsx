@@ -11,9 +11,9 @@ import {
 import { doctorsApi, departmentsApi } from "@/lib/supabase"
 
 // Shared components
-import { AdminLayout } from "@/components/layout/AdminLayout"
 import { SupabaseSearchableTable } from "@/components/data-display/SupabaseSearchableTable"
 import { ConfirmDeleteDialog } from "@/components/dialogs/ConfirmDeleteDialog"
+import { AdminPageWrapper } from "../page-wrapper"
 
 // UI components
 import { Button } from "@/components/ui/button"
@@ -307,7 +307,17 @@ export default function DoctorsPage() {
   }
 
   return (
-    <AdminLayout title="Doctors" activePage="doctors">
+    <AdminPageWrapper
+      title="Doctors Management"
+      activePage="doctors"
+      subtitle="Manage all doctors in the system"
+      headerActions={
+        <Button onClick={() => setIsNewDoctorDialogOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Doctor
+        </Button>
+      }
+    >
       {/* Supabase Searchable Table */}
       <SupabaseSearchableTable
         type="doctors"
@@ -641,6 +651,6 @@ export default function DoctorsPage() {
         description="Are you sure you want to delete this doctor? This action cannot be undone."
         itemType="doctor"
       />
-    </AdminLayout>
+    </AdminPageWrapper>
   )
 }

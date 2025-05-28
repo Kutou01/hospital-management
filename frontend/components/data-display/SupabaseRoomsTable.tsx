@@ -37,16 +37,19 @@ const getRoomTypeIcon = (roomType: string) => {
 
 // Helper function to get status variant
 const getStatusVariant = (status: string) => {
-  switch (status) {
-    case 'Trống':
-    case 'Available':
+  switch (status.toLowerCase()) {
+    case 'available':
+    case 'trống':
       return 'default';
-    case 'Đang sử dụng':
-    case 'Occupied':
+    case 'occupied':
+    case 'đang sử dụng':
       return 'destructive';
-    case 'Bảo trì':
-    case 'Maintenance':
+    case 'maintenance':
+    case 'bảo trì':
       return 'secondary';
+    case 'out_of_service':
+    case 'ngừng hoạt động':
+      return 'outline';
     default:
       return 'outline';
   }
@@ -99,7 +102,7 @@ export function SupabaseRoomsTable({
       accessor: (room) => (
         <div className="text-sm text-gray-600">
           {room.department_name ||
-           room.departments?.department_name ||
+           room.departments?.name ||
            departments.find(dept => dept.department_id === room.department_id)?.department_name ||
            'Chưa phân khoa'}
         </div>

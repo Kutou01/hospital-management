@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { AdminLayout } from '@/components/layout/AdminLayout';
+import { AdminPageWrapper } from '../page-wrapper';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { medicalRecordsApi } from '@/lib/api/medical-records';
 import { prescriptionsApi } from '@/lib/api/prescriptions';
 import { billingApi } from '@/lib/api/billing';
-import { 
+import {
   FileText,
   Pill,
   Receipt,
@@ -82,7 +82,7 @@ function MicroservicesDashboardContent() {
       if (medicalRecordsResponse.success && medicalRecordsResponse.data) {
         const records = medicalRecordsResponse.data;
         totalMedicalRecords = records.length;
-        
+
         // Recent records (last 7 days)
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -99,7 +99,7 @@ function MicroservicesDashboardContent() {
       if (prescriptionsResponse.success && prescriptionsResponse.data) {
         const prescriptions = prescriptionsResponse.data;
         activePrescriptions = prescriptions.filter(p => p.status === 'pending' || p.status === 'dispensed').length;
-        
+
         // Recent prescriptions (last 7 days)
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -118,11 +118,11 @@ function MicroservicesDashboardContent() {
         const bills = billingResponse.data;
         totalRevenue = bills.reduce((sum, b) => sum + b.amount_paid, 0);
         pendingBills = bills.filter(b => b.status === 'pending').length;
-        
+
         // Recent payments (last 7 days)
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-        recentPayments = bills.filter(b => 
+        recentPayments = bills.filter(b =>
           b.amount_paid > 0 && new Date(b.updated_at) >= sevenDaysAgo
         ).length;
         billingHealth = 'healthy';
@@ -136,7 +136,7 @@ function MicroservicesDashboardContent() {
         const date = new Date();
         date.setMonth(date.getMonth() - i);
         const monthName = date.toLocaleDateString('en-US', { month: 'short' });
-        
+
         // Mock data for trends - in real app, this would be calculated from actual data
         monthlyTrends.push({
           month: monthName,
@@ -172,7 +172,7 @@ function MicroservicesDashboardContent() {
 
   useEffect(() => {
     fetchDashboardData();
-    
+
     // Auto-refresh every 5 minutes
     const interval = setInterval(fetchDashboardData, 5 * 60 * 1000);
     return () => clearInterval(interval);
@@ -213,8 +213,8 @@ function MicroservicesDashboardContent() {
             Last updated: {lastUpdated.toLocaleTimeString()}
           </p>
         </div>
-        <Button 
-          onClick={fetchDashboardData} 
+        <Button
+          onClick={fetchDashboardData}
           disabled={loading}
           className="flex items-center gap-2"
         >
@@ -375,26 +375,26 @@ function MicroservicesDashboardContent() {
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-blue-600 h-2 rounded-full" 
-                      style={{ 
-                        width: `${Math.max((trend.records / Math.max(...stats.monthlyTrends.map(t => t.records))) * 100, 5)}%` 
+                    <div
+                      className="bg-blue-600 h-2 rounded-full"
+                      style={{
+                        width: `${Math.max((trend.records / Math.max(...stats.monthlyTrends.map(t => t.records))) * 100, 5)}%`
                       }}
                     ></div>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-green-600 h-2 rounded-full" 
-                      style={{ 
-                        width: `${Math.max((trend.prescriptions / Math.max(...stats.monthlyTrends.map(t => t.prescriptions))) * 100, 5)}%` 
+                    <div
+                      className="bg-green-600 h-2 rounded-full"
+                      style={{
+                        width: `${Math.max((trend.prescriptions / Math.max(...stats.monthlyTrends.map(t => t.prescriptions))) * 100, 5)}%`
                       }}
                     ></div>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-purple-600 h-2 rounded-full" 
-                      style={{ 
-                        width: `${Math.max((trend.revenue / Math.max(...stats.monthlyTrends.map(t => t.revenue))) * 100, 5)}%` 
+                    <div
+                      className="bg-purple-600 h-2 rounded-full"
+                      style={{
+                        width: `${Math.max((trend.revenue / Math.max(...stats.monthlyTrends.map(t => t.revenue))) * 100, 5)}%`
                       }}
                     ></div>
                   </div>
@@ -473,8 +473,12 @@ function MicroservicesDashboardContent() {
 
 export default function MicroservicesDashboardPage() {
   return (
-    <AdminLayout title="Microservices Dashboard" activePage="microservices-dashboard">
+    <AdminPageWrapper
+      title="Microservices Dashboard"
+      activePage="microservices-dashboard"
+      subtitle="Monitor and manage hospital microservices"
+    >
       <MicroservicesDashboardContent />
-    </AdminLayout>
+    </AdminPageWrapper>
   );
 }

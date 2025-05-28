@@ -16,7 +16,7 @@ import {
 import { appointmentsApi, doctorsApi, patientsApi } from "@/lib/supabase"
 
 // Shared components
-import { AdminLayout } from "@/components/layout/AdminLayout"
+import { AdminPageWrapper } from "../page-wrapper"
 import { SupabaseSearchableTable } from "@/components/data-display/SupabaseSearchableTable"
 import { ConfirmDeleteDialog } from "@/components/dialogs/ConfirmDeleteDialog"
 
@@ -361,7 +361,7 @@ export default function AppointmentsPage() {
   }
 
   return (
-    <AdminLayout title="Appointments" activePage="appointments">
+    <AdminPageWrapper title="Appointments" activePage="appointments">
       {/* Supabase Searchable Table */}
       <SupabaseSearchableTable
         type="appointments"
@@ -636,6 +636,6 @@ export default function AppointmentsPage() {
         description="Are you sure you want to delete this appointment? This action cannot be undone."
         itemType="appointment"
       />
-    </AdminLayout>
+    </AdminPageWrapper>
   )
 }

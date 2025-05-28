@@ -70,7 +70,7 @@ export const RoleDetector: React.FC = () => {
 
   const getRoleDashboard = () => {
     if (isAdmin()) return '/admin/dashboard';
-    if (isDoctor()) return '/doctor/dashboard';
+    if (isDoctor()) return '/doctors/dashboard';
     if (isPatient()) return '/patient/dashboard';
     return '/';
   };

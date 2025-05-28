@@ -23,22 +23,90 @@ interface SupabasePatientsTableProps {
 
 // Helper function to calculate age
 const calculateAge = (dateOfBirth: string): number => {
-  const today = new Date();
-  const birthDate = new Date(dateOfBirth);
-  let age = today.getFullYear() - birthDate.getFullYear();
-  const monthDiff = today.getMonth() - birthDate.getMonth();
-  
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-    age--;
+  if (!dateOfBirth) return 0;
+
+  try {
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+
+    return age >= 0 ? age : 0;
+  } catch (error) {
+    return 0;
   }
-  
-  return age;
 };
 
 // Helper function to format date
 const formatDate = (dateString: string): string => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('vi-VN');
+  if (!dateString) return 'Chưa xác định';
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('vi-VN');
+  } catch (error) {
+    return 'Ngày không hợp lệ';
+  }
+};
+
+// Helper function to format insurance info
+const formatInsuranceInfo = (insuranceInfo: any): string => {
+  if (!insuranceInfo) return 'Chưa có';
+
+  // If it's a string, return it directly
+  if (typeof insuranceInfo === 'string') {
+    return insuranceInfo || 'Chưa có';
+  }
+
+  // If it's an object, extract provider or return a formatted string
+  if (typeof insuranceInfo === 'object') {
+    if (insuranceInfo.provider) {
+      return insuranceInfo.provider;
+    }
+    if (insuranceInfo.policy_number) {
+      return `Số thẻ: ${insuranceInfo.policy_number}`;
+    }
+    return 'Có bảo hiểm';
+  }
+
+  return 'Chưa có';
+};
+
+// Helper function to format allergies
+const formatAllergies = (allergies: any): string => {
+  if (!allergies) return 'Không';
+
+  // If it's a string, return it directly
+  if (typeof allergies === 'string') {
+    return allergies || 'Không';
+  }
+
+  // If it's an array, join the items
+  if (Array.isArray(allergies)) {
+    return allergies.length > 0 ? allergies.join(', ') : 'Không';
+  }
+
+  return 'Không';
+};
+
+// Helper function to format chronic diseases
+const formatChronicDiseases = (chronicDiseases: any): string => {
+  if (!chronicDiseases) return 'Không';
+
+  // If it's a string, return it directly
+  if (typeof chronicDiseases === 'string') {
+    return chronicDiseases || 'Không';
+  }
+
+  // If it's an array, join the items
+  if (Array.isArray(chronicDiseases)) {
+    return chronicDiseases.length > 0 ? chronicDiseases.join(', ') : 'Không';
+  }
+
+  return 'Không';
 };
 
 export function SupabasePatientsTable({
@@ -61,17 +129,17 @@ export function SupabasePatientsTable({
       accessor: (patient) => (
         <div className="flex items-center">
           <Avatar className="h-10 w-10 mr-3">
-            <AvatarImage 
-              src="/placeholder.svg" 
-              alt={patient.full_name} 
+            <AvatarImage
+              src="/placeholder.svg"
+              alt={patient.full_name}
             />
             <AvatarFallback>
               {patient.full_name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'BN'}
             </AvatarFallback>
           </Avatar>
           <div>
-            <div className="text-sm font-medium text-gray-900">{patient.full_name}</div>
-            <div className="text-xs text-gray-500">{patient.patient_id}</div>
+            <div className="text-sm font-medium text-gray-900">{patient.full_name || 'Chưa xác định'}</div>
+            <div className="text-xs text-gray-500">{patient.patient_id || 'N/A'}</div>
           </div>
         </div>
       ),
@@ -84,8 +152,8 @@ export function SupabasePatientsTable({
           <div className="text-sm font-medium">
             {calculateAge(patient.dateofbirth)} tuổi
           </div>
-          <StatusBadge 
-            status={patient.gender} 
+          <StatusBadge
+            status={patient.gender}
             type="gender"
             variant={patient.gender === 'Nam' ? 'default' : patient.gender === 'Nữ' ? 'secondary' : 'outline'}
           />
@@ -98,7 +166,7 @@ export function SupabasePatientsTable({
       accessor: (patient) => (
         <Badge variant="outline" className="text-xs">
           <Heart className="h-3 w-3 mr-1" />
-          {patient.blood_type}
+          {patient.blood_type || 'Chưa xác định'}
         </Badge>
       ),
       responsive: 'md',
@@ -121,11 +189,11 @@ export function SupabasePatientsTable({
         <div className="flex flex-col space-y-1">
           <div className="flex items-center text-xs text-gray-600">
             <Phone className="h-3 w-3 mr-1" />
-            {patient.phone_number}
+            {patient.phone_number || 'Chưa có'}
           </div>
           <div className="flex items-center text-xs text-gray-600">
             <Mail className="h-3 w-3 mr-1" />
-            {patient.email}
+            {patient.email || 'Chưa có'}
           </div>
         </div>
       ),
@@ -136,7 +204,7 @@ export function SupabasePatientsTable({
       header: 'Bảo hiểm',
       accessor: (patient) => (
         <Badge variant="secondary" className="text-xs">
-          {patient.insurance_info}
+          {formatInsuranceInfo(patient.insurance_info)}
         </Badge>
       ),
       responsive: 'lg',
@@ -144,23 +212,28 @@ export function SupabasePatientsTable({
     {
       key: 'medical_info',
       header: 'Thông tin y tế',
-      accessor: (patient) => (
-        <div className="text-xs text-gray-600 max-w-32">
-          {patient.allergies !== 'Không' && (
-            <div className="mb-1">
-              <span className="font-medium">Dị ứng:</span> {patient.allergies}
-            </div>
-          )}
-          {patient.chronic_diseases !== 'Không' && (
-            <div>
-              <span className="font-medium">Bệnh mãn tính:</span> {patient.chronic_diseases}
-            </div>
-          )}
-          {patient.allergies === 'Không' && patient.chronic_diseases === 'Không' && (
-            <span className="text-green-600">Khỏe mạnh</span>
-          )}
-        </div>
-      ),
+      accessor: (patient) => {
+        const allergies = formatAllergies(patient.allergies);
+        const chronicDiseases = formatChronicDiseases(patient.chronic_diseases);
+
+        return (
+          <div className="text-xs text-gray-600 max-w-32">
+            {allergies !== 'Không' && (
+              <div className="mb-1">
+                <span className="font-medium">Dị ứng:</span> {allergies}
+              </div>
+            )}
+            {chronicDiseases !== 'Không' && (
+              <div>
+                <span className="font-medium">Bệnh mãn tính:</span> {chronicDiseases}
+              </div>
+            )}
+            {allergies === 'Không' && chronicDiseases === 'Không' && (
+              <span className="text-green-600">Khỏe mạnh</span>
+            )}
+          </div>
+        );
+      },
       responsive: 'xl',
     },
   ];

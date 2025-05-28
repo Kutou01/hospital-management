@@ -88,10 +88,18 @@ export interface SupabaseRoom {
   room_type: string;
   capacity: number;
   status: string;
+  equipment?: any[];
+  location?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
   // Joined data
   department_name?: string;
   departments?: {
-    department_name: string;
+    department_id: string;
+    name: string;
+    description?: string;
+    location?: string;
   };
 }
 
@@ -154,6 +162,9 @@ export interface SupabaseRoomForm {
   room_type: string;
   capacity: number;
   status: string;
+  equipment?: any[];
+  location?: string;
+  notes?: string;
 }
 
 // Status mappings for Vietnamese data

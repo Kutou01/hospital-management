@@ -1,6 +1,7 @@
 {
-  "/auth/login/page": "app/auth/login/page.js",
-  "/auth/register/page": "app/auth/register/page.js",
-  "/doctor/dashboard/page": "app/doctor/dashboard/page.js",
-  "/admin/dashboard/page": "app/admin/dashboard/page.js"
+  "/admin/appointments/page": "app/admin/appointments/page.js",
+  "/admin/rooms/page": "app/admin/rooms/page.js",
+  "/admin/doctors/page": "app/admin/doctors/page.js",
+  "/admin/patients/page": "app/admin/patients/page.js",
+  "/admin/departments/page": "app/admin/departments/page.js"
 }

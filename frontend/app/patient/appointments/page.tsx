@@ -14,7 +14,7 @@ import {
   Stethoscope,
   Building2
 } from "lucide-react"
-import { PatientLayout } from "@/components/layout/PatientLayout"
+import { PatientLayout } from "@/components/layout/UniversalLayout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"

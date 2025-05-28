@@ -1,0 +1,413 @@
+import React from 'react';
+import {
+  BarChart3,
+  Calendar,
+  UserCog,
+  User,
+  Building2,
+  BedDouble,
+  CreditCard,
+  Settings,
+  FileText,
+  Pill,
+  Receipt,
+  LayoutDashboard,
+  Stethoscope,
+  Users,
+  Clock,
+  Activity,
+  Heart,
+  ClipboardList,
+  Phone,
+  MessageCircle,
+  FileBarChart,
+  Server,
+  type LucideIcon,
+} from 'lucide-react';
+
+export interface MenuItem {
+  icon: LucideIcon;
+  label: string;
+  href: string;
+  page: string;
+  badge?: string;
+  badgeVariant?: 'default' | 'secondary' | 'destructive' | 'outline';
+}
+
+export interface MenuSection {
+  title?: string;
+  items: MenuItem[];
+}
+
+export interface SidebarBranding {
+  logo: React.ReactNode;
+  title: string;
+  subtitle: string;
+  bgColor: string;
+  iconColor: string;
+}
+
+export interface SidebarConfig {
+  branding: SidebarBranding;
+  sections: MenuSection[];
+}
+
+// Admin Sidebar Configuration
+export const adminSidebarConfig: SidebarConfig = {
+  branding: {
+    logo: React.createElement('div', {
+      className: 'w-8 h-8 rounded-full bg-red-600 flex items-center justify-center'
+    }, React.createElement('span', {
+      className: 'text-white font-bold'
+    }, 'A')),
+    title: 'Admin Portal',
+    subtitle: 'Hospital Management',
+    bgColor: 'bg-red-50',
+    iconColor: 'text-red-600',
+  },
+  sections: [
+    {
+      items: [
+        {
+          icon: BarChart3,
+          label: 'Dashboard',
+          href: '/admin/dashboard',
+          page: 'dashboard',
+        },
+      ],
+    },
+    {
+      title: 'Core Management',
+      items: [
+        {
+          icon: Calendar,
+          label: 'Appointments',
+          href: '/admin/appointments',
+          page: 'appointments',
+        },
+        {
+          icon: UserCog,
+          label: 'Doctors',
+          href: '/admin/doctors',
+          page: 'doctors',
+        },
+        {
+          icon: User,
+          label: 'Patients',
+          href: '/admin/patients',
+          page: 'patients',
+        },
+        {
+          icon: Building2,
+          label: 'Departments',
+          href: '/admin/departments',
+          page: 'departments',
+        },
+        {
+          icon: BedDouble,
+          label: 'Rooms',
+          href: '/admin/rooms',
+          page: 'rooms',
+        },
+      ],
+    },
+    {
+      title: 'Financial',
+      items: [
+        {
+          icon: CreditCard,
+          label: 'Billing',
+          href: '/admin/billing',
+          page: 'billing',
+        },
+        {
+          icon: Receipt,
+          label: 'Payments',
+          href: '/admin/payments',
+          page: 'payments',
+        },
+      ],
+    },
+    {
+      title: 'Microservices',
+      items: [
+        {
+          icon: FileText,
+          label: 'Medical Records',
+          href: '/admin/medical-records',
+          page: 'medical-records',
+        },
+        {
+          icon: Pill,
+          label: 'Prescriptions',
+          href: '/admin/prescriptions',
+          page: 'prescriptions',
+        },
+        {
+          icon: FileBarChart,
+          label: 'Analytics Dashboard',
+          href: '/admin/microservices-dashboard',
+          page: 'microservices-dashboard',
+        },
+      ],
+    },
+    {
+      title: 'System',
+      items: [
+        {
+          icon: Settings,
+          label: 'Settings',
+          href: '/admin/settings',
+          page: 'settings',
+        },
+        {
+          icon: Server,
+          label: 'System Status',
+          href: '/admin/system-status',
+          page: 'system-status',
+        },
+      ],
+    },
+  ],
+};
+
+// Doctor Sidebar Configuration
+export const doctorSidebarConfig: SidebarConfig = {
+  branding: {
+    logo: React.createElement('div', {
+      className: 'p-2 bg-green-100 rounded-lg'
+    }, React.createElement(Stethoscope, {
+      className: 'h-6 w-6 text-green-600'
+    })),
+    title: 'Doctor Portal',
+    subtitle: 'Hospital Management',
+    bgColor: 'bg-green-50',
+    iconColor: 'text-green-600',
+  },
+  sections: [
+    {
+      items: [
+        {
+          icon: LayoutDashboard,
+          label: 'Dashboard',
+          href: '/doctors/dashboard',
+          page: 'dashboard',
+        },
+      ],
+    },
+    {
+      title: 'Patient Care',
+      items: [
+        {
+          icon: Calendar,
+          label: 'My Schedule',
+          href: '/doctors/schedule',
+          page: 'schedule',
+        },
+        {
+          icon: Users,
+          label: 'My Patients',
+          href: '/doctors/patients',
+          page: 'patients',
+        },
+        {
+          icon: Clock,
+          label: 'Appointments',
+          href: '/doctors/appointments',
+          page: 'appointments',
+        },
+        {
+          icon: FileText,
+          label: 'Medical Records',
+          href: '/doctors/medical-records',
+          page: 'medical-records',
+        },
+      ],
+    },
+    {
+      title: 'Clinical Tools',
+      items: [
+        {
+          icon: Pill,
+          label: 'Prescriptions',
+          href: '/doctors/prescriptions',
+          page: 'prescriptions',
+        },
+        {
+          icon: Activity,
+          label: 'Lab Results',
+          href: '/doctors/lab-results',
+          page: 'lab-results',
+        },
+        {
+          icon: ClipboardList,
+          label: 'Treatment Plans',
+          href: '/doctors/treatment-plans',
+          page: 'treatment-plans',
+        },
+      ],
+    },
+    {
+      title: 'Communication',
+      items: [
+        {
+          icon: MessageCircle,
+          label: 'Messages',
+          href: '/doctors/messages',
+          page: 'messages',
+          badge: '3',
+          badgeVariant: 'destructive',
+        },
+        {
+          icon: Phone,
+          label: 'Consultations',
+          href: '/doctors/consultations',
+          page: 'consultations',
+        },
+      ],
+    },
+    {
+      items: [
+        {
+          icon: Settings,
+          label: 'Settings',
+          href: '/doctors/settings',
+          page: 'settings',
+        },
+      ],
+    },
+  ],
+};
+
+// Patient Sidebar Configuration
+export const patientSidebarConfig: SidebarConfig = {
+  branding: {
+    logo: React.createElement('div', {
+      className: 'p-2 bg-blue-100 rounded-lg'
+    }, React.createElement(Heart, {
+      className: 'h-6 w-6 text-blue-600'
+    })),
+    title: 'Patient Portal',
+    subtitle: 'Hospital Management',
+    bgColor: 'bg-blue-50',
+    iconColor: 'text-blue-600',
+  },
+  sections: [
+    {
+      items: [
+        {
+          icon: LayoutDashboard,
+          label: 'Dashboard',
+          href: '/patient/dashboard',
+          page: 'dashboard',
+        },
+      ],
+    },
+    {
+      title: 'My Care',
+      items: [
+        {
+          icon: Calendar,
+          label: 'Appointments',
+          href: '/patient/appointments',
+          page: 'appointments',
+        },
+        {
+          icon: FileText,
+          label: 'Medical Records',
+          href: '/patient/medical-records',
+          page: 'medical-records',
+        },
+        {
+          icon: Pill,
+          label: 'Prescriptions',
+          href: '/patient/prescriptions',
+          page: 'prescriptions',
+        },
+        {
+          icon: Activity,
+          label: 'Lab Results',
+          href: '/patient/lab-results',
+          page: 'lab-results',
+        },
+      ],
+    },
+    {
+      title: 'Health Management',
+      items: [
+        {
+          icon: Heart,
+          label: 'Health Metrics',
+          href: '/patient/health-metrics',
+          page: 'health-metrics',
+        },
+        {
+          icon: ClipboardList,
+          label: 'Health History',
+          href: '/patient/health-history',
+          page: 'health-history',
+        },
+      ],
+    },
+    {
+      title: 'Communication',
+      items: [
+        {
+          icon: MessageCircle,
+          label: 'Messages',
+          href: '/patient/messages',
+          page: 'messages',
+          badge: '1',
+          badgeVariant: 'secondary',
+        },
+        {
+          icon: Phone,
+          label: 'Telemedicine',
+          href: '/patient/telemedicine',
+          page: 'telemedicine',
+        },
+      ],
+    },
+    {
+      title: 'Financial',
+      items: [
+        {
+          icon: CreditCard,
+          label: 'Billing',
+          href: '/patient/billing',
+          page: 'billing',
+        },
+        {
+          icon: Receipt,
+          label: 'Insurance',
+          href: '/patient/insurance',
+          page: 'insurance',
+        },
+      ],
+    },
+    {
+      items: [
+        {
+          icon: Settings,
+          label: 'Settings',
+          href: '/patient/settings',
+          page: 'settings',
+        },
+      ],
+    },
+  ],
+};
+
+// Helper function to get sidebar config by role
+export function getSidebarConfig(role: string): SidebarConfig {
+  switch (role.toLowerCase()) {
+    case 'admin':
+      return adminSidebarConfig;
+    case 'doctor':
+      return doctorSidebarConfig;
+    case 'patient':
+      return patientSidebarConfig;
+    default:
+      return patientSidebarConfig; // Default fallback
+  }
+}

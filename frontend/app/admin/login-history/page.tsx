@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { AdminLayout } from "@/components/layout/AdminLayout"
+import { AdminPageWrapper } from "../page-wrapper"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -98,7 +98,7 @@ export default function LoginHistoryPage() {
   })
 
   return (
-    <AdminLayout title="Login History" activePage="login-history">
+    <AdminPageWrapper title="Login History" activePage="login-history">
       {/* Header Actions */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div className="flex flex-col sm:flex-row gap-4 flex-1">
@@ -238,6 +238,6 @@ export default function LoginHistoryPage() {
           </CardContent>
         </Card>
       </div>
-    </AdminLayout>
+    </AdminPageWrapper>
   )
 }

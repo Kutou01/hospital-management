@@ -37,7 +37,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { AdminLayout } from "@/components/layout/AdminLayout"
+import { AdminPageWrapper } from "../page-wrapper"
 
 // Dữ liệu mẫu cho thanh toán
 const paymentsData = [
@@ -240,7 +240,7 @@ export default function PaymentPage() {
   }
 
   return (
-    <AdminLayout title="Payment" activePage="payment">
+    <AdminPageWrapper title="Payment" activePage="payment">
 
         {/* Dashboard Cards */}
         <div className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -643,7 +643,7 @@ export default function PaymentPage() {
           )}
         </DialogContent>
       </Dialog>
-    </AdminLayout>
+    </AdminPageWrapper>
   )
 }
 

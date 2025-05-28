@@ -1,83 +1,32 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { cva, type VariantProps } from "class-variance-authority"
-import { X } from "lucide-react"
+import { useToast } from "@/hooks/use-toast";
 
-import { cn } from "@/lib/utils"
+export function Toaster() {
+  const { toasts } = useToast();
 
-const toastVariants = cva(
-  "group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-md border p-4 pr-6 shadow-lg transition-all",
-  {
-    variants: {
-      variant: {
-        default: "border bg-white text-gray-900 shadow-md",
-        destructive:
-          "border-red-500 bg-red-50 text-red-800",
-        success:
-          "border-green-500 bg-green-50 text-green-800",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-    },
-  }
-)
+  if (!toasts.length) return null;
 
-const Toast = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & VariantProps<typeof toastVariants>
->(({ className, variant, ...props }, ref) => {
   return (
-    <div
-      ref={ref}
-      className={cn(toastVariants({ variant }), className)}
-      {...props}
-    />
-  )
-})
-Toast.displayName = "Toast"
-
-const ToastClose = React.forwardRef<
-  HTMLButtonElement,
-  React.ButtonHTMLAttributes<HTMLButtonElement>
->(({ className, ...props }, ref) => (
-  <button
-    ref={ref}
-    className={cn(
-      "absolute right-2 top-2 rounded-md p-1 text-foreground/50 opacity-0 transition-opacity hover:text-foreground focus:opacity-100 focus:outline-none focus:ring-2 group-hover:opacity-100",
-      className
-    )}
-    toast-close=""
-    {...props}
-  >
-    <X className="h-4 w-4" />
-  </button>
-))
-ToastClose.displayName = "ToastClose"
-
-const ToastTitle = React.forwardRef<
-  HTMLHeadingElement,
-  React.HTMLAttributes<HTMLHeadingElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn("text-sm font-semibold", className)}
-    {...props}
-  />
-))
-ToastTitle.displayName = "ToastTitle"
-
-const ToastDescription = React.forwardRef<
-  HTMLParagraphElement,
-  React.HTMLAttributes<HTMLParagraphElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn("text-sm opacity-90", className)}
-    {...props}
-  />
-))
-ToastDescription.displayName = "ToastDescription"
-
-export { Toast, ToastClose, ToastTitle, ToastDescription }
+    <div className="fixed top-4 right-4 z-50 space-y-2">
+      {toasts.map((toast) => (
+        <div
+          key={toast.id}
+          className={`
+            p-4 rounded-lg shadow-lg max-w-md animate-in slide-in-from-right duration-300
+            ${toast.variant === 'success' ? 'bg-green-50 border border-green-200 text-green-800' : ''}
+            ${toast.variant === 'destructive' ? 'bg-red-50 border border-red-200 text-red-800' : ''}
+            ${toast.variant === 'default' ? 'bg-white border border-gray-200 text-gray-900' : ''}
+          `}
+        >
+          <div className="flex justify-between items-start">
+            <div>
+              <h4 className="font-semibold text-sm">{toast.title}</h4>
+              <p className="text-sm opacity-90 mt-1">{toast.description}</p>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}

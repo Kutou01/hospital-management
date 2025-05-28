@@ -1,7 +1,5 @@
 {
-  "/admin/appointments/page": "app/admin/appointments/page.js",
-  "/admin/rooms/page": "app/admin/rooms/page.js",
-  "/admin/doctors/page": "app/admin/doctors/page.js",
-  "/admin/patients/page": "app/admin/patients/page.js",
-  "/admin/departments/page": "app/admin/departments/page.js"
+  "/_not-found/page": "app/_not-found/page.js",
+  "/page": "app/page.js",
+  "/contact/page": "app/contact/page.js"
 }

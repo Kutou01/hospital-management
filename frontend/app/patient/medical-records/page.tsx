@@ -21,10 +21,10 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { useSupabaseAuth } from "@/lib/hooks/useSupabaseAuth"
+import { useEnhancedAuth } from "@/lib/auth/enhanced-auth-context"
 
 export default function PatientMedicalRecords() {
-  const { user, loading } = useSupabaseAuth()
+  const { user, loading } = useEnhancedAuth()
   const [searchTerm, setSearchTerm] = useState("")
   const [filterType, setFilterType] = useState("all")
 
@@ -359,7 +359,7 @@ export default function PatientMedicalRecords() {
               <FileText className="h-12 w-12 text-gray-300 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No medical records found</h3>
               <p className="text-gray-600 mb-4">
-                {searchTerm || filterType !== "all" 
+                {searchTerm || filterType !== "all"
                   ? "Try adjusting your search or filter criteria"
                   : "Your medical records will appear here after your first appointment"
                 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSupabaseAuth } from '@/lib/hooks/useSupabaseAuth';
+import { useEnhancedAuth } from '@/lib/auth/enhanced-auth-context';
 import { HospitalUser } from '@/lib/auth/supabase-auth';
 
 // Types for auth guard hook
@@ -32,9 +32,9 @@ export function useAuthGuard(options: UseAuthGuardOptions = {}): AuthGuardState 
     onLoading
   } = options;
 
-  const { user, session, loading } = useSupabaseAuth();
+  const { user, loading, isAuthenticated } = useEnhancedAuth();
   const router = useRouter();
-  
+
   const [authState, setAuthState] = useState<AuthGuardState>({
     isAuthenticated: false,
     isAuthorized: false,
@@ -60,7 +60,7 @@ export function useAuthGuard(options: UseAuthGuardOptions = {}): AuthGuardState 
     }
 
     // Check authentication
-    if (!user || !session) {
+    if (!user || !isAuthenticated) {
       setAuthState({
         isAuthenticated: false,
         isAuthorized: false,
@@ -132,7 +132,7 @@ export function useAuthGuard(options: UseAuthGuardOptions = {}): AuthGuardState 
       error: null
     });
 
-  }, [user, session, loading, requiredRoles, requireEmailVerified, redirectTo, router, onUnauthorized, onLoading]);
+  }, [user, isAuthenticated, loading, requiredRoles, requireEmailVerified, redirectTo, router, onUnauthorized, onLoading]);
 
   return authState;
 }

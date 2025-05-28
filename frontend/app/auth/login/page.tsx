@@ -8,13 +8,14 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Hospital, Eye, EyeOff, Loader2, Calendar, Stethoscope, ArrowLeft } from "lucide-react"
-import { supabaseAuth, LoginCredentials } from "@/lib/auth/supabase-auth"
+import { useEnhancedAuth } from "@/lib/auth/enhanced-auth-context"
 import { useToast } from "@/components/ui/toast-provider"
 
 export default function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { showToast } = useToast()
+  const { user, signIn, loading: authLoading, isAuthenticated, clearError } = useEnhancedAuth()
 
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
@@ -37,31 +38,23 @@ export default function LoginPage() {
     }
   }, [searchParams, showToast])
 
-  // Check if user is already logged in
+  // Auto-redirect if user is already authenticated
   useEffect(() => {
-    const checkAuth = async () => {
-      // Don't auto-redirect if coming from registration or booking
-      const fromRegister = searchParams.get('from_register')
-      const hasMessage = searchParams.get('message')
+    // Don't auto-redirect if coming from registration or booking
+    const fromRegister = searchParams.get('from_register')
+    const hasMessage = searchParams.get('message')
 
-      if (fromRegister || hasMessage || isFromBooking) {
-        console.log('🔄 [Login] Skipping auth check - special redirect case')
-        return
-      }
-
-      try {
-        const result = await supabaseAuth.getCurrentUser()
-        if (result.user && result.user.role) {
-          const redirectPath = `/${result.user.role}/dashboard`
-          router.push(redirectPath)
-        }
-      } catch (error) {
-        // User not logged in, stay on login page
-        console.log('User not logged in, staying on login page')
-      }
+    if (fromRegister || hasMessage || isFromBooking || authLoading) {
+      console.log('🔄 [Login] Skipping auth check - special case or loading')
+      return
     }
-    checkAuth()
-  }, [router, searchParams, isFromBooking])
+
+    if (isAuthenticated && user && user.role && user.is_active) {
+      console.log('🔄 [Login] User already logged in, redirecting to dashboard...')
+      const redirectPath = `/${user.role}/dashboard`
+      router.replace(redirectPath)
+    }
+  }, [user, authLoading, isAuthenticated, router, searchParams, isFromBooking])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -69,8 +62,9 @@ export default function LoginPage() {
       ...prev,
       [name]: value
     }))
-    // Clear error when user starts typing
+    // Clear errors when user starts typing
     if (error) setError("")
+    clearError() // Clear context error as well
   }
 
   const validateForm = () => {
@@ -98,87 +92,33 @@ export default function LoginPage() {
 
     setIsLoading(true)
     setError("")
+    clearError() // Clear context error as well
 
     try {
-      const signInData: LoginCredentials = {
-        email: formData.email,
-        password: formData.password
+      console.log('🔐 [Login] Starting login process...')
+
+      await signIn(formData.email, formData.password)
+
+      console.log('✅ Login successful')
+      showToast("🎉 Đăng nhập thành công!", "Chào mừng bạn!", "success")
+
+    } catch (err: any) {
+      console.error('❌ Login failed:', err)
+      let errorMessage = err.message || 'Unknown error'
+
+      // Handle specific error cases - these are now handled in the enhanced auth context
+      // but we keep this for backward compatibility
+      if (errorMessage.includes('Invalid login credentials') || errorMessage.includes('Invalid email or password')) {
+        errorMessage = "Email hoặc mật khẩu không đúng. Vui lòng thử lại."
+      } else if (errorMessage.includes('Email not confirmed')) {
+        errorMessage = "Email chưa được xác nhận. Vui lòng kiểm tra email và xác nhận tài khoản."
+      } else if (errorMessage.includes('Too many requests')) {
+        errorMessage = "Quá nhiều lần thử đăng nhập. Vui lòng thử lại sau."
       }
 
-      const result = await supabaseAuth.signIn(signInData)
-
-      console.log('🔍 [Login] Sign in result:', {
-        hasError: !!result.error,
-        hasUser: !!result.user,
-        role: result.user?.role,
-        isFromBooking,
-        selectedDoctorId,
-        fullResult: result
-      })
-
-      if (result.error) {
-        console.error('❌ Login failed:', result.error)
-        let errorMessage = result.error || 'Unknown error'
-
-        // Handle specific error cases
-        if (errorMessage.includes('Invalid login credentials') || errorMessage.includes('Invalid email or password')) {
-          errorMessage = "Email hoặc mật khẩu không đúng. Vui lòng thử lại."
-        } else if (errorMessage.includes('Email not confirmed')) {
-          errorMessage = "Email chưa được xác nhận. Vui lòng kiểm tra email và xác nhận tài khoản."
-        } else if (errorMessage.includes('Too many requests')) {
-          errorMessage = "Quá nhiều lần thử đăng nhập. Vui lòng thử lại sau."
-        }
-
-        setError(errorMessage)
-        showToast("Đăng nhập thất bại", errorMessage, "error")
-        setIsLoading(false)
-      } else if (result.user && result.user.role) {
-        // Login successful
-        console.log('✅ Login successful for user:', {
-          id: result.user.id,
-          email: result.user.email,
-          role: result.user.role,
-          full_name: result.user.full_name
-        })
-
-        const role = result.user.role
-        const roleText = role === "doctor" ? "bác sĩ" : role === "patient" ? "bệnh nhân" : "quản trị viên"
-
-        showToast("🎉 Đăng nhập thành công!", `Chào mừng ${roleText} ${result.user.full_name}!`, "success")
-
-        // Clear loading state first
-        setIsLoading(false)
-
-        // Handle redirect logic
-        if (isFromBooking && selectedDoctorId && role === 'patient') {
-          // Redirect to patient profile for booking
-          console.log('🔄 Redirecting to patient profile for booking, doctor ID:', selectedDoctorId)
-          router.push('/patient/profile?action=booking')
-        } else if (isFromBooking && role !== 'patient') {
-          // Non-patient trying to book, redirect to their dashboard with message
-          showToast("Thông báo", `Chức năng đặt lịch khám dành cho bệnh nhân. Bạn đang được chuyển đến trang ${roleText}.`, "info")
-          localStorage.removeItem('selectedDoctorId') // Clear booking data
-          const redirectPath = `/${role}/dashboard`
-          console.log('🔄 Booking redirect to:', redirectPath)
-          router.push(redirectPath)
-        } else {
-          // Normal login, redirect to role-specific dashboard
-          const redirectPath = `/${role}/dashboard`
-          console.log('🔄 Normal login redirect to:', redirectPath)
-          console.log('🔄 Using router.push instead of router.replace')
-          router.push(redirectPath)
-        }
-      } else {
-        console.warn('⚠️ No error but no user/role returned from login:', result)
-        setError("Đăng nhập không thành công. Vui lòng thử lại.")
-        showToast("Đăng nhập thất bại", "Đăng nhập không thành công. Vui lòng thử lại.", "error")
-        setIsLoading(false)
-      }
-    } catch (err) {
-      console.error('❌ Login error:', err)
-      const errorMessage = "Đã xảy ra lỗi không mong muốn. Vui lòng thử lại."
       setError(errorMessage)
       showToast("Đăng nhập thất bại", errorMessage, "error")
+    } finally {
       setIsLoading(false)
     }
   }
@@ -274,8 +214,31 @@ export default function LoginPage() {
             )}
 
             {error && (
-              <div className="bg-red-50 text-red-700 p-3 rounded-md mb-4 text-sm">
-                {error}
+              <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-md mb-4 text-sm">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0">
+                    <svg className="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium mb-1">Đăng nhập thất bại</p>
+                    <p className="text-sm">{error}</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setError("")
+                        clearError()
+                        // Focus on email field for retry
+                        const emailInput = document.getElementById('email') as HTMLInputElement
+                        if (emailInput) emailInput.focus()
+                      }}
+                      className="mt-2 text-xs text-red-600 hover:text-red-800 underline"
+                    >
+                      Thử lại
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -408,6 +371,7 @@ export default function LoginPage() {
                 <p className="text-xs text-gray-600">
                   Hoặc quay lại{" "}
                   <button
+                    type="button"
                     onClick={() => {
                       localStorage.removeItem('selectedDoctorId')
                       router.push('/doctors')

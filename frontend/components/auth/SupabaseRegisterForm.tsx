@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSupabaseAuth } from '@/lib/hooks/useSupabaseAuth';
+import { useEnhancedAuth } from '@/lib/auth/enhanced-auth-context';
+import { supabaseAuth } from '@/lib/auth/supabase-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,7 +14,7 @@ import { Loader2, Eye, EyeOff } from 'lucide-react';
 
 export function SupabaseRegisterForm() {
   const router = useRouter();
-  const { signUp, loading } = useSupabaseAuth();
+  const { loading } = useEnhancedAuth();
 
   const [formData, setFormData] = useState({
     email: '',
@@ -118,7 +119,7 @@ export function SupabaseRegisterForm() {
       // Log the data being sent to signUp
       console.log('Form data to submit:', submissionData);
 
-      const result = await signUp(submissionData);
+      const result = await supabaseAuth.signUp(submissionData);
 
       if (result.error) {
         setError(result.error);

@@ -36,20 +36,20 @@
       "static/chunks/main-app.js",
       "static/chunks/app/auth/register/page.js"
     ],
-    "/patient/layout": [
+    "/admin/layout": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/patient/layout.js"
+      "static/chunks/app/admin/layout.js"
     ],
-    "/patient/dashboard/page": [
+    "/admin/dashboard/loading": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/patient/dashboard/page.js"
+      "static/chunks/app/admin/dashboard/loading.js"
     ],
-    "/_not-found/page": [
+    "/admin/dashboard/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/_not-found/page.js"
+      "static/chunks/app/admin/dashboard/page.js"
     ]
   }
 }

@@ -22,7 +22,8 @@ import {
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { SidebarItem } from "@/components/shared-components"
-import { useSupabaseAuth, HospitalUser } from "@/lib/hooks/useSupabaseAuth"
+import { useEnhancedAuth } from "@/lib/auth/enhanced-auth-context"
+import { HospitalUser } from "@/lib/auth/supabase-auth"
 
 type UserRole = 'admin' | 'doctor' | 'patient' | 'nurse' | 'receptionist'
 
@@ -185,7 +186,7 @@ const getMenuItems = (role: UserRole) => {
 }
 
 export function DashboardLayout({ children, title, activePage }: DashboardLayoutProps) {
-  const { user, signOut } = useSupabaseAuth()
+  const { user, signOut } = useEnhancedAuth()
   const logout = () => signOut()
 
   if (!user) {

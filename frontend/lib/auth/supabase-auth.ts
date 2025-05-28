@@ -382,10 +382,18 @@ class SupabaseAuthService {
 
     try {
       const result = await this.currentUserPromise;
+
+      // Cache successful results for a short time to avoid rapid re-fetching
+      if (result.user && !result.error) {
+        console.log('🔄 [getCurrentUser] Caching successful result');
+      }
+
       return result;
     } finally {
-      // Clear the promise when done
-      this.currentUserPromise = null;
+      // Clear the promise when done, but with a small delay to prevent rapid re-calls
+      setTimeout(() => {
+        this.currentUserPromise = null;
+      }, 100);
     }
   }
 

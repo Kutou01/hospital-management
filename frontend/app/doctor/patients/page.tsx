@@ -22,10 +22,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useSupabaseAuth } from "@/lib/hooks/useSupabaseAuth"
+import { useEnhancedAuth } from "@/lib/auth/enhanced-auth-context"
 
 export default function DoctorPatients() {
-  const { user, loading } = useSupabaseAuth()
+  const { user, loading } = useEnhancedAuth()
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState("all")
 

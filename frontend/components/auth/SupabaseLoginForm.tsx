@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSupabaseAuth } from '@/lib/hooks/useSupabaseAuth';
+import { useEnhancedAuth } from '@/lib/auth/enhanced-auth-context';
 import { useToast } from '@/components/ui/toast-provider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +13,7 @@ import { Loader2, Eye, EyeOff } from 'lucide-react';
 
 export function SupabaseLoginForm() {
   const router = useRouter();
-  const { signIn, loading } = useSupabaseAuth();
+  const { signIn, loading, clearError } = useEnhancedAuth();
   const { showToast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -30,56 +30,33 @@ export function SupabaseLoginForm() {
       ...prev,
       [name]: value
     }));
-    // Clear error when user starts typing
+    // Clear errors when user starts typing
     if (error) setError('');
+    clearError(); // Clear context error as well
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError('');
+    clearError(); // Clear context error as well
 
-    let result = null;
     try {
-      result = await signIn({
-        email: formData.email,
-        password: formData.password
-      });
+      await signIn(formData.email, formData.password);
 
-      if (result.error) {
-        setError(result.error);
-        showToast("Đăng nhập thất bại", result.error, "error");
-      } else if (result.user && result.session) {
-        // Hiển thị thông báo thành công
-        const roleText = result.user.role === 'admin' ? 'Quản trị viên' :
-                        result.user.role === 'doctor' ? 'Bác sĩ' :
-                        result.user.role === 'patient' ? 'Bệnh nhân' : 'Người dùng';
-
-        showToast(
-          "Đăng nhập thành công!",
-          `Chào mừng ${roleText} ${result.user.full_name}`,
-          "success"
-        );
-
-        // Wait a moment for the session to be fully established
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        // Redirect based on user role using useRouter
-        const redirectPath = `/${result.user.role}/dashboard`;
-        router.push(redirectPath);
-      } else {
-        setError("Đăng nhập không thành công. Vui lòng thử lại.");
-        showToast("Đăng nhập thất bại", "Không thể lấy thông tin người dùng", "error");
-      }
-    } catch (err) {
+      // signIn in useEnhancedAuth handles the redirect automatically
+      showToast(
+        "Đăng nhập thành công!",
+        "Đang chuyển hướng...",
+        "success"
+      );
+    } catch (err: any) {
       console.error('Login error:', err);
-      setError('Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.');
-      showToast("Đăng nhập thất bại", "Đã xảy ra lỗi không mong muốn", "error");
+      const errorMessage = err.message || 'Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.';
+      setError(errorMessage);
+      showToast("Đăng nhập thất bại", errorMessage, "error");
     } finally {
-      // Don't set loading to false if we're redirecting
-      if (!result?.user) {
-        setIsSubmitting(false);
-      }
+      setIsSubmitting(false);
     }
   };
 
@@ -90,8 +67,31 @@ export function SupabaseLoginForm() {
       <CardContent className="p-8">
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-              {error}
+            <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-md mb-4 text-sm">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0">
+                  <svg className="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium mb-1">Đăng nhập thất bại</p>
+                  <p className="text-sm">{error}</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setError('')
+                      clearError()
+                      // Focus on email field for retry
+                      const emailInput = document.getElementById('email') as HTMLInputElement
+                      if (emailInput) emailInput.focus()
+                    }}
+                    className="mt-2 text-xs text-red-600 hover:text-red-800 underline"
+                  >
+                    Thử lại
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
@@ -237,7 +237,7 @@ export function ProtectedRoute({
   allowedRoles = [],
   fallback
 }: ProtectedRouteProps) {
-  const { user, loading } = useSupabaseAuth();
+  const { user, loading } = useEnhancedAuth();
   const router = useRouter();
 
   if (loading) {

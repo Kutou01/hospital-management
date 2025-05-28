@@ -16,10 +16,10 @@ import { DoctorLayout } from "@/components/layout/DoctorLayout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { useSupabaseAuth } from "@/lib/hooks/useSupabaseAuth"
+import { useEnhancedAuth } from "@/lib/auth/enhanced-auth-context"
 
 export default function DoctorSchedule() {
-  const { user, loading } = useSupabaseAuth()
+  const { user, loading } = useEnhancedAuth()
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
   const [viewMode, setViewMode] = useState<'week' | 'day'>('week')
 

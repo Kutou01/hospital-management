@@ -1,6 +1,6 @@
-// Compatibility hook that wraps useSupabaseAuth
-import { useSupabaseAuth } from '@/lib/hooks/useSupabaseAuth';
+// Compatibility hook that wraps useEnhancedAuth
+import { useEnhancedAuth } from '@/lib/auth/enhanced-auth-context';
 
 export const useAuthProvider = () => {
-  return useSupabaseAuth();
+  return useEnhancedAuth();
 };

@@ -190,99 +190,101 @@ export function useSupabaseAuth(): AuthContextType {
   return context;
 }
 
-// Helper hooks for specific use cases
+// Helper hooks for specific use cases - Updated to use useEnhancedAuth
+import { useEnhancedAuth } from '@/lib/auth/enhanced-auth-context';
+
 export function useUser(): HospitalUser | null {
-  const { user } = useSupabaseAuth();
+  const { user } = useEnhancedAuth();
   return user;
 }
 
 export function useSession(): Session | null {
-  const { session } = useSupabaseAuth();
-  return session;
+  // Note: useEnhancedAuth doesn't provide session, return null for compatibility
+  return null;
 }
 
 export function useAuthLoading(): boolean {
-  const { loading } = useSupabaseAuth();
+  const { loading } = useEnhancedAuth();
   return loading;
 }
 
 // Role-based access control hooks
 export function useIsAdmin(): boolean {
-  const { user } = useSupabaseAuth();
+  const { user } = useEnhancedAuth();
   return user?.role === 'admin';
 }
 
 export function useIsDoctor(): boolean {
-  const { user } = useSupabaseAuth();
+  const { user } = useEnhancedAuth();
   return user?.role === 'doctor';
 }
 
 export function useIsPatient(): boolean {
-  const { user } = useSupabaseAuth();
+  const { user } = useEnhancedAuth();
   return user?.role === 'patient';
 }
 
 export function useIsNurse(): boolean {
-  const { user } = useSupabaseAuth();
+  const { user } = useEnhancedAuth();
   return user?.role === 'nurse';
 }
 
 export function useIsReceptionist(): boolean {
-  const { user } = useSupabaseAuth();
+  const { user } = useEnhancedAuth();
   return user?.role === 'receptionist';
 }
 
 export function useHasRole(role: string): boolean {
-  const { user } = useSupabaseAuth();
+  const { user } = useEnhancedAuth();
   return user?.role === role;
 }
 
 export function useHasAnyRole(roles: string[]): boolean {
-  const { user } = useSupabaseAuth();
+  const { user } = useEnhancedAuth();
   return user ? roles.includes(user.role) : false;
 }
 
 // Authentication status hooks
 export function useIsAuthenticated(): boolean {
-  const { user, loading } = useSupabaseAuth();
+  const { user, loading } = useEnhancedAuth();
   return !loading && user !== null;
 }
 
 export function useIsUnauthenticated(): boolean {
-  const { user, loading } = useSupabaseAuth();
+  const { user, loading } = useEnhancedAuth();
   return !loading && user === null;
 }
 
 // Profile access hooks
 export function useProfileId(): string | null {
-  const { user } = useSupabaseAuth();
+  const { user } = useEnhancedAuth();
   return user?.profile_id || null;
 }
 
 export function useUserEmail(): string | null {
-  const { user } = useSupabaseAuth();
+  const { user } = useEnhancedAuth();
   return user?.email || null;
 }
 
 export function useUserFullName(): string | null {
-  const { user } = useSupabaseAuth();
+  const { user } = useEnhancedAuth();
   return user?.full_name || null;
 }
 
 // Verification status hooks
 export function useIsEmailVerified(): boolean {
-  const { user } = useSupabaseAuth();
+  const { user } = useEnhancedAuth();
   return user?.email_verified || false;
 }
 
 export function useIsPhoneVerified(): boolean {
-  const { user } = useSupabaseAuth();
+  const { user } = useEnhancedAuth();
   return user?.phone_verified || false;
 }
 
 // Account status hooks
 export function useIsAccountActive(): boolean {
-  const { user } = useSupabaseAuth();
+  const { user } = useEnhancedAuth();
   return user?.is_active || false;
 }
 

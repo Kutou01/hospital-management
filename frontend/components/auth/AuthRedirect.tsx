@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSupabaseAuth } from '@/lib/hooks/useSupabaseAuth';
+import { useEnhancedAuth } from '@/lib/auth/enhanced-auth-context';
 
 interface AuthRedirectProps {
   expectedRole?: 'admin' | 'doctor' | 'patient';
@@ -14,12 +14,12 @@ interface AuthRedirectProps {
  * Component to handle authentication-based redirects
  * This component ensures proper redirect after login/registration
  */
-export function AuthRedirect({ 
-  expectedRole, 
-  redirectTo, 
-  fallbackPath = '/auth/login' 
+export function AuthRedirect({
+  expectedRole,
+  redirectTo,
+  fallbackPath = '/auth/login'
 }: AuthRedirectProps) {
-  const { user, loading } = useSupabaseAuth();
+  const { user, loading } = useEnhancedAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -80,7 +80,7 @@ export function AuthRedirect({
  * Hook for programmatic redirects after authentication
  */
 export function useAuthRedirect() {
-  const { user, loading } = useSupabaseAuth();
+  const { user, loading } = useEnhancedAuth();
   const router = useRouter();
 
   const redirectToDashboard = async (role?: string) => {

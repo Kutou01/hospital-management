@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { useSupabaseAuth } from "@/lib/hooks/useSupabaseAuth"
+import { useEnhancedAuth } from "@/lib/auth/enhanced-auth-context"
 import { Button } from "@/components/ui/button"
 import { Stethoscope, LogOut, Loader2 } from "lucide-react"
 
@@ -12,7 +12,7 @@ export default function DoctorLayout({
   children: React.ReactNode
 }) {
   const router = useRouter()
-  const { user, loading, signOut } = useSupabaseAuth()
+  const { user, loading, signOut } = useEnhancedAuth()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   useEffect(() => {

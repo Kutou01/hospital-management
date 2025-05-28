@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useSupabaseAuth } from '@/lib/hooks/useSupabaseAuth';
+import { useEnhancedAuth } from '@/lib/auth/enhanced-auth-context';
 import { SidebarItem } from '@/components/shared-components';
 import { UserMenu } from './UserMenu';
 import {
@@ -30,7 +30,7 @@ export const PatientLayout: React.FC<PatientLayoutProps> = ({
   title,
   activePage,
 }) => {
-  const { user, signOut } = useSupabaseAuth();
+  const { user, signOut } = useEnhancedAuth();
   const logout = () => signOut();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 

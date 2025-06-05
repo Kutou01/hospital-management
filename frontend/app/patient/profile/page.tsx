@@ -21,7 +21,7 @@ import {
   CheckCircle,
   Star
 } from "lucide-react"
-import { PatientLayout } from "@/components/layout/PatientLayout"
+import { RoleBasedLayout } from "@/components/layout/RoleBasedLayout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -295,30 +295,30 @@ export default function PatientProfile() {
 
   if (loading) {
     return (
-      <PatientLayout title="My Profile" activePage="profile">
+      <RoleBasedLayout>
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
-      </PatientLayout>
+      </RoleBasedLayout>
     )
   }
 
   if (!user || user.role !== 'patient') {
     return (
-      <PatientLayout title="My Profile" activePage="profile">
+      <RoleBasedLayout>
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
             <p className="text-gray-600">Access denied. Patient role required.</p>
           </div>
         </div>
-      </PatientLayout>
+      </RoleBasedLayout>
     )
   }
 
   if (bookingSuccess) {
     return (
-      <PatientLayout title="Booking Success" activePage="profile">
+      <RoleBasedLayout>
         <div className="max-w-2xl mx-auto text-center py-12">
           <Card className="shadow-lg">
             <CardContent className="p-8">
@@ -368,12 +368,12 @@ export default function PatientProfile() {
             </CardContent>
           </Card>
         </div>
-      </PatientLayout>
+      </RoleBasedLayout>
     )
   }
 
   return (
-    <PatientLayout title="My Profile" activePage="profile">
+    <RoleBasedLayout>
       {/* Tabs */}
       <div className="mb-6">
         <div className="border-b border-gray-200">
@@ -908,6 +908,6 @@ export default function PatientProfile() {
           )}
         </div>
       )}
-    </PatientLayout>
+    </RoleBasedLayout>
   )
 }

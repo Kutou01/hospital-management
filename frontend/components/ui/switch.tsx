@@ -2,8 +2,7 @@
 
 import * as React from "react"
 import * as SwitchPrimitive from "@radix-ui/react-switch"
-
-// import { cn } from "@/lib/utils"\nconst cn = (...classes: string[]) => classes.filter(Boolean).join(' ');
+import { cn } from "@/lib/utils"
 
 function Switch({
   className,

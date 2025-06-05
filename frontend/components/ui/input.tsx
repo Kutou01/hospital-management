@@ -1,6 +1,5 @@
 import * as React from "react"
-
-// import { cn } from "@/lib/utils"\nconst cn = (...classes: string[]) => classes.filter(Boolean).join(' ');
+import { cn } from "@/lib/utils"
 
 function Input({ className, type, ...props }: React.ComponentProps<"input">) {
   return (

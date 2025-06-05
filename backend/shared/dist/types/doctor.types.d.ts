@@ -4,7 +4,7 @@ export interface Doctor extends BaseEntity {
     full_name: string;
     specialty: string;
     qualification: string;
-    schedule: string;
+    working_hours: string;
     department_id: string;
     license_number: string;
     gender: string;
@@ -17,7 +17,7 @@ export interface CreateDoctorRequest {
     full_name: string;
     specialty: string;
     qualification: string;
-    schedule: string;
+    working_hours: string;
     department_id: string;
     license_number: string;
     gender: string;
@@ -30,7 +30,7 @@ export interface UpdateDoctorRequest {
     full_name?: string;
     specialty?: string;
     qualification?: string;
-    schedule?: string;
+    working_hours?: string;
     department_id?: string;
     license_number?: string;
     gender?: string;

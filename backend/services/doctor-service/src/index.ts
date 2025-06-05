@@ -4,6 +4,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import logger from '@hospital/shared/src/utils/logger';
+import doctorRoutes from './routes/doctor.routes';
 
 // Load environment variables
 dotenv.config();
@@ -29,14 +30,8 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Basic doctors endpoint
-app.get('/doctors', (req, res) => {
-  res.json({
-    message: 'Doctor service is running',
-    doctors: [],
-    timestamp: new Date().toISOString(),
-  });
-});
+// API Routes
+app.use('/api/doctors', doctorRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {

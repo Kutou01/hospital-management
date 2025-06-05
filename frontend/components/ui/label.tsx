@@ -2,8 +2,7 @@
 
 import * as React from "react"
 import * as LabelPrimitive from "@radix-ui/react-label"
-
-// import { cn } from "@/lib/utils"\nconst cn = (...classes: string[]) => classes.filter(Boolean).join(' ');
+import { cn } from "@/lib/utils"
 
 function Label({
   className,

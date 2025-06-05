@@ -5,6 +5,7 @@ import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ToastProvider } from "@/components/ui/toast-provider";
 import { EnhancedAuthProvider } from "@/lib/auth/enhanced-auth-context";
+import { EnumProvider } from "@/lib/contexts/EnumContext";
 
 // Khởi tạo font Inter với subset Latin
 const inter = Inter({ subsets: ["latin"] });
@@ -40,10 +41,13 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
           {/* EnhancedAuthProvider để cung cấp context xác thực cho toàn bộ ứng dụng */}
           <EnhancedAuthProvider>
-            {/* ToastProvider để hiển thị các thông báo toast */}
-            <ToastProvider>
-              {children} {/* Đây là nơi nội dung của các trang và layout con sẽ được render */}
-            </ToastProvider>
+            {/* EnumProvider để cung cấp context enum động cho toàn bộ ứng dụng */}
+            <EnumProvider>
+              {/* ToastProvider để hiển thị các thông báo toast */}
+              <ToastProvider>
+                {children} {/* Đây là nơi nội dung của các trang và layout con sẽ được render */}
+              </ToastProvider>
+            </EnumProvider>
           </EnhancedAuthProvider>
         </ThemeProvider>
       </body>

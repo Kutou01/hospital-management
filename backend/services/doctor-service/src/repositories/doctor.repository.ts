@@ -149,7 +149,7 @@ export class DoctorRepository {
         full_name: doctorData.full_name,
         specialty: doctorData.specialty,
         qualification: doctorData.qualification,
-        schedule: doctorData.schedule,
+        working_hours: doctorData.working_hours,
         department_id: doctorData.department_id,
         license_number: doctorData.license_number,
         gender: doctorData.gender,

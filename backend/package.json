@@ -26,7 +26,6 @@
     "build:services": "npm run build:core && npm run build:extended",
     "build:core": "npm run build:doctor && npm run build:patient && npm run build:appointment",
     "build:extended": "npm run build:medical-records && npm run build:prescription && npm run build:billing && npm run build:notification",
-
     "build:doctor": "cd services/doctor-service && npm run build",
     "build:patient": "cd services/patient-service && npm run build",
     "build:appointment": "cd services/appointment-service && npm run build",
@@ -71,8 +70,12 @@
     "format": "prettier --write \"**/*.{js,ts,json,md}\"",
     "health-check": "node scripts/health-check.js",
     "cleanup:incomplete-users": "node scripts/cleanup-incomplete-users.js",
+    "db:check": "node scripts/check-database-status.js",
+    "db:setup": "node scripts/run-database-setup.js",
+    "db:setup-foreign-keys": "echo 'Run add-foreign-keys.sql in Supabase SQL Editor'",
+    "db:setup-rls": "echo 'Run setup-rls-policies.sql and setup-rls-policies-part2.sql in Supabase SQL Editor'",
+    "db:setup-indexes": "echo 'Run add-performance-indexes.sql in Supabase SQL Editor'",
     "logs": "docker-compose logs -f",
-
     "logs:doctor": "docker-compose logs -f doctor-service",
     "logs:patient": "docker-compose logs -f patient-service",
     "logs:appointment": "docker-compose logs -f appointment-service"
@@ -96,7 +99,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.49.8",
     "axios": "^1.9.0",
-    "dotenv": "^16.3.0"
+    "dotenv": "^16.5.0"
   },
   "engines": {
     "node": ">=18.0.0",

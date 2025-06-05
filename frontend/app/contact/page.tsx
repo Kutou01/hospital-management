@@ -4,12 +4,11 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { sendContactEmail, type ContactFormData } from '@/lib/emailjs';
-import { useToast } from '@/hooks/use-toast';
-import { Toaster } from '@/components/ui/toaster';
+import { useToast } from '@/components/ui/toast-provider';
 import { Loader2 } from 'lucide-react';
 
 export default function ContactPage() {
-  const { toast } = useToast();
+  const { showToast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [formData, setFormData] = useState({
@@ -23,82 +22,58 @@ export default function ContactPage() {
   // Form validation
   const validateForm = () => {
     if (!formData.from_name.trim()) {
-      toast({
-        variant: "destructive",
-        title: "Lỗi!",
-        description: "Vui lòng nhập họ tên"
-      });
+      showToast("Lỗi!", "Vui lòng nhập họ tên", "error");
       return false;
     }
-    
+
     if (!formData.phone.trim()) {
-      toast({
-        variant: "destructive", 
-        title: "Lỗi!",
-        description: "Vui lòng nhập số điện thoại"
-      });
+      showToast("Lỗi!", "Vui lòng nhập số điện thoại", "error");
       return false;
     }
-    
+
     if (!formData.from_email.trim()) {
-      toast({
-        variant: "destructive",
-        title: "Lỗi!",
-        description: "Vui lòng nhập email"
-      });
+      showToast("Lỗi!", "Vui lòng nhập email", "error");
       return false;
     }
-    
+
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.from_email)) {
-      toast({
-        variant: "destructive",
-        title: "Lỗi!",
-        description: "Email không hợp lệ"
-      });
+      showToast("Lỗi!", "Email không hợp lệ", "error");
       return false;
     }
-    
+
     if (!formData.message.trim()) {
-      toast({
-        variant: "destructive",
-        title: "Lỗi!",
-        description: "Vui lòng nhập tin nhắn"
-      });
+      showToast("Lỗi!", "Vui lòng nhập tin nhắn", "error");
       return false;
     }
-    
+
     return true;
   };
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
-    
+
     setIsLoading(true);
-    
+
     try {
       const emailData: ContactFormData = {
         ...formData,
         subject: formData.subject || 'Liên hệ từ website bệnh viện',
         sent_time: new Date().toISOString()
       };
-      
+
       const result = await sendContactEmail(emailData);
-      
+
       if (result.success) {
         // Hiển thị popup thành công
         setShowSuccessPopup(true);
-        
-        toast({
-          variant: "success",
-          title: "Thành công! 🎉",
-          description: "Tin nhắn đã được gửi. Chúng tôi sẽ liên hệ với bạn sớm nhất!"
-        });
-        
+
+        showToast("Thành công! 🎉", "Tin nhắn đã được gửi. Chúng tôi sẽ liên hệ với bạn sớm nhất!", "success");
+
         // Reset form
         setFormData({
           from_name: '',
@@ -112,11 +87,7 @@ export default function ContactPage() {
       }
     } catch (error) {
       console.error('Send error:', error);
-      toast({
-        variant: "destructive",
-        title: "Lỗi!",
-        description: "Không thể gửi tin nhắn. Vui lòng thử lại sau."
-      });
+      showToast("Lỗi!", "Không thể gửi tin nhắn. Vui lòng thử lại sau.", "error");
     } finally {
       setIsLoading(false);
     }
@@ -188,7 +159,7 @@ export default function ContactPage() {
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-5xl font-bold mb-6">Liên hệ với chúng tôi</h1>
           <p className="text-xl text-blue-100 max-w-3xl mx-auto leading-relaxed">
-            Chúng tôi luôn sẵn sàng hỗ trợ và tư vấn cho bạn. Đội ngũ chuyên gia y tế của chúng tôi 
+            Chúng tôi luôn sẵn sàng hỗ trợ và tư vấn cho bạn. Đội ngũ chuyên gia y tế của chúng tôi
             cam kết mang đến dịch vụ chăm sóc sức khỏe tốt nhất.
           </p>
         </div>
@@ -260,7 +231,7 @@ export default function ContactPage() {
                 <h2 className="text-2xl font-bold text-gray-800 mb-3">Gửi tin nhắn cho chúng tôi</h2>
                 <p className="text-gray-600 text-sm">Điền thông tin dưới đây và chúng tôi sẽ liên hệ với bạn trong thời gian sớm nhất.</p>
               </div>
-              
+
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -307,7 +278,7 @@ export default function ContactPage() {
 
                 <div>
                   <label className="block text-gray-700 font-medium mb-2">Chủ đề</label>
-                  <select 
+                  <select
                     name="subject"
                     value={formData.subject}
                     onChange={handleInputChange}
@@ -366,13 +337,13 @@ export default function ContactPage() {
                   <p className="text-gray-600 text-sm mt-1">268 Tô Hiến Thành, P.15, Quận 10</p>
                 </div>
                 <div className="relative flex-1">
-                  <iframe 
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3918.918941142478!2d106.67808657451768!3d10.817515158435537!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x317528e2324759b7%3A0x6c91974ff86f05e3!2zQuG7h25oIHZp4buHbiBRdcOibiBZIDE3NQ!5e0!3m2!1svi!2s!4v1748424170558!5m2!1svi!2s" 
-                    width="100%" 
-                    height="350" 
-                    style={{border: 0}} 
+                  <iframe
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3918.918941142478!2d106.67808657451768!3d10.817515158435537!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x317528e2324759b7%3A0x6c91974ff86f05e3!2zQuG7h25oIHZp4buHbiBRdcOibiBZIDE3NQ!5e0!3m2!1svi!2s!4v1748424170558!5m2!1svi!2s"
+                    width="100%"
+                    height="350"
+                    style={{border: 0}}
                     allowFullScreen={true}
-                    loading="lazy" 
+                    loading="lazy"
                     referrerPolicy="no-referrer-when-downgrade"
                     className="w-full"
                   />
@@ -427,7 +398,7 @@ export default function ContactPage() {
                 <h4 className="font-bold text-gray-800 text-sm">BV Chợ Rẫy</h4>
                 <p className="text-xs text-gray-600 mt-1">TP.HCM</p>
               </div>
-              
+
               <div className="bg-gradient-to-br from-teal-50 to-teal-100 p-6 rounded-xl hover:shadow-lg transition-all duration-300 text-center">
                 <div className="w-16 h-16 bg-teal-600 text-white rounded-full flex items-center justify-center mx-auto mb-4">
                   <i className="fas fa-user-md text-2xl"></i>
@@ -435,7 +406,7 @@ export default function ContactPage() {
                 <h4 className="font-bold text-gray-800 text-sm">BV 108</h4>
                 <p className="text-xs text-gray-600 mt-1">Hà Nội</p>
               </div>
-              
+
               <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-6 rounded-xl hover:shadow-lg transition-all duration-300 text-center">
                 <div className="w-16 h-16 bg-orange-600 text-white rounded-full flex items-center justify-center mx-auto mb-4">
                   <i className="fas fa-heartbeat text-2xl"></i>
@@ -443,7 +414,7 @@ export default function ContactPage() {
                 <h4 className="font-bold text-gray-800 text-sm">BV Bình Dân</h4>
                 <p className="text-xs text-gray-600 mt-1">TP.HCM</p>
               </div>
-              
+
               <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 p-6 rounded-xl hover:shadow-lg transition-all duration-300 text-center">
                 <div className="w-16 h-16 bg-cyan-600 text-white rounded-full flex items-center justify-center mx-auto mb-4">
                   <i className="fas fa-stethoscope text-2xl"></i>
@@ -465,7 +436,7 @@ export default function ContactPage() {
                 <h4 className="font-bold text-gray-800 text-sm">Microsoft</h4>
                 <p className="text-xs text-gray-600 mt-1">Cloud Healthcare</p>
               </div>
-              
+
               <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 p-6 rounded-xl hover:shadow-lg transition-all duration-300 text-center">
                 <div className="w-16 h-16 bg-yellow-600 text-white rounded-full flex items-center justify-center mx-auto mb-4">
                   <i className="fab fa-aws text-2xl"></i>
@@ -473,7 +444,7 @@ export default function ContactPage() {
                 <h4 className="font-bold text-gray-800 text-sm">AWS</h4>
                 <p className="text-xs text-gray-600 mt-1">Cloud Infrastructure</p>
               </div>
-              
+
               <div className="bg-gradient-to-br from-red-50 to-red-100 p-6 rounded-xl hover:shadow-lg transition-all duration-300 text-center">
                 <div className="w-16 h-16 bg-red-700 text-white rounded-full flex items-center justify-center mx-auto mb-4">
                   <i className="fas fa-database text-2xl"></i>
@@ -481,7 +452,7 @@ export default function ContactPage() {
                 <h4 className="font-bold text-gray-800 text-sm">Oracle</h4>
                 <p className="text-xs text-gray-600 mt-1">Database Solutions</p>
               </div>
-              
+
               <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl hover:shadow-lg transition-all duration-300 text-center">
                 <div className="w-16 h-16 bg-green-700 text-white rounded-full flex items-center justify-center mx-auto mb-4">
                   <i className="fas fa-shield-virus text-2xl"></i>
@@ -530,7 +501,7 @@ export default function ContactPage() {
                 Đối tác tin cậy trong việc chăm sóc sức khỏe và phúc lợi của bạn.
               </p>
             </div>
-            
+
             <div>
               <h4 className="text-white font-bold mb-4">Dịch vụ</h4>
               <ul className="space-y-2 text-blue-200">
@@ -540,7 +511,7 @@ export default function ContactPage() {
                 <li><a href="#" className="hover:text-white transition">Xét nghiệm</a></li>
               </ul>
             </div>
-            
+
             <div>
               <h4 className="text-white font-bold mb-4">Liên kết</h4>
               <ul className="space-y-2 text-blue-200">
@@ -550,7 +521,7 @@ export default function ContactPage() {
                 <li><Link href="/contact" className="hover:text-white transition">Liên hệ</Link></li>
               </ul>
             </div>
-            
+
             <div>
               <h4 className="text-white font-bold mb-4">Theo dõi chúng tôi</h4>
               <div className="flex space-x-4">
@@ -569,15 +540,13 @@ export default function ContactPage() {
               </div>
             </div>
           </div>
-          
+
           <div className="border-t border-blue-800 mt-8 pt-8 text-center text-blue-200">
             <p>&copy; 2024 Hospital Management System. All rights reserved.</p>
           </div>
         </div>
       </footer>
 
-      {/* Toast Container */}
-      <Toaster />
     </div>
   );
 }

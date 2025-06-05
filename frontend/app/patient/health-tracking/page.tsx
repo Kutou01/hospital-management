@@ -15,7 +15,7 @@ import {
   CheckCircle,
   Eye
 } from "lucide-react"
-import { PatientLayout } from "@/components/layout/PatientLayout"
+import { RoleBasedLayout } from "@/components/layout/RoleBasedLayout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -198,29 +198,29 @@ export default function PatientHealthTracking() {
 
   if (loading) {
     return (
-      <PatientLayout title="Health Tracking" activePage="health-tracking">
+      <RoleBasedLayout>
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
-      </PatientLayout>
+      </RoleBasedLayout>
     )
   }
 
   if (!user || user.role !== 'patient') {
     return (
-      <PatientLayout title="Health Tracking" activePage="health-tracking">
+      <RoleBasedLayout>
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
             <p className="text-gray-600">Access denied. Patient role required.</p>
           </div>
         </div>
-      </PatientLayout>
+      </RoleBasedLayout>
     )
   }
 
   return (
-    <PatientLayout title="Health Tracking" activePage="health-tracking">
+    <RoleBasedLayout>
       {/* Header */}
       <div className="mb-6">
         <div className="flex justify-between items-center mb-4">
@@ -453,6 +453,6 @@ export default function PatientHealthTracking() {
           </CardContent>
         </Card>
       </div>
-    </PatientLayout>
+    </RoleBasedLayout>
   )
 }

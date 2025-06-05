@@ -151,14 +151,18 @@ export default function DoctorsPage() {
 
       if (error) {
         // Handle specific errors
-        if (error.code === '23505' && error.details?.includes('license_number')) {
-          setErrorMessage("License number already exists")
-        } else if (error.code === '23503' && error.details?.includes('department_id')) {
-          setErrorMessage("Invalid department selected")
-        } else if (error.code === '23514' && error.details?.includes('doctors_doctor_id_check')) {
-          setErrorMessage("Invalid doctor ID format. It must be 'DOC' followed by 6 digits.")
+        if (typeof error === 'object' && 'code' in error) {
+          if (error.code === '23505' && error.details?.includes('license_number')) {
+            setErrorMessage("License number already exists")
+          } else if (error.code === '23503' && error.details?.includes('department_id')) {
+            setErrorMessage("Invalid department selected")
+          } else if (error.code === '23514' && error.details?.includes('doctors_doctor_id_check')) {
+            setErrorMessage("Invalid doctor ID format. It must be 'DOC' followed by 6 digits.")
+          } else {
+            setErrorMessage(`Error adding doctor: ${error.message || String(error)}`)
+          }
         } else {
-          setErrorMessage(`Error adding doctor: ${error.message}`)
+          setErrorMessage(`Error adding doctor: ${String(error)}`)
         }
         return // Don't close dialog or reset form on error
       }
@@ -277,14 +281,18 @@ export default function DoctorsPage() {
 
         if (error) {
           // Handle specific errors
-          if (error.code === '23505' && error.details?.includes('license_number')) {
-            setEditErrorMessage("License number already exists")
-          } else if (error.code === '23503' && error.details?.includes('department_id')) {
-            setEditErrorMessage("Invalid department selected")
-          } else if (error.code === '23514' && error.details?.includes('doctors_doctor_id_check')) {
-            setEditErrorMessage("Invalid doctor ID format. It must be 'DOC' followed by 6 digits.")
+          if (typeof error === 'object' && 'code' in error) {
+            if (error.code === '23505' && error.details?.includes('license_number')) {
+              setEditErrorMessage("License number already exists")
+            } else if (error.code === '23503' && error.details?.includes('department_id')) {
+              setEditErrorMessage("Invalid department selected")
+            } else if (error.code === '23514' && error.details?.includes('doctors_doctor_id_check')) {
+              setEditErrorMessage("Invalid doctor ID format. It must be 'DOC' followed by 6 digits.")
+            } else {
+              setEditErrorMessage(`Error updating doctor: ${error.message || String(error)}`)
+            }
           } else {
-            setEditErrorMessage(`Error updating doctor: ${error.message}`)
+            setEditErrorMessage(`Error updating doctor: ${String(error)}`)
           }
           return // Don't close dialog or reset form on error
         }

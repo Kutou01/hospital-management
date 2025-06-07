@@ -71,4 +71,144 @@ export interface DoctorStats {
     average_rating?: number;
     total_patients: number;
 }
+export interface DoctorSchedule {
+    schedule_id: string;
+    doctor_id: string;
+    day_of_week: number;
+    start_time: string;
+    end_time: string;
+    is_available: boolean;
+    break_start?: string;
+    break_end?: string;
+    max_appointments?: number;
+    slot_duration?: number;
+    created_at: Date;
+    updated_at: Date;
+}
+export interface CreateScheduleRequest {
+    doctor_id: string;
+    day_of_week: number;
+    start_time: string;
+    end_time: string;
+    is_available: boolean;
+    break_start?: string;
+    break_end?: string;
+    max_appointments?: number;
+    slot_duration?: number;
+}
+export interface UpdateScheduleRequest {
+    day_of_week?: number;
+    start_time?: string;
+    end_time?: string;
+    is_available?: boolean;
+    break_start?: string;
+    break_end?: string;
+    max_appointments?: number;
+    slot_duration?: number;
+}
+export interface DoctorReview {
+    review_id: string;
+    doctor_id: string;
+    patient_id: string;
+    appointment_id?: string;
+    rating: number;
+    review_text?: string;
+    review_date: Date;
+    is_anonymous: boolean;
+    is_verified: boolean;
+    helpful_count: number;
+    created_at: Date;
+    updated_at: Date;
+}
+export interface CreateReviewRequest {
+    doctor_id: string;
+    patient_id: string;
+    appointment_id?: string;
+    rating: number;
+    review_text?: string;
+    is_anonymous?: boolean;
+}
+export interface ReviewStats {
+    total_reviews: number;
+    average_rating: number;
+    rating_distribution: {
+        five_star: number;
+        four_star: number;
+        three_star: number;
+        two_star: number;
+        one_star: number;
+    };
+    recent_reviews: DoctorReview[];
+}
+export interface DoctorShift {
+    shift_id: string;
+    doctor_id: string;
+    shift_type: 'morning' | 'afternoon' | 'night' | 'emergency';
+    shift_date: Date;
+    start_time: string;
+    end_time: string;
+    department_id: string;
+    status: 'scheduled' | 'confirmed' | 'completed' | 'cancelled';
+    is_emergency_shift: boolean;
+    notes?: string;
+    created_at: Date;
+    updated_at: Date;
+}
+export interface CreateShiftRequest {
+    doctor_id: string;
+    shift_type: 'morning' | 'afternoon' | 'night' | 'emergency';
+    shift_date: Date;
+    start_time: string;
+    end_time: string;
+    department_id: string;
+    is_emergency_shift?: boolean;
+    notes?: string;
+}
+export interface UpdateShiftRequest {
+    shift_type?: 'morning' | 'afternoon' | 'night' | 'emergency';
+    shift_date?: Date;
+    start_time?: string;
+    end_time?: string;
+    department_id?: string;
+    status?: 'scheduled' | 'confirmed' | 'completed' | 'cancelled';
+    is_emergency_shift?: boolean;
+    notes?: string;
+}
+export interface DoctorExperience {
+    experience_id: string;
+    doctor_id: string;
+    institution_name: string;
+    position: string;
+    start_date: Date;
+    end_date?: Date;
+    is_current: boolean;
+    description?: string;
+    experience_type: 'work' | 'education' | 'certification' | 'research';
+    created_at: Date;
+    updated_at: Date;
+}
+export interface CreateExperienceRequest {
+    doctor_id: string;
+    institution_name: string;
+    position: string;
+    start_date: Date;
+    end_date?: Date;
+    is_current?: boolean;
+    description?: string;
+    experience_type: 'work' | 'education' | 'certification' | 'research';
+}
+export interface DoctorProfile extends Doctor {
+    bio?: string;
+    experience_years?: number;
+    consultation_fee?: number;
+    languages_spoken?: string[];
+    certifications?: string[];
+    awards?: string[];
+    research_interests?: string[];
+    schedule?: DoctorSchedule[];
+    reviews?: DoctorReview[];
+    review_stats?: ReviewStats;
+    experiences?: DoctorExperience[];
+    current_shifts?: DoctorShift[];
+}
 //# sourceMappingURL=doctor.types.d.ts.map

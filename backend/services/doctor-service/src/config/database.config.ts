@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import logger from '@hospital/shared/src/utils/logger';
+import logger from '@hospital/shared/dist/utils/logger';
 
 let supabaseClient: SupabaseClient | null = null;
 

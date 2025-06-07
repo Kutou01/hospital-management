@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import {
   Calendar,
   Users,
@@ -25,18 +26,86 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useEnhancedAuth } from "@/lib/auth/enhanced-auth-context"
+import { doctorsApi } from "@/lib/api/doctors"
+import { appointmentsApi } from "@/lib/api/appointments"
+import { patientsApi } from "@/lib/api/patients"
+import { toast } from "sonner"
+import "@/lib/auth/debug-auth" // Import debug functions
+
+interface DashboardStats {
+  totalPatients: number
+  todayAppointments: number
+  upcomingAppointments: number
+  completedAppointments: number
+  averageRating: number
+  totalReviews: number
+}
+
+interface RecentAppointment {
+  id: string
+  patient_name: string
+  appointment_date: string
+  start_time: string
+  appointment_type: string
+  status: string
+}
 
 export default function DoctorDashboard() {
   const { user, loading } = useEnhancedAuth()
+  const router = useRouter()
   const [currentDate, setCurrentDate] = useState("")
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats>({
+    totalPatients: 0,
+    todayAppointments: 0,
+    upcomingAppointments: 0,
+    completedAppointments: 0,
+    averageRating: 0,
+    totalReviews: 0
+  })
+  const [recentAppointments, setRecentAppointments] = useState<RecentAppointment[]>([])
+  const [isLoadingStats, setIsLoadingStats] = useState(true)
 
   // Debug logs
   console.log('🏥 [DoctorDashboard] Render state:', {
     user,
     loading,
     userRole: user?.role,
-    hasUser: !!user
+    hasUser: !!user,
+    userEmail: user?.email,
+    userFullName: user?.full_name,
+    timestamp: new Date().toISOString()
   })
+
+  // Additional debug for authentication and handle redirect
+  useEffect(() => {
+    console.log('🏥 [DoctorDashboard] Auth state changed:', {
+      loading,
+      user,
+      isAuthenticated: !!user,
+      role: user?.role
+    })
+
+    // Handle redirect when auth state is determined
+    if (!loading) {
+      if (!user) {
+        console.log('🏥 [DoctorDashboard] No user found, redirecting to login')
+        router.replace('/auth/login')
+      } else if (user.role !== 'doctor') {
+        console.log(`🏥 [DoctorDashboard] Wrong role (${user.role}), redirecting to appropriate dashboard`)
+        // Redirect to appropriate dashboard based on role
+        switch (user.role) {
+          case 'admin':
+            router.replace('/admin/dashboard')
+            break
+          case 'patient':
+            router.replace('/patient/dashboard')
+            break
+          default:
+            router.replace('/auth/login')
+        }
+      }
+    }
+  }, [user, loading, router])
 
   useEffect(() => {
     const today = new Date()
@@ -47,6 +116,88 @@ export default function DoctorDashboard() {
       day: 'numeric'
     }))
   }, [])
+
+  // Fetch dashboard data when user is available
+  useEffect(() => {
+    if (user && user.role === 'doctor') {
+      fetchDashboardData()
+    }
+  }, [user])
+
+  const fetchDashboardData = async () => {
+    if (!user?.doctor_id) {
+      console.log('No doctor_id found for user:', user)
+      setIsLoadingStats(false)
+      return
+    }
+
+    try {
+      setIsLoadingStats(true)
+
+      // Fetch doctor's appointments
+      const appointmentsResponse = await doctorsApi.getAppointments(user.doctor_id)
+
+      // Fetch doctor's patients
+      const patientsResponse = await patientsApi.getAll({ doctor_id: user.doctor_id })
+
+      // Fetch doctor's review stats
+      const reviewStatsResponse = await doctorsApi.getReviewStats(user.doctor_id)
+
+      if (appointmentsResponse.success && appointmentsResponse.data) {
+        const appointments = appointmentsResponse.data
+        const today = new Date().toISOString().split('T')[0]
+
+        // Calculate stats from appointments
+        const todayAppts = appointments.filter(apt =>
+          apt.appointment_date === today
+        )
+        const upcomingAppts = appointments.filter(apt =>
+          new Date(apt.appointment_date) > new Date() && apt.status !== 'cancelled'
+        )
+        const completedAppts = appointments.filter(apt =>
+          apt.status === 'completed'
+        )
+
+        // Set recent appointments (today's appointments)
+        setRecentAppointments(todayAppts.slice(0, 4).map(apt => ({
+          id: apt.appointment_id,
+          patient_name: apt.patient_name || 'Unknown Patient',
+          appointment_date: apt.appointment_date,
+          start_time: apt.start_time,
+          appointment_type: apt.appointment_type || 'General',
+          status: apt.status
+        })))
+
+        setDashboardStats(prev => ({
+          ...prev,
+          todayAppointments: todayAppts.length,
+          upcomingAppointments: upcomingAppts.length,
+          completedAppointments: completedAppts.length
+        }))
+      }
+
+      if (patientsResponse.success && patientsResponse.data) {
+        setDashboardStats(prev => ({
+          ...prev,
+          totalPatients: patientsResponse.data.length
+        }))
+      }
+
+      if (reviewStatsResponse.success && reviewStatsResponse.data) {
+        setDashboardStats(prev => ({
+          ...prev,
+          averageRating: reviewStatsResponse.data.average_rating || 0,
+          totalReviews: reviewStatsResponse.data.total_reviews || 0
+        }))
+      }
+
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error)
+      toast.error('Không thể tải dữ liệu dashboard')
+    } finally {
+      setIsLoadingStats(false)
+    }
+  }
 
   // Show loading state while user data is being fetched
   if (loading) {
@@ -59,79 +210,53 @@ export default function DoctorDashboard() {
     )
   }
 
-  // Redirect if not authenticated or not a doctor
+  // Enhanced debug and redirect logic
+  console.log('🏥 [DoctorDashboard] Access check:', {
+    hasUser: !!user,
+    userRole: user?.role,
+    isDoctor: user?.role === 'doctor',
+    loading
+  })
+
+  // Don't render anything if redirecting or wrong role
   if (!user || user.role !== 'doctor') {
     return (
       <DoctorLayout title="Doctor Dashboard" activePage="dashboard">
         <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <p className="text-gray-600">Access denied. Doctor role required.</p>
-          </div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
         </div>
       </DoctorLayout>
     )
   }
 
-  // Mock data cho doctor dashboard
-  const todayAppointments = [
-    {
-      id: "1",
-      time: "09:00",
-      patient: "Nguyễn Văn A",
-      type: "Khám tổng quát",
-      status: "confirmed"
-    },
-    {
-      id: "2",
-      time: "10:30",
-      patient: "Trần Thị B",
-      type: "Tái khám",
-      status: "confirmed"
-    },
-    {
-      id: "3",
-      time: "14:00",
-      patient: "Lê Văn C",
-      type: "Khám chuyên khoa",
-      status: "pending"
-    },
-    {
-      id: "4",
-      time: "15:30",
-      patient: "Phạm Thị D",
-      type: "Khám tổng quát",
-      status: "confirmed"
-    }
-  ]
-
+  // Mock data for recent activities (can be replaced with real data later)
   const recentActivities = [
     {
       id: "1",
       type: "appointment" as const,
       title: "Completed appointment",
-      description: "Khám tổng quát cho bệnh nhân Nguyễn Văn A",
+      description: "Khám tổng quát cho bệnh nhân",
       time: "2 hours ago",
       status: "completed" as const,
-      initials: "NVA"
+      initials: "PT"
     },
     {
       id: "2",
       type: "patient" as const,
       title: "New patient registered",
-      description: "Trần Thị B đã đăng ký khám",
+      description: "Bệnh nhân mới đã đăng ký khám",
       time: "4 hours ago",
       status: "pending" as const,
-      initials: "TTB"
+      initials: "NP"
     },
     {
       id: "3",
       type: "report" as const,
       title: "Lab results available",
-      description: "Kết quả xét nghiệm cho Lê Văn C",
+      description: "Kết quả xét nghiệm đã có",
       time: "1 day ago",
       status: "completed" as const,
-      initials: "LVC"
+      initials: "LR"
     }
   ]
 
@@ -162,6 +287,12 @@ export default function DoctorDashboard() {
           <Button size="sm">
             <Users className="h-4 w-4 mr-2" />
             My Patients
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <a href="/session-test" target="_blank">
+              <TestTube className="h-4 w-4 mr-2" />
+              Test Session
+            </a>
           </Button>
         </div>
       }
@@ -194,7 +325,11 @@ export default function DoctorDashboard() {
               <div>
                 <h3 className="text-sm font-semibold text-green-800">Professional Status: Active</h3>
                 <p className="text-sm text-green-700">
-                  You have 4 appointments scheduled for today. Ready to provide excellent care!
+                  {isLoadingStats ? (
+                    "Loading appointment information..."
+                  ) : (
+                    `You have ${dashboardStats.todayAppointments} appointments scheduled for today. Ready to provide excellent care!`
+                  )}
                 </p>
               </div>
             </div>
@@ -208,10 +343,14 @@ export default function DoctorDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-blue-600">Today's Appointments</p>
-                  <p className="text-3xl font-bold text-blue-900">{todayAppointments.length}</p>
+                  {isLoadingStats ? (
+                    <div className="animate-pulse bg-blue-200 h-8 w-16 rounded mt-1"></div>
+                  ) : (
+                    <p className="text-3xl font-bold text-blue-900">{dashboardStats.todayAppointments}</p>
+                  )}
                   <p className="text-xs text-blue-700 mt-1 flex items-center gap-1">
-                    <TrendingUp className="h-3 w-3" />
-                    +12% from yesterday
+                    <Calendar className="h-3 w-3" />
+                    Scheduled for today
                   </p>
                 </div>
                 <div className="p-3 bg-blue-200 rounded-full">
@@ -226,10 +365,14 @@ export default function DoctorDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-green-600">Total Patients</p>
-                  <p className="text-3xl font-bold text-green-900">156</p>
+                  {isLoadingStats ? (
+                    <div className="animate-pulse bg-green-200 h-8 w-16 rounded mt-1"></div>
+                  ) : (
+                    <p className="text-3xl font-bold text-green-900">{dashboardStats.totalPatients}</p>
+                  )}
                   <p className="text-xs text-green-700 mt-1 flex items-center gap-1">
-                    <TrendingUp className="h-3 w-3" />
-                    +8% this month
+                    <Users className="h-3 w-3" />
+                    Under your care
                   </p>
                 </div>
                 <div className="p-3 bg-green-200 rounded-full">
@@ -243,12 +386,16 @@ export default function DoctorDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-orange-600">Pending Reports</p>
-                  <p className="text-3xl font-bold text-orange-900">8</p>
-                  <p className="text-xs text-orange-700 mt-1">Need review</p>
+                  <p className="text-sm font-medium text-orange-600">Upcoming Appointments</p>
+                  {isLoadingStats ? (
+                    <div className="animate-pulse bg-orange-200 h-8 w-16 rounded mt-1"></div>
+                  ) : (
+                    <p className="text-3xl font-bold text-orange-900">{dashboardStats.upcomingAppointments}</p>
+                  )}
+                  <p className="text-xs text-orange-700 mt-1">Next appointments</p>
                 </div>
                 <div className="p-3 bg-orange-200 rounded-full">
-                  <FileText className="h-6 w-6 text-orange-600" />
+                  <Clock className="h-6 w-6 text-orange-600" />
                 </div>
               </div>
             </CardContent>
@@ -258,11 +405,15 @@ export default function DoctorDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-purple-600">This Week</p>
-                  <p className="text-3xl font-bold text-purple-900">32</p>
+                  <p className="text-sm font-medium text-purple-600">Completed</p>
+                  {isLoadingStats ? (
+                    <div className="animate-pulse bg-purple-200 h-8 w-16 rounded mt-1"></div>
+                  ) : (
+                    <p className="text-3xl font-bold text-purple-900">{dashboardStats.completedAppointments}</p>
+                  )}
                   <p className="text-xs text-purple-700 mt-1 flex items-center gap-1">
-                    <TrendingUp className="h-3 w-3" />
-                    +5% completed
+                    <CheckCircle className="h-3 w-3" />
+                    Total completed
                   </p>
                 </div>
                 <div className="p-3 bg-purple-200 rounded-full">
@@ -288,24 +439,46 @@ export default function DoctorDashboard() {
               </div>
             </CardHeader>
             <CardContent className="p-6">
-              <div className="space-y-4">
-                {todayAppointments.map((appointment) => (
-                  <div key={appointment.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
-                    <div className="flex items-center space-x-4">
-                      <div className="text-center bg-white p-3 rounded-lg shadow-sm">
-                        <div className="text-sm font-semibold text-gray-900">{appointment.time}</div>
+              {isLoadingStats ? (
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                      <div className="flex items-center space-x-4">
+                        <div className="animate-pulse bg-gray-200 h-12 w-16 rounded-lg"></div>
+                        <div>
+                          <div className="animate-pulse bg-gray-200 h-4 w-32 rounded mb-2"></div>
+                          <div className="animate-pulse bg-gray-200 h-3 w-24 rounded"></div>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-semibold text-gray-900">{appointment.patient}</p>
-                        <p className="text-sm text-green-600">{appointment.type}</p>
-                      </div>
+                      <div className="animate-pulse bg-gray-200 h-6 w-20 rounded"></div>
                     </div>
-                    <Badge className={`${getStatusColor(appointment.status)} font-medium`}>
-                      {appointment.status}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : recentAppointments.length > 0 ? (
+                <div className="space-y-4">
+                  {recentAppointments.map((appointment) => (
+                    <div key={appointment.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                      <div className="flex items-center space-x-4">
+                        <div className="text-center bg-white p-3 rounded-lg shadow-sm">
+                          <div className="text-sm font-semibold text-gray-900">{appointment.start_time}</div>
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-900">{appointment.patient_name}</p>
+                          <p className="text-sm text-green-600">{appointment.appointment_type}</p>
+                        </div>
+                      </div>
+                      <Badge className={`${getStatusColor(appointment.status)} font-medium`}>
+                        {appointment.status}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500">No appointments scheduled for today</p>
+                </div>
+              )}
             </CardContent>
           </Card>
 

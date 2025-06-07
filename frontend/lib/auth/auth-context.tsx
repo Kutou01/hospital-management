@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabaseAuth, HospitalUser } from './supabase-auth'
+import { getDashboardPath } from './dashboard-routes'
 
 interface AuthContextType {
   user: HospitalUser | null
@@ -70,9 +71,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (result.user) {
         setUser(result.user)
-        
+
         // Navigate to appropriate dashboard
-        const redirectPath = `/${result.user.role}/dashboard`
+        const redirectPath = getDashboardPath(result.user.role as any)
         router.replace(redirectPath)
       }
     } catch (err) {

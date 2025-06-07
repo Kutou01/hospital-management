@@ -16,6 +16,19 @@ import healthRoutes from './routes/health.routes';
 export function createApp(): express.Application {
   const app = express();
   const serviceRegistry = ServiceRegistry.getInstance();
+  const DOCTOR_ONLY_MODE = process.env.DOCTOR_ONLY_MODE === 'true';
+
+  // Helper function for disabled services
+  const createDisabledServiceHandler = (serviceName: string) => {
+    return (req: express.Request, res: express.Response) => {
+      res.status(503).json({
+        error: 'Service temporarily unavailable',
+        message: `${serviceName} service is disabled in doctor-only mode`,
+        mode: 'doctor-only-development',
+        availableServices: ['doctors']
+      });
+    };
+  };
 
   // Security middleware
   app.use(helmet());
@@ -82,124 +95,105 @@ export function createApp(): express.Application {
     pathRewrite: {
       '^/api/doctors': '/api/doctors',
     },
-    onError: (err, req, res) => {
+    onError: (err: any, req: any, res: any) => {
       console.error('Doctor Service Proxy Error:', err);
       res.status(503).json({ error: 'Doctor service unavailable' });
     },
   }));
 
-  // Patient Service Routes
+  // Patient Service Routes - ENABLED
   app.use('/api/patients', authMiddleware, createProxyMiddleware({
     target: process.env.PATIENT_SERVICE_URL || 'http://patient-service:3003',
     changeOrigin: true,
     pathRewrite: {
       '^/api/patients': '/api/patients',
     },
-    onError: (err, req, res) => {
+    onError: (err: any, req: any, res: any) => {
       console.error('Patient Service Proxy Error:', err);
       res.status(503).json({ error: 'Patient service unavailable' });
     },
   }));
 
-  // Appointment Service Routes
+  // Appointment Service Routes - ENABLED
   app.use('/api/appointments', authMiddleware, createProxyMiddleware({
     target: process.env.APPOINTMENT_SERVICE_URL || 'http://appointment-service:3004',
     changeOrigin: true,
     pathRewrite: {
       '^/api/appointments': '/api/appointments',
     },
-    onError: (err, req, res) => {
+    onError: (err: any, req: any, res: any) => {
       console.error('Appointment Service Proxy Error:', err);
       res.status(503).json({ error: 'Appointment service unavailable' });
     },
   }));
 
-  // Medical Records Service Routes
+  // Medical Records Service Routes - ENABLED
   app.use('/api/medical-records', authMiddleware, createProxyMiddleware({
     target: process.env.MEDICAL_RECORDS_SERVICE_URL || 'http://medical-records-service:3006',
     changeOrigin: true,
     pathRewrite: {
       '^/api/medical-records': '/api/medical-records',
     },
-    onError: (err, req, res) => {
+    onError: (err: any, req: any, res: any) => {
       console.error('Medical Records Service Proxy Error:', err);
       res.status(503).json({ error: 'Medical records service unavailable' });
     },
   }));
 
-  // Prescription Service Routes
+  // Prescription Service Routes - ENABLED
   app.use('/api/prescriptions', authMiddleware, createProxyMiddleware({
     target: process.env.PRESCRIPTION_SERVICE_URL || 'http://prescription-service:3007',
     changeOrigin: true,
     pathRewrite: {
       '^/api/prescriptions': '/api/prescriptions',
     },
-    onError: (err, req, res) => {
+    onError: (err: any, req: any, res: any) => {
       console.error('Prescription Service Proxy Error:', err);
       res.status(503).json({ error: 'Prescription service unavailable' });
     },
   }));
 
-  // Billing Service Routes
+  // Billing Service Routes - ENABLED
   app.use('/api/billing', authMiddleware, createProxyMiddleware({
     target: process.env.BILLING_SERVICE_URL || 'http://billing-service:3008',
     changeOrigin: true,
     pathRewrite: {
       '^/api/billing': '/api/billing',
     },
-    onError: (err, req, res) => {
+    onError: (err: any, req: any, res: any) => {
       console.error('Billing Service Proxy Error:', err);
       res.status(503).json({ error: 'Billing service unavailable' });
     },
   }));
 
-  // Room Service Routes
-  app.use('/api/rooms', authMiddleware, createProxyMiddleware({
-    target: process.env.ROOM_SERVICE_URL || 'http://room-service:3009',
-    changeOrigin: true,
-    pathRewrite: {
-      '^/api/rooms': '/api/rooms',
-    },
-    onError: (err, req, res) => {
-      console.error('Room Service Proxy Error:', err);
-      res.status(503).json({ error: 'Room service unavailable' });
-    },
-  }));
+  // Other Service Routes - Services not yet implemented
+  const disabledServices = [
+    { path: '/api/rooms', name: 'Room' },
+    { path: '/api/departments', name: 'Department' },
+    { path: '/api/notifications', name: 'Notification' }
+  ];
 
-  // Department Service Routes (placeholder for future implementation)
-  app.use('/api/departments', authMiddleware, createProxyMiddleware({
-    target: process.env.DEPARTMENT_SERVICE_URL || 'http://department-service:3010',
-    changeOrigin: true,
-    pathRewrite: {
-      '^/api/departments': '/api/departments',
-    },
-    onError: (err, req, res) => {
-      console.error('Department Service Proxy Error:', err);
-      res.status(503).json({ error: 'Department service unavailable' });
-    },
-  }));
-
-  // Notification Service Routes
-  app.use('/api/notifications', authMiddleware, createProxyMiddleware({
-    target: process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:3011',
-    changeOrigin: true,
-    pathRewrite: {
-      '^/api/notifications': '/api/notifications',
-    },
-    onError: (err, req, res) => {
-      console.error('Notification Service Proxy Error:', err);
-      res.status(503).json({ error: 'Notification service unavailable' });
-    },
-  }));
+  disabledServices.forEach(service => {
+    // These services are not yet implemented
+    app.use(service.path, (req, res) => {
+      res.status(503).json({
+        error: 'Service not implemented yet',
+        message: `${service.name} service is not yet implemented`
+      });
+    });
+  });
 
   // Root endpoint
   app.get('/', (req, res) => {
     res.json({
       service: 'Hospital Management API Gateway',
       version: '1.0.0',
+      mode: DOCTOR_ONLY_MODE ? 'doctor-only-development' : 'full-system',
       status: 'running',
       timestamp: new Date().toISOString(),
       docs: '/docs',
+      availableServices: ['doctors', 'patients', 'appointments', 'medical-records', 'prescriptions', 'billing'],
+      disabledServices: ['rooms', 'departments', 'notifications'],
       services: serviceRegistry.getRegisteredServices(),
     });
   });
@@ -207,7 +201,34 @@ export function createApp(): express.Application {
   // Service discovery endpoint
   app.get('/services', (req, res) => {
     res.json({
-      services: serviceRegistry.getRegisteredServices(),
+      mode: DOCTOR_ONLY_MODE ? 'doctor-only-development' : 'full-system',
+      availableServices: {
+        doctors: {
+          url: process.env.DOCTOR_SERVICE_URL || 'http://doctor-service:3002',
+          status: 'active'
+        },
+        patients: {
+          url: process.env.PATIENT_SERVICE_URL || 'http://patient-service:3003',
+          status: 'active'
+        },
+        appointments: {
+          url: process.env.APPOINTMENT_SERVICE_URL || 'http://appointment-service:3004',
+          status: 'active'
+        },
+        'medical-records': {
+          url: process.env.MEDICAL_RECORDS_SERVICE_URL || 'http://medical-records-service:3006',
+          status: 'active'
+        },
+        prescriptions: {
+          url: process.env.PRESCRIPTION_SERVICE_URL || 'http://prescription-service:3007',
+          status: 'active'
+        },
+        billing: {
+          url: process.env.BILLING_SERVICE_URL || 'http://billing-service:3008',
+          status: 'active'
+        }
+      },
+      disabledServices: ['rooms', 'departments', 'notifications'],
     });
   });
 
@@ -217,6 +238,8 @@ export function createApp(): express.Application {
       error: 'Route not found',
       path: req.originalUrl,
       method: req.method,
+      mode: DOCTOR_ONLY_MODE ? 'doctor-only-development' : 'full-system',
+      availableRoutes: ['/api/doctors', '/api/patients', '/api/appointments', '/api/medical-records', '/api/prescriptions', '/api/billing', '/health', '/docs', '/services']
     });
   });
 

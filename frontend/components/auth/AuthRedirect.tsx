@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useEnhancedAuth } from '@/lib/auth/enhanced-auth-context';
+import { getDashboardPath } from '@/lib/auth/dashboard-routes';
 
 interface AuthRedirectProps {
   expectedRole?: 'admin' | 'doctor' | 'patient';
@@ -43,7 +44,8 @@ export function AuthRedirect({
     if (expectedRole && user.role !== expectedRole) {
       // User has wrong role, redirect to their dashboard
       console.log(`AuthRedirect: user has wrong role (${user.role} vs expected ${expectedRole})`);
-      handleRedirect(`/${user.role}/dashboard`);
+      const dashboardPath = getDashboardPath(user.role as any);
+      handleRedirect(dashboardPath);
       return;
     }
 
@@ -56,8 +58,9 @@ export function AuthRedirect({
 
     if (user.role) {
       // Default redirect to role-based dashboard
-      console.log(`AuthRedirect: redirecting to role dashboard: /${user.role}/dashboard`);
-      handleRedirect(`/${user.role}/dashboard`);
+      const dashboardPath = getDashboardPath(user.role as any);
+      console.log(`AuthRedirect: redirecting to role dashboard: ${dashboardPath}`);
+      handleRedirect(dashboardPath);
     }
   }, [user, loading, expectedRole, redirectTo, fallbackPath, router]);
 
@@ -86,9 +89,10 @@ export function useAuthRedirect() {
   const redirectToDashboard = async (role?: string) => {
     const targetRole = role || user?.role;
     if (targetRole) {
-      console.log(`useAuthRedirect: redirecting to dashboard for role: ${targetRole}`);
+      const dashboardPath = getDashboardPath(targetRole as any);
+      console.log(`useAuthRedirect: redirecting to dashboard for role: ${targetRole} -> ${dashboardPath}`);
       await new Promise(resolve => setTimeout(resolve, 1000));
-      router.push(`/${targetRole}/dashboard`);
+      router.push(dashboardPath);
     }
   };
 

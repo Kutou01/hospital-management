@@ -1,7 +1,7 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-import { Doctor, CreateDoctorRequest, UpdateDoctorRequest, DoctorSearchQuery } from '@hospital/shared/src/types/doctor.types';
+import { Doctor, CreateDoctorRequest, UpdateDoctorRequest, DoctorSearchQuery } from '@hospital/shared/dist/types/doctor.types';
 import { getSupabase } from '../config/database.config';
-import logger from '@hospital/shared/src/utils/logger';
+import logger from '@hospital/shared/dist/utils/logger';
 
 export class DoctorRepository {
   private supabase: SupabaseClient;
@@ -26,6 +26,26 @@ export class DoctorRepository {
       return this.mapSupabaseDoctorToDoctor(data);
     } catch (error) {
       logger.error('Error finding doctor by ID', { error, doctorId });
+      throw error;
+    }
+  }
+
+  async findByProfileId(profileId: string): Promise<Doctor | null> {
+    try {
+      const { data, error } = await this.supabase
+        .from('doctors')
+        .select('*')
+        .eq('profile_id', profileId)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') return null;
+        throw error;
+      }
+
+      return this.mapSupabaseDoctorToDoctor(data);
+    } catch (error) {
+      logger.error('Error finding doctor by profile ID', { error, profileId });
       throw error;
     }
   }
@@ -252,7 +272,7 @@ export class DoctorRepository {
       full_name: supabaseDoctor.full_name,
       specialty: supabaseDoctor.specialty,
       qualification: supabaseDoctor.qualification,
-      schedule: supabaseDoctor.schedule,
+      working_hours: supabaseDoctor.working_hours,
       department_id: supabaseDoctor.department_id,
       license_number: supabaseDoctor.license_number,
       gender: supabaseDoctor.gender,

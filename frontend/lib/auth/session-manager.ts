@@ -22,6 +22,7 @@ class SessionManager {
   private readonly STATE_KEY = 'hospital_auth_state'
   private readonly SESSION_DURATION = 24 * 60 * 60 * 1000 // 24 hours
   private readonly CHECK_INTERVAL = 5 * 60 * 1000 // 5 minutes
+  private readonly CLEAR_ON_TAB_CLOSE = true // Enable auto-clear on tab close
   
   private sessionState: SessionState = {
     isAuthenticated: false,
@@ -35,6 +36,7 @@ class SessionManager {
 
   private constructor() {
     this.initializeSession()
+    this.setupEventListeners()
   }
 
   static getInstance(): SessionManager {
@@ -49,12 +51,14 @@ class SessionManager {
     if (typeof window === 'undefined') return
 
     try {
-      const storedSession = localStorage.getItem(this.SESSION_KEY)
+      // Check both localStorage and sessionStorage based on configuration
+      const storage = this.CLEAR_ON_TAB_CLOSE ? sessionStorage : localStorage
+      const storedSession = storage.getItem(this.SESSION_KEY) || localStorage.getItem(this.SESSION_KEY)
       const storedState = sessionStorage.getItem(this.STATE_KEY)
 
       if (storedSession) {
         const session: AuthSession = JSON.parse(storedSession)
-        
+
         // Check if session is still valid
         if (this.isSessionValid(session)) {
           this.sessionState = {
@@ -64,11 +68,12 @@ class SessionManager {
             session: session,
             lastChecked: Date.now()
           }
-          
+
           console.log('🔄 [SessionManager] Valid session restored:', {
             userId: session.user.id,
             role: session.user.role,
-            expiresIn: Math.round((session.expiresAt - Date.now()) / 1000 / 60) + ' minutes'
+            expiresIn: Math.round((session.expiresAt - Date.now()) / 1000 / 60) + ' minutes',
+            storage: this.CLEAR_ON_TAB_CLOSE ? 'sessionStorage' : 'localStorage'
           })
         } else {
           console.log('🔄 [SessionManager] Session expired, clearing...')
@@ -115,7 +120,10 @@ class SessionManager {
     }
 
     try {
-      localStorage.setItem(this.SESSION_KEY, JSON.stringify(session))
+      // Use sessionStorage instead of localStorage if CLEAR_ON_TAB_CLOSE is enabled
+      const storage = this.CLEAR_ON_TAB_CLOSE ? sessionStorage : localStorage
+
+      storage.setItem(this.SESSION_KEY, JSON.stringify(session))
       sessionStorage.setItem(this.STATE_KEY, JSON.stringify({
         isAuthenticated: true,
         lastChecked: now
@@ -124,7 +132,8 @@ class SessionManager {
       console.log('✅ [SessionManager] Session saved:', {
         userId: user.id,
         role: user.role,
-        expiresIn: Math.round(expiresIn / 60) + ' minutes'
+        expiresIn: Math.round(expiresIn / 60) + ' minutes',
+        storage: this.CLEAR_ON_TAB_CLOSE ? 'sessionStorage' : 'localStorage'
       })
 
       this.notifyListeners()
@@ -206,7 +215,9 @@ class SessionManager {
     }
 
     try {
+      // Clear from both storages
       localStorage.removeItem(this.SESSION_KEY)
+      sessionStorage.removeItem(this.SESSION_KEY)
       sessionStorage.removeItem(this.STATE_KEY)
       console.log('🔄 [SessionManager] Session cleared')
       this.notifyListeners()
@@ -268,6 +279,54 @@ class SessionManager {
   hasAnyRole(roles: string[]): boolean {
     const user = this.getUser()
     return user ? roles.includes(user.role) : false
+  }
+
+  // Setup event listeners for tab close detection
+  private setupEventListeners(): void {
+    if (typeof window === 'undefined') return
+
+    // Handle tab/window close
+    window.addEventListener('beforeunload', () => {
+      if (this.CLEAR_ON_TAB_CLOSE && this.isAuthenticated()) {
+        console.log('🔄 [SessionManager] Tab closing, clearing session...')
+        this.clearSession()
+      }
+    })
+
+    // Handle page visibility change (tab switch)
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        console.log('🔄 [SessionManager] Tab hidden')
+        // Optionally clear session when tab is hidden for a long time
+        // this.scheduleSessionClear()
+      } else {
+        console.log('🔄 [SessionManager] Tab visible')
+        // Verify session when tab becomes visible again
+        if (this.isAuthenticated() && this.shouldVerifySession()) {
+          this.updateLastChecked()
+        }
+      }
+    })
+
+    // Handle storage events (session cleared in another tab)
+    window.addEventListener('storage', (event) => {
+      if (event.key === this.SESSION_KEY && event.newValue === null) {
+        console.log('🔄 [SessionManager] Session cleared in another tab')
+        this.clearSession()
+      }
+    })
+  }
+
+  // Force clear session (can be called manually)
+  forceLogout(): void {
+    console.log('🔄 [SessionManager] Force logout initiated')
+    this.clearSession()
+  }
+
+  // Enable/disable auto-clear on tab close
+  setAutoCleanOnTabClose(enabled: boolean): void {
+    // This would require restarting the session manager to take effect
+    console.log(`🔄 [SessionManager] Auto-clear on tab close: ${enabled ? 'enabled' : 'disabled'}`)
   }
 }
 

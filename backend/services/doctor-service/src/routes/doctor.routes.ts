@@ -106,6 +106,26 @@ router.get('/search', validateSearchQuery, doctorController.searchDoctors.bind(d
 
 /**
  * @swagger
+ * /api/doctors/by-profile/{profileId}:
+ *   get:
+ *     summary: Get doctor by profile ID
+ *     tags: [Doctors]
+ *     parameters:
+ *       - in: path
+ *         name: profileId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Doctor found
+ *       404:
+ *         description: Doctor not found
+ */
+router.get('/by-profile/:profileId', doctorController.getDoctorByProfileId.bind(doctorController));
+
+/**
+ * @swagger
  * /api/doctors/{doctorId}:
  *   get:
  *     summary: Get doctor by ID
@@ -220,5 +240,261 @@ router.put('/:doctorId', validateDoctorId, validateUpdateDoctor, doctorControlle
  *         description: Doctor not found
  */
 router.delete('/:doctorId', validateDoctorId, doctorController.deleteDoctor.bind(doctorController));
+
+// =====================================================
+// ENHANCED DOCTOR PROFILE ROUTES
+// =====================================================
+
+
+
+/**
+ * @swagger
+ * /api/doctors/{doctorId}/profile:
+ *   get:
+ *     summary: Get complete doctor profile with schedule, reviews, and experiences
+ *     tags: [Doctors]
+ *     parameters:
+ *       - in: path
+ *         name: doctorId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Complete doctor profile
+ *       404:
+ *         description: Doctor not found
+ */
+router.get('/:doctorId/profile', validateDoctorId, doctorController.getDoctorProfile.bind(doctorController));
+
+// =====================================================
+// SCHEDULE MANAGEMENT ROUTES
+// =====================================================
+
+/**
+ * @swagger
+ * /api/doctors/{doctorId}/schedule:
+ *   get:
+ *     summary: Get doctor's schedule
+ *     tags: [Doctor Schedule]
+ *     parameters:
+ *       - in: path
+ *         name: doctorId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Doctor's schedule
+ */
+router.get('/:doctorId/schedule', validateDoctorId, doctorController.getDoctorSchedule.bind(doctorController));
+
+/**
+ * @swagger
+ * /api/doctors/{doctorId}/schedule/weekly:
+ *   get:
+ *     summary: Get doctor's weekly schedule
+ *     tags: [Doctor Schedule]
+ *     parameters:
+ *       - in: path
+ *         name: doctorId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Doctor's weekly schedule
+ */
+router.get('/:doctorId/schedule/weekly', validateDoctorId, doctorController.getWeeklySchedule.bind(doctorController));
+
+/**
+ * @swagger
+ * /api/doctors/{doctorId}/schedule:
+ *   put:
+ *     summary: Update doctor's schedule
+ *     tags: [Doctor Schedule]
+ *     parameters:
+ *       - in: path
+ *         name: doctorId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               schedules:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Schedule updated successfully
+ */
+router.put('/:doctorId/schedule', validateDoctorId, doctorController.updateSchedule.bind(doctorController));
+
+/**
+ * @swagger
+ * /api/doctors/{doctorId}/availability:
+ *   get:
+ *     summary: Get doctor's availability for a specific date
+ *     tags: [Doctor Schedule]
+ *     parameters:
+ *       - in: path
+ *         name: doctorId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: date
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: Doctor's availability
+ */
+router.get('/:doctorId/availability', validateDoctorId, doctorController.getAvailability.bind(doctorController));
+
+/**
+ * @swagger
+ * /api/doctors/{doctorId}/time-slots:
+ *   get:
+ *     summary: Get available time slots for a specific date
+ *     tags: [Doctor Schedule]
+ *     parameters:
+ *       - in: path
+ *         name: doctorId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: date
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: Available time slots
+ */
+router.get('/:doctorId/time-slots', validateDoctorId, doctorController.getAvailableTimeSlots.bind(doctorController));
+
+// =====================================================
+// REVIEW MANAGEMENT ROUTES
+// =====================================================
+
+/**
+ * @swagger
+ * /api/doctors/{doctorId}/reviews:
+ *   get:
+ *     summary: Get doctor's reviews
+ *     tags: [Doctor Reviews]
+ *     parameters:
+ *       - in: path
+ *         name: doctorId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Doctor's reviews
+ */
+router.get('/:doctorId/reviews', validateDoctorId, doctorController.getDoctorReviews.bind(doctorController));
+
+/**
+ * @swagger
+ * /api/doctors/{doctorId}/reviews/stats:
+ *   get:
+ *     summary: Get doctor's review statistics
+ *     tags: [Doctor Reviews]
+ *     parameters:
+ *       - in: path
+ *         name: doctorId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Review statistics
+ */
+router.get('/:doctorId/reviews/stats', validateDoctorId, doctorController.getReviewStats.bind(doctorController));
+
+// =====================================================
+// APPOINTMENT MANAGEMENT ROUTES
+// =====================================================
+
+/**
+ * @swagger
+ * /api/doctors/{doctorId}/appointments:
+ *   get:
+ *     summary: Get doctor's appointments
+ *     tags: [Doctor Appointments]
+ *     parameters:
+ *       - in: path
+ *         name: doctorId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter appointments by date
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: Filter appointments by status
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Number of items per page
+ *     responses:
+ *       200:
+ *         description: Doctor's appointments
+ *       404:
+ *         description: Doctor not found
+ */
+router.get('/:doctorId/appointments', validateDoctorId, doctorController.getDoctorAppointments.bind(doctorController));
+
+/**
+ * @swagger
+ * /api/doctors/{doctorId}/stats:
+ *   get:
+ *     summary: Get doctor's statistics
+ *     tags: [Doctor Statistics]
+ *     parameters:
+ *       - in: path
+ *         name: doctorId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Doctor's statistics
+ *       404:
+ *         description: Doctor not found
+ */
+router.get('/:doctorId/stats', validateDoctorId, doctorController.getDoctorStats.bind(doctorController));
 
 export default router;

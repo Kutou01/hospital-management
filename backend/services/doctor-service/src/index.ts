@@ -1,13 +1,16 @@
 import dotenv from 'dotenv';
+
+// Load environment variables FIRST
+dotenv.config();
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import logger from '@hospital/shared/src/utils/logger';
+import logger from '@hospital/shared/dist/utils/logger';
 import doctorRoutes from './routes/doctor.routes';
-
-// Load environment variables
-dotenv.config();
+import shiftRoutes from './routes/shift.routes';
+import experienceRoutes from './routes/experience.routes';
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -32,6 +35,8 @@ app.get('/health', (req, res) => {
 
 // API Routes
 app.use('/api/doctors', doctorRoutes);
+app.use('/api/shifts', shiftRoutes);
+app.use('/api/experiences', experienceRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {

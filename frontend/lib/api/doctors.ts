@@ -59,6 +59,127 @@ export const doctorsApi = {
     return apiClient.get<any>(`/doctors/${id}/stats`);
   },
 
+  // =====================================================
+  // ENHANCED DOCTOR PROFILE API
+  // =====================================================
+
+  // Get complete doctor profile with all data
+  getProfile: async (id: string): Promise<ApiResponse<any>> => {
+    return apiClient.get<any>(`/doctors/${id}/profile`);
+  },
+
+  // Get doctor by profile ID
+  getByProfileId: async (profileId: string): Promise<ApiResponse<Doctor>> => {
+    return apiClient.get<Doctor>(`/doctors/by-profile/${profileId}`);
+  },
+
+  // =====================================================
+  // SCHEDULE MANAGEMENT API
+  // =====================================================
+
+  // Get weekly schedule
+  getWeeklySchedule: async (id: string): Promise<ApiResponse<any[]>> => {
+    return apiClient.get<any[]>(`/doctors/${id}/schedule/weekly`);
+  },
+
+  // Update schedule
+  updateSchedule: async (id: string, schedules: any[]): Promise<ApiResponse<any>> => {
+    return apiClient.put<any>(`/doctors/${id}/schedule`, { schedules });
+  },
+
+  // Get availability for specific date
+  getAvailability: async (id: string, date: string): Promise<ApiResponse<any>> => {
+    return apiClient.get<any>(`/doctors/${id}/availability`, { date });
+  },
+
+  // Get available time slots
+  getTimeSlots: async (id: string, date: string): Promise<ApiResponse<string[]>> => {
+    return apiClient.get<string[]>(`/doctors/${id}/time-slots`, { date });
+  },
+
+  // =====================================================
+  // REVIEW MANAGEMENT API
+  // =====================================================
+
+  // Get doctor reviews
+  getReviews: async (id: string, page: number = 1, limit: number = 20): Promise<ApiResponse<any[]>> => {
+    return apiClient.get<any[]>(`/doctors/${id}/reviews`, { page, limit });
+  },
+
+  // Get review statistics
+  getReviewStats: async (id: string): Promise<ApiResponse<any>> => {
+    return apiClient.get<any>(`/doctors/${id}/reviews/stats`);
+  },
+
+  // =====================================================
+  // SHIFT MANAGEMENT API
+  // =====================================================
+
+  // Get doctor shifts
+  getShifts: async (id: string, page: number = 1, limit: number = 20): Promise<ApiResponse<any[]>> => {
+    return apiClient.get<any[]>(`/shifts/doctor/${id}`, { page, limit });
+  },
+
+  // Get upcoming shifts
+  getUpcomingShifts: async (id: string, days: number = 7): Promise<ApiResponse<any[]>> => {
+    return apiClient.get<any[]>(`/shifts/doctor/${id}/upcoming`, { days });
+  },
+
+  // Get shift statistics
+  getShiftStats: async (id: string, startDate: string, endDate: string): Promise<ApiResponse<any>> => {
+    return apiClient.get<any>(`/shifts/doctor/${id}/statistics`, { startDate, endDate });
+  },
+
+  // Create new shift
+  createShift: async (shiftData: any): Promise<ApiResponse<any>> => {
+    return apiClient.post<any>('/shifts', shiftData);
+  },
+
+  // Update shift
+  updateShift: async (shiftId: string, shiftData: any): Promise<ApiResponse<any>> => {
+    return apiClient.put<any>(`/shifts/${shiftId}`, shiftData);
+  },
+
+  // Confirm shift
+  confirmShift: async (shiftId: string): Promise<ApiResponse<any>> => {
+    return apiClient.patch<any>(`/shifts/${shiftId}/confirm`);
+  },
+
+  // =====================================================
+  // EXPERIENCE MANAGEMENT API
+  // =====================================================
+
+  // Get doctor experiences
+  getExperiences: async (id: string, type?: string): Promise<ApiResponse<any[]>> => {
+    const params = type ? { type } : undefined;
+    return apiClient.get<any[]>(`/experiences/doctor/${id}`, params);
+  },
+
+  // Get experience timeline
+  getExperienceTimeline: async (id: string): Promise<ApiResponse<any[]>> => {
+    return apiClient.get<any[]>(`/experiences/doctor/${id}/timeline`);
+  },
+
+  // Get total experience calculation
+  getTotalExperience: async (id: string): Promise<ApiResponse<any>> => {
+    return apiClient.get<any>(`/experiences/doctor/${id}/total`);
+  },
+
+  // Create new experience
+  createExperience: async (experienceData: any): Promise<ApiResponse<any>> => {
+    return apiClient.post<any>('/experiences', experienceData);
+  },
+
+  // Update experience
+  updateExperience: async (experienceId: string, experienceData: any): Promise<ApiResponse<any>> => {
+    return apiClient.put<any>(`/experiences/${experienceId}`, experienceData);
+  },
+
+  // Delete experience
+  deleteExperience: async (experienceId: string): Promise<ApiResponse<any>> => {
+    return apiClient.delete<any>(`/experiences/${experienceId}`);
+  },
+
   // Upload doctor avatar
   uploadAvatar: async (id: string, file: File): Promise<ApiResponse<{ avatar_url: string }>> => {
     return apiClient.uploadFile<{ avatar_url: string }>(`/doctors/${id}/avatar`, file);

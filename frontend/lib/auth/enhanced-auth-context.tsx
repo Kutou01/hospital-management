@@ -161,7 +161,8 @@ export function EnhancedAuthProvider({ children }: { children: React.ReactNode }
         )
 
         // Navigate to appropriate dashboard
-        const redirectPath = `/${result.user.role}/dashboard`
+        const { getDashboardPath } = await import('./dashboard-routes')
+        const redirectPath = getDashboardPath(result.user.role as any)
         console.log('🔄 [EnhancedAuthProvider] Redirecting to:', redirectPath)
         router.replace(redirectPath)
       }

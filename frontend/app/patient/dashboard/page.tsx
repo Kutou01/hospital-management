@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import {
   Calendar,
   Heart,
@@ -31,7 +32,39 @@ import { useEnhancedAuth } from "@/lib/auth/enhanced-auth-context"
 
 export default function PatientDashboard() {
   const { user, loading } = useEnhancedAuth()
+  const router = useRouter()
   const [currentDate, setCurrentDate] = useState("")
+
+  // Handle authentication and redirect
+  useEffect(() => {
+    console.log('🏥 [PatientDashboard] Auth state changed:', {
+      loading,
+      user,
+      isAuthenticated: !!user,
+      role: user?.role
+    })
+
+    // Handle redirect when auth state is determined
+    if (!loading) {
+      if (!user) {
+        console.log('🏥 [PatientDashboard] No user found, redirecting to login')
+        router.replace('/auth/login')
+      } else if (user.role !== 'patient') {
+        console.log(`🏥 [PatientDashboard] Wrong role (${user.role}), redirecting to appropriate dashboard`)
+        // Redirect to appropriate dashboard based on role
+        switch (user.role) {
+          case 'admin':
+            router.replace('/admin/dashboard')
+            break
+          case 'doctor':
+            router.replace('/doctors/dashboard')
+            break
+          default:
+            router.replace('/auth/login')
+        }
+      }
+    }
+  }, [user, loading, router])
 
   useEffect(() => {
     const today = new Date()
@@ -54,15 +87,20 @@ export default function PatientDashboard() {
     )
   }
 
-  // Redirect if not authenticated or not a patient
+  // Enhanced debug and redirect logic
+  console.log('🏥 [PatientDashboard] Access check:', {
+    hasUser: !!user,
+    userRole: user?.role,
+    isPatient: user?.role === 'patient',
+    loading
+  })
+
+  // Don't render anything if redirecting or wrong role
   if (!user || user.role !== 'patient') {
     return (
       <PatientLayout title="Patient Dashboard" activePage="dashboard">
         <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <p className="text-gray-600">Access denied. Patient role required.</p>
-          </div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
       </PatientLayout>
     )

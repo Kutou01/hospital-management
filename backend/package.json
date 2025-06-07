@@ -4,7 +4,10 @@
   "description": "Hospital Management System with Microservices Architecture",
   "main": "index.js",
   "scripts": {
-    "dev": "node scripts/start-all-microservices.js",
+    "dev": "npm run dev:complete",
+    "dev:complete": "concurrently \"npm run dev:doctor\" \"npm run dev:medical-records\" \"npm run dev:prescription\"",
+    "dev:complete-with-gateway": "concurrently \"npm run dev:gateway\" \"npm run dev:doctor\" \"npm run dev:medical-records\" \"npm run dev:prescription\"",
+    "dev:all": "node scripts/start-all-microservices.js",
     "dev:core": "concurrently \"npm run dev:gateway\" \"npm run dev:doctor\" \"npm run dev:patient\" \"npm run dev:appointment\"",
     "dev:gateway": "cd api-gateway && npm run dev",
     "dev:doctor": "cd services/doctor-service && npm run dev",
@@ -26,7 +29,6 @@
     "build:services": "npm run build:core && npm run build:extended",
     "build:core": "npm run build:doctor && npm run build:patient && npm run build:appointment",
     "build:extended": "npm run build:medical-records && npm run build:prescription && npm run build:billing && npm run build:notification",
-
     "build:doctor": "cd services/doctor-service && npm run build",
     "build:patient": "cd services/patient-service && npm run build",
     "build:appointment": "cd services/appointment-service && npm run build",
@@ -58,6 +60,8 @@
     "migrate:doctor": "cd services/doctor-service && npm run migrate",
     "migrate:patient": "cd services/patient-service && npm run migrate",
     "migrate:appointment": "cd services/appointment-service && npm run migrate",
+    "docker:complete": "docker-compose -f docker-compose.complete.yml up --build",
+    "docker:complete:down": "docker-compose -f docker-compose.complete.yml down",
     "docker:dev": "docker-compose -f docker-compose.dev.yml up --build",
     "docker:prod": "docker-compose -f docker-compose.prod.yml up --build",
     "docker:down": "docker-compose down",
@@ -69,10 +73,16 @@
     "lint:patient": "cd services/patient-service && npm run lint",
     "lint:appointment": "cd services/appointment-service && npm run lint",
     "format": "prettier --write \"**/*.{js,ts,json,md}\"",
+    "test:complete": "node scripts/test-complete-services.js",
+    "start:complete": "node scripts/start-complete-services.js",
     "health-check": "node scripts/health-check.js",
     "cleanup:incomplete-users": "node scripts/cleanup-incomplete-users.js",
+    "db:check": "node scripts/check-database-status.js",
+    "db:setup": "node scripts/run-database-setup.js",
+    "db:setup-foreign-keys": "echo 'Run add-foreign-keys.sql in Supabase SQL Editor'",
+    "db:setup-rls": "echo 'Run setup-rls-policies.sql and setup-rls-policies-part2.sql in Supabase SQL Editor'",
+    "db:setup-indexes": "echo 'Run add-performance-indexes.sql in Supabase SQL Editor'",
     "logs": "docker-compose logs -f",
-
     "logs:doctor": "docker-compose logs -f doctor-service",
     "logs:patient": "docker-compose logs -f patient-service",
     "logs:appointment": "docker-compose logs -f appointment-service"
@@ -96,7 +106,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.49.8",
     "axios": "^1.9.0",
-    "dotenv": "^16.3.0"
+    "dotenv": "^16.5.0"
   },
   "engines": {
     "node": ">=18.0.0",

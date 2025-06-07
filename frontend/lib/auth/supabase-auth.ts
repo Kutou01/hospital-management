@@ -15,6 +15,10 @@ export interface HospitalUser {
   created_at: string;
   updated_at: string;
   last_login?: string;
+  // Role-specific IDs
+  doctor_id?: string;
+  patient_id?: string;
+  admin_id?: string;
 }
 
 export interface LoginCredentials {
@@ -53,10 +57,26 @@ class SupabaseAuthService {
   private authStateChangeTimeout: NodeJS.Timeout | null = null;
   private currentUserPromise: Promise<AuthResponse> | null = null;
 
-  // Sign up new user
+  // Sign up new user with manual profile creation
   async signUp(userData: RegisterData): Promise<AuthResponse> {
     try {
       console.log('🔐 [SupabaseAuth] Starting sign up process for:', userData.email);
+
+      // 0. Check if email already exists in profiles table
+      const { data: existingProfile, error: checkError } = await supabaseClient
+        .from('profiles')
+        .select('id, email')
+        .eq('email', userData.email)
+        .maybeSingle();
+
+      if (!checkError && existingProfile) {
+        console.error('❌ Email already exists in profiles:', userData.email);
+        return {
+          user: null,
+          session: null,
+          error: 'Email này đã được đăng ký. Vui lòng sử dụng email khác hoặc đăng nhập.'
+        };
+      }
 
       // 1. Create auth user
       const { data: authData, error: authError } = await supabaseClient.auth.signUp({
@@ -82,6 +102,15 @@ class SupabaseAuthService {
 
       if (authError) {
         console.error('❌ Auth signup error:', authError);
+        // Handle specific auth errors
+        if (authError.message.includes('User already registered') ||
+            authError.message.includes('already been registered')) {
+          return {
+            user: null,
+            session: null,
+            error: 'Email này đã được đăng ký. Vui lòng sử dụng email khác hoặc đăng nhập.'
+          };
+        }
         return { user: null, session: null, error: authError.message };
       }
 
@@ -92,25 +121,25 @@ class SupabaseAuthService {
 
       console.log('✅ Auth user created:', authData.user.id);
 
-      // 2. Wait for trigger to create profile automatically
-      console.log('🏥 Waiting for trigger to create profile for auth user:', authData.user.id);
+      // 2. Try multiple methods to create profile
+      const profileResult = await this.createUserProfile(authData.user.id, userData);
 
-      // Wait a bit for the trigger to create the profile
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      if (!profileResult.success) {
+        console.error('❌ Failed to create profile:', profileResult.error);
 
-      // Verify profile was created by trigger
-      const { data: profileData, error: profileError } = await supabaseClient
-        .from('profiles')
-        .select('id, email, full_name, role, phone_number, created_at')
-        .eq('id', authData.user.id)
-        .single();
+        // Handle specific profile creation errors
+        if (profileResult.error?.includes('duplicate key value violates unique constraint')) {
+          return {
+            user: null,
+            session: null,
+            error: 'Email này đã được đăng ký. Vui lòng sử dụng email khác hoặc đăng nhập.'
+          };
+        }
 
-      if (profileError || !profileData) {
-        console.error('❌ Profile not created by trigger:', profileError);
-        return { user: null, session: null, error: 'Không thể tạo hồ sơ người dùng. Vui lòng thử lại.' };
+        return { user: null, session: null, error: profileResult.error };
       }
 
-      console.log('✅ Profile created by trigger:', profileData);
+      console.log('✅ Profile created successfully:', profileResult.profile);
 
       // 3. Create role-specific profile data if needed
       if (userData.role === 'doctor' && userData.specialty) {
@@ -131,14 +160,22 @@ class SupabaseAuthService {
           }
         }
 
+        // Generate simple doctor ID
+        const doctorId = `DOC${Date.now().toString().slice(-6)}`;
+
         const { error: doctorError } = await supabaseClient
           .from('doctors')
           .insert({
+            doctor_id: doctorId,
             profile_id: authData.user.id,
+            full_name: userData.full_name,
             specialization: userData.specialty,
-            license_number: userData.license_number,
-            qualification: userData.qualification,
-            department_id: departmentId,
+            license_number: userData.license_number || 'PENDING',
+            qualification: userData.qualification || 'MD',
+            department_id: departmentId || 'DEPT001',
+            gender: userData.gender || 'other',
+            status: 'active',
+            working_hours: '{}',
           });
 
         if (doctorError) {
@@ -150,13 +187,19 @@ class SupabaseAuthService {
       } else if (userData.role === 'patient') {
         console.log('🏥 Creating patient profile for:', authData.user.id);
 
+        // Generate patient ID
+        const patientId = `PAT${Date.now()}`;
+
         const { error: patientError } = await supabaseClient
           .from('patients')
           .insert({
+            patient_id: patientId,
             profile_id: authData.user.id,
+            full_name: userData.full_name,
             date_of_birth: userData.date_of_birth,
-            gender: userData.gender,
+            gender: userData.gender || 'other',
             address: userData.address ? { street: userData.address } : {},
+            status: 'active',
           });
 
         if (patientError) {
@@ -169,16 +212,16 @@ class SupabaseAuthService {
 
       // 4. Return the user data
       const hospitalUser: HospitalUser = {
-        id: profileData.id,
-        email: profileData.email,
-        full_name: profileData.full_name,
-        phone_number: profileData.phone_number,
-        role: profileData.role,
+        id: profileResult.profile.id,
+        email: profileResult.profile.email,
+        full_name: profileResult.profile.full_name,
+        phone_number: profileResult.profile.phone_number,
+        role: profileResult.profile.role,
         is_active: true,
         email_verified: authData.user.email_confirmed_at ? true : false,
         phone_verified: false,
-        created_at: profileData.created_at,
-        updated_at: profileData.created_at,
+        created_at: profileResult.profile.created_at,
+        updated_at: profileResult.profile.updated_at,
       };
 
       console.log('✅ Registration completed successfully for:', userData.email);
@@ -196,6 +239,161 @@ class SupabaseAuthService {
         error: 'Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.'
       };
     }
+  }
+
+  // Create user profile with multiple fallback methods
+  private async createUserProfile(userId: string, userData: RegisterData): Promise<{
+    success: boolean;
+    profile?: any;
+    error?: string;
+    method?: string;
+  }> {
+    console.log('🏥 [createUserProfile] Starting profile creation for user:', userId);
+
+    // Method 1: Wait for trigger to create profile
+    console.log('🔄 Method 1: Checking if trigger created profile...');
+    await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+
+    let { data: existingProfile, error: checkError } = await supabaseClient
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (!checkError && existingProfile) {
+      console.log('✅ Profile created by trigger!');
+      return {
+        success: true,
+        profile: existingProfile,
+        method: 'trigger'
+      };
+    }
+
+    // Method 2: Try RPC function with role creation
+    console.log('🔄 Method 2: Trying RPC function with role creation...');
+    try {
+      const { data: rpcResult, error: rpcError } = await supabaseClient.rpc('create_profile_with_role', {
+        user_id: userId,
+        user_email: userData.email,
+        user_name: userData.full_name,
+        user_phone: userData.phone_number,
+        user_role: userData.role,
+        user_gender: userData.gender || 'other',
+        user_specialty: userData.specialty,
+        user_dob: userData.date_of_birth
+      });
+
+      if (!rpcError && rpcResult?.success) {
+        console.log('✅ Profile and role record created via RPC function!');
+        return {
+          success: true,
+          profile: rpcResult.profile,
+          method: 'rpc'
+        };
+      }
+    } catch (rpcErr) {
+      console.log('⚠️ RPC method failed:', rpcErr);
+    }
+
+    // Method 3: Direct insert with duplicate handling
+    console.log('🔄 Method 3: Direct profile insert...');
+    try {
+      // Check one more time if profile exists before inserting
+      const { data: doubleCheckProfile, error: doubleCheckError } = await supabaseClient
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (!doubleCheckError && doubleCheckProfile) {
+        console.log('✅ Profile found on double check!');
+        return {
+          success: true,
+          profile: doubleCheckProfile,
+          method: 'found'
+        };
+      }
+
+      // Also check by email to prevent duplicates
+      const { data: emailCheckProfile, error: emailCheckError } = await supabaseClient
+        .from('profiles')
+        .select('*')
+        .eq('email', userData.email)
+        .maybeSingle();
+
+      if (!emailCheckError && emailCheckProfile) {
+        console.log('❌ Email already exists in profiles table');
+        return {
+          success: false,
+          error: 'Email này đã được đăng ký. Vui lòng sử dụng email khác hoặc đăng nhập.',
+          method: 'duplicate_check'
+        };
+      }
+
+      const { data: manualProfile, error: manualError } = await supabaseClient
+        .from('profiles')
+        .insert({
+          id: userId,
+          email: userData.email,
+          full_name: userData.full_name,
+          phone_number: userData.phone_number,
+          role: userData.role,
+          email_verified: false,
+          is_active: true
+        })
+        .select()
+        .single();
+
+      if (!manualError && manualProfile) {
+        console.log('✅ Profile created via direct insert!');
+        return {
+          success: true,
+          profile: manualProfile,
+          method: 'manual'
+        };
+      }
+
+      console.error('❌ Direct insert failed:', manualError);
+
+      // Handle specific duplicate key errors
+      if (manualError?.message?.includes('duplicate key value violates unique constraint')) {
+        return {
+          success: false,
+          error: 'Email này đã được đăng ký. Vui lòng sử dụng email khác hoặc đăng nhập.',
+          method: 'duplicate_error'
+        };
+      }
+
+      return {
+        success: false,
+        error: manualError?.message || 'Không thể tạo hồ sơ người dùng',
+        method: 'manual'
+      };
+
+    } catch (manualErr: any) {
+      console.error('❌ Direct insert exception:', manualErr);
+
+      // Handle specific duplicate key errors
+      if (manualErr?.message?.includes('duplicate key value violates unique constraint')) {
+        return {
+          success: false,
+          error: 'Email này đã được đăng ký. Vui lòng sử dụng email khác hoặc đăng nhập.',
+          method: 'duplicate_exception'
+        };
+      }
+
+      return {
+        success: false,
+        error: manualErr?.message || 'Không thể tạo hồ sơ người dùng',
+        method: 'manual'
+      };
+    }
+
+    // All methods failed
+    return {
+      success: false,
+      error: 'Không thể tạo hồ sơ người dùng. Vui lòng thử lại hoặc liên hệ hỗ trợ.'
+    };
   }
 
   // Sign in existing user
@@ -244,13 +442,67 @@ class SupabaseAuthService {
         return { user: null, session: null, error: 'Không tìm thấy thông tin người dùng.' };
       }
 
-      // 3. Update last login
-      await supabaseClient
-        .from('profiles')
-        .update({ last_login: new Date().toISOString() })
-        .eq('id', authData.user.id);
+      // 3. Update last login (with error handling)
+      try {
+        await supabaseClient
+          .from('profiles')
+          .update({ last_login: new Date().toISOString() })
+          .eq('id', authData.user.id);
+      } catch (lastLoginError) {
+        // Log the error but don't fail the login
+        console.warn('⚠️ Could not update last_login:', lastLoginError);
+        // Login still succeeds even if last_login update fails
+      }
 
-      // 4. Create HospitalUser object
+      // 4. Fetch role-specific ID
+      let roleSpecificId: { doctor_id?: string; patient_id?: string; admin_id?: string } = {};
+
+      try {
+        console.log('🔄 [SupabaseAuth] Fetching role-specific ID for role:', profileData.role, 'profile_id:', profileData.id);
+
+        if (profileData.role === 'doctor') {
+          const { data: doctorData, error: doctorError } = await supabaseClient
+            .from('doctors')
+            .select('doctor_id')
+            .eq('profile_id', profileData.id)
+            .single();
+
+          console.log('🔄 [SupabaseAuth] Doctor query result:', { doctorData, doctorError });
+
+          if (doctorData && !doctorError) {
+            roleSpecificId.doctor_id = doctorData.doctor_id;
+            console.log('✅ [SupabaseAuth] Found doctor_id:', doctorData.doctor_id);
+          } else {
+            console.warn('⚠️ [SupabaseAuth] No doctor found for profile_id:', profileData.id);
+          }
+        } else if (profileData.role === 'patient') {
+          const { data: patientData, error: patientError } = await supabaseClient
+            .from('patients')
+            .select('patient_id')
+            .eq('profile_id', profileData.id)
+            .single();
+
+          if (patientData && !patientError) {
+            roleSpecificId.patient_id = patientData.patient_id;
+            console.log('✅ [SupabaseAuth] Found patient_id:', patientData.patient_id);
+          }
+        } else if (profileData.role === 'admin') {
+          const { data: adminData, error: adminError } = await supabaseClient
+            .from('admin')
+            .select('admin_id')
+            .eq('profile_id', profileData.id)
+            .single();
+
+          if (adminData && !adminError) {
+            roleSpecificId.admin_id = adminData.admin_id;
+            console.log('✅ [SupabaseAuth] Found admin_id:', adminData.admin_id);
+          }
+        }
+      } catch (roleError) {
+        console.error('❌ [SupabaseAuth] Error fetching role-specific ID:', roleError);
+      }
+
+      // 5. Create HospitalUser object
       const hospitalUser: HospitalUser = {
         id: profileData.id,
         email: profileData.email,
@@ -264,6 +516,7 @@ class SupabaseAuthService {
         created_at: profileData.created_at,
         updated_at: profileData.updated_at,
         last_login: profileData.last_login,
+        ...roleSpecificId
       };
 
       console.log('✅ Sign in completed successfully for:', credentials.email);
@@ -351,6 +604,47 @@ class SupabaseAuthService {
     }
   }
 
+  // Change password with current password verification
+  async changePassword(currentPassword: string, newPassword: string): Promise<{ error: string | null }> {
+    try {
+      console.log('🔑 [SupabaseAuth] Starting password change with verification');
+
+      // First verify current password by attempting to sign in
+      const currentUser = await this.getCurrentUser();
+      if (!currentUser) {
+        return { error: 'Bạn cần đăng nhập để thay đổi mật khẩu.' };
+      }
+
+      // Verify current password
+      const { error: signInError } = await supabaseClient.auth.signInWithPassword({
+        email: currentUser.email,
+        password: currentPassword
+      });
+
+      if (signInError) {
+        console.error('❌ Current password verification failed:', signInError);
+        return { error: 'Mật khẩu hiện tại không đúng.' };
+      }
+
+      // Update to new password
+      const { error: updateError } = await supabaseClient.auth.updateUser({
+        password: newPassword
+      });
+
+      if (updateError) {
+        console.error('❌ Password update error:', updateError);
+        return { error: updateError.message };
+      }
+
+      console.log('✅ Password changed successfully');
+      return { error: null };
+
+    } catch (error) {
+      console.error('❌ Unexpected error during password change:', error);
+      return { error: 'Đã xảy ra lỗi khi thay đổi mật khẩu.' };
+    }
+  }
+
   // Get current session
   async getCurrentSession(): Promise<{ session: Session | null; error: string | null }> {
     try {
@@ -432,6 +726,54 @@ class SupabaseAuthService {
         full_name: profileData.full_name
       });
 
+      // Fetch role-specific ID
+      let roleSpecificId: { doctor_id?: string; patient_id?: string; admin_id?: string } = {};
+
+      try {
+        console.log('🔄 [getCurrentUser] Fetching role-specific ID for role:', profileData.role, 'profile_id:', profileData.id);
+
+        if (profileData.role === 'doctor') {
+          const { data: doctorData, error: doctorError } = await supabaseClient
+            .from('doctors')
+            .select('doctor_id')
+            .eq('profile_id', profileData.id)
+            .single();
+
+          console.log('🔄 [getCurrentUser] Doctor query result:', { doctorData, doctorError });
+
+          if (doctorData && !doctorError) {
+            roleSpecificId.doctor_id = doctorData.doctor_id;
+            console.log('✅ [getCurrentUser] Found doctor_id:', doctorData.doctor_id);
+          } else {
+            console.warn('⚠️ [getCurrentUser] No doctor found for profile_id:', profileData.id);
+          }
+        } else if (profileData.role === 'patient') {
+          const { data: patientData, error: patientError } = await supabaseClient
+            .from('patients')
+            .select('patient_id')
+            .eq('profile_id', profileData.id)
+            .single();
+
+          if (patientData && !patientError) {
+            roleSpecificId.patient_id = patientData.patient_id;
+            console.log('✅ [getCurrentUser] Found patient_id:', patientData.patient_id);
+          }
+        } else if (profileData.role === 'admin') {
+          const { data: adminData, error: adminError } = await supabaseClient
+            .from('admin')
+            .select('admin_id')
+            .eq('profile_id', profileData.id)
+            .single();
+
+          if (adminData && !adminError) {
+            roleSpecificId.admin_id = adminData.admin_id;
+            console.log('✅ [getCurrentUser] Found admin_id:', adminData.admin_id);
+          }
+        }
+      } catch (roleError) {
+        console.error('❌ [getCurrentUser] Error fetching role-specific ID:', roleError);
+      }
+
       // Create HospitalUser object
       const hospitalUser: HospitalUser = {
         id: profileData.id,
@@ -446,6 +788,7 @@ class SupabaseAuthService {
         created_at: profileData.created_at,
         updated_at: profileData.updated_at,
         last_login: profileData.last_login,
+        ...roleSpecificId
       };
 
       return { user: hospitalUser, session: null, error: null };
@@ -529,6 +872,58 @@ class SupabaseAuthService {
         is_active: userData.is_active
       })
 
+      // Fetch role-specific ID
+      let roleSpecificId: { doctor_id?: string; patient_id?: string; admin_id?: string } = {};
+
+      try {
+        console.log('🔄 [SupabaseAuth] Fetching role-specific ID for role:', userData.role, 'profile_id:', userData.id);
+
+        if (userData.role === 'doctor') {
+          const { data: doctorData, error: doctorError } = await supabaseClient
+            .from('doctors')
+            .select('doctor_id')
+            .eq('profile_id', userData.id)
+            .single();
+
+          console.log('🔄 [SupabaseAuth] Doctor query result:', { doctorData, doctorError });
+
+          if (doctorData && !doctorError) {
+            roleSpecificId.doctor_id = doctorData.doctor_id;
+            console.log('✅ [SupabaseAuth] Found doctor_id:', doctorData.doctor_id);
+          } else {
+            console.warn('⚠️ [SupabaseAuth] No doctor found for profile_id:', userData.id);
+          }
+        } else if (userData.role === 'patient') {
+          const { data: patientData, error: patientError } = await supabaseClient
+            .from('patients')
+            .select('patient_id')
+            .eq('profile_id', userData.id)
+            .single();
+
+          console.log('🔄 [SupabaseAuth] Patient query result:', { patientData, patientError });
+
+          if (patientData && !patientError) {
+            roleSpecificId.patient_id = patientData.patient_id;
+            console.log('✅ [SupabaseAuth] Found patient_id:', patientData.patient_id);
+          }
+        } else if (userData.role === 'admin') {
+          const { data: adminData, error: adminError } = await supabaseClient
+            .from('admin')
+            .select('admin_id')
+            .eq('profile_id', userData.id)
+            .single();
+
+          console.log('🔄 [SupabaseAuth] Admin query result:', { adminData, adminError });
+
+          if (adminData && !adminError) {
+            roleSpecificId.admin_id = adminData.admin_id;
+            console.log('✅ [SupabaseAuth] Found admin_id:', adminData.admin_id);
+          }
+        }
+      } catch (roleError) {
+        console.error('❌ [SupabaseAuth] Error fetching role-specific ID:', roleError);
+      }
+
       const hospitalUser: HospitalUser = {
         id: supabaseUser.id,
         email: supabaseUser.email || '',
@@ -541,7 +936,8 @@ class SupabaseAuthService {
         last_login: userData.last_login,
         email_verified: supabaseUser.email_confirmed_at ? true : false,
         phone_verified: userData.phone_verified,
-        profile_data: userData.profile_data
+        profile_data: userData.profile_data,
+        ...roleSpecificId
       };
 
       // Cache the result
@@ -574,6 +970,17 @@ class SupabaseAuthService {
   public clearUserCache(): void {
     this.userCache.clear();
     console.log('🔄 [SupabaseAuth] User cache cleared');
+  }
+
+  // Force refresh current user (bypass cache)
+  public async forceRefreshCurrentUser(): Promise<{ user: HospitalUser | null; session: any; error: string | null }> {
+    console.log('🔄 [SupabaseAuth] Force refreshing current user...');
+
+    // Clear cache first
+    this.clearUserCache();
+
+    // Get current user without cache
+    return this.getCurrentUser();
   }
 }
 

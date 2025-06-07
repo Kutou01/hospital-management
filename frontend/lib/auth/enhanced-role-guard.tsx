@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { sessionManager } from './session-manager'
 import { useEnhancedAuth } from './enhanced-auth-context'
+import { getDashboardPath } from './dashboard-routes'
 
 interface EnhancedRoleGuardProps {
   children: React.ReactNode
@@ -65,7 +66,7 @@ export function EnhancedRoleGuard({
         console.log(`🔒 [EnhancedRoleGuard] User role ${user.role} not allowed, redirecting to their dashboard`)
         setHasAccess(false)
         setIsChecking(false)
-        router.replace(`/${user.role}/dashboard`)
+        router.replace(getDashboardPath(user.role as any))
         return
       }
 

@@ -1,12 +1,14 @@
 import dotenv from 'dotenv';
+
+// Load environment variables FIRST
+dotenv.config();
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import logger from '@hospital/shared/src/utils/logger';
-
-// Load environment variables
-dotenv.config();
+import logger from '@hospital/shared/dist/utils/logger';
+import patientRoutes from './routes/patient.routes';
 
 const app = express();
 const PORT = process.env.PORT || 3003;
@@ -29,11 +31,13 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Basic patients endpoint
+// Routes
+app.use('/api/patients', patientRoutes);
+
+// Legacy endpoint for backward compatibility
 app.get('/patients', (req, res) => {
   res.json({
-    message: 'Patient service is running',
-    patients: [],
+    message: 'Patient service is running - use /api/patients for API endpoints',
     timestamp: new Date().toISOString(),
   });
 });

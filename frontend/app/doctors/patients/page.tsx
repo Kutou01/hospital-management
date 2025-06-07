@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Users,
   Search,
@@ -23,14 +23,91 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useEnhancedAuth } from "@/lib/auth/enhanced-auth-context"
+import { patientsApi } from "@/lib/api/patients"
+import { doctorsApi } from "@/lib/api/doctors"
+import { toast } from "sonner"
+
+interface Patient {
+  patient_id: string
+  full_name: string
+  email?: string
+  phone_number?: string
+  date_of_birth?: string
+  gender?: string
+  blood_type?: string
+  address?: any
+  status: string
+  created_at: string
+  updated_at: string
+  age?: number
+  lastVisit?: string
+  nextAppointment?: string
+  condition?: string
+  riskLevel?: string
+  totalVisits?: number
+}
 
 export default function DoctorPatients() {
   const { user, loading } = useEnhancedAuth()
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState("all")
+  const [patients, setPatients] = useState<Patient[]>([])
+  const [isLoadingPatients, setIsLoadingPatients] = useState(true)
 
-  // Mock patients data
-  const patients = [
+  // Fetch patients when user is available
+  useEffect(() => {
+    if (user && user.role === 'doctor') {
+      fetchPatients()
+    }
+  }, [user])
+
+  const calculateAge = (dateOfBirth: string): number => {
+    const today = new Date()
+    const birthDate = new Date(dateOfBirth)
+    let age = today.getFullYear() - birthDate.getFullYear()
+    const monthDiff = today.getMonth() - birthDate.getMonth()
+
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--
+    }
+
+    return age
+  }
+
+  const fetchPatients = async () => {
+    try {
+      setIsLoadingPatients(true)
+      const response = await patientsApi.getAll()
+
+      if (response.success && response.data) {
+        // Transform the data to match our interface and add calculated fields
+        const transformedPatients: Patient[] = response.data.map((patient: any) => ({
+          ...patient,
+          age: patient.date_of_birth ? calculateAge(patient.date_of_birth) : undefined,
+          // These would come from appointments/medical records in a real system
+          lastVisit: undefined,
+          nextAppointment: undefined,
+          condition: 'General',
+          riskLevel: 'low',
+          totalVisits: 0
+        }))
+
+        setPatients(transformedPatients)
+      } else {
+        toast.error('Không thể tải danh sách bệnh nhân')
+        setPatients([])
+      }
+    } catch (error) {
+      console.error('Error fetching patients:', error)
+      toast.error('Lỗi khi tải danh sách bệnh nhân')
+      setPatients([])
+    } finally {
+      setIsLoadingPatients(false)
+    }
+  }
+
+  // Mock patients data for reference (remove this when API is working)
+  const mockPatients = [
     {
       id: "1",
       name: "Nguyễn Văn A",
@@ -143,14 +220,14 @@ export default function DoctorPatients() {
   }
 
   const filteredPatients = patients.filter(patient => {
-    const matchesSearch = patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         patient.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         patient.condition.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesSearch = patient.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (patient.email && patient.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                         (patient.condition && patient.condition.toLowerCase().includes(searchTerm.toLowerCase()))
     const matchesFilter = filterStatus === "all" || patient.status === filterStatus
     return matchesSearch && matchesFilter
   })
 
-  if (loading) {
+  if (loading || isLoadingPatients) {
     return (
       <DoctorLayout title="My Patients" activePage="patients">
         <div className="flex items-center justify-center h-64">
@@ -273,56 +350,71 @@ export default function DoctorPatients() {
       {/* Patients List */}
       <div className="space-y-4">
         {filteredPatients.map((patient) => (
-          <Card key={patient.id} className="hover:shadow-md transition-shadow">
+          <Card key={patient.patient_id} className="hover:shadow-md transition-shadow">
             <CardContent className="p-6">
               <div className="flex justify-between items-start">
                 <div className="flex items-start gap-4 flex-1">
                   <Avatar className="h-12 w-12">
-                    <AvatarImage src={patient.avatar || undefined} alt={patient.name} />
                     <AvatarFallback>
-                      {patient.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                      {patient.full_name.split(' ').map(n => n[0]).join('').toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
 
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-semibold">{patient.name}</h3>
+                      <h3 className="text-lg font-semibold">{patient.full_name}</h3>
                       <Badge className={getStatusColor(patient.status)}>
                         {patient.status}
                       </Badge>
-                      <Badge className={getRiskLevelColor(patient.riskLevel)}>
-                        {patient.riskLevel} risk
-                      </Badge>
+                      {patient.riskLevel && (
+                        <Badge className={getRiskLevelColor(patient.riskLevel)}>
+                          {patient.riskLevel} risk
+                        </Badge>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-3">
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm">{patient.age} years, {patient.gender}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Phone className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm">{patient.phone}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Mail className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm">{patient.email}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Heart className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm">Blood Type: {patient.bloodType}</span>
-                      </div>
+                      {patient.age && patient.gender && (
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-gray-500" />
+                          <span className="text-sm">{patient.age} years, {patient.gender}</span>
+                        </div>
+                      )}
+                      {patient.phone_number && (
+                        <div className="flex items-center gap-2">
+                          <Phone className="h-4 w-4 text-gray-500" />
+                          <span className="text-sm">{patient.phone_number}</span>
+                        </div>
+                      )}
+                      {patient.email && (
+                        <div className="flex items-center gap-2">
+                          <Mail className="h-4 w-4 text-gray-500" />
+                          <span className="text-sm">{patient.email}</span>
+                        </div>
+                      )}
+                      {patient.blood_type && (
+                        <div className="flex items-center gap-2">
+                          <Heart className="h-4 w-4 text-gray-500" />
+                          <span className="text-sm">Blood Type: {patient.blood_type}</span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-3">
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm">{patient.address}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm">Last visit: {patient.lastVisit}</span>
-                      </div>
+                      {patient.address && (
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-gray-500" />
+                          <span className="text-sm">
+                            {typeof patient.address === 'string' ? patient.address : 'Address available'}
+                          </span>
+                        </div>
+                      )}
+                      {patient.lastVisit && (
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-gray-500" />
+                          <span className="text-sm">Last visit: {patient.lastVisit}</span>
+                        </div>
+                      )}
                       {patient.nextAppointment && (
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-gray-500" />
@@ -332,14 +424,18 @@ export default function DoctorPatients() {
                     </div>
 
                     <div className="flex items-center gap-4">
-                      <div className="text-sm">
-                        <span className="font-medium text-gray-700">Condition: </span>
-                        <span className="text-gray-900">{patient.condition}</span>
-                      </div>
-                      <div className="text-sm">
-                        <span className="font-medium text-gray-700">Total Visits: </span>
-                        <span className="text-gray-900">{patient.totalVisits}</span>
-                      </div>
+                      {patient.condition && (
+                        <div className="text-sm">
+                          <span className="font-medium text-gray-700">Condition: </span>
+                          <span className="text-gray-900">{patient.condition}</span>
+                        </div>
+                      )}
+                      {patient.totalVisits !== undefined && (
+                        <div className="text-sm">
+                          <span className="font-medium text-gray-700">Total Visits: </span>
+                          <span className="text-gray-900">{patient.totalVisits}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

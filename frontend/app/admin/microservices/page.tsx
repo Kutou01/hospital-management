@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { MedicalRecordsTable } from '@/components/features/medical-records/MedicalRecordsTable';
 import { PrescriptionsTable } from '@/components/features/prescriptions/PrescriptionsTable';
 import { BillingTable } from '@/components/features/billing/BillingTable';
-import { MicroservicesHealthCheck } from '@/components/test/MicroservicesHealthCheck';
+// import { MicroservicesHealthCheck } from '@/components/test/MicroservicesHealthCheck';
 import {
   FileText,
   Pill,
@@ -91,7 +91,7 @@ function MicroservicesPageContent() {
       </div>
 
       {/* Health Check */}
-      <MicroservicesHealthCheck />
+      {/* <MicroservicesHealthCheck /> */}
 
       {/* Service Status Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

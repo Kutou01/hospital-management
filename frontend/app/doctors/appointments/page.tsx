@@ -21,75 +21,80 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { useEnhancedAuth } from "@/lib/auth/enhanced-auth-context"
+import { doctorsApi } from "@/lib/api/doctors"
+import { appointmentsApi } from "@/lib/api/appointments"
+import { toast } from "sonner"
+
+interface Appointment {
+  appointment_id: string
+  patient_name: string
+  patient_phone?: string
+  patient_email?: string
+  patient_age?: number
+  appointment_date: string
+  start_time: string
+  end_time?: string
+  appointment_type: string
+  status: string
+  reason?: string
+  notes?: string
+}
 
 export default function DoctorAppointments() {
   const { user, loading } = useEnhancedAuth()
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState("all")
+  const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [isLoadingAppointments, setIsLoadingAppointments] = useState(true)
 
-  // Mock data for appointments
-  const appointments = [
-    {
-      id: "1",
-      patient: {
-        name: "Nguyễn Văn A",
-        phone: "0123456789",
-        email: "nguyenvana@email.com",
-        age: 35
-      },
-      date: "2024-01-15",
-      time: "09:00",
-      duration: "30 min",
-      type: "Khám tổng quát",
-      status: "confirmed",
-      notes: "Đau đầu thường xuyên, cần kiểm tra huyết áp"
-    },
-    {
-      id: "2",
-      patient: {
-        name: "Trần Thị B",
-        phone: "0987654321",
-        email: "tranthib@email.com",
-        age: 28
-      },
-      date: "2024-01-15",
-      time: "10:30",
-      duration: "45 min",
-      type: "Tái khám",
-      status: "confirmed",
-      notes: "Theo dõi kết quả điều trị"
-    },
-    {
-      id: "3",
-      patient: {
-        name: "Lê Văn C",
-        phone: "0369852147",
-        email: "levanc@email.com",
-        age: 42
-      },
-      date: "2024-01-15",
-      time: "14:00",
-      duration: "60 min",
-      type: "Khám chuyên khoa",
-      status: "pending",
-      notes: "Khám tim mạch định kỳ"
-    },
-    {
-      id: "4",
-      patient: {
-        name: "Phạm Thị D",
-        phone: "0741852963",
-        email: "phamthid@email.com",
-        age: 55
-      },
-      date: "2024-01-16",
-      time: "08:30",
-      duration: "30 min",
-      type: "Khám tổng quát",
-      status: "confirmed",
-      notes: "Kiểm tra sức khỏe định kỳ"
+  // Fetch appointments when user is available
+  useEffect(() => {
+    if (user && user.role === 'doctor') {
+      fetchAppointments()
     }
-  ]
+  }, [user])
+
+  const fetchAppointments = async () => {
+    if (!user?.doctor_id) {
+      console.log('No doctor_id found for user:', user)
+      setIsLoadingAppointments(false)
+      return
+    }
+
+    try {
+      setIsLoadingAppointments(true)
+      const response = await doctorsApi.getAppointments(user.doctor_id)
+
+      if (response.success && response.data) {
+        // Transform the data to match our interface
+        const transformedAppointments: Appointment[] = response.data.map((apt: any) => ({
+          appointment_id: apt.appointment_id,
+          patient_name: apt.patient_name || apt.patients?.full_name || 'Unknown Patient',
+          patient_phone: apt.patient_phone || apt.patients?.phone_number,
+          patient_email: apt.patient_email || apt.patients?.email,
+          patient_age: apt.patient_age,
+          appointment_date: apt.appointment_date,
+          start_time: apt.start_time,
+          end_time: apt.end_time,
+          appointment_type: apt.appointment_type || 'General Consultation',
+          status: apt.status,
+          reason: apt.reason,
+          notes: apt.notes
+        }))
+
+        setAppointments(transformedAppointments)
+      } else {
+        toast.error('Không thể tải danh sách cuộc hẹn')
+        setAppointments([])
+      }
+    } catch (error) {
+      console.error('Error fetching appointments:', error)
+      toast.error('Lỗi khi tải danh sách cuộc hẹn')
+      setAppointments([])
+    } finally {
+      setIsLoadingAppointments(false)
+    }
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -122,13 +127,13 @@ export default function DoctorAppointments() {
   }
 
   const filteredAppointments = appointments.filter(appointment => {
-    const matchesSearch = appointment.patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         appointment.type.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesSearch = appointment.patient_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         appointment.appointment_type.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesFilter = filterStatus === "all" || appointment.status === filterStatus
     return matchesSearch && matchesFilter
   })
 
-  if (loading) {
+  if (loading || isLoadingAppointments) {
     return (
       <DoctorLayout title="My Appointments" activePage="appointments">
         <div className="flex items-center justify-center h-64">
@@ -192,15 +197,17 @@ export default function DoctorAppointments() {
         {/* Appointments List */}
         <div className="space-y-4">
         {filteredAppointments.map((appointment) => (
-          <Card key={appointment.id} className="hover:shadow-md transition-shadow">
+          <Card key={appointment.appointment_id} className="hover:shadow-md transition-shadow">
             <CardContent className="p-6">
               <div className="flex justify-between items-start">
                 <div className="flex-1">
                   <div className="flex items-center gap-4 mb-4">
                     <div className="flex items-center gap-2">
                       <User className="h-5 w-5 text-gray-500" />
-                      <h3 className="text-lg font-semibold">{appointment.patient.name}</h3>
-                      <span className="text-sm text-gray-500">({appointment.patient.age} years old)</span>
+                      <h3 className="text-lg font-semibold">{appointment.patient_name}</h3>
+                      {appointment.patient_age && (
+                        <span className="text-sm text-gray-500">({appointment.patient_age} years old)</span>
+                      )}
                     </div>
                     <Badge className={getStatusColor(appointment.status)}>
                       {getStatusIcon(appointment.status)}
@@ -211,25 +218,37 @@ export default function DoctorAppointments() {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm">{appointment.date}</span>
+                      <span className="text-sm">{appointment.appointment_date}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm">{appointment.time} ({appointment.duration})</span>
+                      <span className="text-sm">
+                        {appointment.start_time}
+                        {appointment.end_time && ` - ${appointment.end_time}`}
+                      </span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm">{appointment.patient.phone}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm">{appointment.patient.email}</span>
-                    </div>
+                    {appointment.patient_phone && (
+                      <div className="flex items-center gap-2">
+                        <Phone className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm">{appointment.patient_phone}</span>
+                      </div>
+                    )}
+                    {appointment.patient_email && (
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm">{appointment.patient_email}</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="mb-4">
-                    <p className="text-sm font-medium text-gray-700">Type: {appointment.type}</p>
-                    <p className="text-sm text-gray-600 mt-1">{appointment.notes}</p>
+                    <p className="text-sm font-medium text-gray-700">Type: {appointment.appointment_type}</p>
+                    {appointment.reason && (
+                      <p className="text-sm text-gray-600 mt-1">Reason: {appointment.reason}</p>
+                    )}
+                    {appointment.notes && (
+                      <p className="text-sm text-gray-600 mt-1">Notes: {appointment.notes}</p>
+                    )}
                   </div>
                 </div>
 

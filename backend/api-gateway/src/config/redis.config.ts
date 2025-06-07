@@ -1,5 +1,13 @@
 import { createClient, RedisClientType } from 'redis';
-import logger from '@hospital/shared/src/utils/logger';
+
+// Simple console logger for Docker build
+const logger = {
+  info: (message: string, meta?: any) => console.log(`[INFO] ${message}`, meta || ''),
+  error: (message: string, meta?: any) => console.error(`[ERROR] ${message}`, meta || ''),
+  warn: (message: string, meta?: any) => console.warn(`[WARN] ${message}`, meta || ''),
+  debug: (message: string, meta?: any) => console.debug(`[DEBUG] ${message}`, meta || ''),
+  http: (message: string, meta?: any) => console.log(`[HTTP] ${message}`, meta || '')
+};
 
 let redisClient: RedisClientType;
 

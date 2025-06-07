@@ -11,6 +11,18 @@ import { Search, Filter, Download, Eye } from "lucide-react"
 // TODO: Implement login history with new auth system
 // import { LoginSession } from "@/lib/types"
 
+interface LoginSession {
+  session_id: number
+  user_id: string
+  login_time: string
+  logout_time: string | null
+  ip_address?: string
+  user_agent?: string
+  device_info?: { platform: string; language: string }
+  session_token: string
+  is_active: boolean
+}
+
 export default function LoginHistoryPage() {
   const [sessions, setSessions] = useState<LoginSession[]>([])
   const [isLoading, setIsLoading] = useState(true)

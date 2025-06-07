@@ -28,6 +28,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AdminPageWrapper } from "../page-wrapper"
+import ChangePasswordForm from "@/components/auth/ChangePasswordForm"
 
 export default function SettingsPage() {
   const [saveSuccess, setSaveSuccess] = useState<boolean | null>(null)
@@ -431,27 +432,8 @@ export default function SettingsPage() {
 
             {/* Security Settings */}
             <TabsContent value="security" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Password Settings</CardTitle>
-                  <CardDescription>Update your password and security settings.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="current-password">Current Password</Label>
-                    <Input id="current-password" type="password" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="new-password">New Password</Label>
-                    <Input id="new-password" type="password" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="confirm-password">Confirm New Password</Label>
-                    <Input id="confirm-password" type="password" />
-                  </div>
-                  <Button className="mt-2">Update Password</Button>
-                </CardContent>
-              </Card>
+              {/* Change Password Form */}
+              <ChangePasswordForm />
 
               <Card>
                 <CardHeader>

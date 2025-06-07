@@ -82,11 +82,13 @@ export const appointmentSchema = z.object({
   patient_id: z.string().min(1, 'Patient is required'),
   doctor_id: z.string().min(1, 'Doctor is required'),
   appointment_date: z.string().min(1, 'Appointment date is required'),
-  appointment_time: z.string().min(1, 'Appointment time is required'),
-  duration_minutes: z.number().min(15, 'Duration must be at least 15 minutes').max(480, 'Duration cannot exceed 8 hours'),
-  type: z.enum(['consultation', 'follow_up', 'emergency', 'routine_checkup']),
+  start_time: z.string().min(1, 'Start time is required'),
+  end_time: z.string().min(1, 'End time is required'),
+  appointment_type: z.enum(['consultation', 'follow_up', 'emergency', 'routine_checkup']).default('consultation'),
+  status: z.enum(['scheduled', 'confirmed', 'in_progress', 'completed', 'cancelled', 'no_show']).default('scheduled'),
+  reason: z.string().optional(),
   notes: z.string().optional(),
-  symptoms: z.string().optional(),
+  diagnosis: z.string().optional(),
 });
 
 // Department schemas

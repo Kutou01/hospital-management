@@ -8,16 +8,27 @@ const app_1 = require("./app");
 // Load environment variables
 dotenv_1.default.config();
 const PORT = process.env.PORT || 3100;
+const DOCTOR_ONLY_MODE = process.env.DOCTOR_ONLY_MODE === 'true';
 async function startServer() {
     try {
         console.log('Starting API Gateway...');
-        // Create Express app with full proxy configuration
+        if (DOCTOR_ONLY_MODE) {
+            console.log('🏥 Running in DOCTOR-ONLY MODE for development');
+            console.log('📝 Other services are disabled and will return 503');
+        }
+        // Create Express app
         const app = await (0, app_1.createApp)();
         // Start server
         const server = app.listen(PORT, () => {
             console.log(`🚀 API Gateway running on port ${PORT}`);
             console.log(`📚 Health check: http://localhost:${PORT}/health`);
             console.log(`🌐 API Gateway: http://localhost:${PORT}`);
+            console.log(`📖 API Documentation: http://localhost:${PORT}/docs`);
+            if (DOCTOR_ONLY_MODE) {
+                console.log(`🏥 Mode: Doctor Service Development Only`);
+                console.log(`👨‍⚕️ Doctor API: http://localhost:${PORT}/api/doctors`);
+                console.log(`🔧 Service Status: http://localhost:${PORT}/services`);
+            }
         });
         // Graceful shutdown
         const gracefulShutdown = (signal) => {

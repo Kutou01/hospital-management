@@ -27,53 +27,121 @@ export interface Profile {
 export const doctorsApi = {
   // Lấy tất cả bác sĩ với thông tin chi tiết
   getAllDoctors: async () => {
-    const { data, error } = await supabase
-      .from('doctor_details')
-      .select('*')
-      .order('full_name');
+    try {
+      const { data, error } = await supabase
+        .from('doctors')
+        .select(`
+          doctor_id,
+          full_name,
+          specialization,
+          qualification,
+          department_id,
+          license_number,
+          gender,
+          phone_number,
+          status,
+          created_at,
+          updated_at
+        `)
+        .order('full_name');
 
-    if (error) {
-      console.error('Error fetching doctors:', error);
+      if (error) {
+        console.error('Error fetching doctors from table:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+          fullError: error
+        });
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Exception fetching doctors:', error);
       return [];
     }
-
-    return data || [];
   },
 
   // Lấy bác sĩ theo khoa
   getDoctorsByDepartment: async (departmentId: string) => {
-    const { data, error } = await supabase
-      .from('doctor_details')
-      .select('*')
-      .eq('department_id', departmentId)
-      .order('full_name');
+    try {
+      const { data, error } = await supabase
+        .from('doctors')
+        .select(`
+          doctor_id,
+          full_name,
+          specialization,
+          qualification,
+          department_id,
+          license_number,
+          gender,
+          phone_number,
+          status,
+          created_at,
+          updated_at
+        `)
+        .eq('department_id', departmentId)
+        .order('full_name');
 
-    if (error) {
-      console.error('Error fetching doctors by department:', error);
+      if (error) {
+        console.error('Error fetching doctors by department from table:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Exception fetching doctors by department:', error);
       return [];
     }
-
-    return data || [];
   },
 
-  // Thêm bác sĩ mới (chỉ dành cho admin, user đã có profile_id)
+  // Thêm bác sĩ mới
   addDoctor: async (doctor: any) => {
-    // Ensure profile_id is provided
-    if (!doctor.profile_id) {
-      return { data: null, error: 'profile_id is required' };
+    try {
+      // Generate doctor_id if not provided
+      if (!doctor.doctor_id) {
+        // Get the latest doctor ID to generate a new one
+        const { data: latestDoctor, error: fetchError } = await supabase
+          .from('doctors')
+          .select('doctor_id')
+          .order('doctor_id', { ascending: false })
+          .limit(1);
+
+        if (fetchError) {
+          console.error('Error fetching latest doctor ID:', fetchError);
+          return { data: null, error: fetchError };
+        }
+
+        // Generate a new doctor_id
+        let newId = 'DOC000001'; // Default if no doctors exist
+
+        if (latestDoctor && latestDoctor.length > 0) {
+          const lastId = latestDoctor[0].doctor_id;
+          const numericPart = parseInt(lastId.substring(3), 10);
+          const newNumericPart = numericPart + 1;
+          newId = `DOC${newNumericPart.toString().padStart(6, '0')}`;
+        }
+
+        doctor.doctor_id = newId;
+      }
+
+      // Insert the doctor
+      const { data, error } = await supabase
+        .from('doctors')
+        .insert([doctor])
+        .select();
+
+      if (error) {
+        console.error('Error adding doctor:', error);
+        return { data: null, error };
+      }
+
+      return { data: data?.[0] || null, error: null };
+    } catch (error) {
+      console.error('Exception adding doctor:', error);
+      return { data: null, error: 'Exception occurred while adding doctor' };
     }
-
-    const { data, error } = await supabase
-      .from('doctors')
-      .insert([doctor])
-      .select();
-
-    if (error) {
-      console.error('Error adding doctor:', error);
-      return { data: null, error };
-    }
-
-    return { data: data?.[0] || null, error: null };
   },
 
   // Cập nhật thông tin bác sĩ
@@ -112,17 +180,36 @@ export const doctorsApi = {
 export const patientsApi = {
   // Lấy tất cả bệnh nhân với thông tin chi tiết
   getAllPatients: async () => {
-    const { data, error } = await supabase
-      .from('patient_details')
-      .select('*')
-      .order('full_name');
+    try {
+      const { data, error } = await supabase
+        .from('patients')
+        .select(`
+          patient_id,
+          full_name,
+          date_of_birth,
+          gender,
+          status,
+          created_at,
+          updated_at
+        `)
+        .order('full_name');
 
-    if (error) {
-      console.error('Error fetching patients:', error);
+      if (error) {
+        console.error('Error fetching patients from table:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+          fullError: error
+        });
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Exception fetching patients:', error);
       return [];
     }
-
-    return data || [];
   },
 
   // Lấy bệnh nhân theo độ tuổi
@@ -204,24 +291,75 @@ export const patientsApi = {
 export const appointmentsApi = {
   // Lấy tất cả cuộc hẹn với thông tin chi tiết
   getAllAppointments: async () => {
-    const { data, error } = await supabase
-      .from('appointment_details')
-      .select('*')
-      .order('appointment_datetime', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('appointments')
+        .select(`
+          appointment_id,
+          patient_id,
+          doctor_id,
+          appointment_date,
+          start_time,
+          end_time,
+          appointment_type,
+          status,
+          reason,
+          notes,
+          diagnosis,
+          created_at,
+          updated_at,
+          doctors!fk_appointments_doctor (
+            doctor_id,
+            full_name,
+            specialization
+          ),
+          patients!fk_appointments_patient (
+            patient_id,
+            full_name
+          )
+        `)
+        .order('appointment_datetime', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching appointments:', error);
+      if (error) {
+        console.error('Error fetching appointments from table:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Exception fetching appointments:', error);
       return [];
     }
-
-    return data || [];
   },
 
   // Lấy cuộc hẹn theo trạng thái
   getAppointmentsByStatus: async (status: string) => {
     const { data, error } = await supabase
-      .from('appointment_details')
-      .select('*')
+      .from('appointments')
+      .select(`
+        appointment_id,
+        patient_id,
+        doctor_id,
+        appointment_date,
+        start_time,
+        end_time,
+        appointment_type,
+        status,
+        reason,
+        notes,
+        diagnosis,
+        created_at,
+        updated_at,
+        doctors!fk_appointments_doctor (
+          doctor_id,
+          full_name,
+          specialization
+        ),
+        patients!fk_appointments_patient (
+          patient_id,
+          full_name
+        )
+      `)
       .eq('status', status)
       .order('appointment_datetime', { ascending: false });
 
@@ -237,8 +375,31 @@ export const appointmentsApi = {
   getTodayAppointments: async () => {
     const today = new Date().toISOString().split('T')[0];
     const { data, error } = await supabase
-      .from('appointment_details')
-      .select('*')
+      .from('appointments')
+      .select(`
+        appointment_id,
+        patient_id,
+        doctor_id,
+        appointment_date,
+        start_time,
+        end_time,
+        appointment_type,
+        status,
+        reason,
+        notes,
+        diagnosis,
+        created_at,
+        updated_at,
+        doctors!fk_appointments_doctor (
+          doctor_id,
+          full_name,
+          specialization
+        ),
+        patients!fk_appointments_patient (
+          patient_id,
+          full_name
+        )
+      `)
       .gte('appointment_datetime', `${today}T00:00:00`)
       .lt('appointment_datetime', `${today}T23:59:59`)
       .order('appointment_datetime');
@@ -439,7 +600,7 @@ export const roomsApi = {
       .from('rooms')
       .select(`
         *,
-        departments:department_id (
+        departments!rooms_department_id_fkey (
           department_id,
           name,
           description,
@@ -449,7 +610,13 @@ export const roomsApi = {
       .order('room_number');
 
     if (error) {
-      console.error('Error fetching rooms:', error);
+      console.error('Error fetching rooms:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+        fullError: error
+      });
       return [];
     }
 
@@ -541,10 +708,59 @@ export const roomsApi = {
 export const dashboardApi = {
   // Lấy thống kê tổng quan
   getDashboardStats: async () => {
-    const { data, error } = await supabase
-      .rpc('get_dashboard_stats');
+    try {
+      // Try to use RPC function first
+      const { data: rpcData, error: rpcError } = await supabase
+        .rpc('get_dashboard_stats');
 
-    if (error) {
+      if (!rpcError && rpcData) {
+        return rpcData[0] || {};
+      }
+
+      // Fallback: Calculate stats manually if RPC function doesn't exist
+      console.warn('RPC function get_dashboard_stats not found, calculating manually:', rpcError?.message);
+
+      const [
+        { count: totalPatients },
+        { count: totalDoctors },
+        { count: totalDepartments },
+        { count: totalRooms },
+        { count: availableRooms },
+        appointmentsData
+      ] = await Promise.all([
+        supabase.from('patients').select('*', { count: 'exact', head: true }),
+        supabase.from('doctors').select('*', { count: 'exact', head: true }),
+        supabase.from('departments').select('*', { count: 'exact', head: true }),
+        supabase.from('rooms').select('*', { count: 'exact', head: true }),
+        supabase.from('rooms').select('*', { count: 'exact', head: true }).eq('status', 'available'),
+        supabase.from('appointments').select('status, appointment_date')
+      ]);
+
+      // Calculate appointment stats
+      const today = new Date().toISOString().split('T')[0];
+      const appointments = appointmentsData.data || [];
+
+      const appointmentsToday = appointments.filter(apt =>
+        apt.appointment_date?.startsWith(today)
+      ).length;
+
+      const appointmentsPending = appointments.filter(apt => apt.status === 'pending').length;
+      const appointmentsConfirmed = appointments.filter(apt => apt.status === 'confirmed').length;
+      const appointmentsCompleted = appointments.filter(apt => apt.status === 'completed').length;
+
+      return {
+        total_patients: totalPatients || 0,
+        total_doctors: totalDoctors || 0,
+        total_departments: totalDepartments || 0,
+        total_rooms: totalRooms || 0,
+        available_rooms: availableRooms || 0,
+        occupied_rooms: (totalRooms || 0) - (availableRooms || 0),
+        appointments_today: appointmentsToday,
+        appointments_pending: appointmentsPending,
+        appointments_confirmed: appointmentsConfirmed,
+        appointments_completed: appointmentsCompleted
+      };
+    } catch (error) {
       console.error('Error fetching dashboard stats:', error);
       return {
         total_patients: 0,
@@ -559,8 +775,6 @@ export const dashboardApi = {
         appointments_completed: 0
       };
     }
-
-    return data[0] || {};
   },
 
   // Lấy thống kê theo tháng
@@ -571,8 +785,8 @@ export const dashboardApi = {
     const { data: appointments, error: appointmentsError } = await supabase
       .from('appointments')
       .select('*')
-      .gte('appointment_datetime', startDate)
-      .lte('appointment_datetime', endDate);
+      .gte('appointment_date', startDate)
+      .lte('appointment_date', endDate);
 
     const { data: patients, error: patientsError } = await supabase
       .from('patients')

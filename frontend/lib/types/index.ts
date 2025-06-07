@@ -120,14 +120,13 @@ export interface Appointment extends BaseEntity {
   patient_id: string;
   doctor_id: string;
   appointment_date: string;
-  appointment_time: string;
-  duration_minutes: number;
+  start_time: string;
+  end_time: string;
+  appointment_type: 'consultation' | 'follow_up' | 'emergency' | 'routine_checkup';
   status: 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show';
-  type: 'consultation' | 'follow_up' | 'emergency' | 'routine_checkup';
+  reason?: string;
   notes?: string;
-  symptoms?: string;
   diagnosis?: string;
-  prescription?: string;
   patient?: Patient;
   doctor?: Doctor;
 }

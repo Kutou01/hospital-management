@@ -59,17 +59,43 @@ export default function AdminDashboard() {
       try {
         setIsLoadingData(true)
 
-        // Load dashboard statistics
-        const stats = await dashboardApi.getDashboardStats()
-        setDashboardStats(stats)
+        console.log('📊 [AdminDashboard] Loading dashboard data...')
 
-        // Load recent appointments
-        const appointments = await appointmentsApi.getAllAppointments()
-        setRecentAppointments(appointments.slice(0, 5)) // Get latest 5 appointments
+        // Load dashboard statistics with better error handling
+        try {
+          const stats = await dashboardApi.getDashboardStats()
+          setDashboardStats(stats)
+          console.log('✅ [AdminDashboard] Dashboard stats loaded:', stats)
+        } catch (statsError) {
+          console.error('❌ [AdminDashboard] Failed to load dashboard stats:', statsError)
+          // Set default stats if API fails
+          setDashboardStats({
+            total_patients: 0,
+            total_doctors: 0,
+            total_departments: 0,
+            total_rooms: 0,
+            available_rooms: 0,
+            occupied_rooms: 0,
+            appointments_today: 0,
+            appointments_pending: 0,
+            appointments_confirmed: 0,
+            appointments_completed: 0
+          })
+        }
 
-        console.log('📊 Dashboard data loaded:', { stats, appointmentsCount: appointments.length })
+        // Load recent appointments with better error handling
+        try {
+          const appointments = await appointmentsApi.getAllAppointments()
+          setRecentAppointments(appointments.slice(0, 5)) // Get latest 5 appointments
+          console.log('✅ [AdminDashboard] Recent appointments loaded:', appointments.length)
+        } catch (appointmentsError) {
+          console.error('❌ [AdminDashboard] Failed to load appointments:', appointmentsError)
+          setRecentAppointments([])
+        }
+
+        console.log('🎉 [AdminDashboard] Dashboard data loading completed')
       } catch (error) {
-        console.error('Error loading dashboard data:', error)
+        console.error('❌ [AdminDashboard] Critical error loading dashboard data:', error)
       } finally {
         setIsLoadingData(false)
       }

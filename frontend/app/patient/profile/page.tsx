@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import {
   User,
   Mail,
@@ -29,7 +29,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useSupabaseAuth } from "@/lib/hooks/useSupabaseAuth"
+import { useEnhancedAuth } from "@/lib/auth/enhanced-auth-context"
 
 interface Doctor {
   id: number;
@@ -47,9 +47,18 @@ interface Doctor {
 }
 
 export default function PatientProfile() {
-  const { user, loading } = useSupabaseAuth()
+  const { user, loading } = useEnhancedAuth()
   const searchParams = useSearchParams()
-  const action = searchParams.get('action')
+  const router = useRouter()
+  const action = searchParams ? searchParams.get('action') : null
+
+  // Redirect to doctor detail page if action=booking
+  useEffect(() => {
+    if (action === 'booking') {
+      const doctorId = localStorage.getItem('selectedDoctorId') || '1'
+      router.replace(`/doctors/${doctorId}`)
+    }
+  }, [action, router])
 
   const [activeTab, setActiveTab] = useState(action === 'booking' ? 'booking' : 'profile')
   const [isEditing, setIsEditing] = useState(false)
@@ -274,18 +283,49 @@ export default function PatientProfile() {
     setBookingLoading(true)
 
     try {
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
-
-      // Clear selected doctor from localStorage
-      localStorage.removeItem('selectedDoctorId')
-
-      setBookingSuccess(true)
-      console.log('Booking submitted:', {
+      // Lưu thông tin đặt lịch tạm thời vào localStorage
+      localStorage.setItem('pendingBooking', JSON.stringify({
         doctorId: selectedDoctor.id,
+        doctorName: selectedDoctor.name,
         patientId: user?.id,
         ...bookingForm
-      })
+      }))
+
+      // Xử lý phí tư vấn từ chuỗi sang số
+      const feeString = selectedDoctor.consultationFee || '0 VNĐ';
+      const feeNumber = parseInt(feeString.replace(/[^\d]/g, ''), 10) || 0;
+
+      try {
+        // Gọi API tạo yêu cầu thanh toán
+        const paymentApi = {
+          createPayment: async (data: any) => {
+            // Mock API call for now
+            return {
+              code: '00',
+              data: {
+                checkoutUrl: `/api/payment/checkout?doctorId=${selectedDoctor.id}&amount=${feeNumber}`
+              }
+            }
+          }
+        }
+
+        const paymentResponse = await paymentApi.createPayment({
+          doctorId: selectedDoctor.id.toString(),
+          doctorName: selectedDoctor.name,
+          amount: feeNumber,
+          description: `Đặt lịch khám với ${selectedDoctor.name} (${selectedDoctor.specialty})`
+        })
+
+        if (paymentResponse.code === '00' && paymentResponse.data?.checkoutUrl) {
+          // Chuyển hướng đến trang thanh toán
+          window.location.href = paymentResponse.data.checkoutUrl;
+        } else {
+          throw new Error('Không thể tạo liên kết thanh toán');
+        }
+      } catch (paymentError: any) {
+        console.error('Payment error:', paymentError);
+        alert('Không thể tạo yêu cầu thanh toán. Vui lòng thử lại sau.');
+      }
     } catch (error) {
       alert('Không thể đặt lịch khám. Vui lòng thử lại.')
     } finally {
@@ -295,7 +335,7 @@ export default function PatientProfile() {
 
   if (loading) {
     return (
-      <RoleBasedLayout>
+      <RoleBasedLayout title="Hồ sơ bệnh nhân" activePage="profile">
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
@@ -305,7 +345,7 @@ export default function PatientProfile() {
 
   if (!user || user.role !== 'patient') {
     return (
-      <RoleBasedLayout>
+      <RoleBasedLayout title="Truy cập bị từ chối" activePage="profile">
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
@@ -318,7 +358,7 @@ export default function PatientProfile() {
 
   if (bookingSuccess) {
     return (
-      <RoleBasedLayout>
+      <RoleBasedLayout title="Đặt lịch thành công" activePage="profile">
         <div className="max-w-2xl mx-auto text-center py-12">
           <Card className="shadow-lg">
             <CardContent className="p-8">
@@ -373,29 +413,27 @@ export default function PatientProfile() {
   }
 
   return (
-    <RoleBasedLayout>
+    <RoleBasedLayout title="Hồ sơ bệnh nhân" activePage="profile">
       {/* Tabs */}
       <div className="mb-6">
         <div className="border-b border-gray-200">
           <nav className="-mb-px flex space-x-8">
             <button
               onClick={() => setActiveTab('profile')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'profile'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'profile'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
             >
               <User className="inline-block w-5 h-5 mr-2" />
               Hồ sơ cá nhân
             </button>
             <button
               onClick={() => setActiveTab('booking')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'booking'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'booking'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
             >
               <Calendar className="inline-block w-5 h-5 mr-2" />
               Đặt lịch khám
@@ -800,7 +838,7 @@ export default function PatientProfile() {
                     <Label htmlFor="appointmentTime">Giờ khám *</Label>
                     <Select
                       value={bookingForm.appointmentTime}
-                      onValueChange={(value) => setBookingForm({...bookingForm, appointmentTime: value})}
+                      onValueChange={(value) => setBookingForm({ ...bookingForm, appointmentTime: value })}
                       required
                     >
                       <SelectTrigger>

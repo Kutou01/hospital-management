@@ -195,7 +195,11 @@ export default function PatientDashboard() {
       subtitle="Your personal health management portal"
       headerActions={
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push('/doctors/1')}
+          >
             <Calendar className="h-4 w-4 mr-2" />
             Book Appointment
           </Button>
@@ -316,7 +320,12 @@ export default function PatientDashboard() {
                   <Calendar className="h-5 w-5" />
                   Upcoming Appointments
                 </CardTitle>
-                <Button variant="secondary" size="sm" className="bg-white/20 hover:bg-white/30 text-white border-white/30">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+                  onClick={() => router.push('/doctors/1')}
+                >
                   Book New
                 </Button>
               </div>
@@ -348,7 +357,12 @@ export default function PatientDashboard() {
                     </div>
                     <p className="text-lg font-medium mb-2">No upcoming appointments</p>
                     <p className="text-sm text-gray-400 mb-4">Schedule your next visit with your healthcare provider</p>
-                    <Button className="bg-blue-600 hover:bg-blue-700">Book Appointment</Button>
+                    <Button
+                      className="bg-blue-600 hover:bg-blue-700"
+                      onClick={() => router.push('/doctors/1')}
+                    >
+                      Book Appointment
+                    </Button>
                   </div>
                 )}
               </div>
@@ -465,7 +479,11 @@ export default function PatientDashboard() {
           </CardHeader>
           <CardContent className="p-6">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              <Button className="h-24 flex-col space-y-2 bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 text-blue-700 border-blue-200" variant="outline">
+              <Button
+                className="h-24 flex-col space-y-2 bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 text-blue-700 border-blue-200"
+                variant="outline"
+                onClick={() => router.push('/doctors/1')}
+              >
                 <Calendar className="h-8 w-8" />
                 <span className="text-xs font-medium">Book Appointment</span>
               </Button>

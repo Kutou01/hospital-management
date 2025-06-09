@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { useSupabaseAuth, useIsAdmin, useIsDoctor, useIsPatient } from '@/lib/hooks/useSupabaseAuth';
+import { useEnhancedAuth } from '@/lib/auth/enhanced-auth-context';
+import { useIsAdmin, useIsDoctor, useIsPatient } from '@/lib/hooks/useSupabaseAuth';
 import { AdminLayout, DoctorLayout, PatientLayout } from './UniversalLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertCircle, Loader2 } from 'lucide-react';
@@ -17,7 +18,7 @@ export const RoleBasedLayout: React.FC<RoleBasedLayoutProps> = ({
   title,
   activePage,
 }) => {
-  const { user, loading } = useSupabaseAuth();
+  const { user, loading } = useEnhancedAuth();
   const isAdmin = useIsAdmin();
   const isDoctor = useIsDoctor();
   const isPatient = useIsPatient();
@@ -47,7 +48,7 @@ export const RoleBasedLayout: React.FC<RoleBasedLayoutProps> = ({
             <h2 className="text-lg font-semibold mb-2">Authentication Required</h2>
             <p className="text-gray-600 mb-4">Please log in to access this page</p>
             <a
-              href="/login"
+              href="/auth/login"
               className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
             >
               Go to Login

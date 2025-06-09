@@ -1,5 +1,153 @@
-import { apiClient } from './client';
-import { Doctor, DoctorForm, ApiResponse, FilterOptions } from '../types';
+// Clean doctors API without complex dependencies
+// lib/api/doctors.ts
+
+interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+
+interface FilterOptions {
+  [key: string]: any;
+}
+
+interface Doctor {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  specialization: string;
+  department_id: string;
+  license_number: string;
+  phone?: string;
+  experience_years?: number;
+  consultation_fee?: number;
+  status: 'active' | 'inactive' | 'on_leave';
+  created_at: string;
+  bio?: string;
+  title?: string;
+  rating?: number;
+  total_reviews?: number;
+  patients_count?: number;
+}
+
+interface DoctorForm {
+  first_name: string;
+  last_name: string;
+  email: string;
+  specialization: string;
+  department_id: string;
+  license_number: string;
+  phone?: string;
+  experience_years?: number;
+  consultation_fee?: number;
+  bio?: string;
+  title?: string;
+}
+
+// Simple API client
+const apiClient = {
+  async get<T>(url: string, params?: any): Promise<ApiResponse<T>> {
+    try {
+      const queryString = params ? new URLSearchParams(params).toString() : '';
+      const fullUrl = `/api${url}${queryString ? `?${queryString}` : ''}`;
+
+      const response = await fetch(fullUrl);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'API Error');
+      }
+
+      return { success: true, data };
+    } catch (error: any) {
+      console.error('API Error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  async post<T>(url: string, data: any): Promise<ApiResponse<T>> {
+    try {
+      const response = await fetch(`/api${url}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'API Error');
+      }
+
+      return { success: true, data: result };
+    } catch (error: any) {
+      console.error('API Error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  async put<T>(url: string, data: any): Promise<ApiResponse<T>> {
+    try {
+      const response = await fetch(`/api${url}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'API Error');
+      }
+
+      return { success: true, data: result };
+    } catch (error: any) {
+      console.error('API Error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  async delete<T>(url: string): Promise<ApiResponse<T>> {
+    try {
+      const response = await fetch(`/api${url}`, {
+        method: 'DELETE',
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'API Error');
+      }
+
+      return { success: true, data: result };
+    } catch (error: any) {
+      console.error('API Error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  async patch<T>(url: string, data: any): Promise<ApiResponse<T>> {
+    try {
+      const response = await fetch(`/api${url}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'API Error');
+      }
+
+      return { success: true, data: result };
+    } catch (error: any) {
+      console.error('API Error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+};
 
 // Doctors API endpoints
 export const doctorsApi = {
@@ -38,15 +186,15 @@ export const doctorsApi = {
     return apiClient.get<Doctor[]>(`/doctors/department/${departmentId}`);
   },
 
+  // Search doctors
+  search: async (query: string): Promise<ApiResponse<Doctor[]>> => {
+    return apiClient.get<Doctor[]>('/doctors/search', { q: query });
+  },
+
   // Get doctor's schedule
   getSchedule: async (id: string, date?: string): Promise<ApiResponse<any[]>> => {
     const params = date ? { date } : undefined;
     return apiClient.get<any[]>(`/doctors/${id}/schedule`, params);
-  },
-
-  // Update doctor's schedule
-  updateSchedule: async (id: string, schedule: any): Promise<ApiResponse<any>> => {
-    return apiClient.put<any>(`/doctors/${id}/schedule`, schedule);
   },
 
   // Get doctor's appointments
@@ -54,147 +202,21 @@ export const doctorsApi = {
     return apiClient.get<any[]>(`/doctors/${id}/appointments`, filters);
   },
 
-  // Get doctor statistics
-  getStats: async (id: string): Promise<ApiResponse<any>> => {
-    return apiClient.get<any>(`/doctors/${id}/stats`);
-  },
-
-  // =====================================================
-  // ENHANCED DOCTOR PROFILE API
-  // =====================================================
-
-  // Get complete doctor profile with all data
+  // Get doctor profile
   getProfile: async (id: string): Promise<ApiResponse<any>> => {
     return apiClient.get<any>(`/doctors/${id}/profile`);
   },
-
-  // Get doctor by profile ID
-  getByProfileId: async (profileId: string): Promise<ApiResponse<Doctor>> => {
-    return apiClient.get<Doctor>(`/doctors/by-profile/${profileId}`);
-  },
-
-  // =====================================================
-  // SCHEDULE MANAGEMENT API
-  // =====================================================
-
-  // Get weekly schedule
-  getWeeklySchedule: async (id: string): Promise<ApiResponse<any[]>> => {
-    return apiClient.get<any[]>(`/doctors/${id}/schedule/weekly`);
-  },
-
-  // Update schedule
-  updateSchedule: async (id: string, schedules: any[]): Promise<ApiResponse<any>> => {
-    return apiClient.put<any>(`/doctors/${id}/schedule`, { schedules });
-  },
-
-  // Get availability for specific date
-  getAvailability: async (id: string, date: string): Promise<ApiResponse<any>> => {
-    return apiClient.get<any>(`/doctors/${id}/availability`, { date });
-  },
-
-  // Get available time slots
-  getTimeSlots: async (id: string, date: string): Promise<ApiResponse<string[]>> => {
-    return apiClient.get<string[]>(`/doctors/${id}/time-slots`, { date });
-  },
-
-  // =====================================================
-  // REVIEW MANAGEMENT API
-  // =====================================================
 
   // Get doctor reviews
   getReviews: async (id: string, page: number = 1, limit: number = 20): Promise<ApiResponse<any[]>> => {
     return apiClient.get<any[]>(`/doctors/${id}/reviews`, { page, limit });
   },
 
-  // Get review statistics
-  getReviewStats: async (id: string): Promise<ApiResponse<any>> => {
-    return apiClient.get<any>(`/doctors/${id}/reviews/stats`);
-  },
-
-  // =====================================================
-  // SHIFT MANAGEMENT API
-  // =====================================================
-
-  // Get doctor shifts
-  getShifts: async (id: string, page: number = 1, limit: number = 20): Promise<ApiResponse<any[]>> => {
-    return apiClient.get<any[]>(`/shifts/doctor/${id}`, { page, limit });
-  },
-
-  // Get upcoming shifts
-  getUpcomingShifts: async (id: string, days: number = 7): Promise<ApiResponse<any[]>> => {
-    return apiClient.get<any[]>(`/shifts/doctor/${id}/upcoming`, { days });
-  },
-
-  // Get shift statistics
-  getShiftStats: async (id: string, startDate: string, endDate: string): Promise<ApiResponse<any>> => {
-    return apiClient.get<any>(`/shifts/doctor/${id}/statistics`, { startDate, endDate });
-  },
-
-  // Create new shift
-  createShift: async (shiftData: any): Promise<ApiResponse<any>> => {
-    return apiClient.post<any>('/shifts', shiftData);
-  },
-
-  // Update shift
-  updateShift: async (shiftId: string, shiftData: any): Promise<ApiResponse<any>> => {
-    return apiClient.put<any>(`/shifts/${shiftId}`, shiftData);
-  },
-
-  // Confirm shift
-  confirmShift: async (shiftId: string): Promise<ApiResponse<any>> => {
-    return apiClient.patch<any>(`/shifts/${shiftId}/confirm`);
-  },
-
-  // =====================================================
-  // EXPERIENCE MANAGEMENT API
-  // =====================================================
-
-  // Get doctor experiences
-  getExperiences: async (id: string, type?: string): Promise<ApiResponse<any[]>> => {
-    const params = type ? { type } : undefined;
-    return apiClient.get<any[]>(`/experiences/doctor/${id}`, params);
-  },
-
-  // Get experience timeline
-  getExperienceTimeline: async (id: string): Promise<ApiResponse<any[]>> => {
-    return apiClient.get<any[]>(`/experiences/doctor/${id}/timeline`);
-  },
-
-  // Get total experience calculation
-  getTotalExperience: async (id: string): Promise<ApiResponse<any>> => {
-    return apiClient.get<any>(`/experiences/doctor/${id}/total`);
-  },
-
-  // Create new experience
-  createExperience: async (experienceData: any): Promise<ApiResponse<any>> => {
-    return apiClient.post<any>('/experiences', experienceData);
-  },
-
-  // Update experience
-  updateExperience: async (experienceId: string, experienceData: any): Promise<ApiResponse<any>> => {
-    return apiClient.put<any>(`/experiences/${experienceId}`, experienceData);
-  },
-
-  // Delete experience
-  deleteExperience: async (experienceId: string): Promise<ApiResponse<any>> => {
-    return apiClient.delete<any>(`/experiences/${experienceId}`);
-  },
-
-  // Upload doctor avatar
-  uploadAvatar: async (id: string, file: File): Promise<ApiResponse<{ avatar_url: string }>> => {
-    return apiClient.uploadFile<{ avatar_url: string }>(`/doctors/${id}/avatar`, file);
-  },
-
-  // Search doctors
-  search: async (query: string): Promise<ApiResponse<Doctor[]>> => {
-    return apiClient.get<Doctor[]>('/doctors/search', { q: query });
-  },
-
   // Get available doctors for appointment
   getAvailable: async (date: string, time?: string): Promise<ApiResponse<Doctor[]>> => {
     const params = time ? { date, time } : { date };
     return apiClient.get<Doctor[]>('/doctors/available', params);
-  },
+  }
 };
 
 // Doctor utilities
@@ -239,7 +261,7 @@ export const doctorUtils = {
 
   // Format consultation fee
   formatFee: (fee?: number): string => {
-    if (!fee) return 'Not specified';
+    if (!fee) return 'Liên hệ';
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
       currency: 'VND',
@@ -248,134 +270,10 @@ export const doctorUtils = {
 
   // Calculate experience level
   getExperienceLevel: (years?: number): string => {
-    if (!years) return 'Not specified';
+    if (!years) return 'Chưa xác định';
     if (years < 2) return 'Junior';
-    if (years < 5) return 'Mid-level';
-    if (years < 10) return 'Senior';
-    return 'Expert';
-  },
-
-  // Validate doctor form
-  validateForm: (data: DoctorForm): { isValid: boolean; errors: Record<string, string> } => {
-    const errors: Record<string, string> = {};
-
-    if (!data.first_name.trim()) {
-      errors.first_name = 'First name is required';
-    }
-
-    if (!data.last_name.trim()) {
-      errors.last_name = 'Last name is required';
-    }
-
-    if (!data.email.trim()) {
-      errors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
-      errors.email = 'Invalid email format';
-    }
-
-    if (!data.specialization.trim()) {
-      errors.specialization = 'Specialization is required';
-    }
-
-    if (!data.license_number.trim()) {
-      errors.license_number = 'License number is required';
-    }
-
-    if (!data.department_id) {
-      errors.department_id = 'Department is required';
-    }
-
-    if (data.phone && !/^[0-9+\-\s()]+$/.test(data.phone)) {
-      errors.phone = 'Invalid phone number format';
-    }
-
-    if (data.experience_years && (data.experience_years < 0 || data.experience_years > 50)) {
-      errors.experience_years = 'Experience years must be between 0 and 50';
-    }
-
-    if (data.consultation_fee && data.consultation_fee < 0) {
-      errors.consultation_fee = 'Consultation fee cannot be negative';
-    }
-
-    return {
-      isValid: Object.keys(errors).length === 0,
-      errors,
-    };
-  },
-
-  // Filter doctors by criteria
-  filterDoctors: (doctors: Doctor[], filters: {
-    search?: string;
-    department?: string;
-    status?: string;
-    specialization?: string;
-  }): Doctor[] => {
-    return doctors.filter(doctor => {
-      if (filters.search) {
-        const searchLower = filters.search.toLowerCase();
-        const matchesName = `${doctor.first_name} ${doctor.last_name}`.toLowerCase().includes(searchLower);
-        const matchesEmail = doctor.email.toLowerCase().includes(searchLower);
-        const matchesSpecialization = doctor.specialization.toLowerCase().includes(searchLower);
-
-        if (!matchesName && !matchesEmail && !matchesSpecialization) {
-          return false;
-        }
-      }
-
-      if (filters.department && doctor.department_id !== filters.department) {
-        return false;
-      }
-
-      if (filters.status && doctor.status !== filters.status) {
-        return false;
-      }
-
-      if (filters.specialization && doctor.specialization !== filters.specialization) {
-        return false;
-      }
-
-      return true;
-    });
-  },
-
-  // Sort doctors
-  sortDoctors: (doctors: Doctor[], sortBy: string, order: 'asc' | 'desc' = 'asc'): Doctor[] => {
-    return [...doctors].sort((a, b) => {
-      let aValue: any;
-      let bValue: any;
-
-      switch (sortBy) {
-        case 'name':
-          aValue = `${a.first_name} ${a.last_name}`;
-          bValue = `${b.first_name} ${b.last_name}`;
-          break;
-        case 'email':
-          aValue = a.email;
-          bValue = b.email;
-          break;
-        case 'specialization':
-          aValue = a.specialization;
-          bValue = b.specialization;
-          break;
-        case 'experience':
-          aValue = a.experience_years || 0;
-          bValue = b.experience_years || 0;
-          break;
-        case 'fee':
-          aValue = a.consultation_fee || 0;
-          bValue = b.consultation_fee || 0;
-          break;
-        case 'created_at':
-          aValue = new Date(a.created_at);
-          bValue = new Date(b.created_at);
-          break;
-        default:
-          return 0;
-      }
-
-      if (aValue < bValue) return order === 'asc' ? -1 : 1;
-      if (aValue > bValue) return order === 'asc' ? 1 : -1;
-      return 0;
-    });
-  },
+    if (years < 5) return 'Trung cấp';
+    if (years < 10) return 'Cao cấp';
+    return 'Chuyên gia';
+  }
 };

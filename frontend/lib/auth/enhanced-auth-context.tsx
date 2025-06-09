@@ -130,13 +130,13 @@ export function EnhancedAuthProvider({ children }: { children: React.ReactNode }
 
         // Provide more specific error messages
         if (result.error.includes('Invalid login credentials') ||
-            result.error.includes('Email hoặc mật khẩu không đúng')) {
+          result.error.includes('Email hoặc mật khẩu không đúng')) {
           userFriendlyError = 'Email hoặc mật khẩu không đúng. Vui lòng kiểm tra lại thông tin và thử lại.'
         } else if (result.error.includes('Email not confirmed') ||
-                   result.error.includes('xác thực email')) {
+          result.error.includes('xác thực email')) {
           userFriendlyError = 'Tài khoản chưa được xác thực. Vui lòng kiểm tra email và xác thực tài khoản trước khi đăng nhập.'
         } else if (result.error.includes('Too many requests') ||
-                   result.error.includes('Quá nhiều lần thử')) {
+          result.error.includes('Quá nhiều lần thử')) {
           userFriendlyError = 'Quá nhiều lần thử đăng nhập. Vui lòng đợi một chút rồi thử lại.'
         } else if (result.error.includes('User not found')) {
           userFriendlyError = 'Không tìm thấy tài khoản với email này. Vui lòng kiểm tra lại email hoặc đăng ký tài khoản mới.'
@@ -160,11 +160,20 @@ export function EnhancedAuthProvider({ children }: { children: React.ReactNode }
           result.session.expires_in || 3600
         )
 
-        // Navigate to appropriate dashboard
-        const { getDashboardPath } = await import('./dashboard-routes')
-        const redirectPath = getDashboardPath(result.user.role as any)
-        console.log('🔄 [EnhancedAuthProvider] Redirecting to:', redirectPath)
-        router.replace(redirectPath)
+        // Check if we should redirect to doctor booking
+        const isFromBooking = typeof window !== 'undefined' && window.location.search.includes('redirect=booking')
+        const selectedDoctorId = typeof window !== 'undefined' ? localStorage.getItem('selectedDoctorId') : null
+
+        if (isFromBooking && selectedDoctorId) {
+          console.log('🔄 [EnhancedAuthProvider] Redirecting to doctor booking:', selectedDoctorId)
+          router.replace(`/doctors/${selectedDoctorId}`)
+        } else {
+          // Navigate to appropriate dashboard
+          const { getDashboardPath } = await import('./dashboard-routes')
+          const redirectPath = getDashboardPath(result.user.role as any)
+          console.log('🔄 [EnhancedAuthProvider] Redirecting to dashboard:', redirectPath)
+          router.replace(redirectPath)
+        }
       }
     } catch (err: any) {
       console.error('❌ [EnhancedAuthProvider] Sign in failed:', err)

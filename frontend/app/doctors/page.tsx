@@ -203,8 +203,8 @@ export default function DoctorsPage() {
   const filteredDoctors = doctors.filter(doctor => {
     const matchesSpecialty = selectedSpecialty === 'all' || doctor.specialty === selectedSpecialty;
     const matchesSearch = doctor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         doctor.specialty.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         doctor.title.toLowerCase().includes(searchTerm.toLowerCase());
+      doctor.specialty.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      doctor.title.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSpecialty && matchesSearch;
   });
 
@@ -221,8 +221,8 @@ export default function DoctorsPage() {
         localStorage.setItem('selectedDoctorId', doctorId.toString());
 
         if (user.role === 'patient') {
-          // Redirect to patient profile for booking
-          router.push('/patient/profile?action=booking');
+          // Chuyển hướng trực tiếp đến trang chi tiết bác sĩ
+          router.push(`/doctors/${doctorId}`);
         } else if (user.role === 'doctor') {
           // Doctor trying to book - redirect to doctor dashboard
           router.push('/doctors/dashboard');
@@ -450,29 +450,29 @@ export default function DoctorsPage() {
                           )}
                         </Button>
                         <div className="grid grid-cols-2 gap-2">
-                        <Button
-  variant="outline"
-  className="bg-white text-[#003087] border-2 border-[#003087] hover:bg-[#003087] hover:text-white px-6 py-3 font-bold rounded-lg shadow-md hover:shadow-lg transition duration-200 flex items-center"
-  onClick={() => {
-    Swal.fire({
-      title: 'Gọi điện thoại?',
-      text: `Bạn có muốn gọi tới số ${doctor.phone}?`,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonColor: '#003087',
-      cancelButtonColor: '#d33',
-      confirmButtonText: 'Gọi ngay',
-      cancelButtonText: 'Hủy',
-    }).then((result) => {
-      if (result.isConfirmed) {
-        window.open(`tel:${doctor.phone}`, '_self');
-      }
-    });
-  }}
->
-  <Phone className="mr-2" size={20} />
-  Gọi điện
-</Button>
+                          <Button
+                            variant="outline"
+                            className="bg-white text-[#003087] border-2 border-[#003087] hover:bg-[#003087] hover:text-white px-6 py-3 font-bold rounded-lg shadow-md hover:shadow-lg transition duration-200 flex items-center"
+                            onClick={() => {
+                              Swal.fire({
+                                title: 'Gọi điện thoại?',
+                                text: `Bạn có muốn gọi tới số ${doctor.phone}?`,
+                                icon: 'question',
+                                showCancelButton: true,
+                                confirmButtonColor: '#003087',
+                                cancelButtonColor: '#d33',
+                                confirmButtonText: 'Gọi ngay',
+                                cancelButtonText: 'Hủy',
+                              }).then((result) => {
+                                if (result.isConfirmed) {
+                                  window.open(`tel:${doctor.phone}`, '_self');
+                                }
+                              });
+                            }}
+                          >
+                            <Phone className="mr-2" size={20} />
+                            Gọi điện
+                          </Button>
                           <Button
                             variant="outline"
                             className="border-[#003087] text-[#003087] hover:bg-[#003087] hover:text-white rounded-lg"
@@ -495,7 +495,7 @@ export default function DoctorsPage() {
                   <h3 className="text-xl font-semibold text-[#1a3b5d] mb-2">Không tìm thấy bác sĩ</h3>
                   <p className="text-gray-600 mb-4">Không có bác sĩ nào phù hợp với tiêu chí tìm kiếm của bạn.</p>
                   <Button
-                    onClick={() => {setSearchTerm(''); setSelectedSpecialty('all')}}
+                    onClick={() => { setSearchTerm(''); setSelectedSpecialty('all') }}
                     variant="outline"
                     className="border-[#003087] text-[#003087]"
                   >
@@ -507,109 +507,6 @@ export default function DoctorsPage() {
           )}
         </div>
       </section>
-
-      {/* Why Choose Our Doctors */}
-      <section className="py-16 bg-[#e6f7ff]">
-        <div className="container mx-auto px-4 md:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-[#1a3b5d] mb-4">Tại Sao Chọn Bác Sĩ Của Chúng Tôi?</h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              Đội ngũ bác sĩ của chúng tôi được lựa chọn kỹ lưỡng với tiêu chuẩn cao nhất
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <Card className="text-center shadow-lg border-0 hover:shadow-xl transition-shadow">
-              <CardContent className="p-8">
-                <div className="bg-[#003087] text-white p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                  <Award size={24} />
-                </div>
-                <h3 className="text-xl font-bold text-[#1a3b5d] mb-2">Chuyên Môn Cao</h3>
-                <p className="text-gray-600">Được đào tạo tại các trường đại học y khoa hàng đầu trong và ngoài nước</p>
-              </CardContent>
-            </Card>
-
-            <Card className="text-center shadow-lg border-0 hover:shadow-xl transition-shadow">
-              <CardContent className="p-8">
-                <div className="bg-[#003087] text-white p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                  <Heart size={24} />
-                </div>
-                <h3 className="text-xl font-bold text-[#1a3b5d] mb-2">Tận Tâm</h3>
-                <p className="text-gray-600">Luôn đặt sức khỏe và sự hài lòng của bệnh nhân lên hàng đầu</p>
-              </CardContent>
-            </Card>
-
-            <Card className="text-center shadow-lg border-0 hover:shadow-xl transition-shadow">
-              <CardContent className="p-8">
-                <div className="bg-[#003087] text-white p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                  <Shield size={24} />
-                </div>
-                <h3 className="text-xl font-bold text-[#1a3b5d] mb-2">An Toàn</h3>
-                <p className="text-gray-600">Tuân thủ nghiêm ngặt các quy trình y tế và an toàn bệnh nhân</p>
-              </CardContent>
-            </Card>
-
-            <Card className="text-center shadow-lg border-0 hover:shadow-xl transition-shadow">
-              <CardContent className="p-8">
-                <div className="bg-[#003087] text-white p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                  <Clock size={24} />
-                </div>
-                <h3 className="text-xl font-bold text-[#1a3b5d] mb-2">Sẵn Sàng 24/7</h3>
-                <p className="text-gray-600">Luôn có mặt khi bạn cần, kể cả trong các tình huống khẩn cấp</p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-16">
-        <div className="container mx-auto px-4 md:px-8">
-          <Card className="bg-gradient-to-r from-[#003087] to-[#0056b3] text-white shadow-2xl border-0">
-            <CardContent className="p-12 text-center">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">Bắt Đầu Hành Trình Chăm Sóc Sức Khỏe</h2>
-              <p className="text-xl mb-8 opacity-90">
-                Đặt lịch hẹn ngay hôm nay và nhận được sự chăm sóc y tế tốt nhất từ đội ngũ chuyên gia
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <Button
-                  className="bg-white text-[#003087] hover:bg-gray-100 px-8 py-4 rounded-xl font-bold text-lg min-w-[200px] transition-all"
-                  onClick={() => router.push('/auth/login')}
-                >
-                  <Calendar className="mr-2" size={20} />
-                  Đặt Lịch Ngay
-                </Button>
-                <Button
-                  variant="outline"
-                  className="border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white px-8 py-4 rounded-xl font-bold text-lg min-w-[200px] transition-all"
-                  onClick={() => window.open('tel:+1-123-5663582', '_self')}
-                >
-                  <Phone className="mr-2" size={20} />
-                  Gọi: +1-123-5663582
-                </Button>
-              </div>
-
-              {/* Trust Indicators */}
-              <div className="grid grid-cols-3 gap-8 mt-12 pt-8 border-t border-white/20">
-                <div className="text-center">
-                  <div className="text-2xl font-bold">15 phút</div>
-                  <div className="text-sm opacity-80">Thời gian phản hồi</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold">98%</div>
-                  <div className="text-sm opacity-80">Khách hàng hài lòng</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold">24/7</div>
-                  <div className="text-sm opacity-80">Hỗ trợ khẩn cấp</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
-      {/* Removed Doctor Detail Modal - now using separate page */}
     </PublicLayout>
   );
 }

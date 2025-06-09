@@ -15,6 +15,10 @@ export interface HospitalUser {
   created_at: string;
   updated_at: string;
   last_login?: string;
+  // Role-specific IDs
+  doctor_id?: string;
+  patient_id?: string;
+  admin_id?: string;
 }
 
 export interface LoginCredentials {
@@ -450,7 +454,55 @@ class SupabaseAuthService {
         // Login still succeeds even if last_login update fails
       }
 
-      // 4. Create HospitalUser object
+      // 4. Fetch role-specific ID
+      let roleSpecificId: { doctor_id?: string; patient_id?: string; admin_id?: string } = {};
+
+      try {
+        console.log('🔄 [SupabaseAuth] Fetching role-specific ID for role:', profileData.role, 'profile_id:', profileData.id);
+
+        if (profileData.role === 'doctor') {
+          const { data: doctorData, error: doctorError } = await supabaseClient
+            .from('doctors')
+            .select('doctor_id')
+            .eq('profile_id', profileData.id)
+            .single();
+
+          console.log('🔄 [SupabaseAuth] Doctor query result:', { doctorData, doctorError });
+
+          if (doctorData && !doctorError) {
+            roleSpecificId.doctor_id = doctorData.doctor_id;
+            console.log('✅ [SupabaseAuth] Found doctor_id:', doctorData.doctor_id);
+          } else {
+            console.warn('⚠️ [SupabaseAuth] No doctor found for profile_id:', profileData.id);
+          }
+        } else if (profileData.role === 'patient') {
+          const { data: patientData, error: patientError } = await supabaseClient
+            .from('patients')
+            .select('patient_id')
+            .eq('profile_id', profileData.id)
+            .single();
+
+          if (patientData && !patientError) {
+            roleSpecificId.patient_id = patientData.patient_id;
+            console.log('✅ [SupabaseAuth] Found patient_id:', patientData.patient_id);
+          }
+        } else if (profileData.role === 'admin') {
+          const { data: adminData, error: adminError } = await supabaseClient
+            .from('admin')
+            .select('admin_id')
+            .eq('profile_id', profileData.id)
+            .single();
+
+          if (adminData && !adminError) {
+            roleSpecificId.admin_id = adminData.admin_id;
+            console.log('✅ [SupabaseAuth] Found admin_id:', adminData.admin_id);
+          }
+        }
+      } catch (roleError) {
+        console.error('❌ [SupabaseAuth] Error fetching role-specific ID:', roleError);
+      }
+
+      // 5. Create HospitalUser object
       const hospitalUser: HospitalUser = {
         id: profileData.id,
         email: profileData.email,
@@ -464,6 +516,7 @@ class SupabaseAuthService {
         created_at: profileData.created_at,
         updated_at: profileData.updated_at,
         last_login: profileData.last_login,
+        ...roleSpecificId
       };
 
       console.log('✅ Sign in completed successfully for:', credentials.email);
@@ -551,6 +604,47 @@ class SupabaseAuthService {
     }
   }
 
+  // Change password with current password verification
+  async changePassword(currentPassword: string, newPassword: string): Promise<{ error: string | null }> {
+    try {
+      console.log('🔑 [SupabaseAuth] Starting password change with verification');
+
+      // First verify current password by attempting to sign in
+      const currentUser = await this.getCurrentUser();
+      if (!currentUser) {
+        return { error: 'Bạn cần đăng nhập để thay đổi mật khẩu.' };
+      }
+
+      // Verify current password
+      const { error: signInError } = await supabaseClient.auth.signInWithPassword({
+        email: currentUser.email,
+        password: currentPassword
+      });
+
+      if (signInError) {
+        console.error('❌ Current password verification failed:', signInError);
+        return { error: 'Mật khẩu hiện tại không đúng.' };
+      }
+
+      // Update to new password
+      const { error: updateError } = await supabaseClient.auth.updateUser({
+        password: newPassword
+      });
+
+      if (updateError) {
+        console.error('❌ Password update error:', updateError);
+        return { error: updateError.message };
+      }
+
+      console.log('✅ Password changed successfully');
+      return { error: null };
+
+    } catch (error) {
+      console.error('❌ Unexpected error during password change:', error);
+      return { error: 'Đã xảy ra lỗi khi thay đổi mật khẩu.' };
+    }
+  }
+
   // Get current session
   async getCurrentSession(): Promise<{ session: Session | null; error: string | null }> {
     try {
@@ -632,6 +726,54 @@ class SupabaseAuthService {
         full_name: profileData.full_name
       });
 
+      // Fetch role-specific ID
+      let roleSpecificId: { doctor_id?: string; patient_id?: string; admin_id?: string } = {};
+
+      try {
+        console.log('🔄 [getCurrentUser] Fetching role-specific ID for role:', profileData.role, 'profile_id:', profileData.id);
+
+        if (profileData.role === 'doctor') {
+          const { data: doctorData, error: doctorError } = await supabaseClient
+            .from('doctors')
+            .select('doctor_id')
+            .eq('profile_id', profileData.id)
+            .single();
+
+          console.log('🔄 [getCurrentUser] Doctor query result:', { doctorData, doctorError });
+
+          if (doctorData && !doctorError) {
+            roleSpecificId.doctor_id = doctorData.doctor_id;
+            console.log('✅ [getCurrentUser] Found doctor_id:', doctorData.doctor_id);
+          } else {
+            console.warn('⚠️ [getCurrentUser] No doctor found for profile_id:', profileData.id);
+          }
+        } else if (profileData.role === 'patient') {
+          const { data: patientData, error: patientError } = await supabaseClient
+            .from('patients')
+            .select('patient_id')
+            .eq('profile_id', profileData.id)
+            .single();
+
+          if (patientData && !patientError) {
+            roleSpecificId.patient_id = patientData.patient_id;
+            console.log('✅ [getCurrentUser] Found patient_id:', patientData.patient_id);
+          }
+        } else if (profileData.role === 'admin') {
+          const { data: adminData, error: adminError } = await supabaseClient
+            .from('admin')
+            .select('admin_id')
+            .eq('profile_id', profileData.id)
+            .single();
+
+          if (adminData && !adminError) {
+            roleSpecificId.admin_id = adminData.admin_id;
+            console.log('✅ [getCurrentUser] Found admin_id:', adminData.admin_id);
+          }
+        }
+      } catch (roleError) {
+        console.error('❌ [getCurrentUser] Error fetching role-specific ID:', roleError);
+      }
+
       // Create HospitalUser object
       const hospitalUser: HospitalUser = {
         id: profileData.id,
@@ -646,6 +788,7 @@ class SupabaseAuthService {
         created_at: profileData.created_at,
         updated_at: profileData.updated_at,
         last_login: profileData.last_login,
+        ...roleSpecificId
       };
 
       return { user: hospitalUser, session: null, error: null };
@@ -729,6 +872,58 @@ class SupabaseAuthService {
         is_active: userData.is_active
       })
 
+      // Fetch role-specific ID
+      let roleSpecificId: { doctor_id?: string; patient_id?: string; admin_id?: string } = {};
+
+      try {
+        console.log('🔄 [SupabaseAuth] Fetching role-specific ID for role:', userData.role, 'profile_id:', userData.id);
+
+        if (userData.role === 'doctor') {
+          const { data: doctorData, error: doctorError } = await supabaseClient
+            .from('doctors')
+            .select('doctor_id')
+            .eq('profile_id', userData.id)
+            .single();
+
+          console.log('🔄 [SupabaseAuth] Doctor query result:', { doctorData, doctorError });
+
+          if (doctorData && !doctorError) {
+            roleSpecificId.doctor_id = doctorData.doctor_id;
+            console.log('✅ [SupabaseAuth] Found doctor_id:', doctorData.doctor_id);
+          } else {
+            console.warn('⚠️ [SupabaseAuth] No doctor found for profile_id:', userData.id);
+          }
+        } else if (userData.role === 'patient') {
+          const { data: patientData, error: patientError } = await supabaseClient
+            .from('patients')
+            .select('patient_id')
+            .eq('profile_id', userData.id)
+            .single();
+
+          console.log('🔄 [SupabaseAuth] Patient query result:', { patientData, patientError });
+
+          if (patientData && !patientError) {
+            roleSpecificId.patient_id = patientData.patient_id;
+            console.log('✅ [SupabaseAuth] Found patient_id:', patientData.patient_id);
+          }
+        } else if (userData.role === 'admin') {
+          const { data: adminData, error: adminError } = await supabaseClient
+            .from('admin')
+            .select('admin_id')
+            .eq('profile_id', userData.id)
+            .single();
+
+          console.log('🔄 [SupabaseAuth] Admin query result:', { adminData, adminError });
+
+          if (adminData && !adminError) {
+            roleSpecificId.admin_id = adminData.admin_id;
+            console.log('✅ [SupabaseAuth] Found admin_id:', adminData.admin_id);
+          }
+        }
+      } catch (roleError) {
+        console.error('❌ [SupabaseAuth] Error fetching role-specific ID:', roleError);
+      }
+
       const hospitalUser: HospitalUser = {
         id: supabaseUser.id,
         email: supabaseUser.email || '',
@@ -741,7 +936,8 @@ class SupabaseAuthService {
         last_login: userData.last_login,
         email_verified: supabaseUser.email_confirmed_at ? true : false,
         phone_verified: userData.phone_verified,
-        profile_data: userData.profile_data
+        profile_data: userData.profile_data,
+        ...roleSpecificId
       };
 
       // Cache the result
@@ -774,6 +970,17 @@ class SupabaseAuthService {
   public clearUserCache(): void {
     this.userCache.clear();
     console.log('🔄 [SupabaseAuth] User cache cleared');
+  }
+
+  // Force refresh current user (bypass cache)
+  public async forceRefreshCurrentUser(): Promise<{ user: HospitalUser | null; session: any; error: string | null }> {
+    console.log('🔄 [SupabaseAuth] Force refreshing current user...');
+
+    // Clear cache first
+    this.clearUserCache();
+
+    // Get current user without cache
+    return this.getCurrentUser();
   }
 }
 

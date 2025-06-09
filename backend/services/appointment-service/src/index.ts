@@ -1,12 +1,14 @@
 import dotenv from 'dotenv';
+
+// Load environment variables FIRST
+dotenv.config();
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import logger from '@hospital/shared/src/utils/logger';
-
-// Load environment variables
-dotenv.config();
+import logger from '@hospital/shared/dist/utils/logger';
+import appointmentRoutes from './routes/appointment.routes';
 
 const app = express();
 const PORT = process.env.PORT || 3004;
@@ -29,11 +31,13 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Basic appointments endpoint
+// Routes
+app.use('/api/appointments', appointmentRoutes);
+
+// Legacy endpoint for backward compatibility
 app.get('/appointments', (req, res) => {
   res.json({
-    message: 'Appointment service is running',
-    appointments: [],
+    message: 'Appointment service is running - use /api/appointments for API endpoints',
     timestamp: new Date().toISOString(),
   });
 });

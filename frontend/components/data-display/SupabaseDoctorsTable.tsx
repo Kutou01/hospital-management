@@ -1,12 +1,13 @@
 'use client';
 
 import React from 'react';
-import { Edit, Trash2, Phone, Mail } from 'lucide-react';
+import { Edit, Trash2, Phone, Mail, Eye } from 'lucide-react';
 import { DataTable, Column } from './DataTable';
 import { StatusBadge } from './StatusBadge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { SupabaseDoctor } from '@/lib/types/supabase';
+import { useRouter } from 'next/navigation';
 
 interface SupabaseDoctorsTableProps {
   doctors: SupabaseDoctor[];
@@ -35,6 +36,7 @@ export function SupabaseDoctorsTable({
   onDelete,
   onRowClick,
 }: SupabaseDoctorsTableProps) {
+  const router = useRouter();
   // Define columns for the doctors table
   const columns: Column<SupabaseDoctor>[] = [
     {
@@ -127,14 +129,21 @@ export function SupabaseDoctorsTable({
   // Define actions for each row
   const actions = [
     {
-      label: '',
+      label: 'Xem hồ sơ',
+      icon: <Eye className="h-4 w-4" />,
+      onClick: (doctor: SupabaseDoctor) => router.push(`/admin/doctors/${doctor.doctor_id}`),
+      variant: 'ghost' as const,
+      size: 'sm' as const,
+    },
+    {
+      label: 'Chỉnh sửa',
       icon: <Edit className="h-4 w-4" />,
       onClick: onEdit,
       variant: 'ghost' as const,
       size: 'sm' as const,
     },
     {
-      label: '',
+      label: 'Xóa',
       icon: <Trash2 className="h-4 w-4 text-red-500" />,
       onClick: (doctor: SupabaseDoctor) => onDelete(doctor.doctor_id),
       variant: 'ghost' as const,

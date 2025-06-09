@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from './auth-context'
+import { getDashboardPath } from './dashboard-routes'
 
 interface RoleGuardProps {
   children: React.ReactNode
@@ -48,7 +49,7 @@ export function RoleGuard({
     // If user role is not allowed, redirect to their dashboard
     if (!allowedRoles.includes(user.role)) {
       console.log(`🔒 [RoleGuard] User role ${user.role} not allowed, redirecting to their dashboard`)
-      router.replace(`/${user.role}/dashboard`)
+      router.replace(getDashboardPath(user.role as any))
       return
     }
 

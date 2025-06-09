@@ -1,9 +1,10 @@
 import dotenv from 'dotenv';
+
+// Load environment variables FIRST
+dotenv.config();
+
 import app from './app';
 import { logger } from '@hospital/shared';
-
-// Load environment variables
-dotenv.config();
 
 const PORT = process.env.PORT || 3006;
 const SERVICE_NAME = 'medical-records-service';

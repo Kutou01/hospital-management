@@ -3,122 +3,133 @@ version: '3.8'
 services:
   # API Gateway
   api-gateway:
-    build: ./api-gateway
+    build:
+      context: .
+      dockerfile: ./api-gateway/Dockerfile
     ports:
-      - "3000:3000"
+      - "3100:3100"
+    env_file:
+      - ./api-gateway/.env
     environment:
       - NODE_ENV=development
-      - AUTH_SERVICE_URL=http://auth-service:3001
+      - PORT=3100
       - DOCTOR_SERVICE_URL=http://doctor-service:3002
       - PATIENT_SERVICE_URL=http://patient-service:3003
       - APPOINTMENT_SERVICE_URL=http://appointment-service:3004
-      - DEPARTMENT_SERVICE_URL=http://department-service:3005
-      - REDIS_URL=redis://redis:6379
-    depends_on:
-      - auth-service
-      - doctor-service
-      - patient-service
-      - appointment-service
-      - redis
-    networks:
-      - hospital-network
-
-  # Auth Service
-  auth-service:
-    build: ./services/auth-service
-    ports:
-      - "3001:3001"
-    environment:
-      - NODE_ENV=development
-      - DATABASE_URL=postgresql://postgres:password@auth-db:5432/auth_db
-      - JWT_SECRET=your-super-secret-jwt-key
-      - JWT_EXPIRES_IN=24h
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+      - DOCTOR_ONLY_MODE=false
+      # Supabase configuration will be loaded from .env file
     depends_on:
-      - auth-db
       - redis
       - rabbitmq
     networks:
       - hospital-network
 
+  # Auth Service - DISABLED FOR DOCTOR-ONLY MODE
+  # auth-service:
+  #   build: ./services/auth-service
+  #   ports:
+  #     - "3001:3001"
+  #   environment:
+  #     - NODE_ENV=development
+  #     - DATABASE_URL=postgresql://postgres:password@auth-db:5432/auth_db
+  #     - JWT_SECRET=your-super-secret-jwt-key
+  #     - JWT_EXPIRES_IN=24h
+  #     - REDIS_URL=redis://redis:6379
+  #     - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+  #   depends_on:
+  #     - auth-db
+  #     - redis
+  #     - rabbitmq
+  #   networks:
+  #     - hospital-network
+
   # Doctor Service
   doctor-service:
-    build: ./services/doctor-service
+    build:
+      context: .
+      dockerfile: ./services/doctor-service/Dockerfile
     ports:
       - "3002:3002"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://postgres:password@doctor-db:5432/doctor_db
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
       - AUTH_SERVICE_URL=http://auth-service:3001
     depends_on:
-      - doctor-db
       - redis
       - rabbitmq
     networks:
       - hospital-network
 
-  # Patient Service
+  # Patient Service - ENABLED
   patient-service:
-    build: ./services/patient-service
+    build:
+      context: .
+      dockerfile: ./services/patient-service/Dockerfile
     ports:
       - "3003:3003"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://postgres:password@patient-db:5432/patient_db
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
       - AUTH_SERVICE_URL=http://auth-service:3001
     depends_on:
-      - patient-db
       - redis
       - rabbitmq
     networks:
       - hospital-network
 
-  # Appointment Service
+  # Appointment Service - ENABLED
   appointment-service:
-    build: ./services/appointment-service
+    build:
+      context: .
+      dockerfile: ./services/appointment-service/Dockerfile
     ports:
       - "3004:3004"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://postgres:password@appointment-db:5432/appointment_db
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
       - AUTH_SERVICE_URL=http://auth-service:3001
       - DOCTOR_SERVICE_URL=http://doctor-service:3002
       - PATIENT_SERVICE_URL=http://patient-service:3003
     depends_on:
-      - appointment-db
       - redis
       - rabbitmq
     networks:
       - hospital-network
 
-  # Department Service
-  department-service:
-    build: ./services/department-service
-    ports:
-      - "3005:3005"
-    environment:
-      - NODE_ENV=development
-      - DATABASE_URL=postgresql://postgres:password@department-db:5432/department_db
-      - REDIS_URL=redis://redis:6379
-      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
-      - AUTH_SERVICE_URL=http://auth-service:3001
-    depends_on:
-      - department-db
-      - redis
-      - rabbitmq
-    networks:
-      - hospital-network
+  # Department Service - DISABLED FOR DOCTOR-ONLY MODE
+  # department-service:
+  #   build: ./services/department-service
+  #   ports:
+  #     - "3005:3005"
+  #   environment:
+  #     - NODE_ENV=development
+  #     - DATABASE_URL=postgresql://postgres:password@department-db:5432/department_db
+  #     - REDIS_URL=redis://redis:6379
+  #     - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+  #     - AUTH_SERVICE_URL=http://auth-service:3001
+  #   depends_on:
+  #     - department-db
+  #     - redis
+  #     - rabbitmq
+  #   networks:
+  #     - hospital-network
 
-  # Medical Records Service
+  # Medical Records Service - ENABLED
   medical-records-service:
-    build: ./services/medical-records-service
+    build:
+      context: .
+      dockerfile: ./services/medical-records-service/Dockerfile
     ports:
       - "3006:3006"
     environment:
@@ -135,9 +146,14 @@ services:
     networks:
       - hospital-network
 
-  # Prescription Service
+  # ALL OTHER SERVICES DISABLED FOR DOCTOR-ONLY MODE
+  # Uncomment these services when you want to enable full system
+
+  # Prescription Service - ENABLED
   prescription-service:
-    build: ./services/prescription-service
+    build:
+      context: .
+      dockerfile: ./services/prescription-service/Dockerfile
     ports:
       - "3007:3007"
     environment:
@@ -154,9 +170,11 @@ services:
     networks:
       - hospital-network
 
-  # Billing & Payment Service
+  # Billing & Payment Service - ENABLED
   billing-service:
-    build: ./services/billing-service
+    build:
+      context: .
+      dockerfile: ./services/billing-service/Dockerfile
     ports:
       - "3008:3008"
     environment:
@@ -174,126 +192,126 @@ services:
     networks:
       - hospital-network
 
-  # Room Management Service
-  room-service:
-    build: ./services/room-service
-    ports:
-      - "3009:3009"
-    environment:
-      - NODE_ENV=development
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-      - REDIS_URL=redis://redis:6379
-      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
-      - AUTH_SERVICE_URL=http://auth-service:3001
-    depends_on:
-      - redis
-      - rabbitmq
-    networks:
-      - hospital-network
+  # # Room Management Service
+  # room-service:
+  #   build: ./services/room-service
+  #   ports:
+  #     - "3009:3009"
+  #   environment:
+  #     - NODE_ENV=development
+  #     - SUPABASE_URL=${SUPABASE_URL}
+  #     - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+  #     - REDIS_URL=redis://redis:6379
+  #     - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+  #     - AUTH_SERVICE_URL=http://auth-service:3001
+  #   depends_on:
+  #     - redis
+  #     - rabbitmq
+  #   networks:
+  #     - hospital-network
 
-  # Notification Service
-  notification-service:
-    build: ./services/notification-service
-    ports:
-      - "3011:3011"
-    environment:
-      - NODE_ENV=development
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-      - REDIS_URL=redis://redis:6379
-      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
-      - AUTH_SERVICE_URL=http://auth-service:3001
-      - SMTP_HOST=smtp.gmail.com
-      - SMTP_PORT=587
-      - SMTP_USER=your_email@gmail.com
-      - SMTP_PASS=your_app_password
-    depends_on:
-      - redis
-      - rabbitmq
-    networks:
-      - hospital-network
+  # # Notification Service
+  # notification-service:
+  #   build: ./services/notification-service
+  #   ports:
+  #     - "3011:3011"
+  #   environment:
+  #     - NODE_ENV=development
+  #     - SUPABASE_URL=${SUPABASE_URL}
+  #     - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+  #     - REDIS_URL=redis://redis:6379
+  #     - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+  #     - AUTH_SERVICE_URL=http://auth-service:3001
+  #     - SMTP_HOST=smtp.gmail.com
+  #     - SMTP_PORT=587
+  #     - SMTP_USER=your_email@gmail.com
+  #     - SMTP_PASS=your_app_password
+  #   depends_on:
+  #     - redis
+  #     - rabbitmq
+  #   networks:
+  #     - hospital-network
 
-  # File Storage Service
-  file-storage-service:
-    build: ./services/file-storage-service
-    ports:
-      - "3016:3016"
-    environment:
-      - NODE_ENV=development
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-      - REDIS_URL=redis://redis:6379
-      - AUTH_SERVICE_URL=http://auth-service:3001
-      - UPLOAD_PATH=/app/uploads
-      - MAX_FILE_SIZE=10485760
-    depends_on:
-      - redis
-    volumes:
-      - file_uploads:/app/uploads
-    networks:
-      - hospital-network
+  # # File Storage Service
+  # file-storage-service:
+  #   build: ./services/file-storage-service
+  #   ports:
+  #     - "3016:3016"
+  #   environment:
+  #     - NODE_ENV=development
+  #     - SUPABASE_URL=${SUPABASE_URL}
+  #     - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+  #     - REDIS_URL=redis://redis:6379
+  #     - AUTH_SERVICE_URL=http://auth-service:3001
+  #     - UPLOAD_PATH=/app/uploads
+  #     - MAX_FILE_SIZE=10485760
+  #   depends_on:
+  #     - redis
+  #   volumes:
+  #     - file_uploads:/app/uploads
+  #   networks:
+  #     - hospital-network
 
-  # Audit & Logging Service
-  audit-service:
-    build: ./services/audit-service
-    ports:
-      - "3017:3017"
-    environment:
-      - NODE_ENV=development
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-      - REDIS_URL=redis://redis:6379
-      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
-    depends_on:
-      - redis
-      - rabbitmq
-    networks:
-      - hospital-network
+  # # Audit & Logging Service
+  # audit-service:
+  #   build: ./services/audit-service
+  #   ports:
+  #     - "3017:3017"
+  #   environment:
+  #     - NODE_ENV=development
+  #     - SUPABASE_URL=${SUPABASE_URL}
+  #     - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+  #     - REDIS_URL=redis://redis:6379
+  #     - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+  #   depends_on:
+  #     - redis
+  #     - rabbitmq
+  #   networks:
+  #     - hospital-network
 
-  # AI Chatbot Service
-  chatbot-service:
-    build: ./services/chatbot-service
-    ports:
-      - "3018:3018"
-    environment:
-      - NODE_ENV=development
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-      - REDIS_URL=redis://redis:6379
-      - AUTH_SERVICE_URL=http://auth-service:3001
-      - OPENAI_API_KEY=your_openai_api_key
-      - MEDICAL_RECORDS_SERVICE_URL=http://medical-records-service:3006
-    depends_on:
-      - redis
-    networks:
-      - hospital-network
+  # # AI Chatbot Service
+  # chatbot-service:
+  #   build: ./services/chatbot-service
+  #   ports:
+  #     - "3018:3018"
+  #   environment:
+  #     - NODE_ENV=development
+  #     - SUPABASE_URL=${SUPABASE_URL}
+  #     - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+  #     - REDIS_URL=redis://redis:6379
+  #     - AUTH_SERVICE_URL=http://auth-service:3001
+  #     - OPENAI_API_KEY=your_openai_api_key
+  #     - MEDICAL_RECORDS_SERVICE_URL=http://medical-records-service:3006
+  #   depends_on:
+  #     - redis
+  #   networks:
+  #     - hospital-network
 
-  # Frontend
-  frontend:
-    build: ./frontend
-    ports:
-      - "3100:3000"
-    environment:
-      - NEXT_PUBLIC_API_GATEWAY_URL=http://localhost:3000
-      - NODE_ENV=development
-    depends_on:
-      - api-gateway
-    networks:
-      - hospital-network
+  # # Frontend
+  # frontend:
+  #   build: ./frontend
+  #   ports:
+  #     - "3100:3000"
+  #   environment:
+  #     - NEXT_PUBLIC_API_GATEWAY_URL=http://localhost:3000
+  #     - NODE_ENV=development
+  #   depends_on:
+  #     - api-gateway
+  #   networks:
+  #     - hospital-network
 
-  # Databases
-  auth-db:
-    image: postgres:15
-    environment:
-      POSTGRES_DB: auth_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-    volumes:
-      - auth_data:/var/lib/postgresql/data
-      - ./services/auth-service/database/init.sql:/docker-entrypoint-initdb.d/init.sql
-    networks:
-      - hospital-network
+  # Databases - Only Doctor DB active for doctor-only mode
+  # auth-db:
+  #   image: postgres:15
+  #   environment:
+  #     POSTGRES_DB: auth_db
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: password
+  #   volumes:
+  #     - auth_data:/var/lib/postgresql/data
+  #     - ./services/auth-service/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+  #   networks:
+  #     - hospital-network
 
   doctor-db:
     image: postgres:15
@@ -304,44 +322,46 @@ services:
     volumes:
       - doctor_data:/var/lib/postgresql/data
       - ./services/doctor-service/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"  # Expose for direct access
     networks:
       - hospital-network
 
-  patient-db:
-    image: postgres:15
-    environment:
-      POSTGRES_DB: patient_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-    volumes:
-      - patient_data:/var/lib/postgresql/data
-      - ./services/patient-service/database/init.sql:/docker-entrypoint-initdb.d/init.sql
-    networks:
-      - hospital-network
+  # patient-db:
+  #   image: postgres:15
+  #   environment:
+  #     POSTGRES_DB: patient_db
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: password
+  #   volumes:
+  #     - patient_data:/var/lib/postgresql/data
+  #     - ./services/patient-service/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+  #   networks:
+  #     - hospital-network
 
-  appointment-db:
-    image: postgres:15
-    environment:
-      POSTGRES_DB: appointment_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-    volumes:
-      - appointment_data:/var/lib/postgresql/data
-      - ./services/appointment-service/database/init.sql:/docker-entrypoint-initdb.d/init.sql
-    networks:
-      - hospital-network
+  # appointment-db:
+  #   image: postgres:15
+  #   environment:
+  #     POSTGRES_DB: appointment_db
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: password
+  #   volumes:
+  #     - appointment_data:/var/lib/postgresql/data
+  #     - ./services/appointment-service/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+  #   networks:
+  #     - hospital-network
 
-  department-db:
-    image: postgres:15
-    environment:
-      POSTGRES_DB: department_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-    volumes:
-      - department_data:/var/lib/postgresql/data
-      - ./services/department-service/database/init.sql:/docker-entrypoint-initdb.d/init.sql
-    networks:
-      - hospital-network
+  # department-db:
+  #   image: postgres:15
+  #   environment:
+  #     POSTGRES_DB: department_db
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: password
+  #   volumes:
+  #     - department_data:/var/lib/postgresql/data
+  #     - ./services/department-service/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+  #   networks:
+  #     - hospital-network
 
 
 
@@ -369,34 +389,34 @@ services:
     networks:
       - hospital-network
 
-  # Monitoring
-  prometheus:
-    image: prom/prometheus:latest
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--web.enable-lifecycle'
-    networks:
-      - hospital-network
+  # Monitoring - DISABLED FOR DOCTOR-ONLY MODE
+  # prometheus:
+  #   image: prom/prometheus:latest
+  #   ports:
+  #     - "9090:9090"
+  #   volumes:
+  #     - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+  #     - prometheus_data:/prometheus
+  #   command:
+  #     - '--config.file=/etc/prometheus/prometheus.yml'
+  #     - '--storage.tsdb.path=/prometheus'
+  #     - '--web.console.libraries=/etc/prometheus/console_libraries'
+  #     - '--web.console.templates=/etc/prometheus/consoles'
+  #     - '--web.enable-lifecycle'
+  #   networks:
+  #     - hospital-network
 
-  grafana:
-    image: grafana/grafana:latest
-    ports:
-      - "3001:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
-    networks:
-      - hospital-network
+  # grafana:
+  #   image: grafana/grafana:latest
+  #   ports:
+  #     - "3001:3000"
+  #   environment:
+  #     - GF_SECURITY_ADMIN_PASSWORD=admin
+  #   volumes:
+  #     - grafana_data:/var/lib/grafana
+  #     - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+  #   networks:
+  #     - hospital-network
 
 volumes:
   auth_data:

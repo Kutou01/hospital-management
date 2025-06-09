@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -12,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { User, Settings, LogOut } from 'lucide-react';
+import { getProfilePath, getSettingsPath } from '@/lib/auth/dashboard-routes';
 
 interface UserMenuProps {
   user: any;
@@ -19,6 +21,8 @@ interface UserMenuProps {
 }
 
 export const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout }) => {
+  const router = useRouter();
+
   if (!user) {
     return null;
   }
@@ -26,6 +30,18 @@ export const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout }) => {
   const initials = user.full_name
     ? user.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase()
     : user.email?.charAt(0).toUpperCase() || 'U';
+
+  const handleProfileClick = () => {
+    const profilePath = getProfilePath(user.role);
+    console.log('🔗 [UserMenu] Navigating to profile:', profilePath);
+    router.push(profilePath);
+  };
+
+  const handleSettingsClick = () => {
+    const settingsPath = getSettingsPath(user.role);
+    console.log('🔗 [UserMenu] Navigating to settings:', settingsPath);
+    router.push(settingsPath);
+  };
 
   return (
     <DropdownMenu>
@@ -47,11 +63,11 @@ export const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout }) => {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
+        <DropdownMenuItem onClick={handleProfileClick}>
           <User className="mr-2 h-4 w-4" />
           <span>Profile</span>
         </DropdownMenuItem>
-        <DropdownMenuItem>
+        <DropdownMenuItem onClick={handleSettingsClick}>
           <Settings className="mr-2 h-4 w-4" />
           <span>Settings</span>
         </DropdownMenuItem>

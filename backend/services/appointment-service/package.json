@@ -28,7 +28,8 @@
     "@supabase/supabase-js": "^2.38.4",
     "pg": "^8.11.3",
     "swagger-jsdoc": "^6.2.8",
-    "swagger-ui-express": "^5.0.0"
+    "swagger-ui-express": "^5.0.0",
+    "axios": "^1.6.2"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   User,
   Mail,
@@ -24,61 +24,95 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { useEnhancedAuth } from "@/lib/auth/enhanced-auth-context"
+import { doctorsApi } from "@/lib/api/doctors"
+import { useToast } from "@/components/ui/toast-provider"
 
 export default function DoctorProfile() {
-  const { user, loading } = useEnhancedAuth()
+  const { user, loading: authLoading } = useEnhancedAuth()
+  const { showToast } = useToast()
   const [isEditing, setIsEditing] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [doctorProfile, setDoctorProfile] = useState<any>(null)
   const [formData, setFormData] = useState({
     full_name: "",
     email: "",
     phone_number: "",
-    specialization: "",
+    specialty: "",
     license_number: "",
-    experience_years: "",
-    education: "",
+    qualification: "",
     bio: "",
     consultation_fee: "",
     working_hours: ""
   })
 
-  // Mock additional doctor data
-  const doctorData = {
-    specialization: "Khoa Nội",
-    license_number: "MD123456789",
-    experience_years: "8",
-    education: "Bác sĩ Đa khoa - Đại học Y Hà Nội",
-    bio: "Bác sĩ chuyên khoa Nội với 8 năm kinh nghiệm trong điều trị các bệnh lý tim mạch và tiểu đường. Tốt nghiệp loại Giỏi tại Đại học Y Hà Nội.",
-    consultation_fee: "500,000",
-    working_hours: "8:00 - 17:00 (Thứ 2 - Thứ 6)",
-    certifications: [
-      "Chứng chỉ Tim mạch học",
-      "Chứng chỉ Siêu âm tim",
-      "Chứng chỉ Điều trị tiểu đường"
-    ],
-    achievements: [
-      "Bác sĩ xuất sắc năm 2023",
-      "Nghiên cứu khoa học về tim mạch",
-      "Đào tạo 50+ bác sĩ trẻ"
-    ]
-  }
+  // Fetch doctor profile data
+  useEffect(() => {
+    const fetchDoctorProfile = async () => {
+      if (!user?.id) {
+        console.log('🔍 [DoctorProfile] No user ID found:', user)
+        setLoading(false)
+        return
+      }
 
-  // Initialize form data when user data is available
-  useState(() => {
-    if (user) {
-      setFormData({
-        full_name: user.full_name || "",
-        email: user.email || "",
-        phone_number: user.phone_number || "",
-        specialization: doctorData.specialization,
-        license_number: doctorData.license_number,
-        experience_years: doctorData.experience_years,
-        education: doctorData.education,
-        bio: doctorData.bio,
-        consultation_fee: doctorData.consultation_fee,
-        working_hours: doctorData.working_hours
-      })
+      try {
+        // Use Supabase directly to find doctor by profile_id
+        console.log('🔍 [DoctorProfile] Finding doctor by profile_id:', user.id)
+
+        // Import supabase client
+        const { supabaseClient } = await import('../../../lib/supabase-client')
+
+        // Query doctors table directly
+        const { data: doctorData, error: doctorError } = await supabaseClient
+          .from('doctors')
+          .select('*')
+          .eq('profile_id', user.id)
+          .single()
+
+        if (doctorError || !doctorData) {
+          console.error('❌ [DoctorProfile] Failed to fetch doctor by profile_id:', doctorError)
+          showToast('Không tìm thấy thông tin bác sĩ', undefined, 'error')
+          setLoading(false)
+          return
+        }
+
+        console.log('✅ [DoctorProfile] Found doctor:', doctorData)
+
+        // Now fetch the complete profile using the frontend API
+        const response = await fetch(`/api/doctors/${doctorData.doctor_id}/profile`)
+        const profileResult = await response.json()
+
+        if (response.ok && profileResult.success && profileResult.data) {
+          console.log('✅ [DoctorProfile] Profile data received:', profileResult.data)
+          setDoctorProfile(profileResult.data)
+
+          // Initialize form data with real data
+          setFormData({
+            full_name: profileResult.data.doctor?.full_name || doctorData.full_name || "",
+            email: profileResult.data.doctor?.email || doctorData.email || "",
+            phone_number: profileResult.data.doctor?.phone_number || doctorData.phone_number || "",
+            specialty: profileResult.data.doctor?.specialty || profileResult.data.doctor?.specialization || doctorData.specialization || "",
+            license_number: profileResult.data.doctor?.license_number || doctorData.license_number || "",
+            qualification: profileResult.data.doctor?.qualification || doctorData.qualification || "",
+            bio: profileResult.data.doctor?.bio || doctorData.bio || "",
+            consultation_fee: profileResult.data.doctor?.consultation_fee || doctorData.consultation_fee || "",
+            working_hours: profileResult.data.doctor?.working_hours || doctorData.working_hours || ""
+          })
+        } else {
+          console.error('❌ [DoctorProfile] Failed to fetch profile:', profileResult.error || 'API Error')
+          showToast('Không thể tải thông tin hồ sơ', undefined, 'error')
+        }
+      } catch (error) {
+        console.error('❌ [DoctorProfile] Error fetching profile:', error)
+        showToast('Lỗi khi tải thông tin hồ sơ', undefined, 'error')
+      } finally {
+        setLoading(false)
+      }
     }
-  })
+
+    if (user && !authLoading) {
+      fetchDoctorProfile()
+    }
+  }, [user, authLoading])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -88,37 +122,62 @@ export default function DoctorProfile() {
     }))
   }
 
-  const handleSave = () => {
-    // Here you would typically save the data to your backend
-    console.log("Saving profile data:", formData)
-    setIsEditing(false)
-    // Show success message
+  const handleSave = async () => {
+    if (!doctorProfile?.doctor_id) {
+      showToast('Không tìm thấy ID bác sĩ', undefined, 'error')
+      return
+    }
+
+    try {
+      console.log('💾 [DoctorProfile] Saving profile data:', formData)
+      const response = await doctorsApi.update(doctorProfile.doctor_id, formData)
+
+      if (response.success) {
+        console.log('✅ [DoctorProfile] Profile updated successfully')
+        showToast('Cập nhật hồ sơ thành công!', undefined, 'success')
+        setIsEditing(false)
+
+        // Refresh profile data
+        const updatedResponse = await doctorsApi.getProfile(doctorProfile.doctor_id)
+        if (updatedResponse.success && updatedResponse.data) {
+          setDoctorProfile(updatedResponse.data)
+        }
+      } else {
+        console.error('❌ [DoctorProfile] Failed to update profile:', response.error)
+        showToast('Không thể cập nhật hồ sơ', undefined, 'error')
+      }
+    } catch (error) {
+      console.error('❌ [DoctorProfile] Error updating profile:', error)
+      showToast('Lỗi khi cập nhật hồ sơ', undefined, 'error')
+    }
   }
 
   const handleCancel = () => {
     // Reset form data to original values
-    if (user) {
+    if (doctorProfile) {
       setFormData({
-        full_name: user.full_name || "",
-        email: user.email || "",
-        phone_number: user.phone_number || "",
-        specialization: doctorData.specialization,
-        license_number: doctorData.license_number,
-        experience_years: doctorData.experience_years,
-        education: doctorData.education,
-        bio: doctorData.bio,
-        consultation_fee: doctorData.consultation_fee,
-        working_hours: doctorData.working_hours
+        full_name: doctorProfile.full_name || "",
+        email: doctorProfile.email || "",
+        phone_number: doctorProfile.phone_number || "",
+        specialty: doctorProfile.specialty || "",
+        license_number: doctorProfile.license_number || "",
+        qualification: doctorProfile.qualification || "",
+        bio: doctorProfile.bio || "",
+        consultation_fee: doctorProfile.consultation_fee || "",
+        working_hours: doctorProfile.working_hours || ""
       })
     }
     setIsEditing(false)
   }
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <DoctorLayout title="My Profile" activePage="profile">
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Đang tải thông tin hồ sơ...</p>
+          </div>
         </div>
       </DoctorLayout>
     )
@@ -130,7 +189,20 @@ export default function DoctorProfile() {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <p className="text-gray-600">Access denied. Doctor role required.</p>
+            <p className="text-gray-600">Truy cập bị từ chối. Yêu cầu quyền bác sĩ.</p>
+          </div>
+        </div>
+      </DoctorLayout>
+    )
+  }
+
+  if (!doctorProfile && !loading) {
+    return (
+      <DoctorLayout title="My Profile" activePage="profile">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+            <p className="text-gray-600">Không tìm thấy thông tin bác sĩ trong hệ thống.</p>
           </div>
         </div>
       </DoctorLayout>
@@ -221,16 +293,16 @@ export default function DoctorProfile() {
                   )}
                 </div>
                 <div>
-                  <Label htmlFor="specialization">Specialization</Label>
+                  <Label htmlFor="specialty">Specialization</Label>
                   {isEditing ? (
                     <Input
-                      id="specialization"
-                      name="specialization"
-                      value={formData.specialization}
+                      id="specialty"
+                      name="specialty"
+                      value={formData.specialty}
                       onChange={handleInputChange}
                     />
                   ) : (
-                    <p className="mt-1 text-sm text-gray-900">{formData.specialization}</p>
+                    <p className="mt-1 text-sm text-gray-900">{formData.specialty}</p>
                   )}
                 </div>
               </div>
@@ -261,16 +333,16 @@ export default function DoctorProfile() {
                   )}
                 </div>
                 <div>
-                  <Label htmlFor="experience_years">Years of Experience</Label>
+                  <Label htmlFor="qualification">Qualification</Label>
                   {isEditing ? (
                     <Input
-                      id="experience_years"
-                      name="experience_years"
-                      value={formData.experience_years}
+                      id="qualification"
+                      name="qualification"
+                      value={formData.qualification}
                       onChange={handleInputChange}
                     />
                   ) : (
-                    <p className="mt-1 text-sm text-gray-900">{formData.experience_years} years</p>
+                    <p className="mt-1 text-sm text-gray-900">{formData.qualification}</p>
                   )}
                 </div>
                 <div>
@@ -301,19 +373,6 @@ export default function DoctorProfile() {
                 </div>
               </div>
               <div>
-                <Label htmlFor="education">Education</Label>
-                {isEditing ? (
-                  <Input
-                    id="education"
-                    name="education"
-                    value={formData.education}
-                    onChange={handleInputChange}
-                  />
-                ) : (
-                  <p className="mt-1 text-sm text-gray-900">{formData.education}</p>
-                )}
-              </div>
-              <div>
                 <Label htmlFor="bio">Professional Bio</Label>
                 {isEditing ? (
                   <Textarea
@@ -324,53 +383,87 @@ export default function DoctorProfile() {
                     rows={4}
                   />
                 ) : (
-                  <p className="mt-1 text-sm text-gray-900">{formData.bio}</p>
+                  <p className="mt-1 text-sm text-gray-900">{formData.bio || 'Chưa có thông tin'}</p>
                 )}
               </div>
+
             </CardContent>
           </Card>
         </div>
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Certifications */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Award className="h-5 w-5" />
-                Certifications
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {doctorData.certifications.map((cert, index) => (
-                  <Badge key={index} variant="secondary" className="block w-full text-center py-2">
-                    {cert}
-                  </Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          {/* Department Info */}
+          {doctorProfile?.departments && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Stethoscope className="h-5 w-5" />
+                  Department
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <p className="font-medium">{doctorProfile.departments.department_name}</p>
+                  {doctorProfile.departments.description && (
+                    <p className="text-sm text-gray-600">{doctorProfile.departments.description}</p>
+                  )}
+                  {doctorProfile.departments.location && (
+                    <p className="text-sm text-gray-500">📍 {doctorProfile.departments.location}</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-          {/* Achievements */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <GraduationCap className="h-5 w-5" />
-                Achievements
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {doctorData.achievements.map((achievement, index) => (
-                  <div key={index} className="flex items-start gap-2">
-                    <Award className="h-4 w-4 text-yellow-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-gray-700">{achievement}</span>
+          {/* Experience */}
+          {doctorProfile?.experiences && doctorProfile.experiences.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <GraduationCap className="h-5 w-5" />
+                  Experience
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {doctorProfile.experiences.slice(0, 3).map((exp: any, index: number) => (
+                    <div key={index} className="border-l-2 border-green-200 pl-3">
+                      <p className="font-medium text-sm">{exp.position}</p>
+                      <p className="text-sm text-gray-600">{exp.institution_name}</p>
+                      <p className="text-xs text-gray-500">
+                        {exp.start_date} - {exp.end_date || 'Present'}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Review Stats */}
+          {doctorProfile?.review_stats && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Award className="h-5 w-5" />
+                  Reviews
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Average Rating</span>
+                    <span className="font-medium">{doctorProfile.review_stats.average_rating || 'N/A'}</span>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Total Reviews</span>
+                    <span className="font-medium">{doctorProfile.review_stats.total_reviews || 0}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Account Status */}
           <Card>
@@ -381,19 +474,25 @@ export default function DoctorProfile() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Account Status</span>
-                  <Badge className="bg-green-100 text-green-800">Active</Badge>
+                  <Badge className={`${doctorProfile?.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                    {doctorProfile?.status || 'Unknown'}
+                  </Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Email Verified</span>
-                  <Badge className="bg-green-100 text-green-800">Verified</Badge>
+                  <Badge className={`${user?.email_verified ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                    {user?.email_verified ? 'Verified' : 'Pending'}
+                  </Badge>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">License Verified</span>
-                  <Badge className="bg-green-100 text-green-800">Verified</Badge>
+                  <span className="text-sm text-gray-600">License Number</span>
+                  <span className="text-sm text-gray-900">{doctorProfile?.license_number || 'N/A'}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Member Since</span>
-                  <span className="text-sm text-gray-900">Jan 2020</span>
+                  <span className="text-sm text-gray-900">
+                    {doctorProfile?.created_at ? new Date(doctorProfile.created_at).toLocaleDateString('vi-VN') : 'N/A'}
+                  </span>
                 </div>
               </div>
             </CardContent>

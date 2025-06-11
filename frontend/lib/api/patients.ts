@@ -50,7 +50,7 @@ export const patientsApi = {
 
   // Get patient by profile ID
   getByProfileId: async (profileId: string): Promise<ApiResponse<Patient>> => {
-    return apiClient.get<Patient>(`/patients/by-profile/${profileId}`);
+    return apiClient.get<Patient>(`/patients/profile/${profileId}`);
   },
 
   // Get patient statistics

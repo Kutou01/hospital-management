@@ -273,11 +273,7 @@ class DoctorRepository {
             throw error;
         }
     }
-    async generateDoctorId() {
-        const count = await this.count();
-        const nextId = (count + 1).toString().padStart(6, '0');
-        return `DOC${nextId}`;
-    }
+
     mapSupabaseDoctorToDoctor(supabaseDoctor) {
         return {
             id: supabaseDoctor.doctor_id,

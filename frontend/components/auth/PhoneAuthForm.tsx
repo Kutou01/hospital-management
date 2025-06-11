@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Phone, Loader2, CheckCircle, ArrowLeft, MessageSquare } from 'lucide-react'
 import { useToast } from "@/components/ui/toast-provider"
-import { SupabaseEnhancedAuth } from "@/lib/auth/supabase-enhanced-auth"
+import { authServiceApi } from "@/lib/api/auth"
 
 interface PhoneAuthFormProps {
   className?: string
@@ -44,7 +44,7 @@ export function PhoneAuthForm({ className = '', onBack, onSuccess }: PhoneAuthFo
   }
 
   const validatePhoneNumber = (phone: string): boolean => {
-    return SupabaseEnhancedAuth.isValidPhoneNumber(phone)
+    return /^0\d{9}$/.test(phone)
   }
 
   const handleSendOTP = async (e: React.FormEvent) => {
@@ -60,23 +60,17 @@ export function PhoneAuthForm({ className = '', onBack, onSuccess }: PhoneAuthFo
       return
     }
 
-    // Check rate limiting
-    if (SupabaseEnhancedAuth.isRateLimited('phone_otp', 3, 5 * 60 * 1000)) {
-      setError('Bạn đã gửi quá nhiều yêu cầu. Vui lòng thử lại sau 5 phút.')
-      return
-    }
-
     setIsLoading(true)
     setError('')
 
     try {
       // Convert to international format (+84)
       const internationalPhone = '+84' + phoneNumber.slice(1)
-      const result = await SupabaseEnhancedAuth.sendPhoneOTP(internationalPhone)
-      
-      if (result.error) {
-        setError(result.error)
-        showToast("❌ Lỗi", result.error, "error")
+      const result = await authServiceApi.sendPhoneOTP(internationalPhone)
+
+      if (!result.success) {
+        setError(result.error?.message || 'Gửi OTP thất bại')
+        showToast("❌ Lỗi", result.error?.message || 'Gửi OTP thất bại', "error")
       } else {
         setStep('otp')
         setCountdown(60) // 60 seconds countdown
@@ -109,11 +103,11 @@ export function PhoneAuthForm({ className = '', onBack, onSuccess }: PhoneAuthFo
 
     try {
       const internationalPhone = '+84' + phoneNumber.slice(1)
-      const result = await SupabaseEnhancedAuth.verifyPhoneOTP(internationalPhone, otpCode)
-      
-      if (result.error) {
-        setError(result.error)
-        showToast("❌ Lỗi", result.error, "error")
+      const result = await authServiceApi.verifyPhoneOTP(internationalPhone, otpCode)
+
+      if (!result.success) {
+        setError(result.error?.message || 'Xác thực OTP thất bại')
+        showToast("❌ Lỗi", result.error?.message || 'Xác thực OTP thất bại', "error")
       } else {
         showToast("✅ Thành công", "Đăng nhập thành công!", "success")
         if (onSuccess) {
@@ -131,20 +125,15 @@ export function PhoneAuthForm({ className = '', onBack, onSuccess }: PhoneAuthFo
 
   const handleResendOTP = async () => {
     if (countdown > 0) return
-    
-    if (SupabaseEnhancedAuth.isRateLimited('phone_otp', 3, 5 * 60 * 1000)) {
-      showToast("⚠️ Cảnh báo", "Vui lòng đợi 5 phút trước khi gửi lại", "error")
-      return
-    }
 
     setIsLoading(true)
-    
+
     try {
       const internationalPhone = '+84' + phoneNumber.slice(1)
-      const result = await SupabaseEnhancedAuth.sendPhoneOTP(internationalPhone)
-      
-      if (result.error) {
-        showToast("❌ Lỗi", result.error, "error")
+      const result = await authServiceApi.sendPhoneOTP(internationalPhone)
+
+      if (!result.success) {
+        showToast("❌ Lỗi", result.error?.message || 'Gửi OTP thất bại', "error")
       } else {
         setCountdown(60)
         showToast("✅ Đã gửi lại", "Mã OTP mới đã được gửi!", "success")

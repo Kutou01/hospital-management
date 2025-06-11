@@ -152,3 +152,44 @@ export const validateRole = [
     .isIn(['admin', 'doctor', 'patient'])
     .withMessage('Role must be one of: admin, doctor, patient')
 ];
+
+// Magic Link validators
+export const validateMagicLink = [
+  body('email')
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Please provide a valid email address')
+];
+
+// Phone OTP validators
+export const validatePhoneOTP = [
+  body('phone_number')
+    .matches(/^\+84\d{9}$/)
+    .withMessage('Phone number must be in format +84xxxxxxxxx (Vietnamese phone number)')
+];
+
+export const validateVerifyOTP = [
+  body('phone_number')
+    .matches(/^\+84\d{9}$/)
+    .withMessage('Phone number must be in format +84xxxxxxxxx (Vietnamese phone number)'),
+
+  body('otp_code')
+    .matches(/^\d{6}$/)
+    .withMessage('OTP code must be exactly 6 digits')
+];
+
+// OAuth validators
+export const validateOAuthCallback = [
+  body('code')
+    .notEmpty()
+    .withMessage('OAuth authorization code is required'),
+
+  body('state')
+    .notEmpty()
+    .withMessage('OAuth state parameter is required'),
+
+  body('provider')
+    .optional()
+    .isIn(['google', 'github', 'facebook', 'apple'])
+    .withMessage('Provider must be one of: google, github, facebook, apple')
+];

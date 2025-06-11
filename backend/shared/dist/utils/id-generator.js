@@ -138,18 +138,52 @@ class HospitalIdGenerator {
         }
     }
     /**
-     * Generate medical record ID
-     * Format: MR-202506-001
+     * Generate department-based medical record ID
+     * Format: CARD-MR-202506-001
      */
-    static async generateMedicalRecordId() {
-        return this.generateLocalId({ entityType: 'MR' });
+    static async generateMedicalRecordId(departmentId) {
+        try {
+            if (this.supabase) {
+                // Use database function (recommended)
+                const { data, error } = await this.supabase.rpc('generate_medical_record_id', {
+                    dept_id: departmentId
+                });
+                if (!error && data) {
+                    logger_1.default.info('Generated medical record ID via database:', { departmentId, medicalRecordId: data });
+                    return data;
+                }
+            }
+            // Fallback to local generation
+            return this.generateLocalId({ entityType: 'MR', departmentId });
+        }
+        catch (error) {
+            logger_1.default.error('Error generating medical record ID:', error);
+            throw new Error(`Failed to generate medical record ID: ${error}`);
+        }
     }
     /**
-     * Generate prescription ID
-     * Format: RX-202506-001
+     * Generate department-based prescription ID
+     * Format: CARD-RX-202506-001
      */
-    static async generatePrescriptionId() {
-        return this.generateLocalId({ entityType: 'RX' });
+    static async generatePrescriptionId(departmentId) {
+        try {
+            if (this.supabase) {
+                // Use database function (recommended)
+                const { data, error } = await this.supabase.rpc('generate_prescription_id', {
+                    dept_id: departmentId
+                });
+                if (!error && data) {
+                    logger_1.default.info('Generated prescription ID via database:', { departmentId, prescriptionId: data });
+                    return data;
+                }
+            }
+            // Fallback to local generation
+            return this.generateLocalId({ entityType: 'RX', departmentId });
+        }
+        catch (error) {
+            logger_1.default.error('Error generating prescription ID:', error);
+            throw new Error(`Failed to generate prescription ID: ${error}`);
+        }
     }
     /**
      * Local ID generation (fallback method)
@@ -170,16 +204,16 @@ class HospitalIdGenerator {
         }
     }
     /**
-     * Validate ID format
+     * Validate ID format - Department-Based Only
      */
     static validateId(id, expectedType) {
         const patterns = {
-            doctor: /^[A-Z]{4}-DOC-\d{6}-\d{3}$|^DOC-\d{6}-\d{3}$/,
+            doctor: /^[A-Z]{4}-DOC-\d{6}-\d{3}$/,
             patient: /^PAT-\d{6}-\d{3}$/,
-            appointment: /^[A-Z]{4}-APT-\d{6}-\d{3}$|^APT-\d{6}-\d{3}$/,
+            appointment: /^[A-Z]{4}-APT-\d{6}-\d{3}$/,
             admin: /^ADM-\d{6}-\d{3}$/,
-            medical_record: /^MR-\d{6}-\d{3}$/,
-            prescription: /^RX-\d{6}-\d{3}$/
+            medical_record: /^[A-Z]{4}-MR-\d{6}-\d{3}$/,
+            prescription: /^[A-Z]{4}-RX-\d{6}-\d{3}$/
         };
         const pattern = patterns[expectedType];
         return pattern ? pattern.test(id) : false;

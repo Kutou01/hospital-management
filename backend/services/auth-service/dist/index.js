@@ -11,6 +11,7 @@ const helmet_1 = __importDefault(require("helmet"));
 const morgan_1 = __importDefault(require("morgan"));
 const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 const logger_1 = __importDefault(require("@hospital/shared/dist/utils/logger"));
+const shared_1 = require("@hospital/shared");
 const auth_routes_1 = __importDefault(require("./routes/auth.routes"));
 const user_routes_1 = __importDefault(require("./routes/user.routes"));
 const session_routes_1 = __importDefault(require("./routes/session.routes"));
@@ -39,6 +40,7 @@ const limiter = (0, express_rate_limit_1.default)({
 });
 app.use('/api/', limiter);
 app.use((0, morgan_1.default)('combined'));
+app.use((0, shared_1.metricsMiddleware)('auth-service'));
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
 (0, swagger_1.setupSwagger)(app);
@@ -73,9 +75,19 @@ app.get('/health', async (req, res) => {
         });
     }
 });
-app.use('/api/auth', auth_routes_1.default);
-app.use('/api/users', user_routes_1.default);
-app.use('/api/sessions', session_routes_1.default);
+app.get('/metrics', shared_1.getMetricsHandler);
+try {
+    app.use('/api/auth', auth_routes_1.default);
+    app.use('/api/users', user_routes_1.default);
+    app.use('/api/sessions', session_routes_1.default);
+    logger_1.default.info('✅ Routes loaded successfully');
+}
+catch (error) {
+    logger_1.default.error('❌ Failed to load routes:', {
+        error: error.message,
+        stack: error.stack
+    });
+}
 app.get('/', (req, res) => {
     res.json({
         service: 'Hospital Auth Service',
@@ -104,8 +116,10 @@ app.use('*', (req, res) => {
 app.use(error_middleware_1.errorHandler);
 const startServer = async () => {
     try {
+        logger_1.default.info('🔄 Starting server initialization...');
         await (0, supabase_1.initializeSupabase)();
-        app.listen(PORT, () => {
+        logger_1.default.info('🔄 Starting Express server...');
+        const server = app.listen(PORT, () => {
             logger_1.default.info(`🚀 ${SERVICE_NAME} started successfully on port ${PORT}`, {
                 service: SERVICE_NAME,
                 port: PORT,
@@ -113,6 +127,14 @@ const startServer = async () => {
                 timestamp: new Date().toISOString(),
                 supabaseConnected: true
             });
+        });
+        server.on('error', (error) => {
+            logger_1.default.error('❌ Server error:', {
+                error: error.message,
+                code: error.code,
+                stack: error.stack
+            });
+            process.exit(1);
         });
     }
     catch (error) {

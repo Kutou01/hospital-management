@@ -129,7 +129,6 @@ const initializeSupabase = async () => {
     logger_1.default.info('✅ Supabase initialized successfully');
 };
 exports.initializeSupabase = initializeSupabase;
-(0, exports.testSupabaseConnection)();
 exports.default = {
     admin: exports.supabaseAdmin,
     client: exports.supabaseClient,

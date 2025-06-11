@@ -74,10 +74,26 @@ start_core() {
 start_full() {
     print_header "STARTING ALL SERVICES"
     print_warning "This mode uses high RAM (~4GB+ total)"
-    
+
     docker-compose --profile full up -d
-    
+
     print_status "All services started"
+}
+
+# Function to start monitoring stack
+start_monitoring() {
+    print_header "STARTING MONITORING STACK"
+    print_status "Starting Prometheus + Grafana monitoring"
+
+    docker-compose --profile monitoring up -d
+
+    print_status "Monitoring stack started:"
+    print_status "- Prometheus (port 9090): http://localhost:9090"
+    print_status "- Grafana (port 3001): http://localhost:3001"
+    print_status "- Node Exporter (port 9100): http://localhost:9100"
+    print_status ""
+    print_status "Grafana Login: admin / admin123"
+    print_status "Prometheus targets: http://localhost:9090/targets"
 }
 
 # Function to stop all services
@@ -141,6 +157,7 @@ show_help() {
     echo "Commands:"
     echo "  core          Start core services (~2.5GB RAM) - Recommended"
     echo "  full          Start all services (~4GB+ RAM)"
+    echo "  monitoring    Start monitoring stack (Prometheus + Grafana)"
     echo "  stop          Stop all services"
     echo "  status        Show current resource usage"
     echo "  cleanup       Clean up Docker resources to free RAM"
@@ -163,6 +180,10 @@ case "${1:-help}" in
     "full")
         check_docker
         start_full
+        ;;
+    "monitoring")
+        check_docker
+        start_monitoring
         ;;
     "stop")
         stop_all

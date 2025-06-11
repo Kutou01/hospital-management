@@ -13,6 +13,7 @@ const http_proxy_middleware_1 = require("http-proxy-middleware");
 const swagger_jsdoc_1 = __importDefault(require("swagger-jsdoc"));
 const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
 // import { stream } from '@hospital/shared/src/utils/logger';
+const shared_1 = require("@hospital/shared");
 const auth_middleware_1 = require("./middleware/auth.middleware");
 const error_middleware_1 = require("./middleware/error.middleware");
 const service_registry_1 = require("./services/service-registry");
@@ -50,6 +51,8 @@ function createApp() {
     app.use(express_1.default.urlencoded({ extended: true }));
     // Logging middleware
     app.use((0, morgan_1.default)('combined'));
+    // Metrics middleware
+    app.use((0, shared_1.metricsMiddleware)('api-gateway'));
     // Swagger documentation
     const swaggerOptions = {
         definition: {
@@ -81,6 +84,8 @@ function createApp() {
     app.use('/docs', swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(specs));
     // Health check endpoint
     app.use('/health', health_routes_1.default);
+    // Metrics endpoint for Prometheus
+    app.get('/metrics', shared_1.getMetricsHandler);
     // Auth Service Routes (Public - no auth middleware)
     app.use('/api/auth', (0, http_proxy_middleware_1.createProxyMiddleware)({
         target: process.env.AUTH_SERVICE_URL || 'http://auth-service:3001',

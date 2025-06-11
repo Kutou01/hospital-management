@@ -186,11 +186,14 @@ async function checkTableCount(tableName) {
 
 async function checkFunctions() {
   const functions = [
+    'get_department_code',
+    'generate_hospital_id',
     'generate_doctor_id',
-    'generate_patient_id', 
+    'generate_patient_id',
     'generate_admin_id',
     'generate_appointment_id',
-    'generate_medical_record_id'
+    'generate_medical_record_id',
+    'generate_prescription_id'
   ];
 
   for (const funcName of functions) {

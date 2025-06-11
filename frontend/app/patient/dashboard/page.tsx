@@ -96,13 +96,41 @@ export default function PatientDashboard() {
   // Load dashboard data
   useEffect(() => {
     const loadDashboardData = async () => {
-      if (!user?.patient_id) return
+      console.log('🏥 [PatientDashboard] Loading dashboard data for user:', {
+        user,
+        patient_id: user?.patient_id,
+        hasPatientId: !!user?.patient_id
+      })
+
+      if (!user?.patient_id) {
+        console.log('🏥 [PatientDashboard] No patient_id found, trying to fetch from API...')
+
+        // Try to get patient_id via API
+        try {
+          const patientResponse = await patientsApi.getByProfileId(user.id)
+          if (patientResponse.success && patientResponse.data) {
+            console.log('🏥 [PatientDashboard] Found patient via API:', patientResponse.data.patient_id)
+            // Update user object with patient_id (temporary fix)
+            user.patient_id = patientResponse.data.patient_id
+          } else {
+            console.log('🏥 [PatientDashboard] No patient record found for profile_id:', user.id)
+            setIsLoadingData(false)
+            return
+          }
+        } catch (error) {
+          console.error('🏥 [PatientDashboard] Error fetching patient by profile_id:', error)
+          setIsLoadingData(false)
+          return
+        }
+      }
 
       try {
         setIsLoadingData(true)
 
         // Load upcoming appointments
+        console.log('🏥 [PatientDashboard] Loading appointments for patient:', user.patient_id)
         const appointmentsResponse = await appointmentsApi.getByPatientId(user.patient_id)
+        console.log('🏥 [PatientDashboard] Appointments response:', appointmentsResponse)
         if (appointmentsResponse.success && appointmentsResponse.data) {
           // Filter upcoming appointments and sort by date
           const upcoming = appointmentsResponse.data
@@ -117,7 +145,9 @@ export default function PatientDashboard() {
         }
 
         // Load current medications (prescriptions)
+        console.log('🏥 [PatientDashboard] Loading prescriptions for patient:', user.patient_id)
         const prescriptionsResponse = await prescriptionsApi.getByPatientId(user.patient_id)
+        console.log('🏥 [PatientDashboard] Prescriptions response:', prescriptionsResponse)
         if (prescriptionsResponse.success && prescriptionsResponse.data) {
           // Filter active prescriptions
           const activeMeds = prescriptionsResponse.data
@@ -134,7 +164,9 @@ export default function PatientDashboard() {
         }
 
         // Load patient health metrics (from patient profile)
+        console.log('🏥 [PatientDashboard] Loading patient profile for:', user.patient_id)
         const patientResponse = await patientsApi.getById(user.patient_id)
+        console.log('🏥 [PatientDashboard] Patient profile response:', patientResponse)
         if (patientResponse.success && patientResponse.data) {
           const patient = patientResponse.data
           setHealthMetrics({
@@ -162,9 +194,10 @@ export default function PatientDashboard() {
         setRecentActivities(recentAppointments)
 
       } catch (error) {
-        console.error('Error loading dashboard data:', error)
+        console.error('🏥 [PatientDashboard] Error loading dashboard data:', error)
         toast.error('Không thể tải dữ liệu dashboard')
       } finally {
+        console.log('🏥 [PatientDashboard] Dashboard data loading completed')
         setIsLoadingData(false)
       }
     }
@@ -259,6 +292,10 @@ export default function PatientDashboard() {
               <p className="text-sm text-gray-600 flex items-center gap-2">
                 <Shield className="h-4 w-4" />
                 {user.email} • {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+              </p>
+              {/* Debug info */}
+              <p className="text-xs text-gray-500 mt-1">
+                Patient ID: {user.patient_id || 'Not found'} | Profile ID: {user.id}
               </p>
             </div>
           </div>

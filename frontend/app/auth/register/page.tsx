@@ -397,11 +397,7 @@ export default function RegisterPage() {
         yearsOfExperience: accountType === "doctor" ? parseInt(formData.yearsOfExperience) || undefined : undefined,
         // Patient specific - structured data
         bloodType: accountType === "patient" ? formData.bloodType : undefined,
-        address: accountType === "patient" ? {
-          street: formData.addressStreet || undefined,
-          district: formData.addressDistrict || undefined,
-          city: formData.addressCity || undefined,
-        } : undefined,
+        address: accountType === "patient" ? formData.address : undefined,
         emergencyContact: accountType === "patient" ? {
           name: formData.emergencyContactName || undefined,
           phone: formData.emergencyContactPhone || undefined,

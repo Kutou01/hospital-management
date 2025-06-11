@@ -4,16 +4,18 @@
 // ============================================================================
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.validateTableRecord = exports.validateFormat = exports.JSON_STRUCTURES = exports.TABLE_FORMATS = exports.RANGES = exports.ENUM_VALUES = exports.FORMAT_PATTERNS = void 0;
-// Common Format Patterns
+// Common Format Patterns - Department-Based ID System Only
 exports.FORMAT_PATTERNS = {
-    // ID Patterns
-    DOCTOR_ID: /^DOC\d{6}$/, // DOC000001
-    PATIENT_ID: /^PAT\d+$/, // PAT1747555777
-    APPOINTMENT_ID: /^APT\d+$/, // APT1747555777
-    DEPARTMENT_ID: /^DEPT\d+$/, // DEPT001
+    // Department-Based ID Patterns
+    DOCTOR_ID: /^[A-Z]{4}-DOC-\d{6}-\d{3}$/, // CARD-DOC-202506-001
+    PATIENT_ID: /^PAT-\d{6}-\d{3}$/, // PAT-202506-001
+    APPOINTMENT_ID: /^[A-Z]{4}-APT-\d{6}-\d{3}$/, // CARD-APT-202506-001
+    ADMIN_ID: /^ADM-\d{6}-\d{3}$/, // ADM-202506-001
+    MEDICAL_RECORD_ID: /^[A-Z]{4}-MR-\d{6}-\d{3}$/, // CARD-MR-202506-001
+    PRESCRIPTION_ID: /^[A-Z]{4}-RX-\d{6}-\d{3}$/, // CARD-RX-202506-001
+    // Department and Room IDs
+    DEPARTMENT_ID: /^DEPT\d{3}$/, // DEPT001
     ROOM_ID: /^ROOM\d+$/, // ROOM1747555777
-    MEDICAL_RECORD_ID: /^MR\d+$/, // MR1747555777
-    PRESCRIPTION_ID: /^PRE\d+$/, // PRE1747555777
     // UUID Pattern (Supabase Auth)
     UUID: /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
     // Contact Patterns

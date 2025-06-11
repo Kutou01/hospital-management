@@ -4,9 +4,15 @@ import {
   validateSignUp,
   validateSignIn,
   validateResetPassword,
-  validateRefreshToken
+  validateRefreshToken,
+  validateMagicLink,
+  validatePhoneOTP,
+  validateVerifyOTP,
+  validateOAuthCallback
 } from '../validators/auth.validators';
 import { authMiddleware } from '../middleware/auth.middleware';
+import { supabaseAdmin } from '../config/supabase';
+import logger from '@hospital/shared/dist/utils/logger';
 
 const router = express.Router();
 const authController = new AuthController();
@@ -179,17 +185,65 @@ router.get('/verify', authController.verifyToken);
  *       401:
  *         description: Invalid token
  */
-router.get('/me', authMiddleware, (req: any, res) => {
-  res.json({
-    success: true,
-    user: {
-      id: req.user.id,
-      email: req.user.email,
-      full_name: req.user.full_name,
-      role: req.user.role,
-      is_active: req.user.is_active
+router.get('/me', authMiddleware, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    const userRole = req.user.role;
+
+    // Get role-specific ID
+    let roleSpecificData = {};
+    try {
+      if (userRole === 'patient') {
+        const { data: patientData } = await supabaseAdmin
+          .from('patients')
+          .select('patient_id')
+          .eq('profile_id', userId)
+          .single();
+        if (patientData) {
+          roleSpecificData = { patient_id: patientData.patient_id };
+        }
+      } else if (userRole === 'doctor') {
+        const { data: doctorData } = await supabaseAdmin
+          .from('doctors')
+          .select('doctor_id')
+          .eq('profile_id', userId)
+          .single();
+        if (doctorData) {
+          roleSpecificData = { doctor_id: doctorData.doctor_id };
+        }
+      } else if (userRole === 'admin') {
+        const { data: adminData } = await supabaseAdmin
+          .from('admins')
+          .select('admin_id')
+          .eq('profile_id', userId)
+          .single();
+        if (adminData) {
+          roleSpecificData = { admin_id: adminData.admin_id };
+        }
+      }
+    } catch (roleError) {
+      logger.warn('Could not fetch role-specific ID in /me endpoint:', roleError);
     }
-  });
+
+    res.json({
+      success: true,
+      user: {
+        id: req.user.id,
+        email: req.user.email,
+        full_name: req.user.full_name,
+        role: req.user.role,
+        phone_number: req.user.phone_number,
+        is_active: req.user.is_active,
+        ...roleSpecificData
+      }
+    });
+  } catch (error) {
+    logger.error('Error in /me endpoint:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
 });
 
 /**
@@ -247,6 +301,140 @@ router.post('/create-doctor-record', authController.createDoctorRecord);
  *         description: Validation error
  */
 router.post('/create-patient-record', authController.createPatientRecord);
+
+/**
+ * @swagger
+ * /api/auth/magic-link:
+ *   post:
+ *     summary: Send magic link for passwordless login
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *     responses:
+ *       200:
+ *         description: Magic link sent successfully
+ *       400:
+ *         description: Invalid email
+ */
+router.post('/magic-link', validateMagicLink, authController.sendMagicLink);
+
+/**
+ * @swagger
+ * /api/auth/phone-otp:
+ *   post:
+ *     summary: Send OTP to phone number
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - phone_number
+ *             properties:
+ *               phone_number:
+ *                 type: string
+ *                 pattern: '^\\+84[0-9]{9}$'
+ *     responses:
+ *       200:
+ *         description: OTP sent successfully
+ *       400:
+ *         description: Invalid phone number
+ */
+router.post('/phone-otp', validatePhoneOTP, authController.sendPhoneOTP);
+
+/**
+ * @swagger
+ * /api/auth/verify-otp:
+ *   post:
+ *     summary: Verify phone OTP and sign in
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - phone_number
+ *               - otp_code
+ *             properties:
+ *               phone_number:
+ *                 type: string
+ *                 pattern: '^\\+84[0-9]{9}$'
+ *               otp_code:
+ *                 type: string
+ *                 pattern: '^[0-9]{6}$'
+ *     responses:
+ *       200:
+ *         description: OTP verified and user signed in
+ *       400:
+ *         description: Invalid OTP or phone number
+ */
+router.post('/verify-otp', validateVerifyOTP, authController.verifyPhoneOTP);
+
+/**
+ * @swagger
+ * /api/auth/oauth/{provider}:
+ *   get:
+ *     summary: Initiate OAuth login
+ *     tags: [Authentication]
+ *     parameters:
+ *       - in: path
+ *         name: provider
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [google, github, facebook, apple]
+ *     responses:
+ *       302:
+ *         description: Redirect to OAuth provider
+ *       400:
+ *         description: Invalid provider
+ */
+router.get('/oauth/:provider', authController.initiateOAuth);
+
+/**
+ * @swagger
+ * /api/auth/oauth/callback:
+ *   post:
+ *     summary: Handle OAuth callback
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - code
+ *               - state
+ *             properties:
+ *               code:
+ *                 type: string
+ *               state:
+ *                 type: string
+ *               provider:
+ *                 type: string
+ *                 enum: [google, github, facebook, apple]
+ *     responses:
+ *       200:
+ *         description: OAuth login successful
+ *       400:
+ *         description: Invalid OAuth callback
+ */
+router.post('/oauth/callback', validateOAuthCallback, authController.handleOAuthCallback);
 
 export default router;
 

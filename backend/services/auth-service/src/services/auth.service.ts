@@ -32,6 +32,7 @@ export interface SignUpData {
   address?: any;
   emergency_contact?: any;
   insurance_info?: any;
+  blood_type?: string;
 }
 
 export interface AuthResponse {
@@ -331,16 +332,85 @@ export class AuthService {
         return { error: 'Account is inactive' };
       }
 
+      // Get role-specific ID
+      let roleSpecificData = {};
+      try {
+        if (profile.role === 'patient') {
+          logger.info('🔍 [SignIn] Fetching patient_id for profile:', {
+            profile_id: data.user.id,
+            email: data.user.email
+          });
+
+          const { data: patientData, error: patientError } = await supabaseAdmin
+            .from('patients')
+            .select('patient_id')
+            .eq('profile_id', data.user.id)
+            .single();
+
+          logger.info('🔍 [SignIn] Patient query raw result:', {
+            patientData,
+            patientError,
+            profile_id: data.user.id
+          });
+
+          if (patientError) {
+            logger.warn('⚠️ [SignIn] Patient query error:', {
+              error: patientError.message,
+              code: patientError.code,
+              profile_id: data.user.id
+            });
+          }
+
+          if (patientData) {
+            logger.info('✅ [SignIn] Patient found:', {
+              patient_id: patientData.patient_id,
+              profile_id: data.user.id
+            });
+            roleSpecificData = { patient_id: patientData.patient_id };
+            logger.info('🔍 [SignIn] roleSpecificData set to:', roleSpecificData);
+          } else {
+            logger.warn('⚠️ [SignIn] No patient data found for profile_id:', data.user.id);
+          }
+        } else if (profile.role === 'doctor') {
+          const { data: doctorData } = await supabaseAdmin
+            .from('doctors')
+            .select('doctor_id')
+            .eq('profile_id', data.user.id)
+            .single();
+          if (doctorData) {
+            roleSpecificData = { doctor_id: doctorData.doctor_id };
+          }
+        } else if (profile.role === 'admin') {
+          const { data: adminData } = await supabaseAdmin
+            .from('admins')
+            .select('admin_id')
+            .eq('profile_id', data.user.id)
+            .single();
+          if (adminData) {
+            roleSpecificData = { admin_id: adminData.admin_id };
+          }
+        }
+      } catch (roleError) {
+        logger.warn('Could not fetch role-specific ID:', roleError);
+      }
+
+      logger.info('🔍 [SignIn] Final roleSpecificData before return:', roleSpecificData);
+
+      const finalUser = {
+        id: data.user.id,
+        email: data.user.email,
+        full_name: profile.full_name,
+        role: profile.role,
+        phone_number: profile.phone_number,
+        is_active: profile.is_active,
+        last_sign_in_at: data.user.last_sign_in_at,
+        ...roleSpecificData
+      };
+
+      logger.info('🔍 [SignIn] Final user object:', finalUser);
+
       return {
-        user: {
-          id: data.user.id,
-          email: data.user.email,
-          full_name: profile.full_name,
-          role: profile.role,
-          phone_number: profile.phone_number,
-          is_active: profile.is_active,
-          last_sign_in_at: data.user.last_sign_in_at
-        },
+        user: finalUser,
         session: data.session
       };
 
@@ -445,13 +515,70 @@ export class AuthService {
         return { error: 'User profile not found' };
       }
 
+      // Get role-specific ID
+      let roleSpecificData = {};
+      try {
+        if (profile.role === 'patient') {
+          logger.info('🔍 [VerifyToken] Fetching patient_id for profile:', {
+            profile_id: user.id,
+            email: user.email
+          });
+
+          const { data: patientData, error: patientError } = await supabaseAdmin
+            .from('patients')
+            .select('patient_id')
+            .eq('profile_id', user.id)
+            .single();
+
+          if (patientError) {
+            logger.warn('⚠️ [VerifyToken] Patient query error:', {
+              error: patientError.message,
+              code: patientError.code,
+              profile_id: user.id
+            });
+          }
+
+          if (patientData) {
+            logger.info('✅ [VerifyToken] Patient found:', {
+              patient_id: patientData.patient_id,
+              profile_id: user.id
+            });
+            roleSpecificData = { patient_id: patientData.patient_id };
+          } else {
+            logger.warn('⚠️ [VerifyToken] No patient data found for profile_id:', user.id);
+          }
+        } else if (profile.role === 'doctor') {
+          const { data: doctorData } = await supabaseAdmin
+            .from('doctors')
+            .select('doctor_id')
+            .eq('profile_id', user.id)
+            .single();
+          if (doctorData) {
+            roleSpecificData = { doctor_id: doctorData.doctor_id };
+          }
+        } else if (profile.role === 'admin') {
+          const { data: adminData } = await supabaseAdmin
+            .from('admins')
+            .select('admin_id')
+            .eq('profile_id', user.id)
+            .single();
+          if (adminData) {
+            roleSpecificData = { admin_id: adminData.admin_id };
+          }
+        }
+      } catch (roleError) {
+        logger.warn('Could not fetch role-specific ID:', roleError);
+      }
+
       return {
         user: {
           id: user.id,
           email: user.email,
           full_name: profile.full_name,
           role: profile.role,
-          is_active: profile.is_active
+          phone_number: profile.phone_number,
+          is_active: profile.is_active,
+          ...roleSpecificData
         }
       };
 
@@ -595,7 +722,7 @@ export class AuthService {
         profile_id: userId,
         // ✅ CLEAN DESIGN: NO email, full_name, phone_number, date_of_birth - they are in profiles table
         gender: userData.gender || 'other',
-        blood_type: null,
+        blood_type: userData.blood_type || null,
         address: userData.address || {},
         emergency_contact: userData.emergency_contact || {},
         insurance_info: userData.insurance_info || {},
@@ -693,6 +820,255 @@ export class AuthService {
     } catch (error: any) {
       logger.error('❌ Error in createAdminRecord:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Send magic link for passwordless login
+   */
+  public async sendMagicLink(email: string): Promise<AuthResponse> {
+    try {
+      logger.info('Sending magic link to:', email);
+
+      const { error } = await supabaseClient.auth.signInWithOtp({
+        email: email,
+        options: {
+          emailRedirectTo: `${process.env.CORS_ORIGIN}/auth/callback`,
+          // You can customize the email template in Supabase dashboard
+        }
+      });
+
+      if (error) {
+        logger.error('Magic link error:', error);
+        return { error: error.message };
+      }
+
+      logger.info('Magic link sent successfully to:', email);
+      return { user: null, session: null };
+
+    } catch (error: any) {
+      logger.error('Send magic link service error:', error);
+      return { error: 'Internal server error' };
+    }
+  }
+
+  /**
+   * Send OTP to phone number
+   */
+  public async sendPhoneOTP(phoneNumber: string): Promise<AuthResponse> {
+    try {
+      logger.info('Sending phone OTP to:', phoneNumber);
+
+      const { error } = await supabaseClient.auth.signInWithOtp({
+        phone: phoneNumber,
+        options: {
+          // You can customize SMS template in Supabase dashboard
+        }
+      });
+
+      if (error) {
+        logger.error('Phone OTP error:', error);
+        return { error: error.message };
+      }
+
+      logger.info('Phone OTP sent successfully to:', phoneNumber);
+      return { user: null, session: null };
+
+    } catch (error: any) {
+      logger.error('Send phone OTP service error:', error);
+      return { error: 'Internal server error' };
+    }
+  }
+
+  /**
+   * Verify phone OTP and sign in
+   */
+  public async verifyPhoneOTP(phoneNumber: string, otpCode: string): Promise<AuthResponse> {
+    try {
+      logger.info('Verifying phone OTP for:', phoneNumber);
+
+      const { data, error } = await supabaseClient.auth.verifyOtp({
+        phone: phoneNumber,
+        token: otpCode,
+        type: 'sms'
+      });
+
+      if (error) {
+        logger.error('Phone OTP verification error:', error);
+        return { error: error.message };
+      }
+
+      if (!data.user || !data.session) {
+        return { error: 'Invalid OTP code' };
+      }
+
+      // Get user profile
+      const { data: profile, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
+
+      if (profileError) {
+        logger.error('Profile fetch error after OTP verification:', profileError);
+        return { error: 'User profile not found' };
+      }
+
+      if (!profile.is_active) {
+        return { error: 'Account is inactive' };
+      }
+
+      logger.info('Phone OTP verified successfully for:', phoneNumber);
+
+      return {
+        user: {
+          id: data.user.id,
+          email: data.user.email,
+          full_name: profile.full_name,
+          role: profile.role,
+          phone_number: profile.phone_number,
+          is_active: profile.is_active,
+          last_sign_in_at: data.user.last_sign_in_at
+        },
+        session: data.session
+      };
+
+    } catch (error: any) {
+      logger.error('Verify phone OTP service error:', error);
+      return { error: 'Internal server error' };
+    }
+  }
+
+  /**
+   * Initiate OAuth login
+   */
+  public async initiateOAuth(provider: 'google' | 'github' | 'facebook' | 'apple'): Promise<AuthResponse & { url?: string }> {
+    try {
+      logger.info('Initiating OAuth login with provider:', provider);
+
+      const { data, error } = await supabaseClient.auth.signInWithOAuth({
+        provider: provider,
+        options: {
+          redirectTo: `${process.env.CORS_ORIGIN}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        }
+      });
+
+      if (error) {
+        logger.error('OAuth initiation error:', error);
+        return { error: error.message };
+      }
+
+      logger.info('OAuth login initiated successfully for provider:', provider);
+
+      return {
+        user: null,
+        session: null,
+        url: data.url
+      };
+
+    } catch (error: any) {
+      logger.error('Initiate OAuth service error:', error);
+      return { error: 'Internal server error' };
+    }
+  }
+
+  /**
+   * Handle OAuth callback
+   */
+  public async handleOAuthCallback(code: string, state: string, provider?: string): Promise<AuthResponse> {
+    try {
+      logger.info('Handling OAuth callback for provider:', provider);
+
+      // Exchange code for session
+      const { data, error } = await supabaseClient.auth.exchangeCodeForSession(code);
+
+      if (error) {
+        logger.error('OAuth callback error:', error);
+        return { error: error.message };
+      }
+
+      if (!data.user || !data.session) {
+        return { error: 'OAuth login failed' };
+      }
+
+      // Check if user profile exists, create if not
+      let { data: profile, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
+
+      if (profileError && profileError.code === 'PGRST116') {
+        // Profile doesn't exist, create one for OAuth user
+        const profileData = {
+          id: data.user.id,
+          email: data.user.email,
+          full_name: data.user.user_metadata?.full_name || data.user.user_metadata?.name || 'OAuth User',
+          role: 'patient', // Default role for OAuth users
+          phone_number: data.user.user_metadata?.phone || null,
+          date_of_birth: null,
+          email_verified: true,
+          phone_verified: false,
+          is_active: true,
+          last_login: null,
+          login_count: 0,
+          created_by: null
+        };
+
+        const { error: createProfileError } = await supabaseAdmin
+          .from('profiles')
+          .insert(profileData);
+
+        if (createProfileError) {
+          logger.error('Failed to create profile for OAuth user:', createProfileError);
+          return { error: 'Failed to create user profile' };
+        }
+
+        // Create patient record for OAuth user
+        try {
+          await this.createPatientRecord(data.user.id, {
+            email: data.user.email!,
+            password: '', // Not needed for OAuth
+            full_name: profileData.full_name,
+            role: 'patient'
+          });
+        } catch (patientError) {
+          logger.error('Failed to create patient record for OAuth user:', patientError);
+          // Continue anyway, profile is created
+        }
+
+        profile = profileData;
+      } else if (profileError) {
+        logger.error('Profile fetch error after OAuth:', profileError);
+        return { error: 'User profile error' };
+      }
+
+      if (!profile!.is_active) {
+        return { error: 'Account is inactive' };
+      }
+
+      logger.info('OAuth login successful for provider:', provider);
+
+      return {
+        user: {
+          id: data.user.id,
+          email: data.user.email,
+          full_name: profile!.full_name,
+          role: profile!.role,
+          phone_number: profile!.phone_number,
+          is_active: profile!.is_active,
+          last_sign_in_at: data.user.last_sign_in_at
+        },
+        session: data.session
+      };
+
+    } catch (error: any) {
+      logger.error('OAuth callback service error:', error);
+      return { error: 'Internal server error' };
     }
   }
 }

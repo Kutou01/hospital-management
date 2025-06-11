@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Mail, Loader2, CheckCircle, ArrowLeft } from 'lucide-react'
 import { useToast } from "@/components/ui/toast-provider"
-import { SupabaseEnhancedAuth } from "@/lib/auth/supabase-enhanced-auth"
+import { authServiceApi } from "@/lib/api/auth"
 
 interface MagicLinkLoginProps {
   className?: string
@@ -22,7 +22,8 @@ export function MagicLinkLogin({ className = '', onBack }: MagicLinkLoginProps) 
   const [error, setError] = useState('')
 
   const validateEmail = (email: string): boolean => {
-    return SupabaseEnhancedAuth.isValidEmail(email)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(email)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -38,21 +39,15 @@ export function MagicLinkLogin({ className = '', onBack }: MagicLinkLoginProps) 
       return
     }
 
-    // Check rate limiting
-    if (SupabaseEnhancedAuth.isRateLimited('magic_link', 3, 5 * 60 * 1000)) {
-      setError('Bạn đã gửi quá nhiều yêu cầu. Vui lòng thử lại sau 5 phút.')
-      return
-    }
-
     setIsLoading(true)
     setError('')
 
     try {
-      const result = await SupabaseEnhancedAuth.sendMagicLink(email)
-      
-      if (result.error) {
-        setError(result.error)
-        showToast("❌ Lỗi", result.error, "error")
+      const result = await authServiceApi.sendMagicLink(email)
+
+      if (!result.success) {
+        setError(result.error?.message || 'Gửi magic link thất bại')
+        showToast("❌ Lỗi", result.error?.message || 'Gửi magic link thất bại', "error")
       } else {
         setIsSuccess(true)
         showToast("✅ Thành công", "Magic link đã được gửi đến email của bạn!", "success")
@@ -67,18 +62,13 @@ export function MagicLinkLogin({ className = '', onBack }: MagicLinkLoginProps) 
   }
 
   const handleResend = async () => {
-    if (SupabaseEnhancedAuth.isRateLimited('magic_link', 3, 5 * 60 * 1000)) {
-      showToast("⚠️ Cảnh báo", "Vui lòng đợi 5 phút trước khi gửi lại", "error")
-      return
-    }
-
     setIsLoading(true)
-    
+
     try {
-      const result = await SupabaseEnhancedAuth.sendMagicLink(email)
-      
-      if (result.error) {
-        showToast("❌ Lỗi", result.error, "error")
+      const result = await authServiceApi.sendMagicLink(email)
+
+      if (!result.success) {
+        showToast("❌ Lỗi", result.error?.message || 'Gửi magic link thất bại', "error")
       } else {
         showToast("✅ Đã gửi lại", "Magic link mới đã được gửi!", "success")
       }

@@ -8,6 +8,7 @@ import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 
 // import { stream } from '@hospital/shared/src/utils/logger';
+import { metricsMiddleware, getMetricsHandler } from '@hospital/shared';
 import { authMiddleware } from './middleware/auth.middleware';
 import { errorHandler } from './middleware/error.middleware';
 import { ServiceRegistry } from './services/service-registry';
@@ -52,6 +53,9 @@ export function createApp(): express.Application {
   // Logging middleware
   app.use(morgan('combined'));
 
+  // Metrics middleware
+  app.use(metricsMiddleware('api-gateway'));
+
   // Swagger documentation
   const swaggerOptions = {
     definition: {
@@ -85,6 +89,9 @@ export function createApp(): express.Application {
 
   // Health check endpoint
   app.use('/health', healthRoutes);
+
+  // Metrics endpoint for Prometheus
+  app.get('/metrics', getMetricsHandler);
 
   // Auth Service Routes (Public - no auth middleware)
   app.use('/api/auth', createProxyMiddleware({

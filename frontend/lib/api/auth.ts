@@ -82,6 +82,38 @@ export const authServiceApi = {
     return apiClient.post<{ message: string }>('/auth/signout');
   },
 
+  // Send magic link for passwordless login
+  sendMagicLink: async (email: string): Promise<ApiResponse<{ message: string }>> => {
+    return apiClient.post<{ message: string }>('/auth/magic-link', { email }, false);
+  },
+
+  // Send OTP to phone number
+  sendPhoneOTP: async (phoneNumber: string): Promise<ApiResponse<{ message: string }>> => {
+    return apiClient.post<{ message: string }>('/auth/phone-otp', { phone_number: phoneNumber }, false);
+  },
+
+  // Verify phone OTP and sign in
+  verifyPhoneOTP: async (phoneNumber: string, otpCode: string): Promise<ApiResponse<AuthResponse>> => {
+    return apiClient.post<AuthResponse>('/auth/verify-otp', {
+      phone_number: phoneNumber,
+      otp_code: otpCode
+    }, false);
+  },
+
+  // Initiate OAuth login
+  initiateOAuth: async (provider: 'google' | 'github' | 'facebook' | 'apple'): Promise<ApiResponse<{ url: string }>> => {
+    return apiClient.get<{ url: string }>(`/auth/oauth/${provider}`, false);
+  },
+
+  // Handle OAuth callback
+  handleOAuthCallback: async (code: string, state: string, provider?: string): Promise<ApiResponse<AuthResponse>> => {
+    return apiClient.post<AuthResponse>('/auth/oauth/callback', {
+      code,
+      state,
+      provider
+    }, false);
+  },
+
   // Get current user
   getCurrentUser: async (): Promise<ApiResponse<AuthUser>> => {
     return apiClient.get<AuthUser>('/auth/me');

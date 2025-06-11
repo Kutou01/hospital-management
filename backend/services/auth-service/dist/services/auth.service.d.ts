@@ -13,6 +13,7 @@ export interface SignUpData {
     address?: any;
     emergency_contact?: any;
     insurance_info?: any;
+    blood_type?: string;
 }
 export interface AuthResponse {
     user?: any;
@@ -34,5 +35,12 @@ export declare class AuthService {
     createDoctorRecord(userId: string, userData: SignUpData): Promise<void>;
     createPatientRecord(userId: string, userData: SignUpData): Promise<void>;
     private createAdminRecord;
+    sendMagicLink(email: string): Promise<AuthResponse>;
+    sendPhoneOTP(phoneNumber: string): Promise<AuthResponse>;
+    verifyPhoneOTP(phoneNumber: string, otpCode: string): Promise<AuthResponse>;
+    initiateOAuth(provider: 'google' | 'github' | 'facebook' | 'apple'): Promise<AuthResponse & {
+        url?: string;
+    }>;
+    handleOAuthCallback(code: string, state: string, provider?: string): Promise<AuthResponse>;
 }
 //# sourceMappingURL=auth.service.d.ts.map

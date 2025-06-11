@@ -2,27 +2,25 @@
 
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabaseAuth, HospitalUser } from './supabase-auth'
 import { authServiceApi, AuthUser, RegisterData } from '../api/auth'
 import { sessionManager } from './session-manager'
 import { getDashboardPath } from './dashboard-routes'
-import { supabaseClient } from '../supabase-client'
 
-// Auth types
-export type AuthType = 'supabase' | 'service'
+// Auth types - now only using Auth Service
+export type AuthType = 'service'
 
 // Unified user interface
 export interface UnifiedUser {
   id: string
   email: string
   full_name: string
-  role: string
+  role: 'admin' | 'doctor' | 'patient'
   is_active: boolean
   email_confirmed_at?: string
   email_verified?: boolean
   phone_verified?: boolean
   created_at: string
-  // Additional fields from HospitalUser
+  // Additional fields
   phone_number?: string
   gender?: string
   date_of_birth?: string
@@ -30,8 +28,7 @@ export interface UnifiedUser {
   doctor_id?: string
   patient_id?: string
   admin_id?: string
-  profile_id?: string // For backward compatibility
-  // Auth type indicator
+  profile_id?: string
   authType: AuthType
 }
 
@@ -99,25 +96,7 @@ export function UnifiedAuthProvider({ children }: { children: React.ReactNode })
     }
   }
 
-  // Convert HospitalUser to UnifiedUser
-  const convertHospitalUser = (hospitalUser: HospitalUser): UnifiedUser => ({
-    id: hospitalUser.id,
-    email: hospitalUser.email,
-    full_name: hospitalUser.full_name,
-    role: hospitalUser.role,
-    is_active: hospitalUser.is_active,
-    email_confirmed_at: hospitalUser.last_login, // Use last_login as fallback
-    email_verified: hospitalUser.email_verified,
-    phone_verified: hospitalUser.phone_verified,
-    created_at: hospitalUser.created_at,
-    phone_number: hospitalUser.phone_number,
-    // Add role-specific IDs
-    doctor_id: hospitalUser.doctor_id,
-    patient_id: hospitalUser.patient_id,
-    admin_id: hospitalUser.admin_id,
-    profile_id: hospitalUser.id, // Use id as profile_id for backward compatibility
-    authType: 'supabase'
-  })
+
 
   // Convert AuthUser to UnifiedUser
   const convertAuthUser = (authUser: AuthUser): UnifiedUser => ({
@@ -126,8 +105,16 @@ export function UnifiedAuthProvider({ children }: { children: React.ReactNode })
     full_name: authUser.full_name,
     role: authUser.role,
     is_active: authUser.is_active,
-    email_confirmed_at: authUser.email_confirmed_at,
-    created_at: authUser.created_at,
+    email_confirmed_at: authUser.last_sign_in_at,
+    email_verified: true, // Auth service users are email verified
+    phone_verified: authUser.phone_verified || false,
+    created_at: authUser.created_at || new Date().toISOString(),
+    phone_number: authUser.phone_number,
+    // Add role-specific IDs if available
+    doctor_id: authUser.doctor_id,
+    patient_id: authUser.patient_id,
+    admin_id: authUser.admin_id,
+    profile_id: authUser.id,
     authType: 'service'
   })
 
@@ -140,17 +127,11 @@ export function UnifiedAuthProvider({ children }: { children: React.ReactNode })
       try {
         console.log('🔄 [UnifiedAuth] Initializing auth state...')
         
-        // Detect which auth system to use
-        const detectedAuthType = detectAuthType()
-        setAuthType(detectedAuthType)
-        
-        console.log('🔍 [UnifiedAuth] Detected auth type:', detectedAuthType)
+        // Always use Auth Service
+        setAuthType('service')
+        console.log('🔍 [UnifiedAuth] Using Auth Service')
 
-        if (detectedAuthType === 'service') {
-          await initializeAuthService()
-        } else {
-          await initializeSupabaseAuth()
-        }
+        await initializeAuthService()
       } catch (err) {
         console.error('❌ [UnifiedAuth] Failed to initialize auth:', err)
         setError('Failed to initialize authentication')
@@ -182,27 +163,7 @@ export function UnifiedAuthProvider({ children }: { children: React.ReactNode })
     }
   }
 
-  // Initialize Supabase Auth
-  const initializeSupabaseAuth = async () => {
-    try {
-      const result = await supabaseAuth.getCurrentUser()
 
-      if (result.user && !result.error) {
-        const unifiedUser = convertHospitalUser(result.user)
-        setUser(unifiedUser)
-        console.log('✅ [UnifiedAuth] Supabase user loaded:', unifiedUser.role)
-      } else {
-        console.log('ℹ️ [UnifiedAuth] No Supabase session found')
-        setUser(null)
-        if (result.error) {
-          setError(result.error)
-        }
-      }
-    } catch (err) {
-      console.error('❌ [UnifiedAuth] Supabase initialization failed:', err)
-      setUser(null)
-    }
-  }
 
   // Sign in with unified interface
   const signIn = async (email: string, password: string, preferredAuthType?: AuthType) => {
@@ -210,17 +171,12 @@ export function UnifiedAuthProvider({ children }: { children: React.ReactNode })
       setLoading(true)
       setError(null)
 
-      const targetAuthType = preferredAuthType || authType
-      console.log(`🔐 [UnifiedAuth] Signing in with ${targetAuthType}...`)
-
-      if (targetAuthType === 'service') {
-        await signInWithAuthService(email, password)
-      } else {
-        await signInWithSupabase(email, password)
-      }
+      console.log('🔐 [UnifiedAuth] Signing in with Auth Service...')
+      await signInWithAuthService(email, password)
     } catch (err: any) {
       console.error('❌ [UnifiedAuth] Sign in failed:', err)
       setError(err.message || 'Sign in failed')
+      throw err // Re-throw to handle in UI
     } finally {
       setLoading(false)
     }
@@ -253,42 +209,16 @@ export function UnifiedAuthProvider({ children }: { children: React.ReactNode })
     router.replace(dashboardPath)
   }
 
-  // Sign in with Supabase
-  const signInWithSupabase = async (email: string, password: string) => {
-    const result = await supabaseAuth.signIn({ email, password })
 
-    if (result.error || !result.user) {
-      throw new Error(result.error || 'Invalid credentials')
-    }
 
-    const unifiedUser = convertHospitalUser(result.user)
-    setUser(unifiedUser)
-    setAuthType('supabase')
-
-    console.log('✅ [UnifiedAuth] Supabase sign in successful')
-
-    // Redirect to dashboard
-    const dashboardPath = getDashboardPath(unifiedUser.role as any)
-    router.replace(dashboardPath)
-  }
-
-  // Sign up with unified interface
+  // Sign up with Auth Service
   const signUp = async (userData: RegisterData, preferredAuthType?: AuthType) => {
     try {
       setLoading(true)
       setError(null)
 
-      // Force Auth Service for now to test department-based ID
-      const targetAuthType = 'service' // Force Auth Service
-      console.log(`📝 [UnifiedAuth] Signing up with ${targetAuthType} (forced)...`)
-      console.log('📝 [UnifiedAuth] Current authType state:', authType)
-      console.log('📝 [UnifiedAuth] Preferred authType:', preferredAuthType)
-
-      if (targetAuthType === 'service') {
-        await signUpWithAuthService(userData)
-      } else {
-        await signUpWithSupabase(userData)
-      }
+      console.log('📝 [UnifiedAuth] Signing up with Auth Service...')
+      await signUpWithAuthService(userData)
     } catch (err: any) {
       console.error('❌ [UnifiedAuth] Sign up failed:', err)
       setError(err.message || 'Sign up failed')
@@ -315,40 +245,21 @@ export function UnifiedAuthProvider({ children }: { children: React.ReactNode })
     // Note: User might need to verify email before signing in
   }
 
-  // Sign up with Supabase
-  const signUpWithSupabase = async (userData: RegisterData) => {
-    // Convert RegisterData to Supabase format
-    const supabaseUserData = {
-      ...userData,
-      role: userData.role === 'admin' ? 'doctor' : userData.role // Map admin to doctor for Supabase
-    } as any
-    const result = await supabaseAuth.signUp(supabaseUserData)
 
-    if (result.error) {
-      throw new Error(result.error)
-    }
 
-    console.log('✅ [UnifiedAuth] Supabase sign up successful')
-    // Note: User might need to verify email before signing in
-  }
-
-  // Sign out from both systems
+  // Sign out from Auth Service
   const signOut = async () => {
     try {
       setLoading(true)
-      console.log(`🚪 [UnifiedAuth] Signing out from ${authType}...`)
+      console.log('🚪 [UnifiedAuth] Signing out from Auth Service...')
 
-      if (authType === 'service') {
-        await authServiceApi.signOut()
-        // Clear tokens
-        localStorage.removeItem('auth_token')
-        localStorage.removeItem('refresh_token')
-        sessionStorage.removeItem('auth_token')
-        sessionStorage.removeItem('refresh_token')
-      } else {
-        await supabaseAuth.signOut()
-        sessionManager.clearSession()
-      }
+      await authServiceApi.signOut()
+      // Clear tokens
+      localStorage.removeItem('auth_token')
+      localStorage.removeItem('refresh_token')
+      sessionStorage.removeItem('auth_token')
+      sessionStorage.removeItem('refresh_token')
+      sessionManager.clearSession()
 
       setUser(null)
       setError(null)
@@ -365,11 +276,7 @@ export function UnifiedAuthProvider({ children }: { children: React.ReactNode })
   // Refresh user data
   const refreshUser = async () => {
     try {
-      if (authType === 'service') {
-        await initializeAuthService()
-      } else {
-        await initializeSupabaseAuth()
-      }
+      await initializeAuthService()
     } catch (err: any) {
       console.error('❌ [UnifiedAuth] Failed to refresh user:', err)
       setError(err.message || 'Failed to refresh user data')
@@ -387,12 +294,8 @@ export function UnifiedAuthProvider({ children }: { children: React.ReactNode })
   // Change password
   const changePassword = async (currentPassword: string, newPassword: string): Promise<{ error: string | null }> => {
     try {
-      if (authType === 'service') {
-        // TODO: Implement auth service change password
-        return { error: 'Change password not implemented for auth service yet' }
-      } else {
-        return await supabaseAuth.changePassword(currentPassword, newPassword)
-      }
+      // TODO: Implement auth service change password
+      return { error: 'Change password not implemented for auth service yet' }
     } catch (err: any) {
       console.error('❌ [UnifiedAuth] Change password failed:', err)
       return { error: err.message || 'Failed to change password' }
@@ -402,12 +305,8 @@ export function UnifiedAuthProvider({ children }: { children: React.ReactNode })
   // Reset password
   const resetPassword = async (email: string): Promise<{ error: string | null }> => {
     try {
-      if (authType === 'service') {
-        // TODO: Implement auth service reset password
-        return { error: 'Reset password not implemented for auth service yet' }
-      } else {
-        return await supabaseAuth.resetPassword(email)
-      }
+      // TODO: Implement auth service reset password
+      return { error: 'Reset password not implemented for auth service yet' }
     } catch (err: any) {
       console.error('❌ [UnifiedAuth] Reset password failed:', err)
       return { error: err.message || 'Failed to reset password' }
@@ -417,12 +316,8 @@ export function UnifiedAuthProvider({ children }: { children: React.ReactNode })
   // Update password (for reset password flow)
   const updatePassword = async (newPassword: string): Promise<{ error: string | null }> => {
     try {
-      if (authType === 'service') {
-        // TODO: Implement auth service update password
-        return { error: 'Update password not implemented for auth service yet' }
-      } else {
-        return await supabaseAuth.updatePassword(newPassword)
-      }
+      // TODO: Implement auth service update password
+      return { error: 'Update password not implemented for auth service yet' }
     } catch (err: any) {
       console.error('❌ [UnifiedAuth] Update password failed:', err)
       return { error: err.message || 'Failed to update password' }

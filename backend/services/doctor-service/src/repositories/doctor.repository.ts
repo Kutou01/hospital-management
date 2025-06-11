@@ -296,12 +296,7 @@ export class DoctorRepository {
     }
   }
 
-  private async generateDoctorId(): Promise<string> {
-    // Get the current count to generate next ID
-    const count = await this.count();
-    const nextId = (count + 1).toString().padStart(6, '0');
-    return `DOC${nextId}`;
-  }
+
 
   private mapSupabaseDoctorToDoctor(supabaseDoctor: any): Doctor {
     return {

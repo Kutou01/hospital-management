@@ -14,6 +14,7 @@ set "NC=[0m"
 if "%1"=="" goto help
 if "%1"=="core" goto core
 if "%1"=="full" goto full
+if "%1"=="monitoring" goto monitoring
 if "%1"=="stop" goto stop_all
 if "%1"=="status" goto status
 if "%1"=="cleanup" goto cleanup
@@ -76,6 +77,23 @@ if errorlevel 1 exit /b 1
 docker-compose --profile full up -d
 
 call :print_status "All services started"
+goto end
+
+:monitoring
+call :print_header "STARTING MONITORING STACK"
+call :print_status "Starting Prometheus + Grafana monitoring"
+call :check_docker
+if errorlevel 1 exit /b 1
+
+docker-compose --profile monitoring up -d
+
+call :print_status "Monitoring stack started:"
+call :print_status "- Prometheus (port 9090): http://localhost:9090"
+call :print_status "- Grafana (port 3001): http://localhost:3001"
+call :print_status "- Node Exporter (port 9100): http://localhost:9100"
+call :print_status ""
+call :print_status "Grafana Login: admin / admin123"
+call :print_status "Prometheus targets: http://localhost:9090/targets"
 goto end
 
 :stop_all
@@ -182,6 +200,7 @@ echo.
 echo Commands:
 echo   core          Start core services (~2.5GB RAM) - Recommended
 echo   full          Start all services (~4GB+ RAM)
+echo   monitoring    Start monitoring stack (Prometheus + Grafana)
 echo   stop          Stop all services
 echo   status        Show current resource usage
 echo   cleanup       Clean up Docker resources to free RAM

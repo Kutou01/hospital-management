@@ -5,6 +5,9 @@ export interface IdGenerationOptions {
     entityType: 'DOC' | 'PAT' | 'APT' | 'ADM' | 'MR' | 'RX';
     useDatabase?: boolean;
 }
+export interface DepartmentBasedIdOptions extends Omit<IdGenerationOptions, 'departmentId'> {
+    departmentId: string;
+}
 export declare class HospitalIdGenerator {
     private static supabase;
     static initialize(supabaseUrl: string, supabaseKey: string): void;
@@ -29,22 +32,22 @@ export declare class HospitalIdGenerator {
      */
     static generateAdminId(): Promise<string>;
     /**
-     * Generate medical record ID
-     * Format: MR-202506-001
+     * Generate department-based medical record ID
+     * Format: CARD-MR-202506-001
      */
-    static generateMedicalRecordId(): Promise<string>;
+    static generateMedicalRecordId(departmentId: string): Promise<string>;
     /**
-     * Generate prescription ID
-     * Format: RX-202506-001
+     * Generate department-based prescription ID
+     * Format: CARD-RX-202506-001
      */
-    static generatePrescriptionId(): Promise<string>;
+    static generatePrescriptionId(departmentId: string): Promise<string>;
     /**
      * Local ID generation (fallback method)
      * Used when database functions are not available
      */
     private static generateLocalId;
     /**
-     * Validate ID format
+     * Validate ID format - Department-Based Only
      */
     static validateId(id: string, expectedType: string): boolean;
     /**

@@ -10,5 +10,10 @@ export declare class AuthController {
     verifyToken: (req: Request, res: Response) => Promise<void>;
     createDoctorRecord: (req: Request, res: Response) => Promise<void>;
     createPatientRecord: (req: Request, res: Response) => Promise<void>;
+    sendMagicLink: (req: Request, res: Response) => Promise<void>;
+    sendPhoneOTP: (req: Request, res: Response) => Promise<void>;
+    verifyPhoneOTP: (req: Request, res: Response) => Promise<void>;
+    initiateOAuth: (req: Request, res: Response) => Promise<void>;
+    handleOAuthCallback: (req: Request, res: Response) => Promise<void>;
 }
 //# sourceMappingURL=auth.controller.d.ts.map

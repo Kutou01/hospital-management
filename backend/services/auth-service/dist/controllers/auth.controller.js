@@ -311,6 +311,188 @@ class AuthController {
                 });
             }
         };
+        this.sendMagicLink = async (req, res) => {
+            try {
+                const errors = (0, express_validator_1.validationResult)(req);
+                if (!errors.isEmpty()) {
+                    res.status(400).json({
+                        success: false,
+                        error: 'Validation failed',
+                        details: errors.array()
+                    });
+                    return;
+                }
+                const { email } = req.body;
+                const result = await this.authService.sendMagicLink(email);
+                if (result.error) {
+                    res.status(400).json({
+                        success: false,
+                        error: result.error,
+                        message: 'Failed to send magic link'
+                    });
+                    return;
+                }
+                logger_1.default.info('Magic link sent successfully', { email });
+                res.status(200).json({
+                    success: true,
+                    message: 'Magic link sent to your email address'
+                });
+            }
+            catch (error) {
+                logger_1.default.error('Send magic link error:', error);
+                res.status(500).json({
+                    success: false,
+                    error: 'Internal server error',
+                    message: 'Failed to send magic link'
+                });
+            }
+        };
+        this.sendPhoneOTP = async (req, res) => {
+            try {
+                const errors = (0, express_validator_1.validationResult)(req);
+                if (!errors.isEmpty()) {
+                    res.status(400).json({
+                        success: false,
+                        error: 'Validation failed',
+                        details: errors.array()
+                    });
+                    return;
+                }
+                const { phone_number } = req.body;
+                const result = await this.authService.sendPhoneOTP(phone_number);
+                if (result.error) {
+                    res.status(400).json({
+                        success: false,
+                        error: result.error,
+                        message: 'Failed to send OTP'
+                    });
+                    return;
+                }
+                logger_1.default.info('Phone OTP sent successfully', { phone_number });
+                res.status(200).json({
+                    success: true,
+                    message: 'OTP sent to your phone number'
+                });
+            }
+            catch (error) {
+                logger_1.default.error('Send phone OTP error:', error);
+                res.status(500).json({
+                    success: false,
+                    error: 'Internal server error',
+                    message: 'Failed to send OTP'
+                });
+            }
+        };
+        this.verifyPhoneOTP = async (req, res) => {
+            try {
+                const errors = (0, express_validator_1.validationResult)(req);
+                if (!errors.isEmpty()) {
+                    res.status(400).json({
+                        success: false,
+                        error: 'Validation failed',
+                        details: errors.array()
+                    });
+                    return;
+                }
+                const { phone_number, otp_code } = req.body;
+                const result = await this.authService.verifyPhoneOTP(phone_number, otp_code);
+                if (result.error) {
+                    res.status(400).json({
+                        success: false,
+                        error: result.error,
+                        message: 'Invalid OTP or phone number'
+                    });
+                    return;
+                }
+                logger_1.default.info('Phone OTP verified successfully', { phone_number });
+                res.status(200).json({
+                    success: true,
+                    message: 'OTP verified successfully',
+                    user: result.user,
+                    session: result.session,
+                    access_token: result.session?.access_token
+                });
+            }
+            catch (error) {
+                logger_1.default.error('Verify phone OTP error:', error);
+                res.status(500).json({
+                    success: false,
+                    error: 'Internal server error',
+                    message: 'Failed to verify OTP'
+                });
+            }
+        };
+        this.initiateOAuth = async (req, res) => {
+            try {
+                const { provider } = req.params;
+                if (!['google', 'github', 'facebook', 'apple'].includes(provider)) {
+                    res.status(400).json({
+                        success: false,
+                        error: 'Invalid OAuth provider',
+                        message: 'Supported providers: google, github, facebook, apple'
+                    });
+                    return;
+                }
+                const result = await this.authService.initiateOAuth(provider);
+                if (result.error) {
+                    res.status(400).json({
+                        success: false,
+                        error: result.error,
+                        message: 'Failed to initiate OAuth login'
+                    });
+                    return;
+                }
+                logger_1.default.info('OAuth login initiated', { provider });
+                res.redirect(result.url);
+            }
+            catch (error) {
+                logger_1.default.error('Initiate OAuth error:', error);
+                res.status(500).json({
+                    success: false,
+                    error: 'Internal server error',
+                    message: 'Failed to initiate OAuth login'
+                });
+            }
+        };
+        this.handleOAuthCallback = async (req, res) => {
+            try {
+                const errors = (0, express_validator_1.validationResult)(req);
+                if (!errors.isEmpty()) {
+                    res.status(400).json({
+                        success: false,
+                        error: 'Validation failed',
+                        details: errors.array()
+                    });
+                    return;
+                }
+                const { code, state, provider } = req.body;
+                const result = await this.authService.handleOAuthCallback(code, state, provider);
+                if (result.error) {
+                    res.status(400).json({
+                        success: false,
+                        error: result.error,
+                        message: 'OAuth login failed'
+                    });
+                    return;
+                }
+                logger_1.default.info('OAuth login successful', { provider });
+                res.status(200).json({
+                    success: true,
+                    message: 'OAuth login successful',
+                    user: result.user,
+                    session: result.session,
+                    access_token: result.session?.access_token
+                });
+            }
+            catch (error) {
+                logger_1.default.error('OAuth callback error:', error);
+                res.status(500).json({
+                    success: false,
+                    error: 'Internal server error',
+                    message: 'OAuth login failed'
+                });
+            }
+        };
         this.authService = new auth_service_1.AuthService();
     }
 }

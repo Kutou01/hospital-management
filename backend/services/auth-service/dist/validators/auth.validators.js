@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.validateRole = exports.validateUserId = exports.validateEmail = exports.validateUpdateProfile = exports.validateChangePassword = exports.validateRefreshToken = exports.validateResetPassword = exports.validateSignIn = exports.validateSignUp = void 0;
+exports.validateOAuthCallback = exports.validateVerifyOTP = exports.validatePhoneOTP = exports.validateMagicLink = exports.validateRole = exports.validateUserId = exports.validateEmail = exports.validateUpdateProfile = exports.validateChangePassword = exports.validateRefreshToken = exports.validateResetPassword = exports.validateSignIn = exports.validateSignUp = void 0;
 const express_validator_1 = require("express-validator");
 exports.validateSignUp = [
     (0, express_validator_1.body)('email')
@@ -128,5 +128,36 @@ exports.validateRole = [
     (0, express_validator_1.body)('role')
         .isIn(['admin', 'doctor', 'patient'])
         .withMessage('Role must be one of: admin, doctor, patient')
+];
+exports.validateMagicLink = [
+    (0, express_validator_1.body)('email')
+        .isEmail()
+        .normalizeEmail()
+        .withMessage('Please provide a valid email address')
+];
+exports.validatePhoneOTP = [
+    (0, express_validator_1.body)('phone_number')
+        .matches(/^\+84\d{9}$/)
+        .withMessage('Phone number must be in format +84xxxxxxxxx (Vietnamese phone number)')
+];
+exports.validateVerifyOTP = [
+    (0, express_validator_1.body)('phone_number')
+        .matches(/^\+84\d{9}$/)
+        .withMessage('Phone number must be in format +84xxxxxxxxx (Vietnamese phone number)'),
+    (0, express_validator_1.body)('otp_code')
+        .matches(/^\d{6}$/)
+        .withMessage('OTP code must be exactly 6 digits')
+];
+exports.validateOAuthCallback = [
+    (0, express_validator_1.body)('code')
+        .notEmpty()
+        .withMessage('OAuth authorization code is required'),
+    (0, express_validator_1.body)('state')
+        .notEmpty()
+        .withMessage('OAuth state parameter is required'),
+    (0, express_validator_1.body)('provider')
+        .optional()
+        .isIn(['google', 'github', 'facebook', 'apple'])
+        .withMessage('Provider must be one of: google, github, facebook, apple')
 ];
 //# sourceMappingURL=auth.validators.js.map

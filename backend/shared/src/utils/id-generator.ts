@@ -45,6 +45,11 @@ export interface IdGenerationOptions {
   useDatabase?: boolean; // Use database functions vs local generation
 }
 
+// Department-based entities require departmentId
+export interface DepartmentBasedIdOptions extends Omit<IdGenerationOptions, 'departmentId'> {
+  departmentId: string; // Required for department-based entities
+}
+
 export class HospitalIdGenerator {
   private static supabase: any;
 
@@ -153,19 +158,55 @@ export class HospitalIdGenerator {
   }
 
   /**
-   * Generate medical record ID
-   * Format: MR-202506-001
+   * Generate department-based medical record ID
+   * Format: CARD-MR-202506-001
    */
-  static async generateMedicalRecordId(): Promise<string> {
-    return this.generateLocalId({ entityType: 'MR' });
+  static async generateMedicalRecordId(departmentId: string): Promise<string> {
+    try {
+      if (this.supabase) {
+        // Use database function (recommended)
+        const { data, error } = await this.supabase.rpc('generate_medical_record_id', {
+          dept_id: departmentId
+        });
+
+        if (!error && data) {
+          logger.info('Generated medical record ID via database:', { departmentId, medicalRecordId: data });
+          return data;
+        }
+      }
+
+      // Fallback to local generation
+      return this.generateLocalId({ entityType: 'MR', departmentId });
+    } catch (error) {
+      logger.error('Error generating medical record ID:', error);
+      throw new Error(`Failed to generate medical record ID: ${error}`);
+    }
   }
 
   /**
-   * Generate prescription ID
-   * Format: RX-202506-001
+   * Generate department-based prescription ID
+   * Format: CARD-RX-202506-001
    */
-  static async generatePrescriptionId(): Promise<string> {
-    return this.generateLocalId({ entityType: 'RX' });
+  static async generatePrescriptionId(departmentId: string): Promise<string> {
+    try {
+      if (this.supabase) {
+        // Use database function (recommended)
+        const { data, error } = await this.supabase.rpc('generate_prescription_id', {
+          dept_id: departmentId
+        });
+
+        if (!error && data) {
+          logger.info('Generated prescription ID via database:', { departmentId, prescriptionId: data });
+          return data;
+        }
+      }
+
+      // Fallback to local generation
+      return this.generateLocalId({ entityType: 'RX', departmentId });
+    } catch (error) {
+      logger.error('Error generating prescription ID:', error);
+      throw new Error(`Failed to generate prescription ID: ${error}`);
+    }
   }
 
   /**
@@ -188,16 +229,16 @@ export class HospitalIdGenerator {
   }
 
   /**
-   * Validate ID format
+   * Validate ID format - Department-Based Only
    */
   static validateId(id: string, expectedType: string): boolean {
     const patterns = {
-      doctor: /^[A-Z]{4}-DOC-\d{6}-\d{3}$|^DOC-\d{6}-\d{3}$/,
+      doctor: /^[A-Z]{4}-DOC-\d{6}-\d{3}$/,
       patient: /^PAT-\d{6}-\d{3}$/,
-      appointment: /^[A-Z]{4}-APT-\d{6}-\d{3}$|^APT-\d{6}-\d{3}$/,
+      appointment: /^[A-Z]{4}-APT-\d{6}-\d{3}$/,
       admin: /^ADM-\d{6}-\d{3}$/,
-      medical_record: /^MR-\d{6}-\d{3}$/,
-      prescription: /^RX-\d{6}-\d{3}$/
+      medical_record: /^[A-Z]{4}-MR-\d{6}-\d{3}$/,
+      prescription: /^[A-Z]{4}-RX-\d{6}-\d{3}$/
     };
 
     const pattern = patterns[expectedType as keyof typeof patterns];

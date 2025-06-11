@@ -9,6 +9,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import logger from '@hospital/shared/dist/utils/logger';
+import { metricsMiddleware, getMetricsHandler } from '@hospital/shared';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import sessionRoutes from './routes/session.routes';
@@ -47,6 +48,9 @@ app.use('/api/', limiter);
 
 // Logging
 app.use(morgan('combined'));
+
+// Metrics middleware
+app.use(metricsMiddleware('auth-service'));
 
 // Body parsing
 app.use(express.json({ limit: '10mb' }));
@@ -87,6 +91,9 @@ app.get('/health', async (req, res) => {
     });
   }
 });
+
+// Metrics endpoint for Prometheus
+app.get('/metrics', getMetricsHandler);
 
 // API Routes with error handling
 try {

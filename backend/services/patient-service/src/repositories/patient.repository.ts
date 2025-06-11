@@ -84,8 +84,8 @@ export class PatientRepository {
       const offset = (page - 1) * limit;
       query = query.range(offset, offset + limit - 1);
 
-      // Order by full name
-      query = query.order('full_name');
+      // Order by patient_id (since full_name is in profiles table)
+      query = query.order('patient_id');
 
       const { data, error, count } = await query;
 

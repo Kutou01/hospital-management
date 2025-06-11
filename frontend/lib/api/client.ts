@@ -61,10 +61,21 @@ export class ApiClient {
       const data = await response.json();
 
       if (response.ok) {
-        return {
-          success: true,
-          data: data.data || data,
-        };
+        // Handle different response formats
+        if (data.success !== undefined) {
+          // Backend service response format
+          return {
+            success: data.success,
+            data: data.data || data,
+            meta: data.pagination || data.meta,
+          };
+        } else {
+          // Direct data response
+          return {
+            success: true,
+            data: data.data || data,
+          };
+        }
       } else {
         return {
           success: false,

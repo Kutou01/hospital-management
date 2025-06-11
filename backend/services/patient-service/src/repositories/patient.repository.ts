@@ -55,9 +55,9 @@ export class PatientRepository {
           )
         `, { count: 'exact' });
 
-      // Apply filters (CLEAN DESIGN: search in profile.full_name)
+      // Apply filters - simplified search (only patient_id for now)
       if (filters.search) {
-        query = query.or(`patient_id.ilike.%${filters.search}%,profile.full_name.ilike.%${filters.search}%`);
+        query = query.ilike('patient_id', `%${filters.search}%`);
       }
 
       if (filters.gender) {

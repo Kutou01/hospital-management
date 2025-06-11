@@ -11,7 +11,12 @@ RUN apk add --no-cache curl
 COPY tsconfig.json ./
 COPY shared ./shared/
 
-# Copy api-gateway package files
+# Build shared module first
+WORKDIR /app/shared
+RUN npm install && npm run build
+
+# Go back to app root and copy api-gateway package files
+WORKDIR /app
 COPY api-gateway/package*.json ./
 
 # Install all dependencies (including dev dependencies for build)

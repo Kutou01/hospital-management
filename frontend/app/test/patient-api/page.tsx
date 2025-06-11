@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Info, TestTube, Database, Server } from 'lucide-react'
 import PatientApiTest from '@/components/test/PatientApiTest'
 import ApiDebugger from '@/components/test/ApiDebugger'
+import SimpleApiTest from '@/components/test/SimpleApiTest'
 import { useAuth } from '@/lib/auth/auth-wrapper'
 
 export default function PatientApiTestPage() {
@@ -163,6 +164,9 @@ export default function PatientApiTestPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Simple API Tests */}
+      <SimpleApiTest />
 
       {/* API Debugger */}
       <ApiDebugger />

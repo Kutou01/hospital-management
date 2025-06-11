@@ -150,6 +150,86 @@ export default function ApiDebugger() {
     }
   }
 
+  // Test 6: Test Auth Service Token Verification
+  const testAuthVerification = async () => {
+    try {
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+
+      if (!token) {
+        addDebugResult('Auth Verification', 'error', 'No token available for verification')
+        return false
+      }
+
+      addDebugResult('Auth Verification', 'success', `Testing token verification with Auth Service`, {
+        tokenPreview: token.substring(0, 20) + '...',
+        url: 'http://localhost:3001/api/auth/verify'
+      })
+
+      const response = await fetch('http://localhost:3001/api/auth/verify', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      const responseText = await response.text()
+      addDebugResult('Auth Verification Response', response.ok ? 'success' : 'error',
+        `HTTP ${response.status}: ${response.statusText}`, responseText)
+
+      if (response.ok) {
+        try {
+          const data = JSON.parse(responseText)
+          addDebugResult('Auth Verification Data', 'success', 'Token verification successful', data)
+          return true
+        } catch (parseError) {
+          addDebugResult('Auth Verification Parse', 'error', 'Failed to parse auth response', responseText)
+          return false
+        }
+      } else {
+        addDebugResult('Auth Verification Failed', 'error', `Auth service rejected token: ${response.status}`)
+        return false
+      }
+    } catch (error) {
+      addDebugResult('Auth Verification Error', 'error', error instanceof Error ? error.message : 'Auth verification failed')
+      return false
+    }
+  }
+
+  // Test 7: Test Patient Service Direct Call
+  const testPatientServiceDirect = async () => {
+    try {
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+
+      addDebugResult('Patient Service Direct', 'success', 'Testing direct call to Patient Service', {
+        url: 'http://localhost:3003/api/patients',
+        hasToken: !!token
+      })
+
+      const headers: any = {
+        'Content-Type': 'application/json',
+      }
+
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+
+      const response = await fetch('http://localhost:3003/api/patients?page=1&limit=5', {
+        method: 'GET',
+        headers: headers
+      })
+
+      const responseText = await response.text()
+      addDebugResult('Patient Service Direct Response', response.ok ? 'success' : 'error',
+        `HTTP ${response.status}: ${response.statusText}`, responseText)
+
+      return response.ok
+    } catch (error) {
+      addDebugResult('Patient Service Direct Error', 'error', error instanceof Error ? error.message : 'Direct call failed')
+      return false
+    }
+  }
+
   // Run all debug tests
   const runDebugTests = async () => {
     setIsDebugging(true)
@@ -165,7 +245,13 @@ export default function ApiDebugger() {
     // Test authentication
     await testAuthentication()
 
-    // Test direct API call
+    // Test auth verification
+    await testAuthVerification()
+
+    // Test direct Patient Service call
+    await testPatientServiceDirect()
+
+    // Test API Gateway call
     await testDirectApiCall()
 
     setIsDebugging(false)

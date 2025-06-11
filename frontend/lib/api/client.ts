@@ -98,16 +98,22 @@ export class ApiClient {
 
   // HTTP methods
   async get<T>(endpoint: string, params?: Record<string, any>): Promise<ApiResponse<T>> {
-    const url = new URL(`${this.baseUrl}/api${endpoint}`);
+    let finalEndpoint = endpoint;
+
     if (params) {
+      const searchParams = new URLSearchParams();
       Object.keys(params).forEach(key => {
         if (params[key] !== undefined && params[key] !== null) {
-          url.searchParams.append(key, String(params[key]));
+          searchParams.append(key, String(params[key]));
         }
       });
+
+      if (searchParams.toString()) {
+        finalEndpoint += `?${searchParams.toString()}`;
+      }
     }
 
-    return this.makeRequest<T>(endpoint + (url.search ? `?${url.searchParams}` : ''), {
+    return this.makeRequest<T>(finalEndpoint, {
       method: 'GET',
     });
   }

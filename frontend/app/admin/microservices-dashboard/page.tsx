@@ -130,19 +130,44 @@ function MicroservicesDashboardContent() {
         billingHealth = 'unhealthy';
       }
 
-      // Generate monthly trends (last 6 months)
+      // Generate monthly trends from real data (last 6 months)
       const monthlyTrends = [];
       for (let i = 5; i >= 0; i--) {
         const date = new Date();
         date.setMonth(date.getMonth() - i);
         const monthName = date.toLocaleDateString('en-US', { month: 'short' });
+        const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+        const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
 
-        // Mock data for trends - in real app, this would be calculated from actual data
+        // Calculate real trends from actual data
+        const monthRecords = medicalRecordsResponse.success && medicalRecordsResponse.data
+          ? medicalRecordsResponse.data.filter((record: any) => {
+              const recordDate = new Date(record.created_at);
+              return recordDate >= monthStart && recordDate <= monthEnd;
+            }).length
+          : 0;
+
+        const monthPrescriptions = prescriptionsResponse.success && prescriptionsResponse.data
+          ? prescriptionsResponse.data.filter((prescription: any) => {
+              const prescriptionDate = new Date(prescription.created_at);
+              return prescriptionDate >= monthStart && prescriptionDate <= monthEnd;
+            }).length
+          : 0;
+
+        const monthRevenue = billingResponse.success && billingResponse.data
+          ? billingResponse.data
+              .filter((bill: any) => {
+                const billDate = new Date(bill.created_at);
+                return billDate >= monthStart && billDate <= monthEnd && bill.status === 'paid';
+              })
+              .reduce((sum: number, bill: any) => sum + (bill.total_amount || 0), 0)
+          : 0;
+
         monthlyTrends.push({
           month: monthName,
-          records: Math.floor(Math.random() * 50) + 20,
-          prescriptions: Math.floor(Math.random() * 80) + 30,
-          revenue: Math.floor(Math.random() * 5000) + 2000
+          records: monthRecords,
+          prescriptions: monthPrescriptions,
+          revenue: monthRevenue
         });
       }
 

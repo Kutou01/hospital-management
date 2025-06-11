@@ -77,7 +77,7 @@ export default function PatientAppointments() {
 
 ```tsx
 import { UniversalSidebar } from '@/components';
-import { useEnhancedAuth } from '@/lib/auth/enhanced-auth-context';
+import { useEnhancedAuth } from '@/lib/auth/auth-wrapper';
 
 export default function CustomLayout() {
   const { user, signOut } = useEnhancedAuth();

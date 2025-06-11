@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ArrowLeft, Lock, Loader2, Eye, EyeOff, CheckCircle } from "lucide-react"
-import { supabaseAuth } from "@/lib/auth/supabase-auth"
+import { useAuth } from "@/lib/auth/auth-wrapper"
 import { useToast } from "@/components/ui/toast-provider"
 import { PasswordStrengthIndicator, validatePasswordStrength } from "@/components/auth/PasswordStrengthIndicator"
 
@@ -16,6 +16,7 @@ export default function ResetPasswordPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { showToast } = useToast()
+  const { updatePassword, getSupabaseClient } = useAuth()
   
   const [formData, setFormData] = useState({
     password: "",
@@ -41,7 +42,7 @@ export default function ResetPasswordPage() {
       
       try {
         // Set the session with the tokens from URL
-        const { data, error } = await supabaseAuth.supabaseClient.auth.setSession({
+        const { data, error } = await getSupabaseClient().auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken
         })
@@ -91,7 +92,7 @@ export default function ResetPasswordPage() {
     setIsLoading(true)
 
     try {
-      const result = await supabaseAuth.updatePassword(formData.password)
+      const result = await updatePassword(formData.password)
       
       if (result.error) {
         showToast("❌ Lỗi", result.error, "error")

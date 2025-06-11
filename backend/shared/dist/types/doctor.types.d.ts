@@ -1,30 +1,33 @@
 import { BaseEntity } from './common.types';
 export interface Doctor extends BaseEntity {
     doctor_id: string;
-    full_name: string;
+    profile_id: string;
     specialty: string;
     qualification: string;
-    working_hours: string;
     department_id: string;
     license_number: string;
     gender: string;
-    photo_url?: string;
-    phone_number: string;
-    email: string;
-    user_id?: string;
+    bio?: string;
+    experience_years: number;
+    consultation_fee?: number;
+    address?: any;
+    languages_spoken: string[];
+    availability_status: string;
+    rating: number;
+    total_reviews: number;
 }
 export interface CreateDoctorRequest {
-    full_name: string;
     specialty: string;
     qualification: string;
-    working_hours: string;
     department_id: string;
     license_number: string;
     gender: string;
-    photo_url?: string;
-    phone_number: string;
-    email: string;
-    user_id?: string;
+    bio?: string;
+    experience_years?: number;
+    consultation_fee?: number;
+    address?: any;
+    languages_spoken?: string[];
+    profile_id?: string;
 }
 export interface UpdateDoctorRequest {
     full_name?: string;
@@ -198,10 +201,6 @@ export interface CreateExperienceRequest {
     experience_type: 'work' | 'education' | 'certification' | 'research';
 }
 export interface DoctorProfile extends Doctor {
-    bio?: string;
-    experience_years?: number;
-    consultation_fee?: number;
-    languages_spoken?: string[];
     certifications?: string[];
     awards?: string[];
     research_interests?: string[];

@@ -33,6 +33,8 @@ class PatientRepository {
           profile:profiles!patients_profile_id_fkey (
             id,
             email,
+            full_name,
+            date_of_birth,
             phone_number,
             role,
             is_active,
@@ -41,7 +43,7 @@ class PatientRepository {
           )
         `, { count: 'exact' });
             if (filters.search) {
-                query = query.or(`full_name.ilike.%${filters.search}%,patient_id.ilike.%${filters.search}%`);
+                query = query.or(`patient_id.ilike.%${filters.search}%,profile.full_name.ilike.%${filters.search}%`);
             }
             if (filters.gender) {
                 query = query.eq('gender', filters.gender);
@@ -96,6 +98,8 @@ class PatientRepository {
           profile:profiles!patients_profile_id_fkey (
             id,
             email,
+            full_name,
+            date_of_birth,
             phone_number,
             role,
             is_active,
@@ -162,6 +166,8 @@ class PatientRepository {
             profile:profiles!patients_profile_id_fkey (
               id,
               email,
+              full_name,
+              date_of_birth,
               phone_number,
               role,
               is_active,

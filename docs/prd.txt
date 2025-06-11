@@ -1,0 +1,483 @@
+<context>
+# Overview
+Hospital Management System là một hệ thống quản lý bệnh viện toàn diện được thiết kế để số hóa và tối ưu hóa các quy trình hoạt động của bệnh viện tại Việt Nam. Hệ thống giải quyết các vấn đề về quản lý thông tin bệnh nhân, lịch hẹn khám, hồ sơ bác sĩ, và các quy trình điều trị một cách hiệu quả và an toàn.
+
+Hệ thống phục vụ 4 nhóm người dùng chính:
+- **Bệnh nhân**: Đặt lịch hẹn, xem hồ sơ y tế, theo dõi điều trị
+- **Bác sĩ**: Quản lý lịch làm việc, hồ sơ bệnh nhân, kê đơn thuốc
+- **Quản trị viên**: Quản lý toàn bộ hệ thống, báo cáo, phân quyền
+- **Lễ tân**: Check-in bệnh nhân, quản lý hàng đợi, hỗ trợ thanh toán
+
+# 🚀 Key Innovations & Technical Achievements
+
+## 🆔 Department-Based ID System (IMPLEMENTED)
+- **Smart ID Generation**: Tự động tạo ID có ý nghĩa business logic
+- **Format**: `{DEPT_CODE}-{ENTITY}-{YYYYMM}-{SEQ}`
+  - VD: `CARD-DOC-202412-001` (Bác sĩ tim mạch thứ 1 tháng 12/2024)
+  - VD: `PAT-202412-001` (Bệnh nhân thứ 1 tháng 12/2024)
+- **Auto-triggers**: Database triggers tự động generate ID khi INSERT
+- **Business Logic**: ID phản ánh department, entity type và thời gian tạo
+- **Implementation**: PostgreSQL functions + triggers + sample data
+
+## 🔐 Enhanced Authentication Architecture (IMPLEMENTED)
+- **Unified Auth System**: Tích hợp Supabase Auth với custom profiles
+- **Multi-service Integration**: Auth Service (Node.js) + Frontend Auth hooks
+- **Role-based Registration**: Tự động tạo role-specific records với department-based IDs
+- **Session Management**: JWT tokens với refresh mechanism
+- **Security Features**: Email verification, password reset, 2FA ready
+- **Implementation**: Auth Service + Enhanced Auth hooks + Unified Auth Context
+
+## 🏗️ Microservices Architecture (PARTIALLY IMPLEMENTED)
+- **Docker Containerization**: Full containerized development environment
+- **Service Structure**: Auth Service (completed), Patient/Doctor/Appointment (planned)
+- **API Gateway**: Centralized routing và rate limiting (in development)
+- **Service Discovery**: Auto-discovery và health checks (planned)
+- **Independent Deployment**: Each service có thể deploy độc lập
+
+## 🎨 Universal UI Components (IMPLEMENTED)
+- **Universal Sidebar**: Reusable sidebar component cho tất cả roles
+- **Role-based Navigation**: Dynamic menu theo user role với badge support
+- **Responsive Design**: Mobile-first approach với overlay mobile menu
+- **Consistent Branding**: Unified design system với customizable branding
+- **Layout System**: AdminLayout, DoctorLayout, PatientLayout components
+- **Migration Guide**: Complete migration từ legacy components
+
+## 📊 Progress Tracking System (IMPLEMENTED)
+- **Real-time Dashboard**: Live progress monitoring với automated reporting
+- **Phase-based Development**: 15 phases với clear milestones và dependencies
+- **Task Management**: Integrated task tracking với weekly reports
+- **Documentation Structure**: Comprehensive docs organization
+- **Implementation**: Progress dashboard + weekly reports + task tracker
+
+# Core Features - Targeting 10/10 Score
+
+## 🏥 CHỨC NĂNG CƠ BẢN (BẮT BUỘC - 6-7 ĐIỂM)
+
+### 1. Quản lý người dùng
+- Đăng ký/đăng nhập (bệnh nhân, bác sĩ, admin, lễ tân)
+- Phân quyền theo vai trò (RBAC) với fine-grained permissions
+- Quản lý thông tin cá nhân với validation
+- Đổi mật khẩu, quên mật khẩu với secure flows
+- Xác thực 2 lớp (2FA) với OTP qua email/SMS
+
+### 2. Quản lý bệnh nhân
+- Đăng ký bệnh nhân mới với department-based ID
+- Lưu trữ thông tin: cá nhân, tiền sử bệnh, dị ứng
+- Tìm kiếm, lọc bệnh nhân với advanced filters
+- Cập nhật hồ sơ bệnh án với audit trail
+- Quản lý thẻ BHYT với validation
+
+### 3. Quản lý bác sĩ
+- Hồ sơ bác sĩ: chuyên khoa, kinh nghiệm, học vấn, license
+- Lịch làm việc của bác sĩ với conflict detection
+- Đánh giá và nhận xét từ bệnh nhân với rating system
+- Quản lý ca trực với automatic scheduling
+
+### 4. Quản lý lịch hẹn
+- Đặt lịch khám (online/offline) với real-time availability
+- Xem lịch theo ngày/tuần/tháng với calendar view
+- Hủy/thay đổi lịch hẹn với notification system
+- Nhắc nhở lịch hẹn (email/SMS) automated
+- Quản lý danh sách chờ với priority queue
+
+### 5. Quản lý phòng ban
+- Danh sách phòng khám theo chuyên khoa
+- Trạng thái phòng (trống/bận/bảo trì) real-time
+- Lịch sử sử dụng phòng với analytics
+- Đặt phòng cho cuộc hẹn với conflict resolution
+
+## 🤖 CHỨC NĂNG AI CƠ BẢN (7-8 ĐIỂM)
+
+### 6. Chatbot hỗ trợ
+- Trả lời câu hỏi thường gặp về bệnh viện với NLP
+- Hướng dẫn đặt lịch khám interactive
+- Tư vấn sơ bộ triệu chứng với medical knowledge base
+- Hỗ trợ đa ngôn ngữ (Việt/Anh) với translation
+
+### 7. Phân tích triệu chứng thông minh
+- Nhập triệu chứng → gợi ý khoa khám với ML model
+- Đánh giá mức độ khẩn cấp với triage algorithm
+- Gợi ý bác sĩ phù hợp based on specialization
+- Ước tính thời gian chờ với predictive analytics
+
+### 8. Gợi ý thông minh
+- Gợi ý thời gian khám ít đông đúc với pattern analysis
+- Đề xuất gói khám sức khỏe personalized
+- Nhắc nhở tái khám định kỳ với health tracking
+
+## 💳 CHỨC NĂNG THANH TOÁN CƠ BẢN (7-8 ĐIỂM)
+
+### 9. Hệ thống thanh toán
+- Tích hợp VNPay, MoMo, ZaloPay với secure API
+- Thanh toán qua QR code với dynamic generation
+- Thanh toán thẻ tín dụng/ghi nợ với PCI compliance
+- Thanh toán tiền mặt (ghi nhận) với receipt system
+
+### 10. Quản lý hóa đơn
+- Tự động tạo hóa đơn sau khám với itemization
+- Lịch sử thanh toán với detailed tracking
+- Xuất hóa đơn PDF với professional template
+- Nhắc nhở thanh toán với automated reminders
+
+### 11. Xử lý bảo hiểm y tế
+- Kiểm tra thẻ BHYT với government API integration
+- Tính toán phần bảo hiểm chi trả automatically
+- Tự động làm giấy ra viện với digital signature
+
+# User Experience  
+## User Personas:
+1. **Bệnh nhân (25-65 tuổi)**: Cần đặt lịch khám dễ dàng, xem thông tin y tế
+2. **Bác sĩ (30-60 tuổi)**: Cần quản lý lịch làm việc, hồ sơ bệnh nhân hiệu quả
+3. **Admin (25-45 tuổi)**: Cần giám sát toàn bộ hệ thống, báo cáo thống kê
+
+## Key User Flows:
+- **Bệnh nhân**: Đăng ký → Xác thực email → Đặt lịch hẹn → Khám bệnh → Xem kết quả → Thanh toán
+- **Bác sĩ**: Đăng nhập → Xem lịch hẹn → Khám bệnh → Kê đơn → Cập nhật hồ sơ → Analytics
+- **Admin**: Đăng nhập → Dashboard → Quản lý users → Xem báo cáo → Cấu hình hệ thống → Monitor
+- **Lễ tân**: Đăng nhập → Check-in bệnh nhân → Quản lý hàng đợi → Hỗ trợ thanh toán
+
+## 🚀 CHỨC NĂNG NÂNG CAO (8-9 ĐIỂM)
+
+### 12. AI nâng cao
+- **Mô hình học máy tùy chỉnh**: Dự đoán tái khám với patient history analysis
+- **Xử lý ngôn ngữ tự nhiên**: Phân tích báo cáo y tế với medical NER
+- **Computer Vision**: Scan thẻ BHYT, giấy tờ với OCR technology
+- **Phân tích xu hướng bệnh**: Dashboard cho admin với epidemic tracking
+- **AI giải thích được**: Lý do đưa ra gợi ý với explainable AI
+
+### 13. Thanh toán thông minh
+- **Phát hiện gian lận**: AI detect suspicious transactions với anomaly detection
+- **Định giá động**: Giá khám theo nhu cầu với demand-based pricing
+- **Phân tích chi tiêu**: Insight cho bệnh nhân với spending patterns
+- **Thanh toán trả góp**: AI đánh giá khả năng trả với credit scoring
+- **Multi-currency**: Hỗ trợ nhiều tiền tệ với real-time exchange rates
+
+### 14. Tính năng thời gian thực
+- **WebSocket**: Thông báo real-time với instant updates
+- **Live chat**: Tư vấn trực tuyến với bác sĩ với video/audio support
+- **Cập nhật trạng thái**: Live tracking lịch khám với GPS integration
+- **Dashboard real-time**: Giám sát hệ thống với live metrics
+
+### 15. Báo cáo và phân tích
+- **Dashboard quản lý**: KPIs bệnh viện với interactive charts
+- **Báo cáo doanh thu**: Theo ngày/tháng/năm với trend analysis
+- **Phân tích bệnh nhân**: Demographics, patterns với cohort analysis
+- **Hiệu suất bác sĩ**: Đánh giá năng suất với performance metrics
+- **Dự đoán xu hướng**: Forecasting với ML models
+
+## 🛡️ CHỨC NĂNG BẢO MẬT & HIỆU SUẤT (9-10 ĐIỂM)
+
+### 16. Bảo mật nâng cao
+- **Mã hóa dữ liệu**: End-to-end encryption với AES-256
+- **Audit logs**: Theo dõi mọi hành động với immutable logging
+- **HIPAA compliance**: Tuân thủ quy định y tế với data governance
+- **Penetration testing**: Kiểm tra lỗ hổng với automated security scans
+- **Data masking**: Ẩn thông tin nhạy cảm với dynamic masking
+
+### 17. Tối ưu hiệu suất
+- **Caching**: Redis cho data thường dùng với intelligent cache invalidation
+- **Database optimization**: Indexing, query tuning với performance monitoring
+- **CDN**: Tăng tốc tải trang với global edge locations
+- **Load balancing**: Phân tải traffic với auto-scaling
+- **API rate limiting**: Chống DDoS với adaptive throttling
+
+### 18. Giám sát và logging
+- **Health monitoring**: Uptime tracking với SLA monitoring
+- **Performance metrics**: Response time, throughput với APM tools
+- **Error tracking**: Log lỗi chi tiết với stack trace analysis
+- **User analytics**: Behavior tracking với privacy compliance
+- **Alert system**: Cảnh báo khi có vấn đề với intelligent alerting
+
+## 📱 CHỨC NĂNG TRẢI NGHIỆM NGƯỜI DÙNG (9-10 ĐIỂM)
+
+### 19. Giao diện hiện đại
+- **Responsive design**: Hoạt động tốt mọi thiết bị với mobile-first approach
+- **Progressive Web App (PWA)**: Cài đặt như app native với offline capabilities
+- **Dark/Light mode**: Chế độ sáng/tối với user preference persistence
+- **Accessibility**: Hỗ trợ người khuyết tật với WCAG 2.1 compliance
+- **Multi-language**: Đa ngôn ngữ với i18n framework
+
+### 20. Tính năng mobile
+- **Push notifications**: Thông báo đẩy với personalized content
+- **Biometric login**: Vân tay, khuôn mặt với secure biometric storage
+- **Offline capabilities**: Hoạt động offline một phần với data synchronization
+- **Camera integration**: Chụp ảnh tài liệu với document scanning
+- **GPS integration**: Tìm đường đến bệnh viện với navigation
+
+## 🔧 CHỨC NĂNG KỸ THUẬT (10 ĐIỂM)
+
+### 21. Kiến trúc microservices
+- **API Gateway**: Quản lý tất cả API calls với rate limiting và authentication
+- **Service discovery**: Tự động tìm services với health checks
+- **Circuit breaker**: Xử lý service failure với graceful degradation
+- **Message queues**: Xử lý bất đồng bộ với event-driven architecture
+- **Container orchestration**: Docker + Kubernetes với auto-scaling
+
+### 22. DevOps và CI/CD
+- **Automated testing**: Unit, integration, E2E tests với high coverage
+- **Continuous deployment**: Auto deploy khi merge code với blue-green deployment
+- **Infrastructure as Code**: Terraform/CloudFormation với version control
+- **Monitoring stack**: Prometheus + Grafana với custom dashboards
+- **Backup strategies**: Automated backup & recovery với disaster recovery
+
+### 23. Tích hợp bên ngoài
+- **APIs bên thứ 3**: Google Calendar, Maps với OAuth integration
+- **Email service**: SendGrid cho email automation với templates
+- **SMS gateway**: Gửi SMS thông báo với delivery tracking
+- **Cloud storage**: AWS S3 cho file storage với CDN integration
+- **Analytics**: Google Analytics integration với privacy compliance
+</context>
+
+<PRD>
+# Technical Architecture
+
+## 🏗️ Current Implementation Status:
+✅ **Completed Infrastructure:**
+- Docker containerization với docker-compose setup
+- Supabase database với complete department-based ID system
+- Auth Service với enhanced authentication flows
+- Universal Sidebar components với role-based navigation
+- Progress tracking system với automated reporting
+- Comprehensive documentation structure
+
+🚧 **In Development:**
+- API Gateway implementation với routing và rate limiting
+- Core microservices (Patient, Doctor, Appointment services)
+- Frontend-backend integration testing
+- Database performance optimization
+
+📋 **Planned:**
+- Kubernetes orchestration
+- Monitoring stack (Prometheus + Grafana)
+- CI/CD pipeline với automated testing
+- Advanced security features
+
+## System Components:
+- **Frontend**: Next.js với TypeScript, Tailwind CSS, Universal UI Components
+- **Backend**: Microservices với Node.js/Express, Docker containerization
+- **Database**: Supabase (PostgreSQL) với Row Level Security, Department-based IDs
+- **Authentication**: Supabase Auth + Auth Service với custom profiles và JWT
+- **API Gateway**: Centralized routing, rate limiting, service discovery (in development)
+- **Containerization**: Docker với docker-compose, Kubernetes (planned)
+- **Testing**: Jest + Cypress với automated testing pipeline (planned)
+- **Monitoring**: Prometheus + Grafana với custom dashboards (planned)
+
+## Microservices Architecture:
+1. **Auth Service** ✅: Xác thực, phân quyền, quản lý session, department-based registration
+2. **Patient Service** 🚧: CRUD bệnh nhân, hồ sơ y tế, BHYT integration
+3. **Doctor Service** 🚧: CRUD bác sĩ, lịch làm việc, chuyên khoa, rating system
+4. **Appointment Service** 🚧: Đặt lịch, quản lý lịch hẹn, conflict resolution
+5. **Department Service** 📋: Quản lý khoa/phòng ban, specialty management
+6. **Notification Service** 📋: Email, SMS notifications, real-time alerts
+
+## Enhanced Data Models với Department-Based IDs:
+- **Users**: id (UUID), email, role, created_at, is_active
+- **Profiles**: user_id, full_name, phone, date_of_birth, address, gender
+- **Departments**: dept_id, name, description, dept_code (CARD, NEUR, etc.)
+- **Specialties**: specialty_id, name, department_id, description
+- **Doctors**: doctor_id (CARD-DOC-202412-001), user_id, license_number, specialty_id
+- **Patients**: patient_id (PAT-202412-001), user_id, bhyt_number, medical_history
+- **Appointments**: appointment_id (CARD-APP-202412-001), doctor_id, patient_id, datetime, status
+- **Medical_Records**: record_id (CARD-MR-202412-001), patient_id, doctor_id, diagnosis
+
+# Development Roadmap - 10/10 Score Target
+## Phase 1: Infrastructure & Database Foundation (Weeks 1-3)
+- Setup Docker containerization với microservices architecture
+- Implement complete Supabase database structure với department-based ID system
+- Setup API Gateway với routing, rate limiting, và authentication
+- Configure development environment và CI/CD pipeline với automated testing
+- Implement database migrations, seed data, và backup strategies
+- Setup monitoring stack (Prometheus + Grafana) và logging system
+
+## Phase 2: Authentication & Authorization System (Weeks 4-6)
+- Complete Auth Service với Supabase integration và RBAC
+- Implement email verification, password reset flows với secure tokens
+- Setup JWT token management, session handling với refresh tokens
+- Implement 2FA với OTP (email/SMS) và biometric login
+- Create fine-grained permissions system với audit logging
+- Basic frontend layout với Universal Sidebar và responsive design
+
+## Phase 3: Core User Management (Weeks 7-10)
+- Patient Service: Registration, profile management, medical history với BHYT integration
+- Doctor Service: Registration, profile, specialties, license validation với rating system
+- Admin Service: User management, system configuration với advanced permissions
+- Receptionist Service: Check-in, queue management, payment support
+- Profile pages cho tất cả user roles với accessibility compliance
+- Implement advanced user search, filtering với analytics tracking
+
+## Phase 4: Department & Room Management (Weeks 11-13)
+- Department Service: CRUD operations cho khoa/phòng ban với hierarchy
+- Specialty management với dynamic data loading và AI-powered matching
+- Doctor-Department assignment system với workload balancing
+- Room và bed management với real-time status tracking
+- Equipment tracking system với maintenance scheduling
+
+## Phase 5: Appointment Booking System (Weeks 14-17)
+- Core appointment booking với intelligent time slot management
+- Doctor schedule management với availability tracking và conflict detection
+- Appointment status workflow với automated notifications
+- AI-powered appointment suggestions based on symptoms
+- Waiting list management với priority queue và predictive analytics
+- Real-time updates với WebSocket integration
+
+## Phase 6: Payment & Insurance System (Weeks 18-21)
+- Multi-payment gateway integration (VNPay, MoMo, ZaloPay)
+- QR code payment với dynamic generation
+- BHYT integration với government API
+- Automated invoice generation với PDF export
+- Fraud detection với AI-powered anomaly detection
+- Payment analytics và reporting
+
+## Phase 7: AI & Chatbot System (Weeks 22-25)
+- Intelligent chatbot với NLP và medical knowledge base
+- Symptom analysis với ML-powered triage system
+- Smart recommendations cho appointment timing
+- Predictive analytics cho patient flow
+- Computer Vision cho document scanning (BHYT, ID cards)
+- Explainable AI với reasoning transparency
+
+## Phase 8: Medical Records & Clinical Features (Weeks 26-29)
+- Electronic Medical Records (EMR) system với audit trail
+- Prescription management với drug interaction checking
+- Diagnosis tracking với ICD-10 codes và medical coding
+- Lab results integration với third-party systems
+- Medical imaging upload, viewing với DICOM support
+- Clinical decision support với evidence-based recommendations
+
+## Phase 9: Real-time Features & Communication (Weeks 30-33)
+- WebSocket implementation cho real-time updates
+- Live chat system với video/audio consultation
+- Push notifications với personalized content
+- Emergency alert system với escalation protocols
+- Real-time dashboard với live metrics
+- GPS integration cho navigation và location services
+
+## Phase 10: Advanced Analytics & Reporting (Weeks 34-37)
+- Comprehensive admin dashboard với interactive KPIs
+- Patient flow analytics với predictive modeling
+- Doctor performance metrics với benchmarking
+- Financial reporting với trend analysis và forecasting
+- Custom report builder với drag-and-drop interface
+- Business intelligence với data visualization
+
+## Phase 11: Mobile & PWA Features (Weeks 38-41)
+- Progressive Web App (PWA) implementation
+- Mobile-first responsive design với touch optimization
+- Biometric authentication (fingerprint, face recognition)
+- Offline capabilities với data synchronization
+- Camera integration cho document scanning
+- Push notifications với rich media support
+
+## Phase 12: Security & Performance Optimization (Weeks 42-45)
+- End-to-end encryption implementation
+- HIPAA compliance audit và certification
+- Penetration testing với vulnerability assessment
+- Performance optimization với caching strategies
+- Load balancing với auto-scaling
+- Database optimization với advanced indexing
+
+## Phase 13: DevOps & Infrastructure (Weeks 46-49)
+- Kubernetes orchestration với container management
+- CI/CD pipeline với automated testing và deployment
+- Infrastructure as Code với Terraform
+- Monitoring stack với alerting system
+- Backup strategies với disaster recovery testing
+- Blue-green deployment với rollback capabilities
+
+## Phase 14: Third-party Integrations (Weeks 50-53)
+- Government API integration (BHYT, citizen database)
+- Google Services integration (Calendar, Maps, Analytics)
+- Email service integration (SendGrid) với automation
+- SMS gateway integration với delivery tracking
+- Cloud storage integration (AWS S3) với CDN
+- External lab và pharmacy system integration
+
+## Phase 15: Final Testing & Launch (Weeks 54-56)
+- Comprehensive end-to-end testing với user acceptance testing
+- Performance testing với load simulation
+- Security testing với final penetration testing
+- User training và documentation creation
+- Production deployment với monitoring
+- Post-launch support và maintenance planning
+
+# Logical Dependency Chain
+## Foundation Layer (Must be completed first):
+1. **Infrastructure Setup**: Docker, API Gateway, CI/CD pipeline
+2. **Database Foundation**: Complete schema với department-based ID system
+3. **Authentication Core**: Supabase Auth với JWT và session management
+
+## Core Services Layer (Can be developed in parallel):
+4. **User Management Services**: Auth, Patient, Doctor, Admin services
+5. **Department Management**: Khoa/phòng ban với specialty assignment
+6. **Basic UI Framework**: Universal Sidebar, layouts, routing
+
+## Business Logic Layer (Depends on Core Services):
+7. **Appointment System**: Booking, scheduling, conflict resolution
+8. **Medical Records**: EMR, prescriptions, diagnosis tracking
+9. **Notification System**: Email, SMS, in-app notifications
+
+## Advanced Features Layer (Depends on Business Logic):
+10. **Analytics & Reporting**: Dashboard, metrics, custom reports
+11. **Integration Layer**: Payment, insurance, pharmacy, lab systems
+12. **Advanced Clinical Features**: Telemedicine, imaging, lab results
+
+## Quality Assurance Layer (Continuous throughout):
+13. **Testing Framework**: Unit, integration, E2E testing
+14. **Security Implementation**: Audit, penetration testing, compliance
+15. **Performance Optimization**: Load testing, database tuning
+
+## Deployment & Maintenance Layer (Final phase):
+16. **Production Setup**: Environment, monitoring, backup systems
+17. **Documentation & Training**: User guides, API docs, training materials
+18. **Post-Launch Support**: Bug fixes, enhancements, maintenance
+
+# Risks and Mitigations  
+## Technical Challenges:
+- **Database Performance**: Implement proper indexing và caching
+- **Microservice Communication**: Use API Gateway với proper error handling
+- **Data Consistency**: Implement database transactions và validation
+
+## MVP Strategy:
+- Focus on core appointment booking functionality first
+- Implement basic CRUD operations before advanced features
+- Ensure each microservice works independently
+
+## Resource Constraints:
+- Prioritize features based on user impact
+- Use existing libraries và frameworks where possible
+- Implement comprehensive testing to reduce bugs
+
+# Appendix  
+## Vietnamese Compliance:
+- Phone numbers: 10 digits starting with 0
+- Doctor license format: VN-{2 letters}-{4 digits}
+- Vietnamese-only interface
+- Local date/time formats
+
+## Security Requirements:
+- Row Level Security trong Supabase
+- JWT token authentication
+- Input validation và sanitization
+- HTTPS only communication
+
+## Performance Targets (10/10 Score):
+- **Page load time**: < 1.5 seconds (mobile), < 1 second (desktop)
+- **API response time**: < 200ms (average), < 500ms (95th percentile)
+- **Concurrent users**: Support 5000+ concurrent users với auto-scaling
+- **Uptime**: 99.95% availability với SLA monitoring
+- **Database performance**: < 100ms query response time
+- **Real-time features**: < 50ms WebSocket latency
+- **Mobile performance**: Lighthouse score > 90
+- **Security**: Zero critical vulnerabilities, automated security scanning
+- **Accessibility**: WCAG 2.1 AA compliance
+- **SEO**: Core Web Vitals passing scores
+
+## Success Metrics (KPIs):
+- **User Adoption**: 80% monthly active users
+- **Appointment Efficiency**: 30% reduction in booking time
+- **Patient Satisfaction**: 4.5+ star rating
+- **Doctor Productivity**: 25% increase in patient throughput
+- **System Reliability**: < 0.1% error rate
+- **Payment Success**: 99.5% transaction success rate
+- **AI Accuracy**: 85%+ symptom-to-specialty matching accuracy
+</PRD>

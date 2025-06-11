@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useSupabaseAuth, useIsAdmin, useIsDoctor, useIsPatient } from '@/lib/hooks/useSupabaseAuth';
+import { useAuth } from '@/lib/auth/auth-wrapper';
 import { AdminLayout, DoctorLayout, PatientLayout } from './UniversalLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertCircle, Loader2 } from 'lucide-react';
@@ -17,10 +17,12 @@ export const RoleBasedLayout: React.FC<RoleBasedLayoutProps> = ({
   title,
   activePage,
 }) => {
-  const { user, loading } = useSupabaseAuth();
-  const isAdmin = useIsAdmin();
-  const isDoctor = useIsDoctor();
-  const isPatient = useIsPatient();
+  const { user, loading } = useAuth();
+
+  // Role checking functions
+  const isAdmin = user?.role === 'admin';
+  const isDoctor = user?.role === 'doctor';
+  const isPatient = user?.role === 'patient';
 
   // Loading state
   if (loading) {

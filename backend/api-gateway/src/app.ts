@@ -86,7 +86,37 @@ export function createApp(): express.Application {
   // Health check endpoint
   app.use('/health', healthRoutes);
 
-  // Protected routes - require Supabase authentication
+  // Auth Service Routes (Public - no auth middleware)
+  app.use('/api/auth', createProxyMiddleware({
+    target: process.env.AUTH_SERVICE_URL || 'http://auth-service:3001',
+    changeOrigin: true,
+    pathRewrite: {
+      '^/api/auth': '/api/auth',
+    },
+    timeout: 10000, // 10 second timeout
+    proxyTimeout: 10000,
+    onError: (err: any, req: any, res: any) => {
+      console.error('Auth Service Proxy Error:', err);
+      if (!res.headersSent) {
+        res.status(503).json({ error: 'Auth service unavailable' });
+      }
+    },
+    onProxyReq: (proxyReq: any, req: any, res: any) => {
+      console.log('Proxying auth request:', req.method, req.url);
+      // Fix content-length for POST requests
+      if (req.body && (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH')) {
+        const bodyData = JSON.stringify(req.body);
+        proxyReq.setHeader('Content-Type', 'application/json');
+        proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+        proxyReq.write(bodyData);
+      }
+    },
+    onProxyRes: (proxyRes: any, req: any, res: any) => {
+      console.log('Auth service response:', proxyRes.statusCode, req.method, req.url);
+    }
+  }));
+
+  // Protected routes - require authentication via Auth Service
 
   // Doctor Service Routes
   app.use('/api/doctors', authMiddleware, createProxyMiddleware({
@@ -192,7 +222,7 @@ export function createApp(): express.Application {
       status: 'running',
       timestamp: new Date().toISOString(),
       docs: '/docs',
-      availableServices: ['doctors', 'patients', 'appointments', 'medical-records', 'prescriptions', 'billing'],
+      availableServices: ['auth', 'doctors', 'patients', 'appointments', 'medical-records', 'prescriptions', 'billing'],
       disabledServices: ['rooms', 'departments', 'notifications'],
       services: serviceRegistry.getRegisteredServices(),
     });
@@ -203,6 +233,10 @@ export function createApp(): express.Application {
     res.json({
       mode: DOCTOR_ONLY_MODE ? 'doctor-only-development' : 'full-system',
       availableServices: {
+        auth: {
+          url: process.env.AUTH_SERVICE_URL || 'http://auth-service:3001',
+          status: 'active'
+        },
         doctors: {
           url: process.env.DOCTOR_SERVICE_URL || 'http://doctor-service:3002',
           status: 'active'
@@ -239,7 +273,7 @@ export function createApp(): express.Application {
       path: req.originalUrl,
       method: req.method,
       mode: DOCTOR_ONLY_MODE ? 'doctor-only-development' : 'full-system',
-      availableRoutes: ['/api/doctors', '/api/patients', '/api/appointments', '/api/medical-records', '/api/prescriptions', '/api/billing', '/health', '/docs', '/services']
+      availableRoutes: ['/api/auth', '/api/doctors', '/api/patients', '/api/appointments', '/api/medical-records', '/api/prescriptions', '/api/billing', '/health', '/docs', '/services']
     });
   });
 

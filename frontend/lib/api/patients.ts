@@ -47,4 +47,19 @@ export const patientsApi = {
   search: async (query: string): Promise<ApiResponse<Patient[]>> => {
     return apiClient.get<Patient[]>('/patients/search', { q: query });
   },
+
+  // Get patient by profile ID
+  getByProfileId: async (profileId: string): Promise<ApiResponse<Patient>> => {
+    return apiClient.get<Patient>(`/patients/by-profile/${profileId}`);
+  },
+
+  // Get patient statistics
+  getStats: async (id: string): Promise<ApiResponse<any>> => {
+    return apiClient.get<any>(`/patients/${id}/stats`);
+  },
+
+  // Upload patient avatar
+  uploadAvatar: async (id: string, file: File): Promise<ApiResponse<{ avatar_url: string }>> => {
+    return apiClient.uploadFile<{ avatar_url: string }>(`/patients/${id}/avatar`, file);
+  },
 };

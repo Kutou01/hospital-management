@@ -45,7 +45,7 @@ class EnumService {
         .from('departments')
         .select('*')
         .eq('is_active', true)
-        .order('name');
+        .order('department_name');
 
       if (error) throw error;
 
@@ -54,7 +54,7 @@ class EnumService {
       const convertedData = data?.map(dept => ({
         id: parseInt(dept.department_id.replace('DEPT', '')) || 0, // Convert DEPT001 to 1
         code: dept.department_id, // Use department_id as code (DEPT001, DEPT002, etc.)
-        name: dept.name,
+        name: dept.department_name, // ✅ FIXED: Use department_name instead of name
         description: dept.description,
         color_code: '#3498db', // Default color for departments
         icon_name: 'building-2', // Default icon for departments

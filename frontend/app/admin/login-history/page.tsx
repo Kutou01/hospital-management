@@ -8,76 +8,118 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search, Filter, Download, Eye } from "lucide-react"
-// TODO: Implement login history with new auth system
-// import { LoginSession } from "@/lib/types"
+import { supabaseAdmin } from "@/lib/supabase-admin"
+import { toast } from "react-hot-toast"
 
 interface LoginSession {
-  session_id: number
+  id: string
   user_id: string
-  login_time: string
-  logout_time: string | null
-  ip_address?: string
-  user_agent?: string
-  device_info?: { platform: string; language: string }
-  session_token: string
-  is_active: boolean
+  email: string
+  role: string
+  created_at: string
+  updated_at: string
+  last_sign_in_at?: string
+  user_metadata?: any
+  app_metadata?: any
+}
+
+interface SessionStats {
+  total_sessions: number
+  active_sessions: number
+  unique_users: number
+  today_logins: number
 }
 
 export default function LoginHistoryPage() {
   const [sessions, setSessions] = useState<LoginSession[]>([])
+  const [sessionStats, setSessionStats] = useState<SessionStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [roleFilter, setRoleFilter] = useState("all")
 
   useEffect(() => {
     fetchLoginHistory()
-  }, [])
+  }, [roleFilter])
+
+  useEffect(() => {
+    if (sessions.length > 0) {
+      fetchSessionStats()
+    }
+  }, [sessions])
 
   const fetchLoginHistory = async () => {
     setIsLoading(true)
     try {
-      // Trong thực tế, bạn sẽ cần API để lấy tất cả login sessions
-      // Hiện tại tôi sẽ tạo dữ liệu mẫu
-      const mockSessions: LoginSession[] = [
-        {
-          session_id: 1,
-          user_id: "USR001",
-          login_time: "2024-01-15T10:30:00Z",
-          logout_time: "2024-01-15T18:45:00Z",
-          ip_address: "192.168.1.100",
-          user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-          device_info: { platform: "Win32", language: "en-US" },
-          session_token: "abc123",
-          is_active: false
-        },
-        {
-          session_id: 2,
-          user_id: "USR002",
-          login_time: "2024-01-15T08:15:00Z",
-          logout_time: null,
-          ip_address: "192.168.1.101",
-          user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-          device_info: { platform: "MacIntel", language: "en-US" },
-          session_token: "def456",
-          is_active: true
-        },
-        {
-          session_id: 3,
-          user_id: "USR003",
-          login_time: "2024-01-14T14:20:00Z",
-          logout_time: "2024-01-14T16:30:00Z",
-          ip_address: "192.168.1.102",
-          user_agent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
-          device_info: { platform: "iPhone", language: "vi-VN" },
-          session_token: "ghi789",
-          is_active: false
+      // Fetch users from Supabase Auth with profiles
+      const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers()
+
+      if (authError) {
+        console.error('Error fetching auth users:', authError)
+        toast.error('Không thể tải danh sách người dùng từ Supabase Auth')
+        return
+      }
+
+      // Fetch profiles to get role information
+      const { data: profiles, error: profilesError } = await supabaseAdmin
+        .from('profiles')
+        .select('*')
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError)
+      }
+
+      // Combine auth users with profile data
+      const sessions: LoginSession[] = authUsers.users.map(user => {
+        const profile = profiles?.find(p => p.id === user.id)
+        return {
+          id: user.id,
+          user_id: user.id,
+          email: user.email || 'Unknown',
+          role: profile?.role || 'unknown',
+          created_at: user.created_at,
+          updated_at: user.updated_at || user.created_at,
+          last_sign_in_at: user.last_sign_in_at,
+          user_metadata: user.user_metadata,
+          app_metadata: user.app_metadata
         }
-      ]
-      setSessions(mockSessions)
+      })
+
+      // Filter by role if specified
+      const filteredSessions = roleFilter === "all"
+        ? sessions
+        : sessions.filter(session => session.role === roleFilter)
+
+      setSessions(filteredSessions)
     } catch (error) {
       console.error('Error fetching login history:', error)
+      toast.error('Lỗi khi tải lịch sử đăng nhập')
+      setSessions([])
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const fetchSessionStats = async () => {
+    try {
+      // Calculate stats from current sessions data
+      const today = new Date().toISOString().split('T')[0]
+      const todayLogins = sessions.filter(session =>
+        session.last_sign_in_at && session.last_sign_in_at.includes(today)
+      ).length
+
+      const stats: SessionStats = {
+        total_sessions: sessions.length,
+        active_sessions: sessions.filter(session =>
+          session.last_sign_in_at &&
+          new Date(session.last_sign_in_at) > new Date(Date.now() - 24 * 60 * 60 * 1000) // Last 24 hours
+        ).length,
+        unique_users: new Set(sessions.map(s => s.user_id)).size,
+        today_logins: todayLogins
+      }
+
+      setSessionStats(stats)
+    } catch (error) {
+      console.error('Error calculating session stats:', error)
     }
   }
 
@@ -105,9 +147,31 @@ export default function LoginHistoryPage() {
 
   const filteredSessions = sessions.filter(session => {
     const matchesSearch = session.user_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         session.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          session.ip_address?.includes(searchTerm)
-    return matchesSearch
+
+    const matchesRole = roleFilter === "all" || session.role === roleFilter
+
+    return matchesSearch && matchesRole
   })
+
+  const handleTerminateSession = async (userId: string) => {
+    try {
+      // Sign out user using Supabase Admin API
+      const { error } = await supabaseAdmin.auth.admin.signOut(userId)
+
+      if (error) {
+        console.error('Error terminating session:', error)
+        toast.error('Không thể kết thúc phiên đăng nhập')
+      } else {
+        toast.success('Phiên đăng nhập đã được kết thúc')
+        fetchLoginHistory() // Reload data
+      }
+    } catch (error) {
+      console.error('Error terminating session:', error)
+      toast.error('Lỗi khi kết thúc phiên đăng nhập')
+    }
+  }
 
   return (
     <AdminPageWrapper title="Login History" activePage="login-history">
@@ -117,7 +181,7 @@ export default function LoginHistoryPage() {
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
             <Input
-              placeholder="Search by User ID or IP address..."
+              placeholder="Tìm kiếm theo email hoặc địa chỉ IP..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
@@ -154,14 +218,14 @@ export default function LoginHistoryPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50">
-                  <th className="text-left p-4 font-medium text-gray-900">User ID</th>
-                  <th className="text-left p-4 font-medium text-gray-900">Login Time</th>
-                  <th className="text-left p-4 font-medium text-gray-900">Logout Time</th>
-                  <th className="text-left p-4 font-medium text-gray-900">IP Address</th>
-                  <th className="text-left p-4 font-medium text-gray-900">Device</th>
-                  <th className="text-left p-4 font-medium text-gray-900">Browser</th>
-                  <th className="text-left p-4 font-medium text-gray-900">Status</th>
-                  <th className="text-left p-4 font-medium text-gray-900">Actions</th>
+                  <th className="text-left p-4 font-medium text-gray-900">Người dùng</th>
+                  <th className="text-left p-4 font-medium text-gray-900">Lần đăng nhập cuối</th>
+                  <th className="text-left p-4 font-medium text-gray-900">Cập nhật cuối</th>
+                  <th className="text-left p-4 font-medium text-gray-900">Địa chỉ IP</th>
+                  <th className="text-left p-4 font-medium text-gray-900">Thiết bị</th>
+                  <th className="text-left p-4 font-medium text-gray-900">Trình duyệt</th>
+                  <th className="text-left p-4 font-medium text-gray-900">Trạng thái</th>
+                  <th className="text-left p-4 font-medium text-gray-900">Hành động</th>
                 </tr>
               </thead>
               <tbody>
@@ -181,32 +245,45 @@ export default function LoginHistoryPage() {
                   filteredSessions.map((session) => (
                     <tr key={session.session_id} className="border-b border-gray-100 hover:bg-gray-50">
                       <td className="p-4">
-                        <div className="font-medium text-gray-900">{session.user_id}</div>
+                        <div className="font-medium text-gray-900">{session.email}</div>
+                        <div className="text-sm text-gray-500">{session.role}</div>
                       </td>
                       <td className="p-4 text-gray-600">
-                        {formatDateTime(session.login_time)}
+                        {session.last_sign_in_at ? formatDateTime(session.last_sign_in_at) : formatDateTime(session.created_at)}
                       </td>
                       <td className="p-4 text-gray-600">
-                        {session.logout_time ? formatDateTime(session.logout_time) : '-'}
+                        {session.updated_at !== session.created_at ? formatDateTime(session.updated_at) : '-'}
                       </td>
                       <td className="p-4 text-gray-600">
-                        {session.ip_address || '-'}
+                        {session.user_metadata?.ip_address || '-'}
                       </td>
                       <td className="p-4 text-gray-600">
-                        {session.user_agent ? getDeviceType(session.user_agent) : '-'}
+                        {session.user_metadata?.device || 'Desktop'}
                       </td>
                       <td className="p-4 text-gray-600">
-                        {session.user_agent ? getBrowser(session.user_agent) : '-'}
+                        {session.user_metadata?.browser || 'Unknown'}
                       </td>
                       <td className="p-4">
-                        <Badge className={getStatusColor(session.is_active)}>
-                          {session.is_active ? 'Active' : 'Ended'}
+                        <Badge className={getStatusColor(!!session.last_sign_in_at)}>
+                          {session.last_sign_in_at ? 'Đã đăng nhập' : 'Chưa đăng nhập'}
                         </Badge>
                       </td>
                       <td className="p-4">
-                        <Button variant="ghost" size="sm">
-                          <Eye size={16} />
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button variant="ghost" size="sm">
+                            <Eye size={16} />
+                          </Button>
+                          {session.last_sign_in_at && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-800"
+                              onClick={() => handleTerminateSession(session.user_id)}
+                            >
+                              Đăng xuất
+                            </Button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -221,32 +298,34 @@ export default function LoginHistoryPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-gray-900">{sessions.length}</div>
-            <div className="text-sm text-gray-600">Total Sessions</div>
+            <div className="text-2xl font-bold text-gray-900">
+              {sessionStats?.total_sessions || sessions.length}
+            </div>
+            <div className="text-sm text-gray-600">Tổng phiên đăng nhập</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold text-green-600">
-              {sessions.filter(s => s.is_active).length}
+              {sessionStats?.active_sessions || sessions.filter(s => s.is_active).length}
             </div>
-            <div className="text-sm text-gray-600">Active Sessions</div>
+            <div className="text-sm text-gray-600">Phiên đang hoạt động</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold text-blue-600">
-              {new Set(sessions.map(s => s.user_id)).size}
+              {sessionStats?.unique_users || new Set(sessions.map(s => s.user_id)).size}
             </div>
-            <div className="text-sm text-gray-600">Unique Users</div>
+            <div className="text-sm text-gray-600">Người dùng duy nhất</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold text-purple-600">
-              {sessions.filter(s => s.login_time.includes(new Date().toISOString().split('T')[0])).length}
+              {sessionStats?.today_logins || sessions.filter(s => s.login_time.includes(new Date().toISOString().split('T')[0])).length}
             </div>
-            <div className="text-sm text-gray-600">Today's Logins</div>
+            <div className="text-sm text-gray-600">Đăng nhập hôm nay</div>
           </CardContent>
         </Card>
       </div>

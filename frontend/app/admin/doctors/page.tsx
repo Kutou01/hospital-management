@@ -36,25 +36,8 @@ export default function DoctorsPage() {
   const [doctorToEdit, setDoctorToEdit] = useState<any | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  // Specialty options for dropdown
-  const specialties = [
-    "Tất cả chuyên khoa", // This will be sliced out when used
-    "Nội tổng hợp",
-    "Ngoại tổng hợp",
-    "Sản phụ khoa",
-    "Nhi khoa",
-    "Tim mạch can thiệp",
-    "Thần kinh học",
-    "Chấn thương và chỉnh hình",
-    "Cấp cứu và hồi sức",
-    "Da liễu",
-    "Mắt",
-    "Tai mũi họng",
-    "Răng hàm mặt",
-    "Tâm thần",
-    "Ung bướu",
-    "Khác"
-  ]
+  // Load specialties from API instead of hardcode
+  const [specialties, setSpecialties] = useState<string[]>(['Tất cả chuyên khoa'])
 
   // New doctor state
   const [newDoctor, setNewDoctor] = useState({
@@ -84,6 +67,10 @@ export default function DoctorsPage() {
         // Get departments data
         const departmentsData = await departmentsApi.getAllDepartments()
         setDepartments(departmentsData)
+
+        // Extract unique specialties from doctors data and add "Tất cả chuyên khoa"
+        const uniqueSpecialties = ['Tất cả chuyên khoa', ...new Set(doctorsData.map(doctor => doctor.specialty).filter(Boolean))]
+        setSpecialties(uniqueSpecialties)
       } catch (error) {
         console.error('Error fetching data:', error)
         setDoctors([])

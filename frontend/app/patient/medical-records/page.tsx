@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   FileText,
   Download,
@@ -21,76 +21,63 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { useEnhancedAuth } from "@/lib/auth/enhanced-auth-context"
+import { useEnhancedAuth } from "@/lib/auth/auth-wrapper"
+import { medicalRecordsApi, patientsApi } from "@/lib/api"
+import { toast } from "sonner"
 
 export default function PatientMedicalRecords() {
   const { user, loading } = useEnhancedAuth()
   const [searchTerm, setSearchTerm] = useState("")
   const [filterType, setFilterType] = useState("all")
+  const [medicalRecords, setMedicalRecords] = useState<any[]>([])
+  const [isLoadingRecords, setIsLoadingRecords] = useState(true)
+  const [patientId, setPatientId] = useState<string | null>(null)
 
-  // Mock medical records data
-  const medicalRecords = [
-    {
-      id: "1",
-      date: "2024-01-10",
-      type: "consultation",
-      title: "Khám tổng quát",
-      doctor: "Dr. Nguyễn Văn A",
-      department: "Khoa Nội",
-      diagnosis: "Huyết áp cao nhẹ",
-      treatment: "Thuốc hạ huyết áp, chế độ ăn ít muối",
-      notes: "Bệnh nhân cần theo dõi huyết áp hàng tuần",
-      attachments: ["blood_pressure_chart.pdf", "prescription.pdf"]
-    },
-    {
-      id: "2",
-      date: "2024-01-05",
-      type: "lab_result",
-      title: "Kết quả xét nghiệm máu",
-      doctor: "Dr. Trần Thị B",
-      department: "Khoa Xét nghiệm",
-      diagnosis: "Chỉ số đường huyết bình thường",
-      treatment: "Không cần điều trị",
-      notes: "Tiếp tục duy trì chế độ ăn uống lành mạnh",
-      attachments: ["blood_test_results.pdf"]
-    },
-    {
-      id: "3",
-      date: "2023-12-20",
-      type: "imaging",
-      title: "Chụp X-quang ngực",
-      doctor: "Dr. Lê Văn C",
-      department: "Khoa Chẩn đoán hình ảnh",
-      diagnosis: "Phổi bình thường",
-      treatment: "Không cần điều trị",
-      notes: "Không phát hiện bất thường",
-      attachments: ["chest_xray.jpg", "radiology_report.pdf"]
-    },
-    {
-      id: "4",
-      date: "2023-12-15",
-      type: "prescription",
-      title: "Đơn thuốc điều trị huyết áp",
-      doctor: "Dr. Nguyễn Văn A",
-      department: "Khoa Nội",
-      diagnosis: "Huyết áp cao",
-      treatment: "Amlodipine 5mg, 1 viên/ngày",
-      notes: "Uống thuốc đều đặn, tái khám sau 1 tháng",
-      attachments: ["prescription_details.pdf"]
-    },
-    {
-      id: "5",
-      date: "2023-11-30",
-      type: "consultation",
-      title: "Khám tim mạch",
-      doctor: "Dr. Phạm Thị D",
-      department: "Khoa Tim mạch",
-      diagnosis: "Nhịp tim bình thường",
-      treatment: "Tập thể dục đều đặn",
-      notes: "Tình trạng tim mạch ổn định",
-      attachments: ["ecg_report.pdf", "echo_results.pdf"]
+  // Get patient ID when user is loaded
+  useEffect(() => {
+    if (user && user.role === 'patient' && user.profile_id) {
+      loadPatientProfile()
     }
-  ]
+  }, [user])
+
+  const loadPatientProfile = async () => {
+    try {
+      if (!user?.profile_id) return
+
+      const response = await patientsApi.getByProfileId(user.profile_id)
+      if (response.success && response.data) {
+        setPatientId(response.data.patient_id)
+        loadMedicalRecords(response.data.patient_id)
+      } else {
+        toast.error('Không thể tải thông tin bệnh nhân')
+      }
+    } catch (error) {
+      console.error('Error loading patient profile:', error)
+      toast.error('Lỗi khi tải thông tin bệnh nhân')
+    }
+  }
+
+  const loadMedicalRecords = async (patientIdParam: string) => {
+    try {
+      setIsLoadingRecords(true)
+      const response = await medicalRecordsApi.getMedicalRecordsByPatientId(patientIdParam)
+
+      if (response.success && response.data) {
+        setMedicalRecords(response.data)
+      } else {
+        toast.error('Không thể tải hồ sơ y tế')
+        setMedicalRecords([])
+      }
+    } catch (error) {
+      console.error('Error loading medical records:', error)
+      toast.error('Lỗi khi tải hồ sơ y tế')
+      setMedicalRecords([])
+    } finally {
+      setIsLoadingRecords(false)
+    }
+  }
+
+  // Mock data removed - now using real API data
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -138,19 +125,20 @@ export default function PatientMedicalRecords() {
   }
 
   const filteredRecords = medicalRecords.filter(record => {
-    const matchesSearch = record.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         record.doctor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         record.diagnosis.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesFilter = filterType === "all" || record.type === filterType
+    const matchesSearch = (record.diagnosis && record.diagnosis.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                         (record.chief_complaint && record.chief_complaint.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                         (record.treatment_plan && record.treatment_plan.toLowerCase().includes(searchTerm.toLowerCase()))
+    // For now, we'll show all records since we don't have type classification in the API
+    const matchesFilter = filterType === "all" || true
     return matchesSearch && matchesFilter
   })
 
   // Sort records by date (newest first)
   const sortedRecords = filteredRecords.sort((a, b) => {
-    return new Date(b.date).getTime() - new Date(a.date).getTime()
+    return new Date(b.visit_date).getTime() - new Date(a.visit_date).getTime()
   })
 
-  if (loading) {
+  if (loading || isLoadingRecords) {
     return (
       <RoleBasedLayout>
         <div className="flex items-center justify-center h-64">
@@ -286,56 +274,62 @@ export default function PatientMedicalRecords() {
               <div className="flex justify-between items-start">
                 <div className="flex-1">
                   <div className="flex items-center gap-4 mb-4">
-                    <Badge className={getTypeColor(record.type)}>
-                      {getTypeIcon(record.type)}
-                      <span className="ml-1">{getTypeLabel(record.type)}</span>
+                    <Badge className="bg-blue-100 text-blue-800">
+                      <Stethoscope className="h-4 w-4" />
+                      <span className="ml-1">Medical Record</span>
                     </Badge>
-                    <h3 className="text-lg font-semibold">{record.title}</h3>
+                    <h3 className="text-lg font-semibold">
+                      {record.chief_complaint || 'Khám bệnh'}
+                    </h3>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm">{record.date}</span>
+                      <span className="text-sm">{record.visit_date}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm">{record.doctor}</span>
+                      <span className="text-sm">Bác sĩ điều trị</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Heart className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm">{record.department}</span>
+                      <span className="text-sm">Khoa khám bệnh</span>
                     </div>
                   </div>
 
                   <div className="space-y-2 mb-4">
-                    <div>
-                      <span className="text-sm font-medium text-gray-700">Diagnosis: </span>
-                      <span className="text-sm text-gray-900">{record.diagnosis}</span>
-                    </div>
-                    <div>
-                      <span className="text-sm font-medium text-gray-700">Treatment: </span>
-                      <span className="text-sm text-gray-900">{record.treatment}</span>
-                    </div>
-                    <div>
-                      <span className="text-sm font-medium text-gray-700">Notes: </span>
-                      <span className="text-sm text-gray-900">{record.notes}</span>
-                    </div>
-                  </div>
-
-                  {record.attachments.length > 0 && (
-                    <div>
-                      <span className="text-sm font-medium text-gray-700 mb-2 block">Attachments:</span>
-                      <div className="flex flex-wrap gap-2">
-                        {record.attachments.map((attachment, index) => (
-                          <Badge key={index} variant="outline" className="text-xs">
-                            <FileText className="h-3 w-3 mr-1" />
-                            {attachment}
-                          </Badge>
-                        ))}
+                    {record.diagnosis && (
+                      <div>
+                        <span className="text-sm font-medium text-gray-700">Chẩn đoán: </span>
+                        <span className="text-sm text-gray-900">{record.diagnosis}</span>
                       </div>
-                    </div>
-                  )}
+                    )}
+                    {record.treatment_plan && (
+                      <div>
+                        <span className="text-sm font-medium text-gray-700">Kế hoạch điều trị: </span>
+                        <span className="text-sm text-gray-900">{record.treatment_plan}</span>
+                      </div>
+                    )}
+                    {record.medications && (
+                      <div>
+                        <span className="text-sm font-medium text-gray-700">Thuốc: </span>
+                        <span className="text-sm text-gray-900">{record.medications}</span>
+                      </div>
+                    )}
+                    {record.notes && (
+                      <div>
+                        <span className="text-sm font-medium text-gray-700">Ghi chú: </span>
+                        <span className="text-sm text-gray-900">{record.notes}</span>
+                      </div>
+                    )}
+                    {record.follow_up_instructions && (
+                      <div>
+                        <span className="text-sm font-medium text-gray-700">Hướng dẫn tái khám: </span>
+                        <span className="text-sm text-gray-900">{record.follow_up_instructions}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex gap-2 ml-4">

@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { useEnhancedAuth } from "@/lib/auth/enhanced-auth-context"
+import { useEnhancedAuth } from "@/lib/auth/auth-wrapper"
 import { AdminPageWrapper } from "../page-wrapper"
 import { dashboardApi, appointmentsApi } from "@/lib/supabase"
 
@@ -177,51 +177,66 @@ export default function AdminDashboard() {
     ? Math.round((Number(systemStats.occupied_rooms) / Number(systemStats.total_rooms)) * 100)
     : 0
 
+  // Generate recent activities from real data
   const recentActivities = [
     {
       id: "1",
       type: "doctor" as const,
-      title: "New doctor registered",
-      description: "Dr. Nguyễn Văn A đã được thêm vào hệ thống",
-      time: "2 hours ago",
+      title: "System Status",
+      description: `${systemStats.total_patients} bệnh nhân, ${systemStats.total_doctors} bác sĩ đang hoạt động`,
+      time: "Real-time",
       status: "completed" as const,
-      initials: "NVA"
+      initials: "SYS"
     },
     {
       id: "2",
       type: "patient" as const,
-      title: "Patient registration spike",
-      description: "15 bệnh nhân mới đăng ký trong 1 giờ qua",
-      time: "3 hours ago",
+      title: "Appointments Today",
+      description: `${systemStats.appointments_today} cuộc hẹn hôm nay`,
+      time: "Today",
       status: "pending" as const,
-      initials: "REG"
+      initials: "APT"
     },
     {
       id: "3",
       type: "appointment" as const,
-      title: "High appointment volume",
-      description: "89 lịch hẹn đang hoạt động",
-      time: "4 hours ago",
+      title: "Room Occupancy",
+      description: `${occupancyRate}% phòng đang được sử dụng`,
+      time: "Current",
       status: "completed" as const,
-      initials: "APT"
+      initials: "ROM"
     },
     {
       id: "4",
       type: "report" as const,
-      title: "System backup completed",
-      description: "Sao lưu dữ liệu hệ thống thành công",
-      time: "6 hours ago",
+      title: "System Health",
+      description: "Tất cả dịch vụ đang hoạt động bình thường",
+      time: "Live",
       status: "completed" as const,
       initials: "SYS"
     }
   ]
 
+  // Generate department stats from real data (simplified version)
   const departmentStats = [
-    { name: "Khoa Nội", patients: 45, doctors: 8, occupancy: 85 },
-    { name: "Khoa Ngoại", patients: 32, doctors: 6, occupancy: 70 },
-    { name: "Khoa Sản", patients: 28, doctors: 5, occupancy: 90 },
-    { name: "Khoa Nhi", patients: 38, doctors: 7, occupancy: 75 },
-    { name: "Khoa Tim mạch", patients: 25, doctors: 4, occupancy: 65 }
+    {
+      name: "Tổng quan",
+      patients: Number(systemStats.total_patients),
+      doctors: Number(systemStats.total_doctors),
+      occupancy: occupancyRate
+    },
+    {
+      name: "Phòng khám",
+      patients: Number(systemStats.appointments_today),
+      doctors: Number(systemStats.total_rooms),
+      occupancy: Math.round((Number(systemStats.occupied_rooms) / Math.max(Number(systemStats.total_rooms), 1)) * 100)
+    },
+    {
+      name: "Hẹn khám",
+      patients: Number(systemStats.appointments_pending),
+      doctors: Number(systemStats.appointments_confirmed),
+      occupancy: Math.round((Number(systemStats.appointments_completed) / Math.max(Number(systemStats.appointments_today), 1)) * 100)
+    }
   ]
 
   const systemHealth = {

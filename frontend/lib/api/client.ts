@@ -20,8 +20,15 @@ export class ApiClient {
     this.baseUrl = baseUrl;
   }
 
-  // Get auth token from Supabase
+  // Get auth token from localStorage (Auth Service) or Supabase
   private async getAuthToken(): Promise<string | null> {
+    // First try to get Auth Service token
+    const authServiceToken = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+    if (authServiceToken) {
+      return authServiceToken;
+    }
+
+    // Fallback to Supabase token
     const { data: { session } } = await supabaseClient.auth.getSession();
     return session?.access_token || null;
   }
@@ -29,18 +36,21 @@ export class ApiClient {
   // Make HTTP request
   private async makeRequest<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    requireAuth: boolean = true
   ): Promise<ApiResponse<T>> {
     try {
-      const token = await this.getAuthToken();
-      
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
         ...options.headers,
       };
 
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+      // Only add auth token if required
+      if (requireAuth) {
+        const token = await this.getAuthToken();
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
       }
 
       const response = await fetch(`${this.baseUrl}/api${endpoint}`, {
@@ -65,6 +75,7 @@ export class ApiClient {
         };
       }
     } catch (error) {
+      console.error('API Request Error:', error);
       return {
         success: false,
         error: {
@@ -90,11 +101,11 @@ export class ApiClient {
     });
   }
 
-  async post<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
+  async post<T>(endpoint: string, data?: any, requireAuth: boolean = true): Promise<ApiResponse<T>> {
     return this.makeRequest<T>(endpoint, {
       method: 'POST',
       body: data ? JSON.stringify(data) : undefined,
-    });
+    }, requireAuth);
   }
 
   async put<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {

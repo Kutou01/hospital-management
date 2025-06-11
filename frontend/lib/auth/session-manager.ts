@@ -22,7 +22,7 @@ class SessionManager {
   private readonly STATE_KEY = 'hospital_auth_state'
   private readonly SESSION_DURATION = 24 * 60 * 60 * 1000 // 24 hours
   private readonly CHECK_INTERVAL = 5 * 60 * 1000 // 5 minutes
-  private readonly CLEAR_ON_TAB_CLOSE = true // Enable auto-clear on tab close
+  private readonly CLEAR_ON_TAB_CLOSE = false // Enable auto-clear on tab close
   
   private sessionState: SessionState = {
     isAuthenticated: false,

@@ -29,25 +29,43 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useSupabaseAuth } from "@/lib/hooks/useSupabaseAuth"
+import { useEnhancedAuth } from "@/lib/auth/auth-wrapper"
+import { patientsApi } from "@/lib/api/patients"
+import { doctorsApi } from "@/lib/api/doctors"
+import { appointmentsApi } from "@/lib/api/appointments"
+import { toast } from "react-hot-toast"
 
 interface Doctor {
-  id: number;
-  name: string;
-  specialty: string;
-  title: string;
-  experience: string;
-  rating: number;
-  reviews: number;
-  consultationFee: string;
-  nextAvailable: string;
-  location: string;
-  phone: string;
-  email: string;
+  doctor_id: string;
+  full_name: string;
+  specialization: string;
+  qualification: string;
+  department_id: string;
+  license_number: string;
+  gender: string;
+  phone_number: string;
+  status: string;
+}
+
+interface PatientData {
+  patient_id: string;
+  full_name: string;
+  email?: string;
+  phone_number?: string;
+  date_of_birth?: string;
+  gender?: string;
+  blood_type?: string;
+  address?: any;
+  emergency_contact?: any;
+  insurance_info?: any;
+  medical_history?: string;
+  allergies?: string[];
+  current_medications?: string[];
+  status: string;
 }
 
 export default function PatientProfile() {
-  const { user, loading } = useSupabaseAuth()
+  const { user, loading } = useEnhancedAuth()
   const searchParams = useSearchParams()
   const action = searchParams.get('action')
 
@@ -56,6 +74,9 @@ export default function PatientProfile() {
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null)
   const [bookingSuccess, setBookingSuccess] = useState(false)
   const [bookingLoading, setBookingLoading] = useState(false)
+  const [patientData, setPatientData] = useState<PatientData | null>(null)
+  const [doctors, setDoctors] = useState<Doctor[]>([])
+  const [isLoadingData, setIsLoadingData] = useState(true)
 
   const [formData, setFormData] = useState({
     full_name: "",
@@ -79,144 +100,71 @@ export default function PatientProfile() {
     notes: ''
   })
 
-  // Mock doctors data
-  const doctors: Doctor[] = [
-    {
-      id: 1,
-      name: 'Dr. Nguyễn Văn An',
-      specialty: 'Tim mạch',
-      title: 'Trưởng khoa Tim mạch',
-      experience: '15 năm',
-      rating: 4.9,
-      reviews: 285,
-      consultationFee: '500.000 VNĐ',
-      nextAvailable: 'Thứ 2, 08:30',
-      location: 'Phòng 201 - Tầng 2 - Khoa Tim mạch',
-      phone: '+84-123-456-789',
-      email: 'dr.an@hospital.vn'
-    },
-    {
-      id: 2,
-      name: 'Dr. Trần Thị Bình',
-      specialty: 'Nhi khoa',
-      title: 'Phó Trưởng khoa Nhi',
-      experience: '12 năm',
-      rating: 4.8,
-      reviews: 420,
-      consultationFee: '300.000 VNĐ',
-      nextAvailable: 'Hôm nay, 14:00',
-      location: 'Phòng 105 - Tầng 1 - Khoa Nhi',
-      phone: '+84-123-456-790',
-      email: 'dr.binh@hospital.vn'
-    },
-    {
-      id: 3,
-      name: 'Dr. Lê Minh Cường',
-      specialty: 'Thần kinh',
-      title: 'Giám đốc Trung tâm Thần kinh',
-      experience: '18 năm',
-      rating: 4.9,
-      reviews: 195,
-      consultationFee: '800.000 VNĐ',
-      nextAvailable: 'Thứ 3, 09:00',
-      location: 'Phòng 301 - Tầng 3 - Trung tâm Thần kinh',
-      phone: '+84-123-456-791',
-      email: 'dr.cuong@hospital.vn'
-    },
-    {
-      id: 4,
-      name: 'Dr. Phạm Thị Dung',
-      specialty: 'Phụ khoa',
-      title: 'Bác sĩ chuyên khoa II',
-      experience: '10 năm',
-      rating: 4.7,
-      reviews: 312,
-      consultationFee: '400.000 VNĐ',
-      nextAvailable: 'Thứ 4, 10:30',
-      location: 'Phòng 205 - Tầng 2 - Khoa Phụ khoa',
-      phone: '+84-123-456-792',
-      email: 'dr.dung@hospital.vn'
-    },
-    {
-      id: 5,
-      name: 'Dr. Hoàng Đức',
-      specialty: 'Chấn thương chỉnh hình',
-      title: 'Trưởng khoa Chấn thương Chỉnh hình',
-      experience: '14 năm',
-      rating: 4.8,
-      reviews: 278,
-      consultationFee: '600.000 VNĐ',
-      nextAvailable: 'Mai, 08:00',
-      location: 'Phòng 401 - Tầng 4 - Khoa Chấn thương',
-      phone: '+84-123-456-793',
-      email: 'dr.duc@hospital.vn'
-    },
-    {
-      id: 6,
-      name: 'Dr. Võ Thị Hoa',
-      specialty: 'Da liễu',
-      title: 'Bác sĩ chuyên khoa I',
-      experience: '8 năm',
-      rating: 4.6,
-      reviews: 156,
-      consultationFee: '350.000 VNĐ',
-      nextAvailable: 'Thứ 5, 15:00',
-      location: 'Phòng 102 - Tầng 1 - Khoa Da liễu',
-      phone: '+84-123-456-794',
-      email: 'dr.hoa@hospital.vn'
-    }
-  ]
+  // TODO: Integrate with real doctor reviews and ratings data
+  // TODO: Integrate with real appointment availability data
 
-  // Mock additional patient data
-  const patientData = {
-    date_of_birth: "1990-05-15",
-    gender: "Male",
-    address: "123 Nguyễn Văn Cừ, Quận 5, TP.HCM",
-    emergency_contact_name: "Nguyễn Thị B",
-    emergency_contact_phone: "0987654321",
-    blood_type: "O+",
-    allergies: "Penicillin, Peanuts",
-    medical_history: "Hypertension (2020), Diabetes Type 2 (2021)",
-    insurance_info: {
-      provider: "Bảo hiểm Y tế Xã hội",
-      policy_number: "SV123456789",
-      expiry_date: "2024-12-31"
-    },
-    recent_visits: [
-      { date: "2024-01-10", doctor: "Dr. Nguyễn Văn A", reason: "Khám tổng quát" },
-      { date: "2023-12-15", doctor: "Dr. Trần Thị B", reason: "Theo dõi huyết áp" },
-      { date: "2023-11-20", doctor: "Dr. Lê Văn C", reason: "Khám tim mạch" }
-    ]
-  }
-
-  // Load doctor info and initialize form
+  // Load patient data and doctors when user is available
   useEffect(() => {
-    // Initialize form data when user data is available
-    if (user) {
-      setFormData({
-        full_name: user.full_name || "",
-        email: user.email || "",
-        phone_number: user.phone_number || "",
-        date_of_birth: patientData.date_of_birth,
-        gender: patientData.gender,
-        address: patientData.address,
-        emergency_contact_name: patientData.emergency_contact_name,
-        emergency_contact_phone: patientData.emergency_contact_phone,
-        blood_type: patientData.blood_type,
-        allergies: patientData.allergies,
-        medical_history: patientData.medical_history
-      })
-    }
-
-    // Load selected doctor for booking
-    const selectedDoctorId = localStorage.getItem('selectedDoctorId')
-    if (selectedDoctorId) {
-      const doctor = doctors.find(d => d.id === parseInt(selectedDoctorId))
-      if (doctor) {
-        setSelectedDoctor(doctor)
-      }
+    if (user && user.role === 'patient' && user.profile_id) {
+      loadPatientData()
+      loadDoctors()
     }
   }, [user])
+
+  const loadPatientData = async () => {
+    try {
+      setIsLoadingData(true)
+      if (!user?.profile_id) return
+
+      const response = await patientsApi.getByProfileId(user.profile_id)
+      if (response.success && response.data) {
+        const patient = response.data
+        setPatientData(patient)
+
+        // Initialize form data with real patient data
+        setFormData({
+          full_name: patient.full_name || "",
+          email: patient.email || user.email || "",
+          phone_number: patient.phone_number || user.phone_number || "",
+          date_of_birth: patient.date_of_birth || "",
+          gender: patient.gender || "",
+          address: typeof patient.address === 'string' ? patient.address : JSON.stringify(patient.address) || "",
+          emergency_contact_name: patient.emergency_contact?.name || "",
+          emergency_contact_phone: patient.emergency_contact?.phone || "",
+          blood_type: patient.blood_type || "",
+          allergies: Array.isArray(patient.allergies) ? patient.allergies.join(', ') : patient.allergies || "",
+          medical_history: patient.medical_history || ""
+        })
+      } else {
+        toast.error('Không thể tải thông tin bệnh nhân')
+      }
+    } catch (error) {
+      console.error('Error loading patient data:', error)
+      toast.error('Lỗi khi tải thông tin bệnh nhân')
+    } finally {
+      setIsLoadingData(false)
+    }
+  }
+
+  const loadDoctors = async () => {
+    try {
+      const response = await doctorsApi.getAll()
+      if (response.success && response.data) {
+        setDoctors(response.data)
+
+        // Load selected doctor for booking
+        const selectedDoctorId = localStorage.getItem('selectedDoctorId')
+        if (selectedDoctorId) {
+          const doctor = response.data.find(d => d.doctor_id === selectedDoctorId)
+          if (doctor) {
+            setSelectedDoctor(doctor)
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading doctors:', error)
+    }
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -234,28 +182,60 @@ export default function PatientProfile() {
     }))
   }
 
-  const handleSave = () => {
-    // Here you would typically save the data to your backend
-    console.log("Saving profile data:", formData)
-    setIsEditing(false)
-    // Show success message
+  const handleSave = async () => {
+    try {
+      if (!patientData?.patient_id) {
+        toast.error('Không tìm thấy thông tin bệnh nhân')
+        return
+      }
+
+      // Prepare update data
+      const updateData = {
+        full_name: formData.full_name,
+        phone_number: formData.phone_number,
+        date_of_birth: formData.date_of_birth,
+        gender: formData.gender,
+        blood_type: formData.blood_type,
+        address: formData.address,
+        emergency_contact: {
+          name: formData.emergency_contact_name,
+          phone: formData.emergency_contact_phone
+        },
+        medical_history: formData.medical_history,
+        allergies: formData.allergies.split(',').map(a => a.trim()).filter(a => a)
+      }
+
+      const response = await patientsApi.update(patientData.patient_id, updateData)
+
+      if (response.success) {
+        toast.success('Cập nhật thông tin thành công')
+        setIsEditing(false)
+        // Reload patient data
+        loadPatientData()
+      } else {
+        toast.error('Không thể cập nhật thông tin')
+      }
+    } catch (error) {
+      console.error('Error saving profile:', error)
+      toast.error('Lỗi khi cập nhật thông tin')
+    }
   }
 
   const handleCancel = () => {
     // Reset form data to original values
-    if (user) {
+    if (patientData) {
       setFormData({
-        full_name: user.full_name || "",
-        email: user.email || "",
-        phone_number: user.phone_number || "",
-        date_of_birth: patientData.date_of_birth,
-        gender: patientData.gender,
-        address: patientData.address,
-        emergency_contact_name: patientData.emergency_contact_name,
-        emergency_contact_phone: patientData.emergency_contact_phone,
-        blood_type: patientData.blood_type,
-        allergies: patientData.allergies,
-        medical_history: patientData.medical_history
+        full_name: patientData.full_name || "",
+        email: patientData.email || user?.email || "",
+        phone_number: patientData.phone_number || user?.phone_number || "",
+        date_of_birth: patientData.date_of_birth || "",
+        gender: patientData.gender || "",
+        address: typeof patientData.address === 'string' ? patientData.address : JSON.stringify(patientData.address) || "",
+        emergency_contact_name: patientData.emergency_contact?.name || "",
+        emergency_contact_phone: patientData.emergency_contact?.phone || "",
+        blood_type: patientData.blood_type || "",
+        allergies: Array.isArray(patientData.allergies) ? patientData.allergies.join(', ') : patientData.allergies || "",
+        medical_history: patientData.medical_history || ""
       })
     }
     setIsEditing(false)
@@ -263,37 +243,47 @@ export default function PatientProfile() {
 
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedDoctor) return
+    if (!selectedDoctor || !patientData) return
 
     // Validate required fields
     if (!bookingForm.appointmentDate || !bookingForm.appointmentTime || !bookingForm.reason) {
-      alert('Vui lòng điền đầy đủ thông tin bắt buộc.')
+      toast.error('Vui lòng điền đầy đủ thông tin bắt buộc.')
       return
     }
 
     setBookingLoading(true)
 
     try {
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      // Create appointment
+      const appointmentData = {
+        patient_id: patientData.patient_id,
+        doctor_id: selectedDoctor.doctor_id,
+        appointment_date: bookingForm.appointmentDate,
+        appointment_time: bookingForm.appointmentTime,
+        treatment_description: bookingForm.reason,
+        status: 'Scheduled'
+      }
 
-      // Clear selected doctor from localStorage
-      localStorage.removeItem('selectedDoctorId')
+      const response = await appointmentsApi.create(appointmentData)
 
-      setBookingSuccess(true)
-      console.log('Booking submitted:', {
-        doctorId: selectedDoctor.id,
-        patientId: user?.id,
-        ...bookingForm
-      })
+      if (response.success) {
+        // Clear selected doctor from localStorage
+        localStorage.removeItem('selectedDoctorId')
+
+        setBookingSuccess(true)
+        toast.success('Đặt lịch khám thành công!')
+      } else {
+        toast.error('Không thể đặt lịch khám. Vui lòng thử lại.')
+      }
     } catch (error) {
-      alert('Không thể đặt lịch khám. Vui lòng thử lại.')
+      console.error('Error booking appointment:', error)
+      toast.error('Lỗi khi đặt lịch khám. Vui lòng thử lại.')
     } finally {
       setBookingLoading(false)
     }
   }
 
-  if (loading) {
+  if (loading || isLoadingData) {
     return (
       <RoleBasedLayout>
         <div className="flex items-center justify-center h-64">

@@ -22,7 +22,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useEnhancedAuth } from "@/lib/auth/enhanced-auth-context"
+import { useAuth } from "@/lib/auth/auth-wrapper"
 import { patientsApi } from "@/lib/api/patients"
 import { doctorsApi } from "@/lib/api/doctors"
 import { toast } from "sonner"
@@ -48,7 +48,7 @@ interface Patient {
 }
 
 export default function DoctorPatients() {
-  const { user, loading } = useEnhancedAuth()
+  const { user, loading } = useAuth()
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState("all")
   const [patients, setPatients] = useState<Patient[]>([])
@@ -106,94 +106,8 @@ export default function DoctorPatients() {
     }
   }
 
-  // Mock patients data for reference (remove this when API is working)
-  const mockPatients = [
-    {
-      id: "1",
-      name: "Nguyễn Văn A",
-      email: "nguyenvana@email.com",
-      phone: "0123456789",
-      age: 35,
-      gender: "Male",
-      bloodType: "O+",
-      address: "123 Nguyễn Văn Cừ, Q.5, TP.HCM",
-      lastVisit: "2024-01-10",
-      nextAppointment: "2024-01-20",
-      status: "active",
-      condition: "Hypertension",
-      riskLevel: "medium",
-      totalVisits: 8,
-      avatar: null
-    },
-    {
-      id: "2",
-      name: "Trần Thị B",
-      email: "tranthib@email.com",
-      phone: "0987654321",
-      age: 28,
-      gender: "Female",
-      bloodType: "A+",
-      address: "456 Lê Văn Sỹ, Q.3, TP.HCM",
-      lastVisit: "2024-01-08",
-      nextAppointment: "2024-01-25",
-      status: "active",
-      condition: "Diabetes Type 2",
-      riskLevel: "high",
-      totalVisits: 12,
-      avatar: null
-    },
-    {
-      id: "3",
-      name: "Lê Văn C",
-      email: "levanc@email.com",
-      phone: "0369852147",
-      age: 42,
-      gender: "Male",
-      bloodType: "B+",
-      address: "789 Võ Văn Tần, Q.1, TP.HCM",
-      lastVisit: "2024-01-05",
-      nextAppointment: null,
-      status: "inactive",
-      condition: "Healthy",
-      riskLevel: "low",
-      totalVisits: 3,
-      avatar: null
-    },
-    {
-      id: "4",
-      name: "Phạm Thị D",
-      email: "phamthid@email.com",
-      phone: "0741852963",
-      age: 55,
-      gender: "Female",
-      bloodType: "AB+",
-      address: "321 Điện Biên Phủ, Q.Bình Thạnh, TP.HCM",
-      lastVisit: "2024-01-12",
-      nextAppointment: "2024-01-18",
-      status: "active",
-      condition: "Arthritis",
-      riskLevel: "medium",
-      totalVisits: 15,
-      avatar: null
-    },
-    {
-      id: "5",
-      name: "Hoàng Văn E",
-      email: "hoangvane@email.com",
-      phone: "0852963741",
-      age: 67,
-      gender: "Male",
-      bloodType: "O-",
-      address: "654 Cách Mạng Tháng 8, Q.10, TP.HCM",
-      lastVisit: "2024-01-15",
-      nextAppointment: "2024-01-22",
-      status: "active",
-      condition: "Heart Disease",
-      riskLevel: "high",
-      totalVisits: 25,
-      avatar: null
-    }
-  ]
+  // TODO: Integrate with appointments API to get real lastVisit, nextAppointment, and totalVisits data
+  // TODO: Integrate with medical records API to get real condition and riskLevel data
 
   const getRiskLevelColor = (riskLevel: string) => {
     switch (riskLevel) {

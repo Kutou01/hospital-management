@@ -10,54 +10,97 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { User, Stethoscope, Shield, Eye, EyeOff, Loader2, CheckCircle, AlertCircle } from "lucide-react"
-import { supabaseAuth } from "@/lib/auth/supabase-auth"
+import { useAuth } from "@/lib/auth/auth-wrapper"
 import { useToast } from "@/components/ui/toast-provider"
 import { useSpecialtyOptions, useDepartmentOptions } from "@/lib/contexts/EnumContext"
 import { checkEmailAvailability, validateEmailFormat, createDebouncedEmailCheck } from "@/lib/utils/email-validation"
+import { registerWithAuthService, checkAuthServiceAvailability, AuthServiceRegisterData } from "@/lib/api/auth-service-client"
 
-// Define SignUpData interface for this component
+// Define SignUpData interface for this component - Updated for new structure
 interface SignUpData {
   email: string
   password: string
   accountType: "doctor" | "patient" | "admin"
   fullName: string
   phoneNumber?: string
+  gender?: "male" | "female" | "other"
+  dateOfBirth?: string
   // Doctor specific
   specialization?: string
   licenseNo?: string
   qualification?: string
   departmentId?: string
+  yearsOfExperience?: number
   // Patient specific
-  dateOfBirth?: string
-  gender?: "male" | "female" | "other"
   bloodType?: string
-  address?: string
-  emergencyContactName?: string
-  emergencyContactPhone?: string
+  address?: {
+    street?: string
+    district?: string
+    city?: string
+  }
+  emergencyContact?: {
+    name?: string
+    phone?: string
+    relationship?: string
+  }
 }
 
 // Function để tự động gán khoa dựa trên chuyên khoa (sử dụng dynamic data)
-const getDepartmentBySpecialization = (specialization: string, departmentOptions: any[]): string => {
+const getDepartmentBySpecialization = (specialization: string, departmentOptions: any[], specialtyOptions: any[]): string => {
 
+  // ✅ DYNAMIC APPROACH: Find specialty in specialtyOptions and get its department
+  // Tìm specialty trong danh sách và lấy department_id tương ứng
 
-  // Mapping logic based on specialty CODE to department name
-  // Dựa trên dữ liệu thực tế từ database - sử dụng specialty codes
-  const specialtyToDepartmentMap: Record<string, string> = {
-    "internal_medicine": "Khoa Nội tổng hợp",
-    "surgery": "Khoa Ngoại tổng hợp",
-    "cardiology": "Khoa Tim mạch",
-    "neurology": "Khoa Thần kinh",
-    "orthopedics": "Khoa Chấn thương chỉnh hình",
-    "pediatrics": "Khoa Nhi",
-    "gynecology": "Khoa Sản phụ khoa",
-    "obstetrics_gynecology": "Khoa Sản phụ khoa",
-    "dermatology": "Khoa Da liễu",
-    "ent": "Khoa Tai mũi họng",
-    "psychiatry": "Khoa Nội tổng hợp", // Fallback vì không có khoa tâm thần riêng
-    "urology": "Khoa Ngoại tổng hợp" // Fallback vì không có khoa tiết niệu riêng
+  // If specialization is a specialty_id, find the corresponding specialty
+  const specialty = specialtyOptions.find(spec => spec.value === specialization);
+
+  if (specialty) {
+    // If specialty has department_id, find matching department
+    const matchingDept = departmentOptions.find(dept =>
+      dept.value === specialty.department_id ||
+      dept.label === specialty.department_name
+    );
+
+    if (matchingDept) {
+      console.log('🎯 Found matching department via specialty:', {
+        specialization,
+        specialty: specialty.label,
+        department: matchingDept.label,
+        departmentId: matchingDept.value
+      });
+      return matchingDept.value;
+    }
   }
 
-  const targetDepartmentName = specialtyToDepartmentMap[specialization]
+  // ✅ FALLBACK: Smart mapping based on specialty name
+  const specialtyLabel = specialty?.label || '';
+  let targetDepartmentName = '';
+
+  if (specialtyLabel.toLowerCase().includes('tim') || specialtyLabel.toLowerCase().includes('cardio')) {
+    targetDepartmentName = 'Khoa Tim Mạch';
+  } else if (specialtyLabel.toLowerCase().includes('chấn thương') || specialtyLabel.toLowerCase().includes('chỉnh hình')) {
+    targetDepartmentName = 'Khoa Chấn Thương Chỉnh Hình';
+  } else if (specialtyLabel.toLowerCase().includes('nhi')) {
+    targetDepartmentName = 'Khoa Nhi';
+  } else if (specialtyLabel.toLowerCase().includes('thần kinh')) {
+    targetDepartmentName = 'Khoa Thần Kinh';
+  } else if (specialtyLabel.toLowerCase().includes('da liễu')) {
+    targetDepartmentName = 'Khoa Da Liễu';
+  } else if (specialtyLabel.toLowerCase().includes('phụ sản')) {
+    targetDepartmentName = 'Khoa Phụ Sản';
+  } else if (specialtyLabel.toLowerCase().includes('cấp cứu')) {
+    targetDepartmentName = 'Khoa Cấp Cứu';
+  } else if (specialtyLabel.toLowerCase().includes('nội')) {
+    targetDepartmentName = 'Khoa Nội Tổng Hợp';
+  } else if (specialtyLabel.toLowerCase().includes('ngoại')) {
+    targetDepartmentName = 'Khoa Ngoại Tổng Hợp';
+  } else if (specialtyLabel.toLowerCase().includes('mắt') || specialtyLabel.toLowerCase().includes('nhãn')) {
+    targetDepartmentName = 'Khoa Mắt';
+  } else if (specialtyLabel.toLowerCase().includes('tai mũi họng')) {
+    targetDepartmentName = 'Khoa Tai Mũi Họng';
+  } else if (specialtyLabel.toLowerCase().includes('tâm thần')) {
+    targetDepartmentName = 'Khoa Tâm Thần';
+  }
 
 
   if (targetDepartmentName) {
@@ -74,12 +117,21 @@ const getDepartmentBySpecialization = (specialization: string, departmentOptions
   // Fallback to first department if no match found
   const fallbackValue = departmentOptions.length > 0 ? departmentOptions[0].value : "DEPT001"
 
+  console.log('🔍 getDepartmentBySpecialization Debug:', {
+    specialization,
+    targetDepartmentName,
+    departmentOptions: departmentOptions.map(d => ({ value: d.value, label: d.label })),
+    matchingDept: departmentOptions.find(dept => dept.label === targetDepartmentName),
+    fallbackValue
+  });
+
   return fallbackValue
 }
 
 export default function RegisterPage() {
   const router = useRouter()
   const { showToast } = useToast()
+  const { signUp } = useAuth()
   const specialtyOptions = useSpecialtyOptions()
 
   const [accountType, setAccountType] = useState<"doctor" | "patient" | "admin" | null>(null)
@@ -119,18 +171,25 @@ export default function RegisterPage() {
     confirmPassword: "",
     fullName: "",
     phoneNumber: "",
+    gender: "male" as "male" | "female" | "other",
+    dateOfBirth: "",
     // Doctor specific
     specialization: "",
     licenseNo: "",
     qualification: "",
     departmentId: "",
+    yearsOfExperience: "",
     // Patient specific
-    dateOfBirth: "",
-    gender: "male" as "male" | "female" | "other",
     bloodType: "",
-    address: "",
+    // Address fields
+    address: "", // Single address field for simple input
+    addressStreet: "",
+    addressDistrict: "",
+    addressCity: "",
+    // Emergency contact as object
     emergencyContactName: "",
     emergencyContactPhone: "",
+    emergencyContactRelationship: "",
   })
 
   // Use dynamic departments from EnumContext instead of hardcoded list
@@ -199,7 +258,7 @@ export default function RegisterPage() {
       if (name === "specialization" && value && accountType === "doctor") {
 
 
-        const autoDepartmentId = getDepartmentBySpecialization(value, departmentOptions)
+        const autoDepartmentId = getDepartmentBySpecialization(value, departmentOptions, specialtyOptions)
 
         newData.departmentId = autoDepartmentId
       }
@@ -312,6 +371,14 @@ export default function RegisterPage() {
     setProfileStatus({ step: 'auth' })
 
     try {
+      // Check Auth Service availability first
+      setProfileStatus({ step: 'auth', message: 'Đang kiểm tra Auth Service...' })
+      const healthCheck = await checkAuthServiceAvailability()
+
+      if (!healthCheck.available) {
+        setError('Auth Service không khả dụng. Vui lòng thử lại sau.')
+        return
+      }
 
       setProfileStatus({ step: 'auth', message: 'Đang tạo tài khoản xác thực...' })
       const signUpData: SignUpData = {
@@ -320,111 +387,104 @@ export default function RegisterPage() {
         accountType: accountType!,
         fullName: formData.fullName,
         phoneNumber: formData.phoneNumber || undefined,
+        gender: formData.gender,
+        dateOfBirth: formData.dateOfBirth || undefined,
         // Doctor specific
         specialization: accountType === "doctor" ? formData.specialization : undefined,
         licenseNo: accountType === "doctor" ? formData.licenseNo : undefined,
         qualification: accountType === "doctor" ? formData.qualification : undefined,
         departmentId: accountType === "doctor" ? formData.departmentId : undefined,
-        // Patient specific
-        dateOfBirth: accountType === "patient" ? formData.dateOfBirth : undefined,
-        gender: accountType === "patient" ? formData.gender : undefined,
+        yearsOfExperience: accountType === "doctor" ? parseInt(formData.yearsOfExperience) || undefined : undefined,
+        // Patient specific - structured data
         bloodType: accountType === "patient" ? formData.bloodType : undefined,
-        address: accountType === "patient" ? formData.address : undefined,
-        emergencyContactName: accountType === "patient" ? formData.emergencyContactName : undefined,
-        emergencyContactPhone: accountType === "patient" ? formData.emergencyContactPhone : undefined,
+        address: accountType === "patient" ? {
+          street: formData.addressStreet || undefined,
+          district: formData.addressDistrict || undefined,
+          city: formData.addressCity || undefined,
+        } : undefined,
+        emergencyContact: accountType === "patient" ? {
+          name: formData.emergencyContactName || undefined,
+          phone: formData.emergencyContactPhone || undefined,
+          relationship: formData.emergencyContactRelationship || undefined,
+        } : undefined,
       }
 
       // Tự động gán khoa dựa trên chuyên khoa cho bác sĩ
       let departmentId = signUpData.departmentId
       if (signUpData.accountType === "doctor" && signUpData.specialization) {
-        departmentId = getDepartmentBySpecialization(signUpData.specialization, departmentOptions)
+        departmentId = getDepartmentBySpecialization(signUpData.specialization, departmentOptions, specialtyOptions)
 
       }
 
-      // Convert to RegisterData format expected by supabaseAuth
-      const registerData = {
+      // Convert to Auth Service format (new structure)
+      const authServiceData: AuthServiceRegisterData = {
         email: signUpData.email,
         password: signUpData.password,
         full_name: signUpData.fullName,
         phone_number: signUpData.phoneNumber,
         role: signUpData.accountType as "doctor" | "patient",
+        gender: signUpData.gender,
+        date_of_birth: signUpData.dateOfBirth,
         // Doctor specific
         specialty: signUpData.specialization,
         license_number: signUpData.licenseNo,
         qualification: signUpData.qualification,
-        department_id: departmentId, // Thêm department_id
-        // Patient specific
-        date_of_birth: signUpData.dateOfBirth,
-        gender: signUpData.gender,
+        department_id: signUpData.departmentId,
+        years_of_experience: signUpData.yearsOfExperience,
+        // Patient specific - structured data
         address: signUpData.address,
+        emergency_contact: signUpData.emergencyContact,
+        blood_type: signUpData.bloodType,
       }
 
-      const result = await supabaseAuth.signUp(registerData)
+      // Register via Auth Service
+      setProfileStatus({ step: 'profile', message: 'Đang tạo hồ sơ người dùng...' })
+      const result = await registerWithAuthService(authServiceData)
 
-
-
-      if (result.error) {
-
-        let errorMessage = typeof result.error === 'string' ? result.error : String(result.error)
-
-        // Handle specific error cases with better user experience
-        if (errorMessage.includes('Email này đã được đăng ký') ||
-            errorMessage.includes('User already registered') ||
-            errorMessage.includes('already been registered') ||
-            errorMessage.includes('duplicate key value violates unique constraint')) {
-          errorMessage = "Email này đã được đăng ký. Vui lòng sử dụng email khác hoặc đăng nhập."
-        } else if (errorMessage.includes('Invalid email')) {
-          errorMessage = "Email không hợp lệ. Vui lòng kiểm tra lại."
-        } else if (errorMessage.includes('Password')) {
-          errorMessage = "Mật khẩu không hợp lệ. Vui lòng kiểm tra lại."
-        } else if (errorMessage.includes('weak')) {
-          errorMessage = "Mật khẩu quá yếu. Vui lòng sử dụng mật khẩu mạnh hơn."
-        } else if (errorMessage.includes('signup')) {
-          errorMessage = "Đăng ký tạm thời bị tắt. Vui lòng thử lại sau."
-        } else if (errorMessage.includes('Thông tin') || errorMessage.includes('không đầy đủ')) {
-          // Keep the original validation error message
-          errorMessage = errorMessage
-        } else if (errorMessage.includes('Không thể')) {
-          // Keep the original profile creation error message
-          errorMessage = errorMessage
-        }
-
-        setError(errorMessage)
-        setProfileStatus({ step: 'auth' })
-        showToast("Đăng ký thất bại", errorMessage, "error")
-        setIsLoading(false)
-      } else if (result.user) {
-        // Registration successful
-
-
-        setProfileStatus({ step: 'complete', message: 'Đăng ký thành công!' })
-
-        const roleText = accountType === "doctor" ? "bác sĩ" : accountType === "patient" ? "bệnh nhân" : "quản trị viên"
-        const successMessage = `Đăng ký tài khoản ${roleText} thành công! Hồ sơ người dùng đã được tạo. Đang chuyển đến trang đăng nhập...`
-
-        // Clear any existing errors and set success
-        setError("")
-        setSuccess(successMessage)
-
-        // Show success toast
-        showToast("🎉 Đăng ký thành công!", successMessage, "success")
-
-        // Wait a bit to show the success message, then redirect
-        setTimeout(() => {
-          setIsLoading(false) // Reset loading before redirect
-          router.push("/auth/login?message=" + encodeURIComponent("Đăng ký thành công! Vui lòng đăng nhập để tiếp tục.") + "&from_register=true")
-        }, 2000)
-
-      } else {
-
-        setError("Đăng ký không thành công. Vui lòng thử lại.")
-        showToast("Đăng ký thất bại", "Đăng ký không thành công. Vui lòng thử lại.", "error")
-        setIsLoading(false)
+      if (!result.success) {
+        throw new Error(result.error || 'Registration failed')
       }
-    } catch (err) {
 
-      const errorMessage = "Đã xảy ra lỗi không mong muốn. Vui lòng thử lại."
+      // Registration successful
+      setProfileStatus({ step: 'complete', message: 'Đăng ký thành công!' })
+
+      const roleText = accountType === "doctor" ? "bác sĩ" : accountType === "patient" ? "bệnh nhân" : "quản trị viên"
+      const successMessage = `Đăng ký tài khoản ${roleText} thành công! Hồ sơ người dùng đã được tạo. Đang chuyển đến trang đăng nhập...`
+
+      // Clear any existing errors and set success
+      setError("")
+      setSuccess(successMessage)
+
+      // Show success toast
+      showToast("🎉 Đăng ký thành công!", successMessage, "success")
+
+      // Wait a bit to show the success message, then redirect
+      setTimeout(() => {
+        setIsLoading(false) // Reset loading before redirect
+        router.push("/auth/login?message=" + encodeURIComponent("Đăng ký thành công! Vui lòng đăng nhập để tiếp tục.") + "&from_register=true")
+      }, 2000)
+    } catch (err: any) {
+      console.error('❌ Registration failed:', err)
+      let errorMessage = err.message || 'Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.'
+
+      // Handle specific error cases with better user experience
+      if (errorMessage.includes('Email này đã được đăng ký') ||
+          errorMessage.includes('User already registered') ||
+          errorMessage.includes('already been registered') ||
+          errorMessage.includes('duplicate key value violates unique constraint')) {
+        errorMessage = "Email này đã được đăng ký. Vui lòng sử dụng email khác hoặc đăng nhập."
+      } else if (errorMessage.includes('Invalid email')) {
+        errorMessage = "Email không hợp lệ. Vui lòng kiểm tra lại."
+      } else if (errorMessage.includes('Password')) {
+        errorMessage = "Mật khẩu không hợp lệ. Vui lòng kiểm tra lại."
+      } else if (errorMessage.includes('weak')) {
+        errorMessage = "Mật khẩu quá yếu. Vui lòng sử dụng mật khẩu mạnh hơn."
+      } else if (errorMessage.includes('signup')) {
+        errorMessage = "Đăng ký tạm thời bị tắt. Vui lòng thử lại sau."
+      }
+
       setError(errorMessage)
+      setProfileStatus({ step: 'auth' })
       showToast("Đăng ký thất bại", errorMessage, "error")
       setIsLoading(false)
     }
@@ -731,6 +791,26 @@ export default function RegisterPage() {
                           <SelectItem value="Tiến sĩ">Tiến sĩ</SelectItem>
                           <SelectItem value="Giáo sư">Giáo sư</SelectItem>
                           <SelectItem value="Phó Giáo sư">Phó Giáo sư</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="gender" className="text-[#0066CC]">
+                        Giới tính
+                      </Label>
+                      <Select
+                        value={formData.gender}
+                        onValueChange={(value) => handleSelectChange("gender", value)}
+                        disabled={isLoading}
+                      >
+                        <SelectTrigger className="h-10 rounded-md border-[#CCC] focus:border-[#0066CC] focus:ring-1 focus:ring-[#0066CC]">
+                          <SelectValue placeholder="Chọn giới tính" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="male">Nam</SelectItem>
+                          <SelectItem value="female">Nữ</SelectItem>
+                          <SelectItem value="other">Khác</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

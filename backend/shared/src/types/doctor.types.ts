@@ -2,31 +2,35 @@ import { BaseEntity } from './common.types';
 
 export interface Doctor extends BaseEntity {
   doctor_id: string;
-  full_name: string;
+  profile_id: string; // Link to profiles table
   specialty: string;
   qualification: string;
-  working_hours: string;
   department_id: string;
   license_number: string;
   gender: string;
-  photo_url?: string;
-  phone_number: string;
-  email: string;
-  user_id?: string; // Link to users table
+  bio?: string;
+  experience_years: number;
+  consultation_fee?: number;
+  address?: any;
+  languages_spoken: string[];
+  availability_status: string;
+  rating: number;
+  total_reviews: number;
 }
 
 export interface CreateDoctorRequest {
-  full_name: string;
+  // ✅ UPDATED: Only fields that exist in current database schema
   specialty: string;
   qualification: string;
-  working_hours: string;
   department_id: string;
   license_number: string;
   gender: string;
-  photo_url?: string;
-  phone_number: string;
-  email: string;
-  user_id?: string;
+  bio?: string;
+  experience_years?: number;
+  consultation_fee?: number;
+  address?: any;
+  languages_spoken?: string[];
+  profile_id?: string; // Link to profiles table
 }
 
 export interface UpdateDoctorRequest {
@@ -223,10 +227,7 @@ export interface CreateExperienceRequest {
 
 // Enhanced Doctor Profile
 export interface DoctorProfile extends Doctor {
-  bio?: string;
-  experience_years?: number;
-  consultation_fee?: number;
-  languages_spoken?: string[];
+  // ✅ UPDATED: Remove duplicate fields that are already in Doctor interface
   certifications?: string[];
   awards?: string[];
   research_interests?: string[];

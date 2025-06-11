@@ -166,16 +166,20 @@ export class DoctorRepository {
       
       const supabaseDoctor = {
         doctor_id: doctorId,
-        full_name: doctorData.full_name,
+        // ✅ UPDATED: Only use columns that exist in current database schema
         specialty: doctorData.specialty,
         qualification: doctorData.qualification,
-        working_hours: doctorData.working_hours,
         department_id: doctorData.department_id,
         license_number: doctorData.license_number,
         gender: doctorData.gender,
-        photo_url: doctorData.photo_url,
-        phone_number: doctorData.phone_number,
-        email: doctorData.email
+        bio: doctorData.bio || null,
+        experience_years: doctorData.experience_years || 0,
+        consultation_fee: doctorData.consultation_fee || null,
+        address: doctorData.address || {},
+        languages_spoken: doctorData.languages_spoken || ['Vietnamese'],
+        availability_status: 'available',
+        rating: 0.00,
+        total_reviews: 0
       };
 
       const { data, error } = await this.supabase
@@ -195,6 +199,7 @@ export class DoctorRepository {
 
   async update(doctorId: string, doctorData: UpdateDoctorRequest): Promise<Doctor | null> {
     try {
+      // First update the doctor record
       const { data, error } = await this.supabase
         .from('doctors')
         .update(doctorData)
@@ -205,6 +210,39 @@ export class DoctorRepository {
       if (error) {
         if (error.code === 'PGRST116') return null;
         throw error;
+      }
+
+      // If phone_number, email, or full_name is being updated, also update the profile
+      if (doctorData.phone_number || doctorData.email || doctorData.full_name) {
+        const profileUpdateData: any = {};
+
+        if (doctorData.phone_number) profileUpdateData.phone_number = doctorData.phone_number;
+        if (doctorData.email) profileUpdateData.email = doctorData.email;
+        if (doctorData.full_name) profileUpdateData.full_name = doctorData.full_name;
+
+        if (Object.keys(profileUpdateData).length > 0) {
+          profileUpdateData.updated_at = new Date().toISOString();
+
+          const { error: profileError } = await this.supabase
+            .from('profiles')
+            .update(profileUpdateData)
+            .eq('id', data.profile_id);
+
+          if (profileError) {
+            logger.warn('Failed to update profile during doctor update', {
+              error: profileError,
+              doctorId,
+              profileId: data.profile_id
+            });
+            // Don't throw error, just log warning as doctor update succeeded
+          } else {
+            logger.info('Successfully synced doctor update to profile', {
+              doctorId,
+              profileId: data.profile_id,
+              updatedFields: Object.keys(profileUpdateData)
+            });
+          }
+        }
       }
 
       return this.mapSupabaseDoctorToDoctor(data);
@@ -269,19 +307,22 @@ export class DoctorRepository {
     return {
       id: supabaseDoctor.doctor_id,
       doctor_id: supabaseDoctor.doctor_id,
-      full_name: supabaseDoctor.full_name,
+      profile_id: supabaseDoctor.profile_id,
       specialty: supabaseDoctor.specialty,
       qualification: supabaseDoctor.qualification,
-      working_hours: supabaseDoctor.working_hours,
       department_id: supabaseDoctor.department_id,
       license_number: supabaseDoctor.license_number,
       gender: supabaseDoctor.gender,
-      photo_url: supabaseDoctor.photo_url,
-      phone_number: supabaseDoctor.phone_number,
-      email: supabaseDoctor.email,
-      user_id: supabaseDoctor.user_id,
-      created_at: new Date(),
-      updated_at: new Date()
+      bio: supabaseDoctor.bio,
+      experience_years: supabaseDoctor.experience_years || 0,
+      consultation_fee: supabaseDoctor.consultation_fee,
+      address: supabaseDoctor.address || {},
+      languages_spoken: supabaseDoctor.languages_spoken || ['Vietnamese'],
+      availability_status: supabaseDoctor.availability_status || 'available',
+      rating: supabaseDoctor.rating || 0.00,
+      total_reviews: supabaseDoctor.total_reviews || 0,
+      created_at: new Date(supabaseDoctor.created_at),
+      updated_at: new Date(supabaseDoctor.updated_at)
     };
   }
 }

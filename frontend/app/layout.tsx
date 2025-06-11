@@ -4,7 +4,7 @@ import "@/app/globals.css"; // Import các style global của bạn
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ToastProvider } from "@/components/ui/toast-provider";
-import { EnhancedAuthProvider } from "@/lib/auth/enhanced-auth-context";
+import { AuthProvider } from "@/lib/auth/auth-wrapper";
 import { EnumProvider } from "@/lib/contexts/EnumContext";
 
 // Khởi tạo font Inter với subset Latin
@@ -39,8 +39,8 @@ export default function RootLayout({
       <body className={inter.className}>
         {/* ThemeProvider để quản lý chủ đề sáng/tối của ứng dụng */}
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          {/* EnhancedAuthProvider để cung cấp context xác thực cho toàn bộ ứng dụng */}
-          <EnhancedAuthProvider>
+          {/* Unified AuthProvider để cung cấp context xác thực thống nhất */}
+          <AuthProvider>
             {/* EnumProvider để cung cấp context enum động cho toàn bộ ứng dụng */}
             <EnumProvider>
               {/* ToastProvider để hiển thị các thông báo toast */}
@@ -48,7 +48,7 @@ export default function RootLayout({
                 {children} {/* Đây là nơi nội dung của các trang và layout con sẽ được render */}
               </ToastProvider>
             </EnumProvider>
-          </EnhancedAuthProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -23,12 +23,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { useEnhancedAuth } from "@/lib/auth/enhanced-auth-context"
+import { useAuth } from "@/lib/auth/auth-wrapper"
 import { doctorsApi } from "@/lib/api/doctors"
 import { useToast } from "@/components/ui/toast-provider"
 
 export default function DoctorProfile() {
-  const { user, loading: authLoading } = useEnhancedAuth()
+  const { user, loading: authLoading } = useAuth()
   const { showToast } = useToast()
   const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -364,11 +364,37 @@ export default function DoctorProfile() {
                     <Input
                       id="working_hours"
                       name="working_hours"
-                      value={formData.working_hours}
+                      value={typeof formData.working_hours === 'object' ? JSON.stringify(formData.working_hours) : formData.working_hours || ''}
                       onChange={handleInputChange}
                     />
                   ) : (
-                    <p className="mt-1 text-sm text-gray-900">{formData.working_hours}</p>
+                    <div className="mt-1 text-sm text-gray-900">
+                      {formData.working_hours ? (
+                        typeof formData.working_hours === 'object' ? (
+                          <div className="space-y-1">
+                            {Object.entries(formData.working_hours).map(([day, hours]) => (
+                              <div key={day} className="flex justify-between">
+                                <span className="capitalize">{day}:</span>
+                                <span>
+                                  {typeof hours === 'object' && hours !== null ? (
+                                    // Handle time range objects with start/end properties
+                                    (hours as any).start && (hours as any).end ?
+                                      `${(hours as any).start} - ${(hours as any).end}` :
+                                      JSON.stringify(hours)
+                                  ) : (
+                                    String(hours)
+                                  )}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          String(formData.working_hours)
+                        )
+                      ) : (
+                        'Chưa có thông tin'
+                      )}
+                    </div>
                   )}
                 </div>
               </div>

@@ -4,10 +4,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const dotenv_1 = __importDefault(require("dotenv"));
+// Load environment variables FIRST
+dotenv_1.default.config();
 const app_1 = __importDefault(require("./app"));
 const shared_1 = require("@hospital/shared");
-// Load environment variables
-dotenv_1.default.config();
 const PORT = process.env.PORT || 3006;
 const SERVICE_NAME = 'medical-records-service';
 // Graceful shutdown handler

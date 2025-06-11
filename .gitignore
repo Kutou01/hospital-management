@@ -85,3 +85,19 @@ deployment/configs/*.local.*
 # Temporary files
 tmp/
 temp/
+
+# Added by Task Master AI
+dev-debug.log
+# Dependency directories
+# Environment variables
+.env
+# Editor directories and files
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+# OS specific
+# Task files
+tasks.json
+tasks/ 

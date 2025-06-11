@@ -12,6 +12,7 @@
     "format": "prettier --write src/**/*.ts"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
     "amqplib": "^0.10.3",
     "bcrypt": "^5.1.0",
     "express-validator": "^7.0.1",

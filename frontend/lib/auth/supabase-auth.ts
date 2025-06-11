@@ -142,47 +142,57 @@ class SupabaseAuthService {
       console.log('✅ Profile created successfully:', profileResult.profile);
 
       // 3. Create role-specific profile data if needed
-      if (userData.role === 'doctor' && userData.specialty) {
-        console.log('👨‍⚕️ Creating doctor profile for:', authData.user.id);
+      if (userData.role === 'doctor') {
+        console.log('👨‍⚕️ Creating doctor profile via Auth Service for:', authData.user.id);
 
-        // Get department ID based on specialty if not provided
-        let departmentId = userData.department_id;
-        if (!departmentId && userData.specialty) {
-          const { data: department } = await supabaseClient
-            .from('departments')
-            .select('department_id')
-            .ilike('name', `%${userData.specialty}%`)
-            .single();
+        try {
+          // Get department ID based on specialty if not provided
+          let departmentId = userData.department_id;
+          if (!departmentId && userData.specialty) {
+            const { data: department } = await supabaseClient
+              .from('departments')
+              .select('department_id')
+              .ilike('name', `%${userData.specialty}%`)
+              .single();
 
-          if (department) {
-            departmentId = department.department_id;
-            console.log('🏥 Found department for specialty:', userData.specialty, '-> Department ID:', departmentId);
+            if (department) {
+              departmentId = department.department_id;
+              console.log('🏥 Found department for specialty:', userData.specialty, '-> Department ID:', departmentId);
+            }
           }
-        }
 
-        // Generate simple doctor ID
-        const doctorId = `DOC${Date.now().toString().slice(-6)}`;
-
-        const { error: doctorError } = await supabaseClient
-          .from('doctors')
-          .insert({
-            doctor_id: doctorId,
-            profile_id: authData.user.id,
-            full_name: userData.full_name,
-            specialization: userData.specialty,
-            license_number: userData.license_number || 'PENDING',
-            qualification: userData.qualification || 'MD',
-            department_id: departmentId || 'DEPT001',
-            gender: userData.gender || 'other',
-            status: 'active',
-            working_hours: '{}',
+          // Call Auth Service to create doctor record with department-based ID
+          const authServiceUrl = process.env.NEXT_PUBLIC_AUTH_SERVICE_URL || 'http://localhost:3001';
+          const response = await fetch(`${authServiceUrl}/api/auth/create-doctor-record`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userId: authData.user.id,
+              userData: {
+                full_name: userData.full_name,
+                phone_number: userData.phone_number,
+                specialty: userData.specialty,
+                license_number: userData.license_number,
+                qualification: userData.qualification,
+                department_id: departmentId || 'DEPT001',
+                gender: userData.gender || 'other'
+              }
+            })
           });
 
-        if (doctorError) {
-          console.error('❌ Error creating doctor profile:', doctorError);
-          // Don't fail the registration, just log the error
-        } else {
-          console.log('✅ Doctor profile created successfully');
+          if (response.ok) {
+            const result = await response.json();
+            console.log('✅ Doctor profile created successfully via Auth Service:', result);
+          } else {
+            const errorData = await response.json();
+            console.error('❌ Auth Service error creating doctor profile:', errorData);
+            // Don't fail the registration, just log the error
+          }
+        } catch (authServiceError) {
+          console.error('❌ Error calling Auth Service for doctor creation:', authServiceError);
+          // Fallback: Don't fail the registration
         }
       } else if (userData.role === 'patient') {
         console.log('🏥 Creating patient profile for:', authData.user.id);
@@ -195,10 +205,10 @@ class SupabaseAuthService {
           .insert({
             patient_id: patientId,
             profile_id: authData.user.id,
-            full_name: userData.full_name,
-            date_of_birth: userData.date_of_birth,
+            // ✅ CLEAN DESIGN: NO full_name, date_of_birth - they are in profiles table
             gender: userData.gender || 'other',
             address: userData.address ? { street: userData.address } : {},
+            medical_history: 'No medical history recorded',
             status: 'active',
           });
 

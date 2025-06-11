@@ -4,7 +4,7 @@ import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Hospital, LogOut, Loader2 } from "lucide-react"
 import { EnhancedAdminGuard } from "@/lib/auth/enhanced-role-guard"
-import { useEnhancedAuth } from "@/lib/auth/enhanced-auth-context"
+import { useEnhancedAuth } from "@/lib/auth/auth-wrapper"
 import { AdminLayout } from "@/components/layout/UniversalLayout"
 
 interface EnhancedAdminLayoutProps {

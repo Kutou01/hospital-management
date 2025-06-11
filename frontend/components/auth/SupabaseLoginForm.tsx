@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useEnhancedAuth } from '@/lib/auth/enhanced-auth-context';
+import { useAuth } from '@/lib/auth/auth-wrapper';
 import { useToast } from '@/components/ui/toast-provider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +13,7 @@ import { Loader2, Eye, EyeOff } from 'lucide-react';
 
 export function SupabaseLoginForm() {
   const router = useRouter();
-  const { signIn, loading, clearError } = useEnhancedAuth();
+  const { signIn, loading, clearError } = useAuth();
   const { showToast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -237,7 +237,7 @@ export function ProtectedRoute({
   allowedRoles = [],
   fallback
 }: ProtectedRouteProps) {
-  const { user, loading } = useEnhancedAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
 
   if (loading) {

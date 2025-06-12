@@ -20,7 +20,7 @@ const REQUIRED_SCHEMA = {
     'role', 'is_active', 'email_verified', 'phone_verified', 'created_at'
   ],
   departments: [
-    'dept_id', 'name', 'code', 'description', 'is_active', 'created_at'
+    'department_id', 'department_name', 'department_code', 'description', 'is_active', 'created_at'
   ],
   doctors: [
     'doctor_id', 'profile_id', 'specialty', 'qualification', 'department_id',
@@ -196,11 +196,15 @@ async function testSeedingRequirements() {
         try {
           const { error } = await supabase
             .from('departments')
-            .upsert({ dept_id: 'TEST', name: 'Test Dept', code: 'TEST' }, { onConflict: 'dept_id' });
-          
+            .upsert({
+              department_id: 'TEST',
+              department_name: 'Test Dept',
+              department_code: 'TEST'
+            }, { onConflict: 'department_id' });
+
           if (!error) {
             // Clean up test data
-            await supabase.from('departments').delete().eq('dept_id', 'TEST');
+            await supabase.from('departments').delete().eq('department_id', 'TEST');
             return true;
           }
           return false;

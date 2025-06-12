@@ -96,6 +96,7 @@
     "db:fix-schema": "node scripts/quick-schema-fix.js",
     "db:create-reviews": "node scripts/create-doctor-reviews-table.js",
     "db:verify-simple": "node scripts/verify-schema-simple.js",
+    "db:seed-direct": "node scripts/seed-test-data-direct.js",
     "logs": "docker-compose logs -f",
     "logs:doctor": "docker-compose logs -f doctor-service",
     "logs:patient": "docker-compose logs -f patient-service",

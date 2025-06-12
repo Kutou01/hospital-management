@@ -318,16 +318,20 @@ const PATIENT_PROFILES = generatePatientProfiles();
 // Foreign key verification
 async function verifyForeignKeyConstraints() {
   try {
-    // Check if departments table exists and has data
+    // Check if departments table exists and has data (using actual column names)
     const { data: depts, error: deptError } = await supabase
       .from('departments')
-      .select('dept_id')
+      .select('department_id, department_name, is_active')
+      .eq('is_active', true)
       .limit(1);
 
     if (deptError || !depts || depts.length === 0) {
       console.log('   ⚠️ Departments table is empty or missing');
+      console.log(`   Error: ${deptError?.message || 'No active departments found'}`);
       return false;
     }
+
+    console.log(`   ✅ Found ${depts.length} active departments`);
 
     // Check if required tables exist
     const requiredTables = ['profiles', 'doctors', 'patients', 'appointments', 'medical_records', 'doctor_schedules', 'doctor_reviews'];
@@ -339,11 +343,12 @@ async function verifyForeignKeyConstraints() {
         .limit(1);
 
       if (error) {
-        console.log(`   ⚠️ Table '${table}' does not exist or is not accessible`);
+        console.log(`   ⚠️ Table '${table}' does not exist or is not accessible: ${error.message}`);
         return false;
       }
     }
 
+    console.log(`   ✅ All required tables are accessible`);
     return true;
   } catch (error) {
     console.log(`   ❌ Error verifying constraints: ${error.message}`);

@@ -22,119 +22,227 @@ const DEPARTMENTS = [
   { dept_id: 'DERM', name: 'Da liễu', code: 'DERM' }
 ];
 
-const DOCTOR_PROFILES = [
-  {
-    email: 'bs.nguyen.tim@hospital.com',
-    full_name: 'BS. Nguyễn Văn Tâm',
-    phone_number: '0901234567',
-    date_of_birth: '1980-05-15',
-    specialty: 'Tim mạch',
-    qualification: 'Thạc sĩ Y khoa',
-    department_id: 'CARD',
-    license_number: 'VN-CARD-2020-001',
-    gender: 'male',
-    bio: 'Bác sĩ chuyên khoa tim mạch với 15 năm kinh nghiệm. Chuyên điều trị các bệnh lý tim mạch phức tạp.',
-    experience_years: 15,
-    consultation_fee: 500000,
-    languages_spoken: ['Vietnamese', 'English']
-  },
-  {
-    email: 'bs.tran.thuy@hospital.com',
-    full_name: 'BS. Trần Thị Thủy',
-    phone_number: '0901234568',
-    date_of_birth: '1985-08-20',
-    specialty: 'Nhi khoa',
-    qualification: 'Tiến sĩ Y khoa',
-    department_id: 'PEDI',
-    license_number: 'VN-PEDI-2018-002',
-    gender: 'female',
-    bio: 'Bác sĩ nhi khoa với chuyên môn cao về các bệnh lý trẻ em. Tốt nghiệp loại xuất sắc.',
-    experience_years: 12,
-    consultation_fee: 400000,
-    languages_spoken: ['Vietnamese', 'English', 'French']
-  },
-  {
-    email: 'bs.le.duc@hospital.com',
-    full_name: 'BS. Lê Văn Đức',
-    phone_number: '0901234569',
-    date_of_birth: '1978-12-10',
-    specialty: 'Thần kinh',
-    qualification: 'Tiến sĩ Y khoa',
-    department_id: 'NEUR',
-    license_number: 'VN-NEUR-2019-003',
-    gender: 'male',
-    bio: 'Chuyên gia thần kinh hàng đầu với nhiều công trình nghiên cứu quốc tế.',
-    experience_years: 18,
-    consultation_fee: 600000,
-    languages_spoken: ['Vietnamese', 'English', 'Japanese']
-  }
-];
+// Generate 20 doctors per department (100 total)
+function generateDoctorProfiles() {
+  const doctors = [];
+  const departments = [
+    { id: 'CARD', name: 'Tim mạch', specialties: ['Tim mạch', 'Tim mạch can thiệp', 'Siêu âm tim'] },
+    { id: 'NEUR', name: 'Thần kinh', specialties: ['Thần kinh', 'Thần kinh cột sống', 'Đột quỵ'] },
+    { id: 'PEDI', name: 'Nhi khoa', specialties: ['Nhi khoa', 'Nhi tim mạch', 'Nhi hô hấp'] },
+    { id: 'ORTH', name: 'Chấn thương chỉnh hình', specialties: ['Chấn thương chỉnh hình', 'Cột sống', 'Khớp'] },
+    { id: 'DERM', name: 'Da liễu', specialties: ['Da liễu', 'Thẩm mỹ da', 'Dị ứng da'] }
+  ];
 
-const PATIENT_PROFILES = [
-  {
-    email: 'nguyen.van.a@gmail.com',
-    full_name: 'Nguyễn Văn A',
-    phone_number: '0987654321',
-    date_of_birth: '1990-03-15',
-    gender: 'male',
-    blood_type: 'O+',
-    address: {
-      street: '123 Nguyễn Huệ',
-      district: 'Quận 1',
-      city: 'TP. Hồ Chí Minh'
-    },
-    emergency_contact: {
-      name: 'Nguyễn Thị B',
-      phone: '0987654322',
-      relationship: 'spouse'
-    },
-    medical_history: 'Tiền sử cao huyết áp gia đình',
-    allergies: ['penicillin'],
-    notes: 'Bệnh nhân hợp tác tốt'
-  },
-  {
-    email: 'tran.thi.c@gmail.com',
-    full_name: 'Trần Thị C',
-    phone_number: '0987654323',
-    date_of_birth: '1985-07-22',
-    gender: 'female',
-    blood_type: 'A+',
-    address: {
-      street: '456 Lê Lợi',
-      district: 'Quận 3',
-      city: 'TP. Hồ Chí Minh'
-    },
-    emergency_contact: {
-      name: 'Trần Văn D',
-      phone: '0987654324',
-      relationship: 'husband'
-    },
-    medical_history: 'Đã sinh 2 con, không có tiền sử bệnh lý',
-    allergies: [],
-    notes: 'Bệnh nhân cần theo dõi đặc biệt'
-  },
-  {
-    email: 'le.van.e@gmail.com',
-    full_name: 'Lê Văn E',
-    phone_number: '0987654325',
-    date_of_birth: '1995-11-08',
-    gender: 'male',
-    blood_type: 'B+',
-    address: {
-      street: '789 Võ Văn Tần',
-      district: 'Quận 10',
-      city: 'TP. Hồ Chí Minh'
-    },
-    emergency_contact: {
-      name: 'Lê Thị F',
-      phone: '0987654326',
-      relationship: 'mother'
-    },
-    medical_history: 'Khỏe mạnh, không có tiền sử bệnh lý',
-    allergies: ['seafood'],
-    notes: 'Bệnh nhân trẻ tuổi, cần tư vấn dinh dưỡng'
+  const firstNames = [
+    'Nguyễn', 'Trần', 'Lê', 'Phạm', 'Hoàng', 'Huỳnh', 'Phan', 'Vũ', 'Võ', 'Đặng',
+    'Bùi', 'Đỗ', 'Hồ', 'Ngô', 'Dương', 'Lý', 'Đinh', 'Đào', 'Lương', 'Tô'
+  ];
+
+  const maleMiddleNames = ['Văn', 'Đức', 'Minh', 'Hoàng', 'Quang', 'Thành', 'Hữu', 'Công', 'Thanh', 'Tuấn'];
+  const femaleMiddleNames = ['Thị', 'Minh', 'Thu', 'Hồng', 'Lan', 'Mai', 'Kim', 'Thanh', 'Ngọc', 'Phương'];
+
+  const maleLastNames = ['An', 'Bình', 'Cường', 'Dũng', 'Hải', 'Khang', 'Long', 'Nam', 'Phong', 'Quân', 'Sơn', 'Tài', 'Thắng', 'Vinh', 'Xuân'];
+  const femaleLastNames = ['Anh', 'Bích', 'Chi', 'Dung', 'Hà', 'Linh', 'Loan', 'Nga', 'Oanh', 'Phúc', 'Quyên', 'Thảo', 'Uyên', 'Vân', 'Yến'];
+
+  const qualifications = ['Thạc sĩ Y khoa', 'Tiến sĩ Y khoa', 'Bác sĩ Chuyên khoa I', 'Bác sĩ Chuyên khoa II', 'Giáo sư', 'Phó Giáo sư'];
+
+  departments.forEach(dept => {
+    for (let i = 1; i <= 20; i++) {
+      const isGender = Math.random() > 0.4 ? 'male' : 'female'; // 60% male, 40% female
+      const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+      const middleName = isGender === 'male'
+        ? maleMiddleNames[Math.floor(Math.random() * maleMiddleNames.length)]
+        : femaleMiddleNames[Math.floor(Math.random() * femaleMiddleNames.length)];
+      const lastName = isGender === 'male'
+        ? maleLastNames[Math.floor(Math.random() * maleLastNames.length)]
+        : femaleLastNames[Math.floor(Math.random() * femaleLastNames.length)];
+
+      const fullName = `BS. ${firstName} ${middleName} ${lastName}`;
+      const email = `bs.${firstName.toLowerCase()}.${lastName.toLowerCase()}${i}@hospital.com`;
+      const phone = `090${Math.floor(Math.random() * 9000000) + 1000000}`;
+      const birthYear = 1970 + Math.floor(Math.random() * 25); // Age 30-55
+      const birthMonth = String(Math.floor(Math.random() * 12) + 1).padStart(2, '0');
+      const birthDay = String(Math.floor(Math.random() * 28) + 1).padStart(2, '0');
+      const dateOfBirth = `${birthYear}-${birthMonth}-${birthDay}`;
+
+      const specialty = dept.specialties[Math.floor(Math.random() * dept.specialties.length)];
+      const qualification = qualifications[Math.floor(Math.random() * qualifications.length)];
+      const experienceYears = 2024 - birthYear - 25; // Assuming graduated at 25
+      const consultationFee = (300000 + Math.floor(Math.random() * 500000)) / 1000 * 1000; // 300k-800k, rounded to thousands
+
+      const bios = [
+        `Bác sĩ ${specialty.toLowerCase()} với ${experienceYears} năm kinh nghiệm. Chuyên điều trị các bệnh lý phức tạp.`,
+        `Chuyên gia ${specialty.toLowerCase()} hàng đầu với nhiều công trình nghiên cứu.`,
+        `Bác sĩ giàu kinh nghiệm trong lĩnh vực ${specialty.toLowerCase()}. Tận tâm với bệnh nhân.`,
+        `${qualification} chuyên khoa ${specialty.toLowerCase()}. Đào tạo tại các bệnh viện lớn.`,
+        `Bác sĩ ${specialty.toLowerCase()} với chuyên môn cao và thái độ thân thiện.`
+      ];
+
+      const languages = [
+        ['Vietnamese', 'English'],
+        ['Vietnamese', 'English', 'French'],
+        ['Vietnamese', 'English', 'Japanese'],
+        ['Vietnamese', 'English', 'German'],
+        ['Vietnamese']
+      ];
+
+      doctors.push({
+        email,
+        full_name: fullName,
+        phone_number: phone,
+        date_of_birth: dateOfBirth,
+        specialty,
+        qualification,
+        department_id: dept.id,
+        license_number: `VN-${dept.id}-${birthYear}-${String(i).padStart(3, '0')}`,
+        gender: isGender,
+        bio: bios[Math.floor(Math.random() * bios.length)],
+        experience_years: Math.max(1, experienceYears),
+        consultation_fee: consultationFee,
+        languages_spoken: languages[Math.floor(Math.random() * languages.length)]
+      });
+    }
+  });
+
+  return doctors;
+}
+
+const DOCTOR_PROFILES = generateDoctorProfiles();
+
+// Generate 30 patients
+function generatePatientProfiles() {
+  const patients = [];
+
+  const firstNames = [
+    'Nguyễn', 'Trần', 'Lê', 'Phạm', 'Hoàng', 'Huỳnh', 'Phan', 'Vũ', 'Võ', 'Đặng',
+    'Bùi', 'Đỗ', 'Hồ', 'Ngô', 'Dương', 'Lý', 'Đinh', 'Đào', 'Lương', 'Tô'
+  ];
+
+  const maleMiddleNames = ['Văn', 'Đức', 'Minh', 'Hoàng', 'Quang', 'Thành', 'Hữu', 'Công', 'Thanh', 'Tuấn'];
+  const femaleMiddleNames = ['Thị', 'Minh', 'Thu', 'Hồng', 'Lan', 'Mai', 'Kim', 'Thanh', 'Ngọc', 'Phương'];
+
+  const maleLastNames = ['An', 'Bình', 'Cường', 'Dũng', 'Hải', 'Khang', 'Long', 'Nam', 'Phong', 'Quân', 'Sơn', 'Tài', 'Thắng', 'Vinh', 'Xuân'];
+  const femaleLastNames = ['Anh', 'Bích', 'Chi', 'Dung', 'Hà', 'Linh', 'Loan', 'Nga', 'Oanh', 'Phúc', 'Quyên', 'Thảo', 'Uyên', 'Vân', 'Yến'];
+
+  const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+  const districts = [
+    'Quận 1', 'Quận 2', 'Quận 3', 'Quận 4', 'Quận 5', 'Quận 6', 'Quận 7', 'Quận 8', 'Quận 9', 'Quận 10',
+    'Quận 11', 'Quận 12', 'Quận Bình Thạnh', 'Quận Gò Vấp', 'Quận Phú Nhuận', 'Quận Tân Bình', 'Quận Tân Phú'
+  ];
+  const streets = [
+    'Nguyễn Huệ', 'Lê Lợi', 'Võ Văn Tần', 'Hai Bà Trưng', 'Nguyễn Thị Minh Khai', 'Cách Mạng Tháng 8',
+    'Lý Tự Trọng', 'Pasteur', 'Điện Biên Phủ', 'Nguyễn Du', 'Trần Hưng Đạo', 'Lê Thánh Tôn'
+  ];
+
+  const medicalHistories = [
+    'Khỏe mạnh, không có tiền sử bệnh lý',
+    'Tiền sử cao huyết áp gia đình',
+    'Tiền sử tiểu đường type 2',
+    'Đã phẫu thuật ruột thừa năm 2020',
+    'Dị ứng thuốc kháng sinh',
+    'Tiền sử hen suyễn nhẹ',
+    'Đã sinh con, không có biến chứng',
+    'Tiền sử gãy xương chân trái',
+    'Viêm dạ dày mãn tính',
+    'Cận thị, đeo kính từ nhỏ'
+  ];
+
+  const allergiesList = [
+    [],
+    ['penicillin'],
+    ['seafood'],
+    ['peanuts'],
+    ['dust'],
+    ['pollen'],
+    ['penicillin', 'sulfa'],
+    ['shellfish'],
+    ['eggs'],
+    ['milk']
+  ];
+
+  const relationships = ['spouse', 'parent', 'child', 'sibling', 'friend'];
+
+  for (let i = 1; i <= 30; i++) {
+    const isGender = Math.random() > 0.5 ? 'male' : 'female';
+    const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+    const middleName = isGender === 'male'
+      ? maleMiddleNames[Math.floor(Math.random() * maleMiddleNames.length)]
+      : femaleMiddleNames[Math.floor(Math.random() * femaleMiddleNames.length)];
+    const lastName = isGender === 'male'
+      ? maleLastNames[Math.floor(Math.random() * maleLastNames.length)]
+      : femaleLastNames[Math.floor(Math.random() * femaleLastNames.length)];
+
+    const fullName = `${firstName} ${middleName} ${lastName}`;
+    const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}${i}@gmail.com`;
+    const phone = `098${Math.floor(Math.random() * 9000000) + 1000000}`;
+
+    // Age range: 18-80
+    const birthYear = 1944 + Math.floor(Math.random() * 60);
+    const birthMonth = String(Math.floor(Math.random() * 12) + 1).padStart(2, '0');
+    const birthDay = String(Math.floor(Math.random() * 28) + 1).padStart(2, '0');
+    const dateOfBirth = `${birthYear}-${birthMonth}-${birthDay}`;
+
+    const bloodType = bloodTypes[Math.floor(Math.random() * bloodTypes.length)];
+    const district = districts[Math.floor(Math.random() * districts.length)];
+    const street = streets[Math.floor(Math.random() * streets.length)];
+    const houseNumber = Math.floor(Math.random() * 999) + 1;
+
+    // Emergency contact
+    const emergencyGender = Math.random() > 0.5 ? 'male' : 'female';
+    const emergencyFirstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+    const emergencyMiddleName = emergencyGender === 'male'
+      ? maleMiddleNames[Math.floor(Math.random() * maleMiddleNames.length)]
+      : femaleMiddleNames[Math.floor(Math.random() * femaleMiddleNames.length)];
+    const emergencyLastName = emergencyGender === 'male'
+      ? maleLastNames[Math.floor(Math.random() * maleLastNames.length)]
+      : femaleLastNames[Math.floor(Math.random() * femaleLastNames.length)];
+    const emergencyName = `${emergencyFirstName} ${emergencyMiddleName} ${emergencyLastName}`;
+    const emergencyPhone = `097${Math.floor(Math.random() * 9000000) + 1000000}`;
+    const relationship = relationships[Math.floor(Math.random() * relationships.length)];
+
+    const medicalHistory = medicalHistories[Math.floor(Math.random() * medicalHistories.length)];
+    const allergies = allergiesList[Math.floor(Math.random() * allergiesList.length)];
+
+    const notes = [
+      'Bệnh nhân hợp tác tốt',
+      'Cần theo dõi đặc biệt',
+      'Bệnh nhân lo lắng, cần tư vấn tâm lý',
+      'Tuân thủ điều trị tốt',
+      'Cần nhắc nhở uống thuốc đúng giờ',
+      'Bệnh nhân có kiến thức y tế cơ bản',
+      'Gia đình hỗ trợ tốt',
+      'Cần giải thích rõ về bệnh',
+      'Bệnh nhân trẻ tuổi, năng động',
+      'Người cao tuổi, cần hỗ trợ'
+    ];
+
+    patients.push({
+      email,
+      full_name: fullName,
+      phone_number: phone,
+      date_of_birth: dateOfBirth,
+      gender: isGender,
+      blood_type: bloodType,
+      address: {
+        street: `${houseNumber} ${street}`,
+        district: district,
+        city: 'TP. Hồ Chí Minh'
+      },
+      emergency_contact: {
+        name: emergencyName,
+        phone: emergencyPhone,
+        relationship: relationship
+      },
+      medical_history: medicalHistory,
+      allergies: allergies,
+      notes: notes[Math.floor(Math.random() * notes.length)]
+    });
   }
-];
+
+  return patients;
+}
+
+const PATIENT_PROFILES = generatePatientProfiles();
 
 async function seedTestData() {
   console.log('🌱 Starting comprehensive test data seeding...\n');
@@ -163,12 +271,16 @@ async function seedTestData() {
     
     console.log('\n🎉 Test data seeding completed successfully!');
     console.log('\n📊 Summary:');
-    console.log(`   👨‍⚕️ Doctors: ${DOCTOR_PROFILES.length}`);
+    console.log(`   👨‍⚕️ Doctors: ${DOCTOR_PROFILES.length} (20 per department)`);
     console.log(`   👤 Patients: ${PATIENT_PROFILES.length}`);
     console.log(`   🏥 Departments: ${DEPARTMENTS.length}`);
     console.log(`   📅 Appointments: Sample appointments created`);
     console.log(`   📋 Medical Records: Sample records created`);
     console.log(`   ⭐ Reviews: Sample reviews created`);
+    console.log('\n🏥 Department breakdown:');
+    DEPARTMENTS.forEach(dept => {
+      console.log(`   - ${dept.name} (${dept.dept_id}): 20 doctors`);
+    });
 
   } catch (error) {
     console.error('❌ Error seeding test data:', error);
@@ -373,38 +485,56 @@ async function seedDoctorSchedules() {
 
 async function seedAppointments() {
   console.log('\n📅 Seeding sample appointments...');
-  
+
   // Get doctors and patients
-  const { data: doctors } = await supabase.from('doctors').select('doctor_id').limit(2);
-  const { data: patients } = await supabase.from('patients').select('patient_id').limit(2);
+  const { data: doctors } = await supabase.from('doctors').select('doctor_id').limit(20);
+  const { data: patients } = await supabase.from('patients').select('patient_id').limit(30);
 
   if (!doctors || !patients || doctors.length === 0 || patients.length === 0) {
     console.log('   ⚠️ No doctors or patients found for appointments');
     return;
   }
 
-  // Create sample appointments
-  const appointments = [
-    {
-      doctor_id: doctors[0].doctor_id,
-      patient_id: patients[0].patient_id,
-      appointment_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Tomorrow
-      appointment_time: '09:00',
-      status: 'scheduled',
-      appointment_type: 'consultation',
-      notes: 'Khám tổng quát định kỳ'
-    },
-    {
-      doctor_id: doctors[0].doctor_id,
-      patient_id: patients[1].patient_id,
-      appointment_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), // Day after tomorrow
-      appointment_time: '10:30',
-      status: 'scheduled',
-      appointment_type: 'follow_up',
-      notes: 'Tái khám sau điều trị'
-    }
+  const appointmentTypes = ['consultation', 'follow_up', 'emergency', 'routine_checkup'];
+  const statuses = ['scheduled', 'completed', 'cancelled'];
+  const appointmentNotes = [
+    'Khám tổng quát định kỳ',
+    'Tái khám sau điều trị',
+    'Khám cấp cứu',
+    'Kiểm tra sức khỏe định kỳ',
+    'Tư vấn điều trị',
+    'Khám chuyên khoa',
+    'Theo dõi sau phẫu thuật',
+    'Khám sức khỏe tổng quát'
   ];
 
+  // Create 50 sample appointments
+  const appointments = [];
+  for (let i = 0; i < 50; i++) {
+    const doctor = doctors[Math.floor(Math.random() * doctors.length)];
+    const patient = patients[Math.floor(Math.random() * patients.length)];
+
+    // Random date within last 30 days to next 30 days
+    const randomDays = Math.floor(Math.random() * 60) - 30;
+    const appointmentDate = new Date(Date.now() + randomDays * 24 * 60 * 60 * 1000);
+
+    // Random time between 8:00 and 17:00
+    const hour = 8 + Math.floor(Math.random() * 9);
+    const minute = Math.random() > 0.5 ? '00' : '30';
+    const appointmentTime = `${String(hour).padStart(2, '0')}:${minute}`;
+
+    appointments.push({
+      doctor_id: doctor.doctor_id,
+      patient_id: patient.patient_id,
+      appointment_date: appointmentDate.toISOString().split('T')[0],
+      appointment_time: appointmentTime,
+      status: statuses[Math.floor(Math.random() * statuses.length)],
+      appointment_type: appointmentTypes[Math.floor(Math.random() * appointmentTypes.length)],
+      notes: appointmentNotes[Math.floor(Math.random() * appointmentNotes.length)]
+    });
+  }
+
+  let successCount = 0;
   for (const appointment of appointments) {
     const { error } = await supabase
       .from('appointments')
@@ -413,79 +543,197 @@ async function seedAppointments() {
     if (error) {
       console.log(`   ⚠️ Appointment: ${error.message}`);
     } else {
-      console.log(`   ✅ Appointment: ${appointment.doctor_id} -> ${appointment.patient_id}`);
+      successCount++;
     }
   }
+
+  console.log(`   ✅ Created ${successCount} appointments`);
 }
 
 async function seedMedicalRecords() {
   console.log('\n📋 Seeding sample medical records...');
-  
-  // Get appointments
+
+  // Get completed appointments
   const { data: appointments } = await supabase
     .from('appointments')
-    .select('appointment_id, doctor_id, patient_id')
-    .limit(2);
+    .select('appointment_id, doctor_id, patient_id, appointment_date')
+    .eq('status', 'completed')
+    .limit(30);
 
   if (!appointments || appointments.length === 0) {
-    console.log('   ⚠️ No appointments found for medical records');
+    console.log('   ⚠️ No completed appointments found for medical records');
     return;
   }
 
+  const chiefComplaints = [
+    'Đau đầu, chóng mặt',
+    'Ho, sốt nhẹ',
+    'Đau bụng, buồn nôn',
+    'Khó thở, đau ngực',
+    'Đau lưng, tê chân',
+    'Mệt mỏi, chán ăn',
+    'Đau khớp, sưng tấy',
+    'Rối loạn tiêu hóa',
+    'Mất ngủ, lo âu',
+    'Kiểm tra sức khỏe định kỳ'
+  ];
+
+  const diagnoses = [
+    'Tăng huyết áp nhẹ',
+    'Viêm đường hô hấp trên',
+    'Viêm dạ dày cấp',
+    'Rối loạn nhịp tim',
+    'Thoát vị đĩa đệm',
+    'Thiếu máu nhẹ',
+    'Viêm khớp dạng thấp',
+    'Hội chứng ruột kích thích',
+    'Rối loạn lo âu',
+    'Sức khỏe bình thường'
+  ];
+
+  const treatmentPlans = [
+    'Thuốc hạ huyết áp, theo dõi huyết áp hàng ngày',
+    'Kháng sinh, thuốc ho, nghỉ ngơi',
+    'Thuốc kháng acid, chế độ ăn nhẹ',
+    'Thuốc điều hòa nhịp tim, theo dõi ECG',
+    'Thuốc giảm đau, vật lý trị liệu',
+    'Bổ sung sắt, vitamin, dinh dưỡng',
+    'Thuốc chống viêm, tập luyện nhẹ',
+    'Thuốc điều chỉnh tiêu hóa, chế độ ăn',
+    'Thuốc an thần nhẹ, tư vấn tâm lý',
+    'Duy trì lối sống lành mạnh'
+  ];
+
+  const recordNotes = [
+    'Bệnh nhân cần tái khám sau 2 tuần',
+    'Theo dõi triệu chứng, liên hệ nếu có biến chứng',
+    'Tuân thủ điều trị, uống thuốc đúng giờ',
+    'Tái khám sau 1 tháng để đánh giá',
+    'Cần thay đổi lối sống, tập thể dục',
+    'Bệnh nhân đã hiểu rõ về bệnh',
+    'Gia đình cần hỗ trợ điều trị',
+    'Kết quả xét nghiệm bình thường',
+    'Cần theo dõi lâu dài',
+    'Tình trạng ổn định'
+  ];
+
+  let successCount = 0;
   for (const appointment of appointments) {
+    const randomIndex = Math.floor(Math.random() * chiefComplaints.length);
+
     const { error } = await supabase
       .from('medical_records')
       .insert({
         appointment_id: appointment.appointment_id,
         doctor_id: appointment.doctor_id,
         patient_id: appointment.patient_id,
-        visit_date: new Date().toISOString().split('T')[0],
-        chief_complaint: 'Đau đầu, chóng mặt',
-        diagnosis: 'Tăng huyết áp nhẹ',
-        treatment_plan: 'Thuốc hạ huyết áp, theo dõi huyết áp hàng ngày',
-        notes: 'Bệnh nhân cần tái khám sau 2 tuần',
+        visit_date: appointment.appointment_date,
+        chief_complaint: chiefComplaints[randomIndex],
+        diagnosis: diagnoses[randomIndex],
+        treatment_plan: treatmentPlans[randomIndex],
+        notes: recordNotes[randomIndex],
         status: 'active'
       });
 
     if (error) {
       console.log(`   ⚠️ Medical record: ${error.message}`);
     } else {
-      console.log(`   ✅ Medical record for appointment: ${appointment.appointment_id}`);
+      successCount++;
     }
   }
+
+  console.log(`   ✅ Created ${successCount} medical records`);
 }
 
 async function seedDoctorReviews() {
   console.log('\n⭐ Seeding doctor reviews...');
-  
+
   // Get doctors and patients
-  const { data: doctors } = await supabase.from('doctors').select('doctor_id').limit(2);
-  const { data: patients } = await supabase.from('patients').select('patient_id').limit(2);
+  const { data: doctors } = await supabase.from('doctors').select('doctor_id').limit(50);
+  const { data: patients } = await supabase.from('patients').select('patient_id').limit(30);
 
   if (!doctors || !patients || doctors.length === 0 || patients.length === 0) {
     console.log('   ⚠️ No doctors or patients found for reviews');
     return;
   }
 
-  const reviews = [
-    {
-      doctor_id: doctors[0].doctor_id,
-      patient_id: patients[0].patient_id,
-      rating: 5,
-      review_text: 'Bác sĩ rất tận tâm và chuyên nghiệp. Giải thích rõ ràng về tình trạng bệnh.',
-      review_date: new Date().toISOString(),
-      is_verified: true
-    },
-    {
-      doctor_id: doctors[0].doctor_id,
-      patient_id: patients[1].patient_id,
-      rating: 4,
-      review_text: 'Khám bệnh kỹ lưỡng, thái độ thân thiện. Thời gian chờ hơi lâu.',
-      review_date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 1 week ago
-      is_verified: true
-    }
-  ];
+  const reviewTexts = {
+    5: [
+      'Bác sĩ rất tận tâm và chuyên nghiệp. Giải thích rõ ràng về tình trạng bệnh.',
+      'Xuất sắc! Bác sĩ có kinh nghiệm và thái độ rất tốt.',
+      'Rất hài lòng với dịch vụ. Bác sĩ tư vấn chi tiết và hiệu quả.',
+      'Bác sĩ giỏi chuyên môn, thân thiện và nhiệt tình.',
+      'Điều trị hiệu quả, theo dõi bệnh nhân chu đáo.'
+    ],
+    4: [
+      'Khám bệnh kỹ lưỡng, thái độ thân thiện. Thời gian chờ hơi lâu.',
+      'Bác sĩ tốt, chỉ có điều phòng khám hơi nhỏ.',
+      'Chuyên môn tốt, tuy nhiên cần cải thiện thời gian khám.',
+      'Hài lòng với kết quả điều trị, sẽ quay lại lần sau.',
+      'Bác sĩ nhiệt tình, giải thích dễ hiểu.'
+    ],
+    3: [
+      'Bình thường, không có gì đặc biệt.',
+      'Khám nhanh, chưa được tư vấn kỹ lưỡng.',
+      'Bác sĩ OK, nhưng thời gian khám hơi vội.',
+      'Tạm được, cần cải thiện thái độ phục vụ.',
+      'Chuyên môn ổn, cần thêm thời gian tư vấn.'
+    ],
+    2: [
+      'Thái độ chưa thân thiện, khám hơi vội vàng.',
+      'Không hài lòng với cách tư vấn của bác sĩ.',
+      'Thời gian chờ quá lâu, khám không kỹ.',
+      'Cần cải thiện thái độ phục vụ.',
+      'Chưa được giải thích rõ về bệnh.'
+    ],
+    1: [
+      'Rất không hài lòng với dịch vụ.',
+      'Thái độ không chuyên nghiệp.',
+      'Khám không kỹ, tư vấn sai.',
+      'Sẽ không quay lại lần sau.',
+      'Cần cải thiện toàn bộ quy trình.'
+    ]
+  };
 
+  // Create 150 reviews (average 3 reviews per doctor)
+  const reviews = [];
+  for (let i = 0; i < 150; i++) {
+    const doctor = doctors[Math.floor(Math.random() * doctors.length)];
+    const patient = patients[Math.floor(Math.random() * patients.length)];
+
+    // Weighted rating distribution (more positive reviews)
+    const ratingWeights = [1, 2, 3, 4, 5]; // 1-5 stars
+    const weights = [5, 10, 15, 35, 35]; // 5% 1-star, 10% 2-star, 15% 3-star, 35% 4-star, 35% 5-star
+
+    let rating = 5;
+    const random = Math.random() * 100;
+    let cumulative = 0;
+    for (let j = 0; j < weights.length; j++) {
+      cumulative += weights[j];
+      if (random <= cumulative) {
+        rating = ratingWeights[j];
+        break;
+      }
+    }
+
+    const reviewTextArray = reviewTexts[rating];
+    const reviewText = reviewTextArray[Math.floor(Math.random() * reviewTextArray.length)];
+
+    // Random date within last 6 months
+    const randomDays = Math.floor(Math.random() * 180);
+    const reviewDate = new Date(Date.now() - randomDays * 24 * 60 * 60 * 1000);
+
+    reviews.push({
+      doctor_id: doctor.doctor_id,
+      patient_id: patient.patient_id,
+      rating: rating,
+      review_text: reviewText,
+      review_date: reviewDate.toISOString(),
+      is_verified: Math.random() > 0.2 // 80% verified reviews
+    });
+  }
+
+  let successCount = 0;
   for (const review of reviews) {
     const { error } = await supabase
       .from('doctor_reviews')
@@ -494,9 +742,11 @@ async function seedDoctorReviews() {
     if (error) {
       console.log(`   ⚠️ Review: ${error.message}`);
     } else {
-      console.log(`   ✅ Review for doctor: ${review.doctor_id}`);
+      successCount++;
     }
   }
+
+  console.log(`   ✅ Created ${successCount} doctor reviews`);
 }
 
 // Run the seeding

@@ -6,15 +6,18 @@ This guide helps you set up comprehensive test data for testing Doctor and Patie
 
 ## 🎯 What Test Data Includes
 
-### **👨‍⚕️ Doctors (3 doctors):**
-- **BS. Nguyễn Văn Tâm** - Tim mạch (Cardiology) - 15 years experience
-- **BS. Trần Thị Thủy** - Nhi khoa (Pediatrics) - 12 years experience  
-- **BS. Lê Văn Đức** - Thần kinh (Neurology) - 18 years experience
+### **👨‍⚕️ Doctors (100 doctors - 20 per department):**
+- **Cardiology (CARD)**: 20 doctors specializing in heart conditions
+- **Neurology (NEUR)**: 20 doctors specializing in neurological disorders
+- **Pediatrics (PEDI)**: 20 doctors specializing in children's health
+- **Orthopedics (ORTH)**: 20 doctors specializing in bone and joint issues
+- **Dermatology (DERM)**: 20 doctors specializing in skin conditions
 
-### **👤 Patients (3 patients):**
-- **Nguyễn Văn A** - Male, O+ blood type, Hypertension history
-- **Trần Thị C** - Female, A+ blood type, Mother of 2
-- **Lê Văn E** - Male, B+ blood type, Young healthy patient
+### **👤 Patients (30 patients):**
+- **Diverse Demographics**: Mixed ages (18-80), genders, blood types
+- **Realistic Profiles**: Vietnamese names, addresses in Ho Chi Minh City
+- **Medical Histories**: Various conditions and allergies
+- **Emergency Contacts**: Complete family/friend contact information
 
 ### **🏥 Departments:**
 - CARD - Tim mạch (Cardiology)
@@ -24,11 +27,11 @@ This guide helps you set up comprehensive test data for testing Doctor and Patie
 - DERM - Da liễu (Dermatology)
 
 ### **📅 Sample Data:**
-- Doctor schedules (Monday-Friday, 8AM-5PM)
-- Appointments (scheduled and completed)
-- Medical records with Vietnamese diagnoses
-- Doctor reviews and ratings
-- Complete profile information
+- **Doctor schedules**: 500 schedule entries (Monday-Friday, 8AM-5PM for all doctors)
+- **Appointments**: ~50 appointments (past, present, and future)
+- **Medical records**: ~30 detailed medical records with Vietnamese diagnoses
+- **Doctor reviews**: ~150 patient reviews with realistic ratings (weighted toward positive)
+- **Complete profiles**: Full demographic and medical information
 
 ## 🚀 Quick Setup
 

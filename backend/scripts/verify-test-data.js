@@ -362,6 +362,15 @@ async function displayTestAccounts() {
   console.log('   Email: admin@hospital.com');
   console.log('   Password: admin123456');
   console.log('   Role: Admin');
+  console.log('');
+
+  console.log('📊 Expected Data Counts:');
+  console.log('   👨‍⚕️ Doctors: 100 (20 per department)');
+  console.log('   👤 Patients: 30');
+  console.log('   🏥 Departments: 5');
+  console.log('   📅 Appointments: ~50');
+  console.log('   📋 Medical Records: ~30');
+  console.log('   ⭐ Reviews: ~150');
 }
 
 // Run verification

@@ -244,29 +244,73 @@ function generatePatientProfiles() {
 
 const PATIENT_PROFILES = generatePatientProfiles();
 
+// Foreign key verification
+async function verifyForeignKeyConstraints() {
+  try {
+    // Check if departments table exists and has data
+    const { data: depts, error: deptError } = await supabase
+      .from('departments')
+      .select('dept_id')
+      .limit(1);
+
+    if (deptError || !depts || depts.length === 0) {
+      console.log('   ⚠️ Departments table is empty or missing');
+      return false;
+    }
+
+    // Check if required tables exist
+    const requiredTables = ['profiles', 'doctors', 'patients', 'appointments', 'medical_records', 'doctor_schedules', 'doctor_reviews'];
+
+    for (const table of requiredTables) {
+      const { error } = await supabase
+        .from(table)
+        .select('*')
+        .limit(1);
+
+      if (error) {
+        console.log(`   ⚠️ Table '${table}' does not exist or is not accessible`);
+        return false;
+      }
+    }
+
+    return true;
+  } catch (error) {
+    console.log(`   ❌ Error verifying constraints: ${error.message}`);
+    return false;
+  }
+}
+
 async function seedTestData() {
   console.log('🌱 Starting comprehensive test data seeding...\n');
 
   try {
-    // Step 1: Ensure departments exist
+    // Step 0: Verify foreign key constraints
+    console.log('🔗 Verifying foreign key constraints...');
+    const constraintsOk = await verifyForeignKeyConstraints();
+    if (!constraintsOk) {
+      throw new Error('Foreign key constraints not properly configured');
+    }
+    console.log('✅ Foreign key constraints verified\n');
+
+    // Step 1: Ensure departments exist (no dependencies)
     await seedDepartments();
-    
-    // Step 2: Create doctor profiles and accounts
+
+    // Step 2: Create doctor profiles and accounts (requires: departments)
     await seedDoctors();
-    
-    // Step 3: Create patient profiles and accounts
+
+    // Step 3: Create patient profiles and accounts (no dependencies except profiles)
     await seedPatients();
-    
-    // Step 4: Create doctor schedules
+
+    // Step 4: Create doctor schedules (requires: doctors)
     await seedDoctorSchedules();
-    
-    // Step 5: Create sample appointments
+
+    // Step 5: Create sample appointments (requires: doctors, patients)
     await seedAppointments();
-    
-    // Step 6: Create sample medical records
+
+    // Step 6: Create sample medical records (requires: doctors, patients, appointments)
     await seedMedicalRecords();
-    
-    // Step 7: Create doctor reviews
+
+    // Step 7: Create doctor reviews (requires: doctors, patients)
     await seedDoctorReviews();
     
     console.log('\n🎉 Test data seeding completed successfully!');
@@ -562,8 +606,38 @@ async function seedMedicalRecords() {
 
   if (!appointments || appointments.length === 0) {
     console.log('   ⚠️ No completed appointments found for medical records');
+    console.log('   ℹ️ This is normal if appointments were just created');
+
+    // Try to get any appointments and mark some as completed
+    const { data: anyAppointments } = await supabase
+      .from('appointments')
+      .select('appointment_id, doctor_id, patient_id, appointment_date')
+      .limit(15);
+
+    if (anyAppointments && anyAppointments.length > 0) {
+      // Mark first 15 appointments as completed
+      for (const apt of anyAppointments) {
+        await supabase
+          .from('appointments')
+          .update({ status: 'completed' })
+          .eq('appointment_id', apt.appointment_id);
+      }
+
+      console.log(`   ✅ Marked ${anyAppointments.length} appointments as completed`);
+
+      // Use these appointments for medical records
+      const appointmentsToUse = anyAppointments;
+      await createMedicalRecordsForAppointments(appointmentsToUse);
+    } else {
+      console.log('   ⚠️ No appointments found at all');
+    }
     return;
   }
+
+  await createMedicalRecordsForAppointments(appointments);
+}
+
+async function createMedicalRecordsForAppointments(appointments) {
 
   const chiefComplaints = [
     'Đau đầu, chóng mặt',
@@ -648,14 +722,29 @@ async function seedMedicalRecords() {
 async function seedDoctorReviews() {
   console.log('\n⭐ Seeding doctor reviews...');
 
-  // Get doctors and patients
-  const { data: doctors } = await supabase.from('doctors').select('doctor_id').limit(50);
-  const { data: patients } = await supabase.from('patients').select('patient_id').limit(30);
+  // Get doctors and patients (ensure they exist)
+  const { data: doctors, error: doctorError } = await supabase
+    .from('doctors')
+    .select('doctor_id')
+    .limit(50);
+
+  const { data: patients, error: patientError } = await supabase
+    .from('patients')
+    .select('patient_id')
+    .limit(30);
+
+  if (doctorError || patientError) {
+    console.log('   ⚠️ Error fetching doctors or patients for reviews');
+    return;
+  }
 
   if (!doctors || !patients || doctors.length === 0 || patients.length === 0) {
     console.log('   ⚠️ No doctors or patients found for reviews');
+    console.log(`   📊 Found: ${doctors?.length || 0} doctors, ${patients?.length || 0} patients`);
     return;
   }
+
+  console.log(`   📊 Creating reviews for ${doctors.length} doctors and ${patients.length} patients`);
 
   const reviewTexts = {
     5: [

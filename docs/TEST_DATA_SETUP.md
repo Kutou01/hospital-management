@@ -32,32 +32,64 @@ This guide helps you set up comprehensive test data for testing Doctor and Patie
 
 ## 🚀 Quick Setup
 
-### **Method 1: One-Command Setup**
+### **Method 1: Automated Setup (Recommended)**
 
 ```bash
 # Navigate to backend directory
 cd backend
 
-# Install dependencies (if not already done)
-npm install
+# 1. Verify schema is ready for seeding
+npm run db:verify-schema
 
-# Seed all test data
+# 2. If schema issues found, run the fix SQL script in Supabase
+# Copy content from: backend/scripts/fix-schema-for-seeding.sql
+# Paste in: Supabase Dashboard > SQL Editor
+
+# 3. Seed all test data
 npm run db:seed
+
+# 4. Verify data was created
+npm run db:verify
 ```
 
-### **Method 2: Step-by-Step Setup**
+### **Method 2: Manual Step-by-Step Setup**
 
 ```bash
 # 1. Navigate to backend
 cd backend
 
-# 2. Check current database status
+# 2. Check database connection and tables
+npm run db:check
+
+# 3. Verify schema has all required columns
+npm run db:verify-schema
+
+# 4. Fix any schema issues (if needed)
+# Run fix-schema-for-seeding.sql in Supabase SQL Editor
+
+# 5. Seed test data
+npm run db:seed
+
+# 6. Verify data was created successfully
 npm run db:verify
+```
+
+### **Method 3: Complete Database Reset**
+
+```bash
+# If you need to start fresh
+cd backend
+
+# 1. Deploy complete database schema
+npm run db:deploy-complete
+
+# 2. Verify deployment
+npm run db:verify-complete
 
 # 3. Seed test data
 npm run db:seed
 
-# 4. Verify data was created
+# 4. Verify everything
 npm run db:verify
 ```
 
@@ -238,6 +270,19 @@ Doctor → Has Reviews and Ratings
 
 ## 🐛 Troubleshooting
 
+### **Issue: "Column does not exist"**
+```bash
+# Check schema compatibility
+cd backend && npm run db:verify-schema
+
+# If issues found, run schema fix
+# Copy content from: backend/scripts/fix-schema-for-seeding.sql
+# Paste in: Supabase Dashboard > SQL Editor > Run
+
+# Then retry seeding
+npm run db:seed
+```
+
 ### **Issue: "No departments found"**
 ```bash
 # Check if departments table exists
@@ -251,6 +296,9 @@ cd backend && npm run db:deploy-complete
 ```bash
 # Check Supabase connection
 # Verify SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in .env
+
+# Test connection
+cd backend && npm run db:verify-schema
 ```
 
 ### **Issue: "Foreign key constraint"**
@@ -269,6 +317,25 @@ cd backend && npm run db:cleanup
 
 # Or use force cleanup
 cd backend && node scripts/cleanup-test-data.js --force
+```
+
+### **Issue: "Table does not exist"**
+```bash
+# Deploy complete database schema
+cd backend && npm run db:deploy-complete
+
+# Verify all tables created
+cd backend && npm run db:verify-complete
+
+# Then seed data
+npm run db:seed
+```
+
+### **Issue: "JSON/Array column errors"**
+```bash
+# Ensure PostgreSQL supports JSON and arrays
+# Run schema fixes to add proper column types
+# Copy and run: backend/scripts/fix-schema-for-seeding.sql
 ```
 
 ## 📈 Performance Testing

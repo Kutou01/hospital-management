@@ -88,6 +88,7 @@
     "db:seed": "node scripts/seed-test-data.js",
     "db:verify": "node scripts/verify-test-data.js",
     "db:cleanup": "node scripts/cleanup-test-data.js",
+    "db:verify-schema": "node scripts/verify-schema-for-seeding.js",
     "logs": "docker-compose logs -f",
     "logs:doctor": "docker-compose logs -f doctor-service",
     "logs:patient": "docker-compose logs -f patient-service",

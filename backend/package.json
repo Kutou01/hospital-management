@@ -92,6 +92,7 @@
     "db:check-fk": "node scripts/check-foreign-key-constraints.js",
     "db:analyze": "node scripts/analyze-seed-data.js",
     "db:summary": "node scripts/data-summary.js",
+    "db:check-departments": "node scripts/check-existing-departments.js",
     "logs": "docker-compose logs -f",
     "logs:doctor": "docker-compose logs -f doctor-service",
     "logs:patient": "docker-compose logs -f patient-service",

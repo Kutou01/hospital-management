@@ -13,25 +13,72 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Vietnamese sample data
-const DEPARTMENTS = [
-  { dept_id: 'CARD', name: 'Tim mạch', code: 'CARD' },
-  { dept_id: 'NEUR', name: 'Thần kinh', code: 'NEUR' },
-  { dept_id: 'PEDI', name: 'Nhi khoa', code: 'PEDI' },
-  { dept_id: 'ORTH', name: 'Chấn thương chỉnh hình', code: 'ORTH' },
-  { dept_id: 'DERM', name: 'Da liễu', code: 'DERM' }
-];
+// Will be populated from existing departments in database
+let DEPARTMENTS = [];
 
-// Generate 20 doctors per department (100 total)
-function generateDoctorProfiles() {
+// Generate doctors based on existing departments
+async function generateDoctorProfiles() {
+  // Fetch existing departments from database
+  const { data: existingDepartments, error } = await supabase
+    .from('departments')
+    .select('dept_id, name')
+    .eq('is_active', true)
+    .order('dept_id');
+
+  if (error || !existingDepartments || existingDepartments.length === 0) {
+    console.log('⚠️ No departments found, using default departments');
+    // Fallback to default departments
+    existingDepartments = [
+      { dept_id: 'CARD', name: 'Tim mạch' },
+      { dept_id: 'NEUR', name: 'Thần kinh' },
+      { dept_id: 'PEDI', name: 'Nhi khoa' },
+      { dept_id: 'ORTH', name: 'Chấn thương chỉnh hình' },
+      { dept_id: 'DERM', name: 'Da liễu' }
+    ];
+  }
+
+  // Update global DEPARTMENTS variable
+  DEPARTMENTS = existingDepartments.map(dept => ({
+    dept_id: dept.dept_id,
+    name: dept.name,
+    code: dept.dept_id
+  }));
+
+  console.log(`📊 Found ${DEPARTMENTS.length} departments for doctor generation`);
+
   const doctors = [];
-  const departments = [
-    { id: 'CARD', name: 'Tim mạch', specialties: ['Tim mạch', 'Tim mạch can thiệp', 'Siêu âm tim'] },
-    { id: 'NEUR', name: 'Thần kinh', specialties: ['Thần kinh', 'Thần kinh cột sống', 'Đột quỵ'] },
-    { id: 'PEDI', name: 'Nhi khoa', specialties: ['Nhi khoa', 'Nhi tim mạch', 'Nhi hô hấp'] },
-    { id: 'ORTH', name: 'Chấn thương chỉnh hình', specialties: ['Chấn thương chỉnh hình', 'Cột sống', 'Khớp'] },
-    { id: 'DERM', name: 'Da liễu', specialties: ['Da liễu', 'Thẩm mỹ da', 'Dị ứng da'] }
-  ];
+
+  // Calculate doctors per department (aim for 120 total doctors)
+  const totalDoctors = 120;
+  const doctorsPerDept = Math.floor(totalDoctors / DEPARTMENTS.length);
+  const remainder = totalDoctors % DEPARTMENTS.length;
+
+  // Enhanced specialty mapping for all departments
+  const specialtyMapping = {
+    'CARD': ['Tim mạch', 'Tim mạch can thiệp', 'Siêu âm tim', 'Điện tâm đồ'],
+    'NEUR': ['Thần kinh', 'Thần kinh cột sống', 'Đột quỵ', 'Động kinh'],
+    'PEDI': ['Nhi khoa', 'Nhi tim mạch', 'Nhi hô hấp', 'Nhi tiêu hóa'],
+    'ORTH': ['Chấn thương chỉnh hình', 'Cột sống', 'Khớp', 'Thể thao'],
+    'DERM': ['Da liễu', 'Thẩm mỹ da', 'Dị ứng da', 'Da liễu nhi'],
+    'OBGY': ['Sản phụ khoa', 'Thai sản', 'Phụ khoa', 'Kế hoạch hóa gia đình'],
+    'SURG': ['Phẫu thuật tổng quát', 'Phẫu thuật nội soi', 'Phẫu thuật cấp cứu', 'Phẫu thuật gan mật'],
+    'INTE': ['Nội tổng quát', 'Nội tiết', 'Tiểu đường', 'Tuyến giáp'],
+    'EMER': ['Cấp cứu', 'Hồi sức cấp cứu', 'Chống độc', 'Cấp cứu ngoại khoa'],
+    'RADI': ['Chẩn đoán hình ảnh', 'X-quang', 'CT Scanner', 'MRI', 'Siêu âm'],
+    'ANES': ['Gây mê hồi sức', 'Gây tê vùng', 'Điều trị đau', 'Hồi sức sau mổ'],
+    'ONCO': ['Ung bướu', 'Hóa trị', 'Xạ trị', 'Chăm sóc giảm nhẹ']
+  };
+
+  const departments = DEPARTMENTS.map(dept => ({
+    id: dept.dept_id,
+    name: dept.name,
+    specialties: specialtyMapping[dept.dept_id] || [
+      dept.name,
+      `${dept.name} chuyên sâu`,
+      `${dept.name} cấp cứu`,
+      `${dept.name} nhi`
+    ]
+  }));
 
   const firstNames = [
     'Nguyễn', 'Trần', 'Lê', 'Phạm', 'Hoàng', 'Huỳnh', 'Phan', 'Vũ', 'Võ', 'Đặng',
@@ -46,8 +93,12 @@ function generateDoctorProfiles() {
 
   const qualifications = ['Thạc sĩ Y khoa', 'Tiến sĩ Y khoa', 'Bác sĩ Chuyên khoa I', 'Bác sĩ Chuyên khoa II', 'Giáo sư', 'Phó Giáo sư'];
 
-  departments.forEach(dept => {
-    for (let i = 1; i <= 20; i++) {
+  departments.forEach((dept, deptIndex) => {
+    // Calculate number of doctors for this department
+    const doctorCount = doctorsPerDept + (deptIndex < remainder ? 1 : 0);
+    console.log(`   Generating ${doctorCount} doctors for ${dept.name} (${dept.id})`);
+
+    for (let i = 1; i <= doctorCount; i++) {
       const isGender = Math.random() > 0.4 ? 'male' : 'female'; // 60% male, 40% female
       const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
       const middleName = isGender === 'male'
@@ -107,7 +158,7 @@ function generateDoctorProfiles() {
   return doctors;
 }
 
-const DOCTOR_PROFILES = generateDoctorProfiles();
+// DOCTOR_PROFILES will be generated dynamically based on existing departments
 
 // Generate 30 patients
 function generatePatientProfiles() {
@@ -315,15 +366,20 @@ async function seedTestData() {
     
     console.log('\n🎉 Test data seeding completed successfully!');
     console.log('\n📊 Summary:');
-    console.log(`   👨‍⚕️ Doctors: ${DOCTOR_PROFILES.length} (20 per department)`);
+    console.log(`   👨‍⚕️ Doctors: ~120 (distributed across ${DEPARTMENTS.length} departments)`);
     console.log(`   👤 Patients: ${PATIENT_PROFILES.length}`);
-    console.log(`   🏥 Departments: ${DEPARTMENTS.length}`);
+    console.log(`   🏥 Departments: ${DEPARTMENTS.length} (using existing departments)`);
     console.log(`   📅 Appointments: Sample appointments created`);
     console.log(`   📋 Medical Records: Sample records created`);
     console.log(`   ⭐ Reviews: Sample reviews created`);
     console.log('\n🏥 Department breakdown:');
-    DEPARTMENTS.forEach(dept => {
-      console.log(`   - ${dept.name} (${dept.dept_id}): 20 doctors`);
+    const totalDoctors = 120;
+    const doctorsPerDept = Math.floor(totalDoctors / DEPARTMENTS.length);
+    const remainder = totalDoctors % DEPARTMENTS.length;
+
+    DEPARTMENTS.forEach((dept, index) => {
+      const doctorCount = doctorsPerDept + (index < remainder ? 1 : 0);
+      console.log(`   - ${dept.name} (${dept.dept_id}): ${doctorCount} doctors`);
     });
 
   } catch (error) {
@@ -332,24 +388,45 @@ async function seedTestData() {
 }
 
 async function seedDepartments() {
-  console.log('🏥 Seeding departments...');
-  
-  for (const dept of DEPARTMENTS) {
-    const { error } = await supabase
-      .from('departments')
-      .upsert(dept, { onConflict: 'dept_id' });
-    
-    if (error) {
-      console.log(`   ⚠️ Department ${dept.name}: ${error.message}`);
-    } else {
-      console.log(`   ✅ Department: ${dept.name}`);
-    }
+  console.log('🏥 Checking existing departments...');
+
+  // Fetch existing departments
+  const { data: existingDepartments, error: fetchError } = await supabase
+    .from('departments')
+    .select('dept_id, name')
+    .order('dept_id');
+
+  if (fetchError) {
+    console.log(`   ⚠️ Error fetching departments: ${fetchError.message}`);
+    return;
+  }
+
+  if (existingDepartments && existingDepartments.length > 0) {
+    console.log(`   ✅ Found ${existingDepartments.length} existing departments:`);
+    existingDepartments.forEach(dept => {
+      console.log(`      - ${dept.dept_id}: ${dept.name}`);
+    });
+
+    // Update global DEPARTMENTS variable with existing departments
+    DEPARTMENTS = existingDepartments.map(dept => ({
+      dept_id: dept.dept_id,
+      name: dept.name,
+      code: dept.dept_id
+    }));
+
+    console.log(`   ℹ️ Using existing departments for doctor generation`);
+  } else {
+    console.log('   ⚠️ No departments found, this may cause issues with doctor creation');
   }
 }
 
 async function seedDoctors() {
   console.log('\n👨‍⚕️ Seeding doctors...');
-  
+
+  // Generate doctor profiles based on existing departments
+  const DOCTOR_PROFILES = await generateDoctorProfiles();
+  console.log(`📊 Generated ${DOCTOR_PROFILES.length} doctor profiles`);
+
   for (const doctorData of DOCTOR_PROFILES) {
     try {
       // Create auth user

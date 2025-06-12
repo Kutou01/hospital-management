@@ -6,12 +6,12 @@ This guide helps you set up comprehensive test data for testing Doctor and Patie
 
 ## 🎯 What Test Data Includes
 
-### **👨‍⚕️ Doctors (100 doctors - 20 per department):**
-- **Cardiology (CARD)**: 20 doctors specializing in heart conditions
-- **Neurology (NEUR)**: 20 doctors specializing in neurological disorders
-- **Pediatrics (PEDI)**: 20 doctors specializing in children's health
-- **Orthopedics (ORTH)**: 20 doctors specializing in bone and joint issues
-- **Dermatology (DERM)**: 20 doctors specializing in skin conditions
+### **👨‍⚕️ Doctors (120 doctors - distributed across all departments):**
+- **Dynamic Distribution**: Uses all existing departments in your Supabase database
+- **Automatic Detection**: Fetches departments from database during seeding
+- **Even Distribution**: ~10 doctors per department (120 total ÷ 12 departments)
+- **Comprehensive Specialties**: Each department has 3-4 related specialties
+- **Realistic Profiles**: Vietnamese doctor names with proper credentials
 
 ### **👤 Patients (30 patients):**
 - **Diverse Demographics**: Mixed ages (18-80), genders, blood types
@@ -20,11 +20,10 @@ This guide helps you set up comprehensive test data for testing Doctor and Patie
 - **Emergency Contacts**: Complete family/friend contact information
 
 ### **🏥 Departments:**
-- CARD - Tim mạch (Cardiology)
-- NEUR - Thần kinh (Neurology)
-- PEDI - Nhi khoa (Pediatrics)
-- ORTH - Chấn thương chỉnh hình (Orthopedics)
-- DERM - Da liễu (Dermatology)
+- **Uses Existing Departments**: Automatically detects all departments in your Supabase database
+- **Supports 12+ Departments**: Works with any number of departments
+- **Common Departments**: CARD, NEUR, PEDI, ORTH, DERM, OBGY, SURG, INTE, EMER, RADI, ANES, ONCO
+- **Dynamic Specialties**: Each department gets relevant specialties automatically
 
 ### **📅 Sample Data:**
 - **Doctor schedules**: 500 schedule entries (Monday-Friday, 8AM-5PM for all doctors)
@@ -41,17 +40,20 @@ This guide helps you set up comprehensive test data for testing Doctor and Patie
 # Navigate to backend directory
 cd backend
 
-# 1. Verify schema is ready for seeding
+# 1. Check existing departments in your Supabase
+npm run db:check-departments
+
+# 2. Verify schema is ready for seeding
 npm run db:verify-schema
 
-# 2. If schema issues found, run the fix SQL script in Supabase
+# 3. If schema issues found, run the fix SQL script in Supabase
 # Copy content from: backend/scripts/fix-schema-for-seeding.sql
 # Paste in: Supabase Dashboard > SQL Editor
 
-# 3. Seed all test data
+# 4. Seed all test data (will use your existing departments)
 npm run db:seed
 
-# 4. Verify data was created
+# 5. Verify data was created
 npm run db:verify
 ```
 

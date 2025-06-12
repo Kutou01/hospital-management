@@ -19,29 +19,31 @@ let DEPARTMENTS = [];
 // Generate doctors based on existing departments
 async function generateDoctorProfiles() {
   // Fetch existing departments from database
-  // Try both column naming conventions
-  let { data: existingDepartments, error } = await supabase
+  // Use the actual column names from your database
+  const { data: existingDepartments, error } = await supabase
     .from('departments')
-    .select('dept_id, name, department_id, department_name, department_code')
-    .order('dept_id');
+    .select('department_id, department_name, department_code, is_active')
+    .eq('is_active', true)
+    .order('department_id');
 
-  // If dept_id doesn't exist, try with original column names
-  if (error && error.message.includes('dept_id')) {
-    const { data: deptData, error: deptError } = await supabase
-      .from('departments')
-      .select('department_id, department_name, department_code')
-      .order('department_id');
-
-    if (!deptError && deptData) {
-      // Map to expected format
-      existingDepartments = deptData.map(dept => ({
-        dept_id: dept.department_id,
-        name: dept.department_name,
-        code: dept.department_code
-      }));
-      error = null;
-    }
+  if (error || !existingDepartments || existingDepartments.length === 0) {
+    console.log('⚠️ No departments found, using default departments');
+    // Fallback to default departments
+    return [
+      { dept_id: 'CARD', name: 'Tim mạch' },
+      { dept_id: 'NEUR', name: 'Thần kinh' },
+      { dept_id: 'PEDI', name: 'Nhi khoa' },
+      { dept_id: 'ORTH', name: 'Chấn thương chỉnh hình' },
+      { dept_id: 'DERM', name: 'Da liễu' }
+    ];
   }
+
+  // Map to expected format using actual column names
+  const mappedDepartments = existingDepartments.map(dept => ({
+    dept_id: dept.department_id,
+    name: dept.department_name,
+    code: dept.department_code
+  }));
 
   if (error || !existingDepartments || existingDepartments.length === 0) {
     console.log('⚠️ No departments found, using default departments');
@@ -408,29 +410,12 @@ async function seedTestData() {
 async function seedDepartments() {
   console.log('🏥 Checking existing departments...');
 
-  // Fetch existing departments with flexible column names
-  let { data: existingDepartments, error: fetchError } = await supabase
+  // Fetch existing departments using actual column names
+  const { data: existingDepartments, error: fetchError } = await supabase
     .from('departments')
-    .select('dept_id, name, department_id, department_name, department_code')
-    .order('dept_id');
-
-  // If dept_id doesn't exist, try with original column names
-  if (fetchError && fetchError.message.includes('dept_id')) {
-    const { data: deptData, error: deptError } = await supabase
-      .from('departments')
-      .select('department_id, department_name, department_code')
-      .order('department_id');
-
-    if (!deptError && deptData) {
-      // Map to expected format
-      existingDepartments = deptData.map(dept => ({
-        dept_id: dept.department_id,
-        name: dept.department_name,
-        code: dept.department_code
-      }));
-      fetchError = null;
-    }
-  }
+    .select('department_id, department_name, department_code, is_active')
+    .eq('is_active', true)
+    .order('department_id');
 
   if (fetchError) {
     console.log(`   ⚠️ Error fetching departments: ${fetchError.message}`);
@@ -439,16 +424,17 @@ async function seedDepartments() {
 
   if (existingDepartments && existingDepartments.length > 0) {
     console.log(`   ✅ Found ${existingDepartments.length} existing departments:`);
-    existingDepartments.forEach(dept => {
+
+    // Map to expected format using actual column names
+    DEPARTMENTS = existingDepartments.map(dept => ({
+      dept_id: dept.department_id,
+      name: dept.department_name,
+      code: dept.department_code
+    }));
+
+    DEPARTMENTS.forEach(dept => {
       console.log(`      - ${dept.dept_id}: ${dept.name}`);
     });
-
-    // Update global DEPARTMENTS variable with existing departments
-    DEPARTMENTS = existingDepartments.map(dept => ({
-      dept_id: dept.dept_id,
-      name: dept.name,
-      code: dept.dept_id
-    }));
 
     console.log(`   ℹ️ Using existing departments for doctor generation`);
   } else {

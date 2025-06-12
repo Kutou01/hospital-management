@@ -18,10 +18,30 @@ async function checkExistingDepartments() {
   console.log('=============================================\n');
 
   try {
-    const { data: departments, error } = await supabase
+    // Try to fetch departments with flexible column names
+    let { data: departments, error } = await supabase
       .from('departments')
       .select('*')
       .order('dept_id');
+
+    // If dept_id doesn't exist, try with original column names
+    if (error && error.message.includes('dept_id')) {
+      const { data: deptData, error: deptError } = await supabase
+        .from('departments')
+        .select('*')
+        .order('department_id');
+
+      if (!deptError && deptData) {
+        // Map to expected format
+        departments = deptData.map(dept => ({
+          ...dept,
+          dept_id: dept.department_id,
+          name: dept.department_name,
+          code: dept.department_code
+        }));
+        error = null;
+      }
+    }
 
     if (error) {
       console.log(`❌ Error fetching departments: ${error.message}`);

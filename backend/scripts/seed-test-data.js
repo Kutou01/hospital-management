@@ -19,11 +19,29 @@ let DEPARTMENTS = [];
 // Generate doctors based on existing departments
 async function generateDoctorProfiles() {
   // Fetch existing departments from database
-  const { data: existingDepartments, error } = await supabase
+  // Try both column naming conventions
+  let { data: existingDepartments, error } = await supabase
     .from('departments')
-    .select('dept_id, name')
-    .eq('is_active', true)
+    .select('dept_id, name, department_id, department_name, department_code')
     .order('dept_id');
+
+  // If dept_id doesn't exist, try with original column names
+  if (error && error.message.includes('dept_id')) {
+    const { data: deptData, error: deptError } = await supabase
+      .from('departments')
+      .select('department_id, department_name, department_code')
+      .order('department_id');
+
+    if (!deptError && deptData) {
+      // Map to expected format
+      existingDepartments = deptData.map(dept => ({
+        dept_id: dept.department_id,
+        name: dept.department_name,
+        code: dept.department_code
+      }));
+      error = null;
+    }
+  }
 
   if (error || !existingDepartments || existingDepartments.length === 0) {
     console.log('⚠️ No departments found, using default departments');
@@ -390,11 +408,29 @@ async function seedTestData() {
 async function seedDepartments() {
   console.log('🏥 Checking existing departments...');
 
-  // Fetch existing departments
-  const { data: existingDepartments, error: fetchError } = await supabase
+  // Fetch existing departments with flexible column names
+  let { data: existingDepartments, error: fetchError } = await supabase
     .from('departments')
-    .select('dept_id, name')
+    .select('dept_id, name, department_id, department_name, department_code')
     .order('dept_id');
+
+  // If dept_id doesn't exist, try with original column names
+  if (fetchError && fetchError.message.includes('dept_id')) {
+    const { data: deptData, error: deptError } = await supabase
+      .from('departments')
+      .select('department_id, department_name, department_code')
+      .order('department_id');
+
+    if (!deptError && deptData) {
+      // Map to expected format
+      existingDepartments = deptData.map(dept => ({
+        dept_id: dept.department_id,
+        name: dept.department_name,
+        code: dept.department_code
+      }));
+      fetchError = null;
+    }
+  }
 
   if (fetchError) {
     console.log(`   ⚠️ Error fetching departments: ${fetchError.message}`);

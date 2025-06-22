@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Auth State</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 5px; overflow-x: auto; }
+        .success { color: green; }
+        .error { color: red; }
+        .warning { color: orange; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Test Authentication State</h1>
+    <button onclick="testAuth()">🔄 Run Test</button>
+    <div id="results"></div>
+
+    <script>
+        async function testAuth() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>🔄 Testing...</p>';
+
+            try {
+                // Test 1: Check current page session
+                results.innerHTML += '<h3>1. Testing Current Session...</h3>';
+
+                // Test Supabase client directly
+                const { createClient } = supabase;
+                const supabaseUrl = 'https://your-project.supabase.co'; // Replace with actual URL
+                const supabaseKey = 'your-anon-key'; // Replace with actual key
+
+                results.innerHTML += '<p class="warning">⚠️ Need to configure Supabase client in browser</p>';
+
+                // Test 2: Test API endpoints
+                results.innerHTML += '<h3>2. Testing API Endpoints...</h3>';
+
+                // Test session endpoint
+                try {
+                    const sessionResponse = await fetch('/api/auth/session', {
+                        credentials: 'include'
+                    });
+                    results.innerHTML += `<p>Session API Status: <span class="${sessionResponse.ok ? 'success' : 'error'}">${sessionResponse.status}</span></p>`;
+
+                    if (sessionResponse.ok) {
+                        const sessionData = await sessionResponse.json();
+                        results.innerHTML += `<pre>${JSON.stringify(sessionData, null, 2)}</pre>`;
+                    }
+                } catch (e) {
+                    results.innerHTML += `<p class="error">❌ Session API Error: ${e.message}</p>`;
+                }
+
+                // Test payment history
+                try {
+                    const paymentResponse = await fetch('/api/patient/payment-history-v2', {
+                        credentials: 'include'
+                    });
+                    results.innerHTML += `<p>Payment API Status: <span class="${paymentResponse.ok ? 'success' : 'error'}">${paymentResponse.status}</span></p>`;
+
+                    if (paymentResponse.ok) {
+                        const paymentData = await paymentResponse.json();
+                        results.innerHTML += `<pre>${JSON.stringify(paymentData, null, 2)}</pre>`;
+                    } else {
+                        const errorData = await paymentResponse.text();
+                        results.innerHTML += `<p class="error">Error: ${errorData}</p>`;
+                    }
+                } catch (e) {
+                    results.innerHTML += `<p class="error">❌ Payment API Error: ${e.message}</p>`;
+                }
+
+            } catch (error) {
+                results.innerHTML += `<p class="error">❌ General Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

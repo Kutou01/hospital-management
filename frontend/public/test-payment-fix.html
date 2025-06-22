@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Payment Fix</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .button { padding: 10px 20px; margin: 10px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .button:hover { background: #0056b3; }
+        .result { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background: #f9f9f9; }
+        .success { border-color: #28a745; background: #d4edda; }
+        .error { border-color: #dc3545; background: #f8d7da; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Payment Privacy Test Tool</h1>
+        
+        <div>
+            <button class="button" onclick="checkAuth()">🔐 Kiểm tra đăng nhập</button>
+            <button class="button" onclick="createPatientRecord()">🏥 Tạo Patient Record</button>
+            <button class="button" onclick="createRealPayment()">🚀 Tạo Payment Thực</button>
+            <button class="button" onclick="listAllPayments()">📋 List All Payments</button>
+            <button class="button" onclick="listMyPayments()">👤 My Payments</button>
+            <button class="button" onclick="checkPaymentStatus()">🔍 Kiểm tra Payment</button>
+            <button class="button" onclick="forceSync()">⚡ Force Sync</button>
+        </div>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        async function checkAuth() {
+            showLoading();
+            try {
+                const response = await fetch('/api/debug/list-payments?limit=1');
+                const data = await response.json();
+
+                if (data.success) {
+                    showResult({
+                        success: true,
+                        message: 'User đã đăng nhập',
+                        user_email: data.data.current_user,
+                        patient_id: data.data.current_patient_id,
+                        has_patient_record: !!data.data.current_patient_id
+                    }, 'success');
+                } else {
+                    showResult({
+                        success: false,
+                        message: 'User chưa đăng nhập hoặc có lỗi',
+                        error: data.error
+                    }, 'error');
+                }
+            } catch (error) {
+                showResult({
+                    success: false,
+                    message: 'Lỗi kiểm tra đăng nhập',
+                    error: error.message
+                }, 'error');
+            }
+        }
+
+        async function createPatientRecord() {
+            showLoading();
+            try {
+                const response = await fetch('/api/debug/create-patient-record', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+                showResult(data, data.success ? 'success' : 'error');
+            } catch (error) {
+                showResult({ error: error.message }, 'error');
+            }
+        }
+
+        async function createTestPayment() {
+            showLoading();
+            try {
+                const response = await fetch('/api/test/create-test-payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        amount: 250000,
+                        description: 'Test Payment for Privacy Check'
+                    })
+                });
+                const data = await response.json();
+                showResult(data, data.success ? 'success' : 'error');
+            } catch (error) {
+                showResult({ error: error.message }, 'error');
+            }
+        }
+
+        async function createRealPayment() {
+            showLoading();
+            try {
+                const response = await fetch('/api/payment/checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        amount: 150000,
+                        description: 'Test Payment - Real Flow',
+                        doctorId: 'DOC-001',
+                        doctorName: 'Dr. Test'
+                    })
+                });
+                const data = await response.json();
+
+                if (data.success && data.data?.checkoutUrl) {
+                    showResult({
+                        success: true,
+                        message: 'Payment created! Opening PayOS...',
+                        orderCode: data.data.orderCode,
+                        checkoutUrl: data.data.checkoutUrl
+                    }, 'success');
+
+                    // Open PayOS in new tab
+                    window.open(data.data.checkoutUrl, '_blank');
+                } else {
+                    showResult(data, 'error');
+                }
+            } catch (error) {
+                showResult({ error: error.message }, 'error');
+            }
+        }
+
+        async function checkPaymentStatus() {
+            const orderCode = prompt('Nhập Order Code để kiểm tra:');
+            if (!orderCode) return;
+
+            showLoading();
+            try {
+                const response = await fetch(`/api/payment/check-status?orderCode=${orderCode}`);
+                const data = await response.json();
+                showResult(data, data.success ? 'success' : 'error');
+            } catch (error) {
+                showResult({ error: error.message }, 'error');
+            }
+        }
+
+        async function listAllPayments() {
+            showLoading();
+            try {
+                const response = await fetch('/api/debug/list-payments?limit=20');
+                const data = await response.json();
+                showResult(data, data.success ? 'success' : 'error');
+            } catch (error) {
+                showResult({ error: error.message }, 'error');
+            }
+        }
+
+        async function listMyPayments() {
+            showLoading();
+            try {
+                const response = await fetch('/api/debug/list-payments?limit=20');
+                const data = await response.json();
+
+                if (data.success && data.data.current_patient_id) {
+                    const myResponse = await fetch(`/api/debug/list-payments?limit=20&patient_id=${data.data.current_patient_id}`);
+                    const myData = await myResponse.json();
+                    showResult(myData, myData.success ? 'success' : 'error');
+                } else {
+                    showResult(data, 'error');
+                }
+            } catch (error) {
+                showResult({ error: error.message }, 'error');
+            }
+        }
+
+        async function forceSync() {
+            const orderCode = prompt('Nhập Order Code để force sync:');
+            if (!orderCode) return;
+
+            showLoading();
+            try {
+                const response = await fetch('/api/payment/force-sync', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orderCode })
+                });
+                const data = await response.json();
+                showResult(data, data.success ? 'success' : 'error');
+            } catch (error) {
+                showResult({ error: error.message }, 'error');
+            }
+        }
+
+        function showLoading() {
+            document.getElementById('result').innerHTML = '<div class="result">⏳ Đang xử lý...</div>';
+        }
+
+        function showResult(data, type) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `
+                <div class="result ${type}">
+                    <h3>${type === 'success' ? '✅ Thành công' : '❌ Lỗi'}</h3>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

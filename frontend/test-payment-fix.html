@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Payment Fix</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .button { padding: 10px 20px; margin: 10px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .button:hover { background: #0056b3; }
+        .result { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background: #f9f9f9; }
+        .success { border-color: #28a745; background: #d4edda; }
+        .error { border-color: #dc3545; background: #f8d7da; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Payment Fix Tool</h1>
+        
+        <div>
+            <button class="button" onclick="checkStatus()">📊 Kiểm tra trạng thái</button>
+            <button class="button" onclick="fixPayments()">🔧 Fix Payments cho PAT-202506-NAM</button>
+            <button class="button" onclick="createTestUser()">👤 Tạo User Test</button>
+            <button class="button" onclick="createTestPayment()">💳 Tạo Payment Test</button>
+        </div>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        async function checkStatus() {
+            showLoading();
+            try {
+                const response = await fetch('/api/admin/fix-payments-patient-id');
+                const data = await response.json();
+                showResult(data, 'success');
+            } catch (error) {
+                showResult({ error: error.message }, 'error');
+            }
+        }
+
+        async function fixPayments() {
+            showLoading();
+            try {
+                const response = await fetch('/api/admin/fix-payments-patient-id', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ targetPatientId: 'PAT-202506-NAM' })
+                });
+                const data = await response.json();
+                showResult(data, data.success ? 'success' : 'error');
+            } catch (error) {
+                showResult({ error: error.message }, 'error');
+            }
+        }
+
+        async function createTestUser() {
+            showLoading();
+            try {
+                const response = await fetch('/api/test/create-test-user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: `testuser${Date.now()}@example.com`,
+                        password: 'TestPassword123!',
+                        full_name: 'User Test Privacy'
+                    })
+                });
+                const data = await response.json();
+                showResult(data, data.success ? 'success' : 'error');
+            } catch (error) {
+                showResult({ error: error.message }, 'error');
+            }
+        }
+
+        async function createTestPayment() {
+            showLoading();
+            try {
+                const response = await fetch('/api/test/create-test-payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        amount: 250000,
+                        description: 'Test Payment for Privacy Check'
+                    })
+                });
+                const data = await response.json();
+                showResult(data, data.success ? 'success' : 'error');
+            } catch (error) {
+                showResult({ error: error.message }, 'error');
+            }
+        }
+
+        function showLoading() {
+            document.getElementById('result').innerHTML = '<div class="result">⏳ Đang xử lý...</div>';
+        }
+
+        function showResult(data, type) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `
+                <div class="result ${type}">
+                    <h3>${type === 'success' ? '✅ Thành công' : '❌ Lỗi'}</h3>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

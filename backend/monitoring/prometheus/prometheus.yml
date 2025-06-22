@@ -1,0 +1,40 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  - job_name: 'api-gateway'
+    static_configs:
+      - targets: ['api-gateway:3100']
+
+  - job_name: 'doctor-service'
+    static_configs:
+      - targets: ['doctor-service:3002']
+
+  - job_name: 'patient-service'
+    static_configs:
+      - targets: ['patient-service:3003']
+
+  - job_name: 'appointment-service'
+    static_configs:
+      - targets: ['appointment-service:3004']
+
+  - job_name: 'medical-records-service'
+    static_configs:
+      - targets: ['medical-records-service:3006']
+
+  - job_name: 'prescription-service'
+    static_configs:
+      - targets: ['prescription-service:3007']
+
+  - job_name: 'billing-service'
+    static_configs:
+      - targets: ['billing-service:3008'] 

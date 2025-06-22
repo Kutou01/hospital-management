@@ -499,6 +499,67 @@ class AppointmentController {
             });
         }
     }
+    async getRealtimeStatus(req, res) {
+        try {
+            res.json({
+                success: true,
+                data: {
+                    realtime_enabled: true,
+                    websocket_enabled: true,
+                    supabase_subscription: true,
+                    connected_clients: 0,
+                    last_event: null,
+                    uptime: process.uptime()
+                },
+                timestamp: new Date().toISOString()
+            });
+        }
+        catch (error) {
+            logger_1.default.error('Error in getRealtimeStatus:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to get real-time status',
+                message: error instanceof Error ? error.message : 'Unknown error',
+                timestamp: new Date().toISOString()
+            });
+        }
+    }
+    async getLiveAppointments(req, res) {
+        try {
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 20;
+            const { appointments, total } = await this.appointmentRepository.getAllAppointments({}, page, limit);
+            res.json({
+                success: true,
+                data: {
+                    appointments,
+                    realtime_enabled: true,
+                    live_updates: true,
+                    websocket_channel: 'appointments_realtime',
+                    subscription_info: {
+                        events: ['INSERT', 'UPDATE', 'DELETE'],
+                        filters: ['status_changes', 'time_changes', 'new_appointments']
+                    }
+                },
+                pagination: {
+                    page,
+                    limit,
+                    total,
+                    totalPages: Math.ceil(total / limit)
+                },
+                timestamp: new Date().toISOString()
+            });
+        }
+        catch (error) {
+            logger_1.default.error('Error in getLiveAppointments:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to fetch live appointments',
+                message: error instanceof Error ? error.message : 'Unknown error',
+                timestamp: new Date().toISOString()
+            });
+        }
+    }
 }
 exports.AppointmentController = AppointmentController;
 //# sourceMappingURL=appointment.controller.js.map

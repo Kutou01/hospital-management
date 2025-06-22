@@ -3,6 +3,7 @@ import { BaseEntity } from './common.types';
 export interface Doctor extends BaseEntity {
   doctor_id: string;
   profile_id: string; // Link to profiles table
+  full_name: string; // ✅ ADD: Doctor's full name from database
   specialty: string;
   qualification: string;
   department_id: string;
@@ -20,6 +21,7 @@ export interface Doctor extends BaseEntity {
 
 export interface CreateDoctorRequest {
   // ✅ UPDATED: Only fields that exist in current database schema
+  full_name: string;  // ✅ ADD: Required for profile creation
   specialty: string;
   qualification: string;
   department_id: string;
@@ -69,7 +71,19 @@ export interface DoctorSearchQuery {
   gender?: string;
   available_date?: string;
   available_time?: string;
-  search?: string; // Search by name
+  search?: string; // Search by name, specialty, bio, qualification, license
+  // Enhanced search filters
+  min_rating?: number; // Minimum rating (0-5)
+  max_consultation_fee?: number; // Maximum consultation fee
+  languages?: string; // Language spoken
+  availability_status?: string; // available, busy, unavailable
+  experience_years?: number; // Minimum experience years
+  // Pagination
+  page?: number;
+  limit?: number;
+  // Sorting
+  sort_by?: string; // rating, experience_years, consultation_fee, total_reviews, created_at
+  sort_order?: 'asc' | 'desc';
 }
 
 export interface DoctorWithDepartment extends Doctor {

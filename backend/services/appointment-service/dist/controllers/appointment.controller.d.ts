@@ -15,5 +15,7 @@ export declare class AppointmentController {
     getAvailableTimeSlots(req: Request, res: Response): Promise<void>;
     getAppointmentStats(req: Request, res: Response): Promise<void>;
     getUpcomingAppointments(req: Request, res: Response): Promise<void>;
+    getRealtimeStatus(req: Request, res: Response): Promise<void>;
+    getLiveAppointments(req: Request, res: Response): Promise<void>;
 }
 //# sourceMappingURL=appointment.controller.d.ts.map

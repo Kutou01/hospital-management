@@ -8,7 +8,9 @@ import {
   validateMagicLink,
   validatePhoneOTP,
   validateVerifyOTP,
-  validateOAuthCallback
+  validateOAuthCallback,
+  validatePatientRegistration,
+  validateDoctorRegistration
 } from '../validators/auth.validators';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { supabaseAdmin } from '../config/supabase';
@@ -301,6 +303,113 @@ router.post('/create-doctor-record', authController.createDoctorRecord);
  *         description: Validation error
  */
 router.post('/create-patient-record', authController.createPatientRecord);
+
+/**
+ * @swagger
+ * /api/auth/register-patient:
+ *   post:
+ *     summary: Complete patient registration (signup + patient record)
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *               - full_name
+ *               - gender
+ *               - date_of_birth
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *                 minLength: 6
+ *               full_name:
+ *                 type: string
+ *               phone_number:
+ *                 type: string
+ *               gender:
+ *                 type: string
+ *                 enum: [male, female, other]
+ *               date_of_birth:
+ *                 type: string
+ *                 format: date
+ *               blood_type:
+ *                 type: string
+ *                 enum: [A+, A-, B+, B-, AB+, AB-, O+, O-]
+ *               address:
+ *                 type: object
+ *               emergency_contact:
+ *                 type: object
+ *     responses:
+ *       201:
+ *         description: Patient registered successfully
+ *       400:
+ *         description: Validation error or user already exists
+ */
+router.post('/register-patient', validatePatientRegistration, authController.registerPatient);
+
+/**
+ * @swagger
+ * /api/auth/register-doctor:
+ *   post:
+ *     summary: Complete doctor registration (signup + doctor record)
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *               - full_name
+ *               - gender
+ *               - date_of_birth
+ *               - department_id
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *                 minLength: 6
+ *               full_name:
+ *                 type: string
+ *               phone_number:
+ *                 type: string
+ *               gender:
+ *                 type: string
+ *                 enum: [male, female, other]
+ *               date_of_birth:
+ *                 type: string
+ *                 format: date
+ *               specialty:
+ *                 type: string
+ *                 description: Medical specialty
+ *               license_number:
+ *                 type: string
+ *                 description: Medical license number
+ *               qualification:
+ *                 type: string
+ *                 description: Medical qualification (e.g., MD, PhD)
+ *               department_id:
+ *                 type: string
+ *                 description: Department ID (required)
+ *                 example: DEPT001
+ *     responses:
+ *       201:
+ *         description: Doctor registered successfully
+ *       400:
+ *         description: Validation error or user already exists
+ */
+router.post('/register-doctor', validateDoctorRegistration, authController.registerDoctor);
 
 /**
  * @swagger

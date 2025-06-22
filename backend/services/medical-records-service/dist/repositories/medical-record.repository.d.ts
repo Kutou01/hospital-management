@@ -1,7 +1,6 @@
 import { MedicalRecord, LabResult, VitalSignsHistory, CreateMedicalRecordRequest, UpdateMedicalRecordRequest, CreateLabResultRequest, CreateVitalSignsRequest } from '../types/medical-record.types';
 export declare class MedicalRecordRepository {
     private supabase;
-    constructor();
     findAll(limit?: number, offset?: number): Promise<MedicalRecord[]>;
     findById(recordId: string): Promise<MedicalRecord | null>;
     findByPatientId(patientId: string): Promise<MedicalRecord[]>;
@@ -14,9 +13,6 @@ export declare class MedicalRecordRepository {
     getLabResultsByRecordId(recordId: string): Promise<LabResult[]>;
     createVitalSigns(vitalData: CreateVitalSignsRequest, recordedBy: string): Promise<VitalSignsHistory>;
     getVitalSignsByRecordId(recordId: string): Promise<VitalSignsHistory[]>;
-    private generateRecordId;
-    private generateLabResultId;
-    private generateVitalSignsId;
     private calculateBMI;
     private mapSupabaseRecordToMedicalRecord;
 }

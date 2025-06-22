@@ -10,5 +10,10 @@ export declare class PatientController {
     updatePatient(req: Request, res: Response): Promise<void>;
     deletePatient(req: Request, res: Response): Promise<void>;
     getPatientStats(req: Request, res: Response): Promise<void>;
+    searchPatients(req: Request, res: Response): Promise<void>;
+    getPatientsWithUpcomingAppointments(req: Request, res: Response): Promise<void>;
+    getPatientMedicalSummary(req: Request, res: Response): Promise<void>;
+    getRealtimeStatus(req: Request, res: Response): Promise<void>;
+    getLivePatients(req: Request, res: Response): Promise<void>;
 }
 //# sourceMappingURL=patient.controller.d.ts.map

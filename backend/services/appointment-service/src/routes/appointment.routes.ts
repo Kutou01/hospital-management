@@ -27,6 +27,18 @@ router.get(
   appointmentController.getAppointmentStats.bind(appointmentController)
 );
 
+// GET /api/appointments/realtime/status - Get real-time service status
+router.get(
+  '/realtime/status',
+  appointmentController.getRealtimeStatus.bind(appointmentController)
+);
+
+// GET /api/appointments/live - Get live appointments (real-time enabled)
+router.get(
+  '/live',
+  appointmentController.getLiveAppointments.bind(appointmentController)
+);
+
 // GET /api/appointments/available-slots - Get available time slots
 router.get(
   '/available-slots',
@@ -88,6 +100,42 @@ router.delete(
   '/:appointmentId',
   validateAppointmentId,
   appointmentController.cancelAppointment.bind(appointmentController)
+);
+
+// CALENDAR INTEGRATION ROUTES
+
+// GET /api/appointments/calendar - Get calendar view
+router.get(
+  '/calendar',
+  appointmentController.getCalendarView.bind(appointmentController)
+);
+
+// GET /api/appointments/doctor/:doctorId/weekly - Get weekly schedule for doctor
+router.get(
+  '/doctor/:doctorId/weekly',
+  validateDoctorId,
+  appointmentController.getWeeklySchedule.bind(appointmentController)
+);
+
+// PUT /api/appointments/:id/reschedule - Reschedule appointment
+router.put(
+  '/:id/reschedule',
+  validateAppointmentId,
+  appointmentController.rescheduleAppointment.bind(appointmentController)
+);
+
+// REAL-TIME FEATURES ROUTES
+
+// GET /api/appointments/realtime/status - Get real-time service status
+router.get(
+  '/realtime/status',
+  appointmentController.getRealtimeStatus.bind(appointmentController)
+);
+
+// GET /api/appointments/live - Get live appointments with real-time capabilities
+router.get(
+  '/live',
+  appointmentController.getLiveAppointments.bind(appointmentController)
 );
 
 export default router;

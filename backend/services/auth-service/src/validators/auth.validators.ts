@@ -5,62 +5,165 @@ export const validateSignUp = [
     .isEmail()
     .normalizeEmail()
     .withMessage('Please provide a valid email address'),
-  
+
   body('password')
     .isLength({ min: 6 })
     .withMessage('Password must be at least 6 characters long')
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
     .withMessage('Password must contain at least one lowercase letter, one uppercase letter, and one number'),
-  
+
   body('full_name')
     .trim()
     .isLength({ min: 2, max: 100 })
     .withMessage('Full name must be between 2 and 100 characters')
     .matches(/^[a-zA-ZÀ-ỹ\s]+$/)
     .withMessage('Full name can only contain letters and spaces'),
-  
+
   body('role')
     .isIn(['admin', 'doctor', 'patient'])
     .withMessage('Role must be one of: admin, doctor, patient'),
-  
+
   body('phone_number')
     .optional()
     .matches(/^0\d{9}$/)
     .withMessage('Phone number must be 10 digits starting with 0'),
-  
+
   body('gender')
     .optional()
     .isIn(['male', 'female', 'other'])
     .withMessage('Gender must be one of: male, female, other'),
-  
+
   body('date_of_birth')
     .optional()
     .isISO8601()
     .withMessage('Date of birth must be a valid date'),
-  
+
   // Doctor-specific validations
   body('specialty')
     .if(body('role').equals('doctor'))
     .notEmpty()
     .withMessage('Specialty is required for doctors'),
-  
+
   body('license_number')
     .if(body('role').equals('doctor'))
     .optional()
     .matches(/^VN-[A-Z]{2}-\d{4}$/)
     .withMessage('License number must follow format: VN-XX-0000'),
-  
+
   body('qualification')
     .if(body('role').equals('doctor'))
     .optional()
     .isLength({ min: 2, max: 50 })
     .withMessage('Qualification must be between 2 and 50 characters'),
-  
+
   body('department_id')
     .if(body('role').equals('doctor'))
     .optional()
     .isLength({ min: 1, max: 20 })
     .withMessage('Department ID is invalid')
+];
+
+// Patient-specific registration validator
+export const validatePatientRegistration = [
+  body('email')
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Please provide a valid email address'),
+
+  body('password')
+    .isLength({ min: 6 })
+    .withMessage('Password must be at least 6 characters long')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .withMessage('Password must contain at least one lowercase letter, one uppercase letter, and one number'),
+
+  body('full_name')
+    .trim()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Full name must be between 2 and 100 characters')
+    .matches(/^[a-zA-ZÀ-ỹ\s]+$/)
+    .withMessage('Full name can only contain letters and spaces'),
+
+  body('phone_number')
+    .optional()
+    .matches(/^0\d{9}$/)
+    .withMessage('Phone number must be 10 digits starting with 0'),
+
+  body('gender')
+    .isIn(['male', 'female', 'other'])
+    .withMessage('Gender must be one of: male, female, other'),
+
+  body('date_of_birth')
+    .isISO8601()
+    .withMessage('Date of birth must be a valid date'),
+
+  body('blood_type')
+    .optional()
+    .isIn(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'])
+    .withMessage('Blood type must be one of: A+, A-, B+, B-, AB+, AB-, O+, O-'),
+
+  body('address')
+    .optional()
+    .isObject()
+    .withMessage('Address must be an object'),
+
+  body('emergency_contact')
+    .optional()
+    .isObject()
+    .withMessage('Emergency contact must be an object')
+];
+
+// Doctor-specific registration validator
+export const validateDoctorRegistration = [
+  body('email')
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Please provide a valid email address'),
+
+  body('password')
+    .isLength({ min: 6 })
+    .withMessage('Password must be at least 6 characters long')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .withMessage('Password must contain at least one lowercase letter, one uppercase letter, and one number'),
+
+  body('full_name')
+    .trim()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Full name must be between 2 and 100 characters')
+    .matches(/^[a-zA-ZÀ-ỹ\s]+$/)
+    .withMessage('Full name can only contain letters and spaces'),
+
+  body('phone_number')
+    .optional()
+    .matches(/^0\d{9}$/)
+    .withMessage('Phone number must be 10 digits starting with 0'),
+
+  body('gender')
+    .isIn(['male', 'female', 'other'])
+    .withMessage('Gender must be one of: male, female, other'),
+
+  body('date_of_birth')
+    .isISO8601()
+    .withMessage('Date of birth must be a valid date'),
+
+  body('specialty')
+    .notEmpty()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Specialty is required and must be between 2 and 100 characters'),
+
+  body('license_number')
+    .optional()
+    .matches(/^VN-[A-Z]{2}-\d{4}$/)
+    .withMessage('License number must follow format: VN-XX-0000'),
+
+  body('qualification')
+    .optional()
+    .isLength({ min: 2, max: 50 })
+    .withMessage('Qualification must be between 2 and 50 characters'),
+
+  body('department_id')
+    .notEmpty()
+    .matches(/^DEPT\d{3}$/)
+    .withMessage('Department ID is required and must follow format: DEPT001')
 ];
 
 export const validateSignIn = [

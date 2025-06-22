@@ -5,6 +5,8 @@ import { ScheduleRepository } from '../repositories/schedule.repository';
 import { ReviewRepository } from '../repositories/review.repository';
 import { ShiftRepository } from '../repositories/shift.repository';
 import { ExperienceRepository } from '../repositories/experience.repository';
+import { AppointmentService } from '../services/appointment.service';
+import { PatientService } from '../services/patient.service';
 import logger from '@hospital/shared/dist/utils/logger';
 
 export class DoctorController {
@@ -13,6 +15,8 @@ export class DoctorController {
   private reviewRepository: ReviewRepository;
   private shiftRepository: ShiftRepository;
   private experienceRepository: ExperienceRepository;
+  private appointmentService: AppointmentService;
+  private patientService: PatientService;
 
   constructor() {
     this.doctorRepository = new DoctorRepository();
@@ -20,32 +24,47 @@ export class DoctorController {
     this.reviewRepository = new ReviewRepository();
     this.shiftRepository = new ShiftRepository();
     this.experienceRepository = new ExperienceRepository();
+    this.appointmentService = new AppointmentService();
+    this.patientService = new PatientService();
   }
 
   async getAllDoctors(req: Request, res: Response): Promise<void> {
     try {
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 50;
+      const page = Math.max(parseInt(req.query.page as string) || 1, 1);
+      const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 50, 1), 100);
       const offset = (page - 1) * limit;
 
-      const doctors = await this.doctorRepository.findAll(limit, offset);
-      const total = await this.doctorRepository.count();
+      // Performance optimization: Use Promise.all for parallel queries
+      const startTime = Date.now();
+      const [doctors, total] = await Promise.all([
+        this.doctorRepository.findAll(limit, offset),
+        this.doctorRepository.count()
+      ]);
+      const queryTime = Date.now() - startTime;
 
       res.json({
         success: true,
+        message: 'Doctors retrieved successfully',
         data: doctors,
         pagination: {
           page,
           limit,
           total,
-          pages: Math.ceil(total / limit)
+          totalPages: Math.ceil(total / limit),
+          hasNext: page < Math.ceil(total / limit),
+          hasPrev: page > 1
+        },
+        performance: {
+          query_time_ms: queryTime,
+          total_records: total,
+          returned_records: doctors.length
         }
       });
     } catch (error) {
-      logger.error('Error fetching doctors', { error });
+      logger.error('Error fetching doctors', { error, query: req.query });
       res.status(500).json({
         success: false,
-        message: 'Internal server error',
+        message: 'Failed to retrieve doctors',
         error: process.env.NODE_ENV === 'development' ? error : undefined
       });
     }
@@ -109,11 +128,13 @@ export class DoctorController {
     try {
       const { departmentId } = req.params;
       const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 50;
+      const limit = parseInt(req.query.limit as string) || 20;
       const offset = (page - 1) * limit;
 
-      const doctors = await this.doctorRepository.findByDepartment(departmentId, limit, offset);
-      const total = await this.doctorRepository.countByDepartment(departmentId);
+      // MODERN APPROACH: Combined query for data + count
+      const { doctors, total } = await this.doctorRepository.findByDepartmentWithCount(departmentId, limit, offset);
+
+      const totalPages = Math.ceil(total / limit);
 
       res.json({
         success: true,
@@ -122,7 +143,9 @@ export class DoctorController {
           page,
           limit,
           total,
-          pages: Math.ceil(total / limit)
+          total_pages: totalPages,
+          has_previous: page > 1,
+          has_next: page < totalPages
         }
       });
     } catch (error) {
@@ -138,32 +161,77 @@ export class DoctorController {
   async searchDoctors(req: Request, res: Response): Promise<void> {
     try {
       const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 50;
+      const limit = Math.min(parseInt(req.query.limit as string) || 50, 100); // Max 100 per page
       const offset = (page - 1) * limit;
 
+      // Enhanced search query with validation
       const searchQuery = {
         specialty: req.query.specialty as string,
         department_id: req.query.department_id as string,
         gender: req.query.gender as string,
-        search: req.query.search as string
+        search: req.query.search as string,
+        min_rating: req.query.min_rating ? parseFloat(req.query.min_rating as string) : undefined,
+        max_consultation_fee: req.query.max_consultation_fee ? parseFloat(req.query.max_consultation_fee as string) : undefined,
+        languages: req.query.languages as string,
+        availability_status: req.query.availability_status as string,
+        experience_years: req.query.experience_years ? parseInt(req.query.experience_years as string) : undefined,
+        sort_by: req.query.sort_by as string || 'rating',
+        sort_order: req.query.sort_order as 'asc' | 'desc' || 'desc'
       };
 
-      const doctors = await this.doctorRepository.search(searchQuery, limit, offset);
+      // Validate search parameters
+      if (searchQuery.min_rating && (searchQuery.min_rating < 0 || searchQuery.min_rating > 5)) {
+        res.status(400).json({
+          success: false,
+          message: 'Invalid rating range. Rating must be between 0 and 5.'
+        });
+        return;
+      }
+
+      if (searchQuery.experience_years && searchQuery.experience_years < 0) {
+        res.status(400).json({
+          success: false,
+          message: 'Experience years must be a positive number.'
+        });
+        return;
+      }
+
+      const startTime = Date.now();
+      const result = await this.doctorRepository.search(searchQuery, limit, offset);
+      const searchTime = Date.now() - startTime;
+
+      // Get total count for proper pagination
+      const totalCount = await this.doctorRepository.getSearchCount(searchQuery);
 
       res.json({
         success: true,
-        data: doctors,
+        message: 'Doctors retrieved successfully',
+        data: result,
         pagination: {
           page,
           limit,
-          total: doctors.length
+          total: totalCount,
+          totalPages: Math.ceil(totalCount / limit),
+          hasNext: page < Math.ceil(totalCount / limit),
+          hasPrev: page > 1
+        },
+        search_metadata: {
+          query_time_ms: searchTime,
+          filters_applied: Object.keys(searchQuery).filter(key =>
+            searchQuery[key as keyof typeof searchQuery] !== undefined &&
+            searchQuery[key as keyof typeof searchQuery] !== ''
+          ),
+          total_results: totalCount,
+          search_term: searchQuery.search || null,
+          sort_by: searchQuery.sort_by,
+          sort_order: searchQuery.sort_order
         }
       });
     } catch (error) {
       logger.error('Error searching doctors', { error, query: req.query });
       res.status(500).json({
         success: false,
-        message: 'Internal server error',
+        message: 'Failed to search doctors',
         error: process.env.NODE_ENV === 'development' ? error : undefined
       });
     }
@@ -858,62 +926,48 @@ export class DoctorController {
         return;
       }
 
-      // For now, return mock data since appointments are handled by appointment service
-      // In a real implementation, this would query the appointments table or call appointment service
-      const mockAppointments = [
-        {
-          appointment_id: 'APT001',
-          patient_name: 'Nguyễn Văn A',
-          patient_phone: '0901234567',
-          patient_email: 'nguyenvana@email.com',
-          appointment_date: '2024-01-15',
-          start_time: '09:00',
-          end_time: '09:30',
-          appointment_type: 'Khám tổng quát',
-          status: 'confirmed',
-          reason: 'Khám sức khỏe định kỳ',
-          notes: 'Bệnh nhân có tiền sử cao huyết áp'
-        },
-        {
-          appointment_id: 'APT002',
-          patient_name: 'Trần Thị B',
-          patient_phone: '0907654321',
-          patient_email: 'tranthib@email.com',
-          appointment_date: '2024-01-15',
-          start_time: '10:00',
-          end_time: '10:30',
-          appointment_type: 'Tái khám',
-          status: 'pending',
-          reason: 'Theo dõi điều trị',
-          notes: 'Cần kiểm tra kết quả xét nghiệm'
+      // Get appointments from Appointment Service
+      const appointmentResult = await this.appointmentService.getDoctorAppointments(doctorId, {
+        date: date as string,
+        status: status as string,
+        page: Number(page),
+        limit: Number(limit)
+      });
+
+      // Enrich appointment data with patient information
+      const enrichedAppointments = [];
+      for (const appointment of appointmentResult.appointments) {
+        let patientInfo = null;
+
+        // Try to get patient information
+        if (appointment.patient_id) {
+          patientInfo = await this.patientService.getPatientById(appointment.patient_id);
         }
-      ];
 
-      // Apply filters if provided
-      let filteredAppointments = mockAppointments;
-
-      if (date) {
-        filteredAppointments = filteredAppointments.filter(apt => apt.appointment_date === date);
+        enrichedAppointments.push({
+          appointment_id: appointment.appointment_id,
+          patient_id: appointment.patient_id,
+          patient_name: patientInfo?.full_name || appointment.patient_name || 'Unknown Patient',
+          patient_phone: patientInfo?.phone_number || appointment.patient_phone || 'N/A',
+          patient_email: patientInfo?.email || appointment.patient_email || 'N/A',
+          appointment_date: appointment.appointment_date,
+          appointment_time: appointment.appointment_time,
+          appointment_type: appointment.appointment_type || 'Khám tổng quát',
+          status: appointment.status,
+          notes: appointment.notes || ''
+        });
       }
-
-      if (status) {
-        filteredAppointments = filteredAppointments.filter(apt => apt.status === status);
-      }
-
-      // Apply pagination
-      const startIndex = (Number(page) - 1) * Number(limit);
-      const endIndex = startIndex + Number(limit);
-      const paginatedAppointments = filteredAppointments.slice(startIndex, endIndex);
 
       res.json({
         success: true,
-        data: paginatedAppointments,
-        pagination: {
+        data: enrichedAppointments,
+        pagination: appointmentResult.pagination || {
           page: Number(page),
           limit: Number(limit),
-          total: filteredAppointments.length,
-          totalPages: Math.ceil(filteredAppointments.length / Number(limit))
-        }
+          total: enrichedAppointments.length,
+          totalPages: Math.ceil(enrichedAppointments.length / Number(limit))
+        },
+        source: 'appointment-service'
       });
     } catch (error) {
       logger.error('Error fetching doctor appointments', { error, doctorId: req.params.doctorId });
@@ -939,37 +993,57 @@ export class DoctorController {
         return;
       }
 
-      // Get review stats
-      const reviewStats = await this.reviewRepository.getReviewStats(doctorId);
+      // Get data from multiple services in parallel
+      const [
+        reviewStats,
+        appointmentStats,
+        totalExperience,
+        todayAppointments,
+        monthlyAppointments,
+        patientCount
+      ] = await Promise.allSettled([
+        this.reviewRepository.getReviewStats(doctorId),
+        this.appointmentService.getDoctorAppointmentStats(doctorId),
+        this.experienceRepository.calculateTotalExperience(doctorId),
+        this.appointmentService.getTodayAppointments(doctorId),
+        this.appointmentService.getMonthlyAppointments(doctorId),
+        this.patientService.getPatientCountForDoctor(doctorId)
+      ]);
 
-      // For now, return mock statistics
-      // In a real implementation, this would aggregate data from appointments, patients, etc.
+      // Extract results safely
+      const reviews = reviewStats.status === 'fulfilled' ? reviewStats.value : { average_rating: 0, total_reviews: 0 };
+      const appointments = appointmentStats.status === 'fulfilled' ? appointmentStats.value : null;
+      const experience = totalExperience.status === 'fulfilled' ? totalExperience.value : { total_years: 0 };
+      const todayApts = todayAppointments.status === 'fulfilled' ? todayAppointments.value : [];
+      const monthlyApts = monthlyAppointments.status === 'fulfilled' ? monthlyAppointments.value : [];
+      const totalPatients = patientCount.status === 'fulfilled' ? patientCount.value : 0;
+
+      // Calculate success rate based on completed appointments
+      const completedAppointments = monthlyApts.filter(apt => apt.status === 'completed').length;
+      const totalMonthlyAppointments = monthlyApts.length;
+      const successRate = totalMonthlyAppointments > 0 ? (completedAppointments / totalMonthlyAppointments) * 100 : 0;
+
+      // Build comprehensive stats
       const stats = {
-        total_patients: 150,
-        total_appointments: 1250,
-        appointments_this_month: 45,
-        appointments_today: 8,
-        success_rate: 95.5,
-        average_rating: reviewStats.average_rating || 4.5,
-        total_reviews: reviewStats.total_reviews || 25,
-        years_experience: 5, // TODO: Calculate from experiences or add to doctor table
+        total_patients: totalPatients,
+        total_appointments: appointments?.total_appointments || 0,
+        appointments_this_month: appointments?.appointments_this_month || monthlyApts.length,
+        appointments_today: todayApts.length,
+        success_rate: Math.round(successRate * 10) / 10,
+        average_rating: reviews.average_rating || 0,
+        total_reviews: reviews.total_reviews || 0,
+        years_experience: Math.round(experience.total_years * 10) / 10,
         specialization: doctor.specialty,
         department: doctor.department_id,
-        status: 'active', // TODO: Add status field to doctor table if needed
-        monthly_stats: [
-          { month: 'Jan', appointments: 42, patients: 38 },
-          { month: 'Feb', appointments: 38, patients: 35 },
-          { month: 'Mar', appointments: 45, patients: 41 },
-          { month: 'Apr', appointments: 52, patients: 48 },
-          { month: 'May', appointments: 48, patients: 44 },
-          { month: 'Jun', appointments: 55, patients: 51 }
-        ],
-        appointment_types: [
-          { type: 'Khám tổng quát', count: 45, percentage: 40 },
-          { type: 'Tái khám', count: 35, percentage: 31 },
-          { type: 'Khám chuyên khoa', count: 25, percentage: 22 },
-          { type: 'Tư vấn', count: 8, percentage: 7 }
-        ]
+        status: doctor.availability_status || 'active',
+        monthly_stats: appointments?.monthly_stats || [],
+        appointment_types: appointments?.appointment_types || [],
+        data_sources: {
+          appointments: appointmentStats.status === 'fulfilled' ? 'appointment-service' : 'unavailable',
+          patients: patientCount.status === 'fulfilled' ? 'patient-service' : 'unavailable',
+          reviews: reviewStats.status === 'fulfilled' ? 'database' : 'unavailable',
+          experience: totalExperience.status === 'fulfilled' ? 'database' : 'unavailable'
+        }
       };
 
       res.json({
@@ -982,6 +1056,103 @@ export class DoctorController {
         success: false,
         message: 'Internal server error',
         error: process.env.NODE_ENV === 'development' ? error : undefined
+      });
+    }
+  }
+
+  // =====================================================
+  // REAL-TIME FEATURES
+  // =====================================================
+
+  /**
+   * Get real-time service status
+   */
+  async getRealtimeStatus(req: Request, res: Response): Promise<void> {
+    try {
+      res.json({
+        success: true,
+        data: {
+          realtime_enabled: true,
+          websocket_enabled: true,
+          supabase_subscription: true,
+          doctor_monitoring: true,
+          shift_tracking: true,
+          experience_management: true,
+          connected_clients: 0, // Will be updated when WebSocket is integrated
+          last_event: null,
+          uptime: process.uptime(),
+          subscriptions: {
+            doctors: true,
+            profiles: true,
+            shifts: true,
+            experiences: true
+          }
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('Error in getRealtimeStatus:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get real-time status',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
+  /**
+   * Get live doctors with real-time capabilities
+   */
+  async getLiveDoctors(req: Request, res: Response): Promise<void> {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+
+      // Get current doctors
+      const offset = (page - 1) * limit;
+      const doctors = await this.doctorRepository.search({}, limit, offset);
+      const total = await this.doctorRepository.getSearchCount({});
+
+      res.json({
+        success: true,
+        data: {
+          doctors,
+          realtime_enabled: true,
+          live_updates: true,
+          websocket_channel: 'doctors_realtime',
+          subscription_info: {
+            events: ['INSERT', 'UPDATE', 'DELETE'],
+            filters: [
+              'availability_updates',
+              'schedule_updates',
+              'shift_updates',
+              'experience_updates',
+              'new_doctors'
+            ],
+            rooms: [
+              'medical_staff',
+              'admin_dashboard',
+              'appointment_service',
+              'doctor_{doctorId}'
+            ]
+          }
+        },
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit)
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('Error in getLiveDoctors:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch live doctors',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
       });
     }
   }

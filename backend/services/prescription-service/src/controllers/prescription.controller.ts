@@ -3,6 +3,15 @@ import { PrescriptionRepository } from '../repositories/prescription.repository'
 import { logger } from '@hospital/shared';
 import { validationResult } from 'express-validator';
 
+// Extend Request interface to include user
+interface AuthenticatedRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
+
 export class PrescriptionController {
   private prescriptionRepository: PrescriptionRepository;
 
@@ -102,7 +111,7 @@ export class PrescriptionController {
     }
   }
 
-  async createPrescription(req: Request, res: Response): Promise<void> {
+  async createPrescription(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -132,7 +141,7 @@ export class PrescriptionController {
     }
   }
 
-  async updatePrescription(req: Request, res: Response): Promise<void> {
+  async updatePrescription(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {

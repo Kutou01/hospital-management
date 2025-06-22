@@ -33,11 +33,12 @@ export class ApiClient {
     return session?.access_token || null;
   }
 
-  // Make HTTP request
+  // Make HTTP request with timeout
   private async makeRequest<T>(
     endpoint: string,
     options: RequestInit = {},
-    requireAuth: boolean = true
+    requireAuth: boolean = true,
+    timeoutMs: number = 30000 // 30 seconds default timeout
   ): Promise<ApiResponse<T>> {
     try {
       const headers: HeadersInit = {
@@ -53,11 +54,40 @@ export class ApiClient {
         }
       }
 
-      const response = await fetch(`${this.baseUrl}/api${endpoint}`, {
-        ...options,
-        headers,
-      });
+      // Create abort controller for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
+      try {
+        const response = await fetch(`${this.baseUrl}/api${endpoint}`, {
+          ...options,
+          headers,
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+        return await this.handleResponse<T>(response);
+      } catch (error) {
+        clearTimeout(timeoutId);
+        if (error instanceof Error && error.name === 'AbortError') {
+          throw new Error(`Request timeout after ${timeoutMs}ms`);
+        }
+        throw error;
+      }
+    } catch (error) {
+      console.error('API Request Error:', error);
+      return {
+        success: false,
+        error: {
+          message: error instanceof Error ? error.message : 'Network error',
+        },
+      };
+    }
+  }
+
+  // Handle response parsing
+  private async handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
+    try {
       const data = await response.json();
 
       if (response.ok) {
@@ -86,11 +116,11 @@ export class ApiClient {
         };
       }
     } catch (error) {
-      console.error('API Request Error:', error);
+      console.error('Response parsing error:', error);
       return {
         success: false,
         error: {
-          message: error instanceof Error ? error.message : 'Network error',
+          message: error instanceof Error ? error.message : 'Response parsing error',
         },
       };
     }
@@ -145,11 +175,11 @@ export class ApiClient {
     });
   }
 
-  // File upload method
-  async uploadFile<T>(endpoint: string, file: File): Promise<ApiResponse<T>> {
+  // File upload method with timeout
+  async uploadFile<T>(endpoint: string, file: File, timeoutMs: number = 60000): Promise<ApiResponse<T>> {
     try {
       const token = await this.getAuthToken();
-      
+
       const formData = new FormData();
       formData.append('file', file);
 
@@ -158,11 +188,18 @@ export class ApiClient {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
+      // Create abort controller for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
       const response = await fetch(`${this.baseUrl}/api${endpoint}`, {
         method: 'POST',
         headers,
         body: formData,
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       const data = await response.json();
 

@@ -5,21 +5,26 @@ services:
   api-gateway:
     build:
       context: .
-      dockerfile: ./api-gateway/Dockerfile
+      dockerfile: ./services/api-gateway/Dockerfile
     ports:
       - "3100:3100"
-    env_file:
-      - ./api-gateway/.env
     environment:
       - NODE_ENV=development
       - PORT=3100
+      - AUTH_SERVICE_URL=http://auth-service:3001
       - DOCTOR_SERVICE_URL=http://doctor-service:3002
       - PATIENT_SERVICE_URL=http://patient-service:3003
       - APPOINTMENT_SERVICE_URL=http://appointment-service:3004
+      - DEPARTMENT_SERVICE_URL=http://department-service:3005
+      - MEDICAL_RECORDS_SERVICE_URL=http://medical-records-service:3006
+      - PRESCRIPTION_SERVICE_URL=http://prescription-service:3007
+      - BILLING_SERVICE_URL=http://billing-service:3008
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3011
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
       - DOCTOR_ONLY_MODE=false
-      # Supabase configuration will be loaded from .env file
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
     depends_on:
       - redis
       - rabbitmq
@@ -170,90 +175,155 @@ services:
       - core
       - full
 
-  # Department Service - DISABLED FOR DOCTOR-ONLY MODE
-  # department-service:
-  #   build: ./services/department-service
-  #   ports:
-  #     - "3005:3005"
-  #   environment:
-  #     - NODE_ENV=development
-  #     - DATABASE_URL=postgresql://postgres:password@department-db:5432/department_db
-  #     - REDIS_URL=redis://redis:6379
-  #     - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
-  #     - AUTH_SERVICE_URL=http://auth-service:3001
-  #   depends_on:
-  #     - department-db
-  #     - redis
-  #     - rabbitmq
-  #   networks:
-  #     - hospital-network
+  # Department Service - ENABLED
+  department-service:
+    build:
+      context: .
+      dockerfile: ./services/department-service/Dockerfile
+    ports:
+      - "3005:3005"
+    environment:
+      - NODE_ENV=development
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+      - AUTH_SERVICE_URL=http://auth-service:3001
+    depends_on:
+      - redis
+      - rabbitmq
+    networks:
+      - hospital-network
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+    profiles:
+      - core
+      - full
 
-  # Medical Records Service - DISABLED (Dockerfile issue)
-  # medical-records-service:
-  #   build:
-  #     context: .
-  #     dockerfile: ./services/medical-records-service/Dockerfile
-  #   ports:
-  #     - "3006:3006"
-  #   environment:
-  #     - NODE_ENV=development
-  #     - SUPABASE_URL=${SUPABASE_URL}
-  #     - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-  #     - REDIS_URL=redis://redis:6379
-  #     - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
-  #     - AUTH_SERVICE_URL=http://auth-service:3001
-  #     - FILE_STORAGE_SERVICE_URL=http://file-storage-service:3016
-  #   depends_on:
-  #     - redis
-  #     - rabbitmq
-  #   networks:
-  #     - hospital-network
+  # Medical Records Service - ENABLED
+  medical-records-service:
+    build:
+      context: .
+      dockerfile: ./services/medical-records-service/Dockerfile
+    ports:
+      - "3006:3006"
+    env_file:
+      - ./services/medical-records-service/.env
+    environment:
+      - NODE_ENV=development
+      - PORT=3006
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - DOCTOR_SERVICE_URL=http://doctor-service:3002
+      - PATIENT_SERVICE_URL=http://patient-service:3003
+      - APPOINTMENT_SERVICE_URL=http://appointment-service:3004
+    depends_on:
+      - redis
+      - rabbitmq
+    networks:
+      - hospital-network
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+    profiles:
+      - core
+      - full
 
   # ALL OTHER SERVICES DISABLED FOR DOCTOR-ONLY MODE
   # Uncomment these services when you want to enable full system
 
-  # Prescription Service - DISABLED (Dockerfile issue)
-  # prescription-service:
-  #   build:
-  #     context: .
-  #     dockerfile: ./services/prescription-service/Dockerfile
-  #   ports:
-  #     - "3007:3007"
-  #   environment:
-  #     - NODE_ENV=development
-  #     - SUPABASE_URL=${SUPABASE_URL}
-  #     - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-  #     - REDIS_URL=redis://redis:6379
-  #     - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
-  #     - AUTH_SERVICE_URL=http://auth-service:3001
-  #     - NOTIFICATION_SERVICE_URL=http://notification-service:3011
-  #   depends_on:
-  #     - redis
-  #     - rabbitmq
-  #   networks:
-  #     - hospital-network
+  # Prescription Service - ENABLED
+  prescription-service:
+    build:
+      context: .
+      dockerfile: ./services/prescription-service/Dockerfile
+    ports:
+      - "3007:3007"
+    env_file:
+      - ./services/prescription-service/.env
+    environment:
+      - NODE_ENV=development
+      - PORT=3007
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - DOCTOR_SERVICE_URL=http://doctor-service:3002
+      - PATIENT_SERVICE_URL=http://patient-service:3003
+      - MEDICAL_RECORDS_SERVICE_URL=http://medical-records-service:3006
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3011
+    depends_on:
+      - redis
+      - rabbitmq
+    networks:
+      - hospital-network
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+    profiles:
+      - core
+      - full
 
-  # Billing & Payment Service - DISABLED (Dockerfile issue)
-  # billing-service:
-  #   build:
-  #     context: .
-  #     dockerfile: ./services/billing-service/Dockerfile
-  #   ports:
-  #     - "3008:3008"
-  #   environment:
-  #     - NODE_ENV=development
-  #     - SUPABASE_URL=${SUPABASE_URL}
-  #     - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-  #     - REDIS_URL=redis://redis:6379
-  #     - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
-  #     - AUTH_SERVICE_URL=http://auth-service:3001
-  #     - NOTIFICATION_SERVICE_URL=http://notification-service:3011
-  #     - STRIPE_SECRET_KEY=sk_test_your_stripe_key
-  #   depends_on:
-  #     - redis
-  #     - rabbitmq
-  #   networks:
-  #     - hospital-network
+  # Billing & Payment Service - ENABLED
+  billing-service:
+    build:
+      context: .
+      dockerfile: ./services/billing-service/Dockerfile
+    ports:
+      - "3008:3008"
+    env_file:
+      - ./services/billing-service/.env
+    environment:
+      - NODE_ENV=development
+      - PORT=3008
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - APPOINTMENT_SERVICE_URL=http://appointment-service:3004
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3011
+      - STRIPE_SECRET_KEY=sk_test_your_stripe_key
+    depends_on:
+      - redis
+      - rabbitmq
+    networks:
+      - hospital-network
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+    profiles:
+      - core
+      - full
 
   # # Room Management Service
   # room-service:
@@ -273,27 +343,44 @@ services:
   #   networks:
   #     - hospital-network
 
-  # # Notification Service
-  # notification-service:
-  #   build: ./services/notification-service
-  #   ports:
-  #     - "3011:3011"
-  #   environment:
-  #     - NODE_ENV=development
-  #     - SUPABASE_URL=${SUPABASE_URL}
-  #     - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-  #     - REDIS_URL=redis://redis:6379
-  #     - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
-  #     - AUTH_SERVICE_URL=http://auth-service:3001
-  #     - SMTP_HOST=smtp.gmail.com
-  #     - SMTP_PORT=587
-  #     - SMTP_USER=your_email@gmail.com
-  #     - SMTP_PASS=your_app_password
-  #   depends_on:
-  #     - redis
-  #     - rabbitmq
-  #   networks:
-  #     - hospital-network
+  # Notification Service - ENABLED
+  notification-service:
+    build:
+      context: .
+      dockerfile: ./services/notification-service/Dockerfile
+    ports:
+      - "3011:3011"
+    env_file:
+      - ./services/notification-service/.env
+    environment:
+      - NODE_ENV=development
+      - PORT=3011
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - SMTP_HOST=smtp.gmail.com
+      - SMTP_PORT=587
+      - SMTP_USER=your_email@gmail.com
+      - SMTP_PASS=your_app_password
+    depends_on:
+      - redis
+      - rabbitmq
+    networks:
+      - hospital-network
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+    profiles:
+      - core
+      - full
 
   # # File Storage Service
   # file-storage-service:

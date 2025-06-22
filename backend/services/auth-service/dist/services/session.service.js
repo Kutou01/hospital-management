@@ -78,7 +78,7 @@ class SessionService {
           email,
           full_name,
           role,
-          last_sign_in_at,
+          last_login,
           created_at,
           is_active
         `, { count: 'exact' })
@@ -88,7 +88,7 @@ class SessionService {
             }
             query = query
                 .range(offset, offset + limit - 1)
-                .order('last_sign_in_at', { ascending: false, nullsFirst: false });
+                .order('last_login', { ascending: false, nullsFirst: false });
             const { data: profiles, error, count } = await query;
             if (error) {
                 logger_1.default.error('Get all sessions error:', error);
@@ -101,7 +101,7 @@ class SessionService {
                 full_name: profile.full_name,
                 role: profile.role,
                 created_at: profile.created_at,
-                last_sign_in_at: profile.last_sign_in_at,
+                last_sign_in_at: profile.last_login,
                 ip_address: 'Unknown',
                 user_agent: 'Unknown',
                 status: 'active'
@@ -137,7 +137,7 @@ class SessionService {
             const { count: todaySignIns, error: todayError } = await supabase_1.supabaseAdmin
                 .from('profiles')
                 .select('*', { count: 'exact', head: true })
-                .gte('last_sign_in_at', today.toISOString());
+                .gte('last_login', today.toISOString());
             if (todayError) {
                 logger_1.default.error('Get today sign-ins error:', todayError);
             }

@@ -36,7 +36,7 @@ export default function RootLayout({
 />
       </head>
       {/* Áp dụng class của font Inter vào thẻ body */}
-      <body className={inter.className}>
+      <body className={inter.className} suppressHydrationWarning={true}>
         {/* ThemeProvider để quản lý chủ đề sáng/tối của ứng dụng */}
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
           {/* Unified AuthProvider để cung cấp context xác thực thống nhất */}

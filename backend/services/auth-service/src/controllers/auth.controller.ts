@@ -382,6 +382,187 @@ export class AuthController {
   };
 
   /**
+   * Complete patient registration (signup + patient record creation)
+   */
+  public registerPatient = async (req: Request, res: Response): Promise<void> => {
+    try {
+      // Check validation errors
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        res.status(400).json({
+          success: false,
+          error: 'Validation failed',
+          details: errors.array()
+        });
+        return;
+      }
+
+      const { email, password, full_name, phone_number, gender, date_of_birth, blood_type, address, emergency_contact } = req.body;
+
+      // Prepare complete patient data for signup
+      const patientSignupData = {
+        email,
+        password,
+        full_name,
+        role: 'patient' as const,
+        phone_number,
+        gender,
+        date_of_birth,
+        blood_type,
+        address,
+        emergency_contact
+      };
+
+      const result = await this.authService.signUp(patientSignupData);
+
+      if (result.error) {
+        // Determine appropriate status code based on error type
+        let statusCode = 400;
+        if (result.error.includes('already registered') || result.error.includes('already exists')) {
+          statusCode = 409; // Conflict
+        } else if (result.error.includes('Invalid') || result.error.includes('validation')) {
+          statusCode = 400; // Bad Request
+        } else if (result.error.includes('permission') || result.error.includes('unauthorized')) {
+          statusCode = 403; // Forbidden
+        }
+
+        res.status(statusCode).json({
+          success: false,
+          error: result.error,
+          message: 'Failed to register patient',
+          timestamp: new Date().toISOString()
+        });
+        return;
+      }
+
+      logger.info('✅ Patient registered successfully', {
+        userId: result.user?.id,
+        email: result.user?.email,
+        role: result.user?.role,
+        hasSession: !!result.session
+      });
+
+      res.status(201).json({
+        success: true,
+        message: 'Patient registered successfully',
+        user: result.user,
+        session: result.session,
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error: any) {
+      logger.error('❌ Patient registration controller error:', {
+        error: error.message,
+        stack: error.stack,
+        body: req.body
+      });
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+        message: 'Failed to register patient',
+        timestamp: new Date().toISOString()
+      });
+    }
+  };
+
+  /**
+   * Complete doctor registration (signup + doctor record creation)
+   */
+  public registerDoctor = async (req: Request, res: Response): Promise<void> => {
+    try {
+      // Check validation errors
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        res.status(400).json({
+          success: false,
+          error: 'Validation failed',
+          details: errors.array()
+        });
+        return;
+      }
+
+      const { email, password, full_name, phone_number, gender, date_of_birth, specialty, license_number, qualification, department_id } = req.body;
+
+      // Validate required doctor fields
+      if (!department_id) {
+        res.status(400).json({
+          success: false,
+          error: 'Department ID is required for doctor registration',
+          message: 'Please provide a valid department_id',
+          timestamp: new Date().toISOString()
+        });
+        return;
+      }
+
+      // Prepare complete doctor data for signup
+      const doctorSignupData = {
+        email,
+        password,
+        full_name,
+        role: 'doctor' as const,
+        phone_number,
+        gender,
+        date_of_birth,
+        specialty,
+        license_number,
+        qualification,
+        department_id
+      };
+
+      const result = await this.authService.signUp(doctorSignupData);
+
+      if (result.error) {
+        // Determine appropriate status code based on error type
+        let statusCode = 400;
+        if (result.error.includes('already registered') || result.error.includes('already exists')) {
+          statusCode = 409; // Conflict
+        } else if (result.error.includes('Invalid') || result.error.includes('validation')) {
+          statusCode = 400; // Bad Request
+        } else if (result.error.includes('permission') || result.error.includes('unauthorized')) {
+          statusCode = 403; // Forbidden
+        }
+
+        res.status(statusCode).json({
+          success: false,
+          error: result.error,
+          message: 'Failed to register doctor',
+          timestamp: new Date().toISOString()
+        });
+        return;
+      }
+
+      logger.info('✅ Doctor registered successfully', {
+        userId: result.user?.id,
+        email: result.user?.email,
+        role: result.user?.role,
+        department_id,
+        hasSession: !!result.session
+      });
+
+      res.status(201).json({
+        success: true,
+        message: 'Doctor registered successfully',
+        user: result.user,
+        session: result.session,
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error: any) {
+      logger.error('❌ Doctor registration controller error:', {
+        error: error.message,
+        stack: error.stack,
+        body: req.body
+      });
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+        message: 'Failed to register doctor',
+        timestamp: new Date().toISOString()
+      });
+    }
+  };
+
+  /**
    * Send magic link for passwordless login
    */
   public sendMagicLink = async (req: Request, res: Response): Promise<void> => {

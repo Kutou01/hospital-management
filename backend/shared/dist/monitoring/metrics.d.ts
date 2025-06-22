@@ -12,7 +12,7 @@ export declare const patientsTotal: Gauge<"status">;
 export declare const doctorsTotal: Gauge<"status" | "specialty">;
 export declare const appointmentsTotal: Counter<"status" | "type">;
 export declare const appointmentsActive: Gauge<"status">;
-export declare const authAttemptsTotal: Counter<"method" | "status" | "role">;
+export declare const authAttemptsTotal: Counter<"role" | "method" | "status">;
 export declare const activeSessionsTotal: Gauge<"role">;
 export declare const cacheHitsTotal: Counter<"service" | "cache_type">;
 export declare const cacheMissesTotal: Counter<"service" | "cache_type">;

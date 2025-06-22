@@ -36,9 +36,23 @@ export interface SignUpData {
 }
 
 export interface AuthResponse {
-  user?: any;
+  user?: {
+    id: string;
+    email?: string;
+    full_name?: string;
+    role?: string;
+    email_confirmed_at?: string;
+    created_at?: string;
+    patient_id?: string;  // For patients
+    doctor_id?: string;   // For doctors
+    admin_id?: string;    // For admins
+    phone_number?: string;
+    is_active?: boolean;
+    last_sign_in_at?: string;
+  } | null;
   session?: any;
   error?: string;
+  url?: string; // For OAuth redirects
 }
 
 export class AuthService {
@@ -248,10 +262,126 @@ export class AuthService {
         // Don't return error here, user can still sign in manually
       }
 
+      // Get role-specific ID after creation with retry mechanism
+      let roleSpecificData = {};
+
+      logger.info('🔍 [SignUp] Starting role-specific ID fetch after creation:', {
+        role: userData.role,
+        profile_id: authData.user.id,
+        email: userData.email
+      });
+
+      try {
+        // Add small delay to ensure record is committed
+        await new Promise(resolve => setTimeout(resolve, 200));
+
+        if (userData.role === 'patient') {
+          logger.info('🔍 [SignUp] Fetching patient_id after creation for profile:', {
+            profile_id: authData.user.id,
+            email: userData.email
+          });
+
+          const { data: patientData, error: patientError } = await supabaseAdmin
+            .from('patients')
+            .select('patient_id')
+            .eq('profile_id', authData.user.id)
+            .single();
+
+          logger.info('🔍 [SignUp] Patient query result:', {
+            patientData,
+            patientError,
+            profile_id: authData.user.id
+          });
+
+          if (patientError) {
+            logger.warn('⚠️ [SignUp] Patient query error:', {
+              error: patientError.message,
+              code: patientError.code,
+              profile_id: authData.user.id
+            });
+          }
+
+          if (patientData) {
+            logger.info('✅ [SignUp] Patient found after creation:', {
+              patient_id: patientData.patient_id,
+              profile_id: authData.user.id
+            });
+            roleSpecificData = { patient_id: patientData.patient_id };
+            logger.info('🔍 [SignUp] roleSpecificData set to:', roleSpecificData);
+          } else {
+            logger.warn('⚠️ [SignUp] No patient data found after creation for profile_id:', authData.user.id);
+          }
+        } else if (userData.role === 'doctor') {
+          logger.info('🔍 [SignUp] Fetching doctor_id after creation for profile:', {
+            profile_id: authData.user.id,
+            email: userData.email
+          });
+
+          const { data: doctorData, error: doctorError } = await supabaseAdmin
+            .from('doctors')
+            .select('doctor_id')
+            .eq('profile_id', authData.user.id)
+            .single();
+
+          if (doctorError) {
+            logger.warn('⚠️ [SignUp] Doctor query error:', {
+              error: doctorError.message,
+              code: doctorError.code,
+              profile_id: authData.user.id
+            });
+          }
+
+          if (doctorData) {
+            logger.info('✅ [SignUp] Doctor found after creation:', {
+              doctor_id: doctorData.doctor_id,
+              profile_id: authData.user.id
+            });
+            roleSpecificData = { doctor_id: doctorData.doctor_id };
+          }
+        } else if (userData.role === 'admin') {
+          logger.info('🔍 [SignUp] Fetching admin_id after creation for profile:', {
+            profile_id: authData.user.id,
+            email: userData.email
+          });
+
+          const { data: adminData, error: adminError } = await supabaseAdmin
+            .from('admins')
+            .select('admin_id')
+            .eq('profile_id', authData.user.id)
+            .single();
+
+          if (adminError) {
+            logger.warn('⚠️ [SignUp] Admin query error:', {
+              error: adminError.message,
+              code: adminError.code,
+              profile_id: authData.user.id
+            });
+          }
+
+          if (adminData) {
+            logger.info('✅ [SignUp] Admin found after creation:', {
+              admin_id: adminData.admin_id,
+              profile_id: authData.user.id
+            });
+            roleSpecificData = { admin_id: adminData.admin_id };
+          }
+        }
+      } catch (roleError: any) {
+        logger.error('❌ [SignUp] Error fetching role-specific ID after signup:', {
+          error: roleError.message || 'Unknown error',
+          stack: roleError.stack || 'No stack trace',
+          role: userData.role,
+          profile_id: authData.user.id
+        });
+      }
+
+      logger.info('🔍 [SignUp] Final roleSpecificData before return:', roleSpecificData);
+
       logger.info('✅ User signup completed successfully', {
         userId: authData.user.id,
         email: authData.user.email,
-        role: userData.role
+        role: userData.role,
+        roleSpecificData
       });
 
       return {
@@ -261,7 +391,8 @@ export class AuthService {
           full_name: userData.full_name,
           role: userData.role,
           email_confirmed_at: authData.user.email_confirmed_at,
-          created_at: authData.user.created_at
+          created_at: authData.user.created_at,
+          ...roleSpecificData
         },
         session: signInData?.session || null
       };
@@ -330,6 +461,14 @@ export class AuthService {
 
       if (!profile.is_active) {
         return { error: 'Account is inactive' };
+      }
+
+      // Update last_login time
+      try {
+        await supabaseAdmin.rpc('update_user_login_time', { user_id: data.user.id });
+      } catch (updateError) {
+        logger.warn('Failed to update last_login time:', updateError);
+        // Don't fail the login, just log the warning
       }
 
       // Get role-specific ID

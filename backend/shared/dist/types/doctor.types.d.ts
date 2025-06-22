@@ -2,6 +2,7 @@ import { BaseEntity } from './common.types';
 export interface Doctor extends BaseEntity {
     doctor_id: string;
     profile_id: string;
+    full_name: string;
     specialty: string;
     qualification: string;
     department_id: string;
@@ -17,6 +18,7 @@ export interface Doctor extends BaseEntity {
     total_reviews: number;
 }
 export interface CreateDoctorRequest {
+    full_name: string;
     specialty: string;
     qualification: string;
     department_id: string;
@@ -63,6 +65,15 @@ export interface DoctorSearchQuery {
     available_date?: string;
     available_time?: string;
     search?: string;
+    min_rating?: number;
+    max_consultation_fee?: number;
+    languages?: string;
+    availability_status?: string;
+    experience_years?: number;
+    page?: number;
+    limit?: number;
+    sort_by?: string;
+    sort_order?: 'asc' | 'desc';
 }
 export interface DoctorWithDepartment extends Doctor {
     department_name?: string;

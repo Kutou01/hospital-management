@@ -3,38 +3,42 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.supabaseAdmin = void 0;
 exports.getSupabase = getSupabase;
 exports.testDatabaseConnection = testDatabaseConnection;
 const supabase_js_1 = require("@supabase/supabase-js");
 const logger_1 = __importDefault(require("@hospital/shared/dist/utils/logger"));
-let supabaseClient = null;
-function getSupabase() {
-    if (!supabaseClient) {
-        const supabaseUrl = process.env.SUPABASE_URL;
-        const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-        if (!supabaseUrl || !supabaseServiceKey) {
-            const error = 'Missing Supabase configuration. Please check SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.';
-            logger_1.default.error(error);
-            throw new Error(error);
-        }
-        try {
-            supabaseClient = (0, supabase_js_1.createClient)(supabaseUrl, supabaseServiceKey, {
-                auth: {
-                    autoRefreshToken: false,
-                    persistSession: false
-                }
-            });
-            logger_1.default.info('Supabase client initialized successfully', {
-                service: 'doctor-service',
-                url: supabaseUrl
-            });
-        }
-        catch (error) {
-            logger_1.default.error('Failed to initialize Supabase client', { error });
-            throw error;
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (!supabaseUrl) {
+    throw new Error('SUPABASE_URL environment variable is required');
+}
+if (!supabaseServiceKey) {
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY environment variable is required');
+}
+logger_1.default.info('🔧 Supabase configuration loaded', {
+    service: 'doctor-service',
+    url: supabaseUrl,
+    hasServiceKey: !!supabaseServiceKey
+});
+exports.supabaseAdmin = (0, supabase_js_1.createClient)(supabaseUrl, supabaseServiceKey, {
+    auth: {
+        autoRefreshToken: false,
+        persistSession: false
+    },
+    db: {
+        schema: 'public'
+    },
+    global: {
+        headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+            'X-Client-Info': `doctor-service-${Date.now()}`
         }
     }
-    return supabaseClient;
+});
+function getSupabase() {
+    return exports.supabaseAdmin;
 }
 async function testDatabaseConnection() {
     try {

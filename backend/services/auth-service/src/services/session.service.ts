@@ -121,7 +121,7 @@ export class SessionService {
           email,
           full_name,
           role,
-          last_sign_in_at,
+          last_login,
           created_at,
           is_active
         `, { count: 'exact' })
@@ -133,7 +133,7 @@ export class SessionService {
 
       query = query
         .range(offset, offset + limit - 1)
-        .order('last_sign_in_at', { ascending: false, nullsFirst: false });
+        .order('last_login', { ascending: false, nullsFirst: false });
 
       const { data: profiles, error, count } = await query;
 
@@ -150,7 +150,7 @@ export class SessionService {
         full_name: profile.full_name,
         role: profile.role,
         created_at: profile.created_at,
-        last_sign_in_at: profile.last_sign_in_at,
+        last_sign_in_at: profile.last_login, // Use last_login from profiles table
         ip_address: 'Unknown',
         user_agent: 'Unknown',
         status: 'active'
@@ -198,7 +198,7 @@ export class SessionService {
       const { count: todaySignIns, error: todayError } = await supabaseAdmin
         .from('profiles')
         .select('*', { count: 'exact', head: true })
-        .gte('last_sign_in_at', today.toISOString());
+        .gte('last_login', today.toISOString());
 
       if (todayError) {
         logger.error('Get today sign-ins error:', todayError);

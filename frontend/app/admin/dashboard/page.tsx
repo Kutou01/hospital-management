@@ -18,6 +18,8 @@ import {
 } from "lucide-react"
 
 import { StatCard } from "@/components/dashboard/StatCard"
+import { EnhancedStatCard, AppointmentStatCard, PatientStatCard, DoctorStatCard } from "@/components/dashboard/EnhancedStatCard"
+import { RealTimeStats, SystemHealthBadge } from "@/components/dashboard/RealTimeStats"
 import { ChartCard, BarChartGroup } from "@/components/dashboard/ChartCard"
 import { RecentActivity } from "@/components/dashboard/RecentActivity"
 import { Button } from "@/components/ui/button"
@@ -293,50 +295,71 @@ export default function AdminDashboard() {
           </div>
           <p className="text-gray-600">{currentDate}</p>
 
-          {/* System Status Alert */}
+          {/* Enhanced System Status Alert */}
           <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <span className="text-sm font-medium text-green-800">
-                Tất cả hệ thống hoạt động bình thường. Quản lý bệnh viện đang chạy ổn định.
-              </span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                <span className="text-sm font-medium text-green-800">
+                  Tất cả hệ thống hoạt động bình thường. Quản lý bệnh viện đang chạy ổn định.
+                </span>
+              </div>
+              <SystemHealthBadge />
             </div>
           </div>
         </div>
 
-        {/* Key Metrics */}
+        {/* Enhanced Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-          <StatCard
+          <EnhancedStatCard
             title="Tổng người dùng"
             value={totalUsers}
             change={8}
-            icon={<Users className="text-blue-500" />}
+            changeLabel="tăng trưởng tháng này"
+            icon={<Users className="h-6 w-6" />}
             description={`${systemStats.total_doctors} bác sĩ, ${systemStats.total_patients} bệnh nhân`}
+            color="blue"
+            isLoading={isLoadingData}
+            showActions={true}
+            onRefresh={() => window.location.reload()}
           />
-          <StatCard
-            title="Lịch hẹn đang hoạt động"
-            value={Number(systemStats.appointments_confirmed) + Number(systemStats.appointments_pending)}
-            change={12}
-            icon={<Calendar className="text-green-500" />}
-            description={`${systemStats.appointments_completed} hoàn thành`}
+          <AppointmentStatCard
+            appointments={{
+              today: systemStats.appointments_today,
+              pending: systemStats.appointments_pending,
+              confirmed: systemStats.appointments_confirmed
+            }}
+            isLoading={isLoadingData}
+            onRefresh={() => window.location.reload()}
           />
-          <StatCard
+          <EnhancedStatCard
             title="Tổng phòng"
             value={systemStats.total_rooms}
             change={0}
-            icon={<BedDouble className="text-purple-500" />}
+            changeLabel="không thay đổi"
+            icon={<BedDouble className="h-6 w-6" />}
             description={`${systemStats.available_rooms} phòng trống`}
+            color="purple"
+            isLoading={isLoadingData}
+            showActions={true}
           />
-          <StatCard
+          <EnhancedStatCard
             title="Tỷ lệ lấp đầy"
             value={`${occupancyRate}%`}
             change={occupancyRate > 70 ? 5 : -3}
-            icon={<Activity className="text-orange-500" />}
+            changeLabel="so với tuần trước"
+            icon={<Activity className="h-6 w-6" />}
             description={`${systemStats.total_departments} khoa hoạt động`}
+            color="orange"
+            isLoading={isLoadingData}
+            showActions={true}
           />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        {/* Real-time System Monitoring */}
+        <RealTimeStats />
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 mt-6">
           {/* Department Overview */}
           <Card className="lg:col-span-2">
             <CardContent className="p-6">
@@ -348,7 +371,7 @@ export default function AdminDashboard() {
               </div>
               <div className="space-y-4">
                 {departmentStats.map((dept, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div key={index} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                     <div className="flex items-center space-x-4">
                       <div className="p-2 bg-blue-100 rounded-lg">
                         <Building2 className="h-5 w-5 text-blue-600" />
@@ -370,31 +393,31 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
-          {/* System Health */}
+          {/* Quick Actions Enhanced */}
           <Card>
             <CardContent className="p-6">
-              <h3 className="text-lg font-medium mb-4">Tình trạng hệ thống</h3>
-              <div className="space-y-4">
-                {Object.entries(systemHealth).map(([service, health]) => (
-                  <div key={service} className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Server className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm capitalize">{service.replace(/([A-Z])/g, ' $1')}</span>
-                    </div>
-                    <div className="text-right">
-                      <Badge className={`text-xs ${getHealthColor(health.status)}`}>
-                        {health.status}
-                      </Badge>
-                      <p className="text-xs text-gray-500 mt-1">{health.uptime}</p>
-                    </div>
-                  </div>
-                ))}
-                <div className="pt-4">
-                  <Button className="w-full" variant="outline" size="sm">
-                    <BarChart3 className="h-4 w-4 mr-2" />
-                    Xem phân tích
-                  </Button>
-                </div>
+              <h3 className="text-lg font-medium mb-4">Thao tác nhanh</h3>
+              <div className="space-y-3">
+                <Button className="w-full justify-start bg-gradient-to-r from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 text-blue-700 border-blue-200" variant="outline">
+                  <UserCog className="h-4 w-4 mr-2" />
+                  Quản lý bác sĩ
+                </Button>
+                <Button className="w-full justify-start bg-gradient-to-r from-green-50 to-green-100 hover:from-green-100 hover:to-green-200 text-green-700 border-green-200" variant="outline">
+                  <Users className="h-4 w-4 mr-2" />
+                  Quản lý bệnh nhân
+                </Button>
+                <Button className="w-full justify-start bg-gradient-to-r from-purple-50 to-purple-100 hover:from-purple-100 hover:to-purple-200 text-purple-700 border-purple-200" variant="outline">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Lịch hẹn
+                </Button>
+                <Button className="w-full justify-start bg-gradient-to-r from-orange-50 to-orange-100 hover:from-orange-100 hover:to-orange-200 text-orange-700 border-orange-200" variant="outline">
+                  <Building2 className="h-4 w-4 mr-2" />
+                  Các khoa
+                </Button>
+                <Button className="w-full justify-start bg-gradient-to-r from-red-50 to-red-100 hover:from-red-100 hover:to-red-200 text-red-700 border-red-200" variant="outline">
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  Báo cáo
+                </Button>
               </div>
             </CardContent>
           </Card>

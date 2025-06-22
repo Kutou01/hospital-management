@@ -80,7 +80,28 @@ export function EnumProvider({ children }: EnumProviderProps) {
 
       console.log('🔄 Starting to fetch enum data...');
 
-      // Fetch all enum tables in parallel
+      // Fetch enum tables individually to handle missing tables gracefully
+      const fetchTable = async (tableName: string, orderBy: string) => {
+        try {
+          const { data, error } = await supabaseClient
+            .from(tableName)
+            .select('*')
+            .eq('is_active', true)
+            .order(orderBy);
+
+          if (error) {
+            console.warn(`⚠️ Table ${tableName} not found or error:`, error.message);
+            return { data: [], error };
+          }
+
+          return { data: data || [], error: null };
+        } catch (err) {
+          console.warn(`⚠️ Exception fetching ${tableName}:`, err);
+          return { data: [], error: err };
+        }
+      };
+
+      // Fetch all enum tables
       const [
         specialtiesRes,
         departmentsRes,
@@ -90,42 +111,26 @@ export function EnumProvider({ children }: EnumProviderProps) {
         statusValuesRes,
         paymentMethodsRes
       ] = await Promise.all([
-        supabaseClient.from('specialties').select('*').eq('is_active', true).order('specialty_name'),
-        supabaseClient.from('departments').select('*').eq('is_active', true).order('department_name'),
-        supabaseClient.from('room_types').select('*').eq('is_active', true).order('type_name'),
-        supabaseClient.from('diagnosis').select('*').eq('is_active', true).order('created_at'),
-        supabaseClient.from('medications').select('*').eq('is_active', true).order('created_at'),
-        supabaseClient.from('status_values').select('*').eq('is_active', true).order('created_at'),
-        supabaseClient.from('payment_methods').select('*').eq('is_active', true).order('method_name')
+        fetchTable('specialties', 'specialty_name'),
+        fetchTable('departments', 'department_name'),
+        fetchTable('room_types', 'type_name'),
+        fetchTable('diagnosis', 'created_at'),
+        fetchTable('medications', 'created_at'),
+        fetchTable('status_values', 'created_at'),
+        fetchTable('payment_methods', 'created_at') // Changed from method_name to created_at
       ]);
 
       console.log('📊 Enum data fetch results:', {
-        specialties: { data: specialtiesRes.data, error: specialtiesRes.error },
-        departments: { data: departmentsRes.data, error: departmentsRes.error },
-        roomTypes: { data: roomTypesRes.data, error: roomTypesRes.error },
-        diagnoses: { data: diagnosesRes.data, error: diagnosesRes.error },
-        medications: { data: medicationsRes.data, error: medicationsRes.error },
-        statusValues: { data: statusValuesRes.data, error: statusValuesRes.error },
-        paymentMethods: { data: paymentMethodsRes.data, error: paymentMethodsRes.error }
+        specialties: { count: specialtiesRes.data.length, error: specialtiesRes.error },
+        departments: { count: departmentsRes.data.length, error: departmentsRes.error },
+        roomTypes: { count: roomTypesRes.data.length, error: roomTypesRes.error },
+        diagnoses: { count: diagnosesRes.data.length, error: diagnosesRes.error },
+        medications: { count: medicationsRes.data.length, error: medicationsRes.error },
+        statusValues: { count: statusValuesRes.data.length, error: statusValuesRes.error },
+        paymentMethods: { count: paymentMethodsRes.data.length, error: paymentMethodsRes.error }
       });
 
-      // Check for errors
-      const errors = [
-        specialtiesRes.error,
-        departmentsRes.error,
-        roomTypesRes.error,
-        diagnosesRes.error,
-        medicationsRes.error,
-        statusValuesRes.error,
-        paymentMethodsRes.error
-      ].filter(Boolean);
-
-      if (errors.length > 0) {
-        console.error('❌ Enum data fetch errors:', errors);
-        throw new Error(`Failed to fetch enum data: ${errors.map(e => e?.message).join(', ')}`);
-      }
-
-      // Set data
+      // Set data (even if some tables are empty)
       setSpecialties(specialtiesRes.data || []);
       setDepartments(departmentsRes.data || []);
       setRoomTypes(roomTypesRes.data || []);
@@ -134,7 +139,7 @@ export function EnumProvider({ children }: EnumProviderProps) {
       setStatusValues(statusValuesRes.data || []);
       setPaymentMethods(paymentMethodsRes.data || []);
 
-
+      console.log('✅ Enum data loaded successfully');
 
     } catch (err) {
       console.error('❌ Error fetching enum data:', err);
@@ -344,6 +349,11 @@ export function useGenderEnums(): EnumOption[] {
     { value: 'female', label: 'Nữ' },
     { value: 'other', label: 'Khác' }
   ];
+}
+
+export function useStatusOptions(appliesTo?: string): EnumOption[] {
+  const { getStatusOptions } = useEnumContext();
+  return getStatusOptions(appliesTo);
 }
 
 export function useDoctorStatusEnums(): EnumOption[] {

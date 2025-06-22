@@ -165,10 +165,10 @@ export const patientsApi = {
     return apiClient.get<any[]>(`/patients/${id}/medical-history`);
   },
 
-  // Search patients
-  search: async (query: string): Promise<ApiResponse<PatientWithProfile[]>> => {
-    return apiClient.get<PatientWithProfile[]>('/patients/search', { q: query });
-  },
+  // Search patients (use getAll with search filter instead)
+  // search: async (query: string): Promise<ApiResponse<PatientWithProfile[]>> => {
+  //   return apiClient.get<PatientWithProfile[]>('/patients/search', { q: query });
+  // },
 
   // Get patient by profile ID
   getByProfileId: async (profileId: string): Promise<ApiResponse<PatientWithProfile>> => {

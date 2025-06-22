@@ -80,6 +80,8 @@ router.get('/me', auth_middleware_1.authMiddleware, async (req, res) => {
 });
 router.post('/create-doctor-record', authController.createDoctorRecord);
 router.post('/create-patient-record', authController.createPatientRecord);
+router.post('/register-patient', auth_validators_1.validatePatientRegistration, authController.registerPatient);
+router.post('/register-doctor', auth_validators_1.validateDoctorRegistration, authController.registerDoctor);
 router.post('/magic-link', auth_validators_1.validateMagicLink, authController.sendMagicLink);
 router.post('/phone-otp', auth_validators_1.validatePhoneOTP, authController.sendPhoneOTP);
 router.post('/verify-otp', auth_validators_1.validateVerifyOTP, authController.verifyPhoneOTP);

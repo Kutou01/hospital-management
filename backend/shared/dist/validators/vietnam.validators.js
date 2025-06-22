@@ -3,13 +3,13 @@
 // VIETNAM HEALTHCARE SYSTEM - VALIDATION RULES
 // ============================================================================
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.validateUniqueness = exports.VIETNAM_UNIQUE_CONSTRAINTS = exports.formatVietnamLicense = exports.formatVietnamPhone = exports.validateBHYT = exports.validateCCCD = exports.validateVietnamLicense = exports.validateVietnamPhone = exports.validateCreateAppointment = exports.validateAppointmentId = exports.validateCreatePatient = exports.validatePatientId = exports.validateCreateDoctor = exports.validateDoctorId = exports.VIETNAM_RANGES = exports.VIETNAM_ENUMS = exports.VIETNAM_PATTERNS = void 0;
+exports.validateUniqueness = exports.VIETNAM_UNIQUE_CONSTRAINTS = exports.formatVietnamLicense = exports.formatVietnamPhone = exports.validateBHYT = exports.validateCCCD = exports.validateVietnamLicense = exports.validateVietnamPhone = exports.validateCreateAppointment = exports.validateAppointmentId = exports.validateCreatePatient = exports.validateCreateDoctor = exports.validateDoctorId = exports.VIETNAM_RANGES = exports.VIETNAM_ENUMS = exports.VIETNAM_PATTERNS = void 0;
 const express_validator_1 = require("express-validator");
 // Vietnam-specific format patterns
 exports.VIETNAM_PATTERNS = {
-    // ID Patterns (simplified, no year)
+    // ID Patterns (department-based system)
     DOCTOR_ID: /^DOC\d{6}$/, // DOC000001
-    PATIENT_ID: /^BN\d{6}$/, // BN000001 (Bệnh nhân)
+    // PATIENT_ID removed - using department-based ID system
     APPOINTMENT_ID: /^LK\d{6}$/, // LK000001 (Lịch khám)
     DEPARTMENT_ID: /^KHOA\d{6}$/, // KHOA000001
     ROOM_ID: /^PHONG\d{6}$/, // PHONG000001
@@ -128,16 +128,9 @@ exports.validateCreateDoctor = [
 // ============================================================================
 // PATIENT VALIDATION (Vietnam)
 // ============================================================================
-exports.validatePatientId = [
-    (0, express_validator_1.param)('patientId')
-        .matches(exports.VIETNAM_PATTERNS.PATIENT_ID)
-        .withMessage('Mã bệnh nhân phải có định dạng BN + 6 chữ số (VD: BN000001)')
-];
+// validatePatientId removed - using department-based ID system
 exports.validateCreatePatient = [
-    (0, express_validator_1.body)('patient_id')
-        .optional()
-        .matches(exports.VIETNAM_PATTERNS.PATIENT_ID)
-        .withMessage('Mã bệnh nhân không hợp lệ'),
+    // patient_id validation removed - using department-based ID system
     (0, express_validator_1.body)('ho_ten')
         .notEmpty()
         .withMessage('Họ tên là bắt buộc')
@@ -199,9 +192,7 @@ exports.validateCreateAppointment = [
         .optional()
         .matches(exports.VIETNAM_PATTERNS.APPOINTMENT_ID)
         .withMessage('Mã lịch khám không hợp lệ'),
-    (0, express_validator_1.body)('ma_benh_nhan')
-        .matches(exports.VIETNAM_PATTERNS.PATIENT_ID)
-        .withMessage('Mã bệnh nhân không hợp lệ'),
+    // ma_benh_nhan validation removed - using department-based ID system
     (0, express_validator_1.body)('ma_bac_si')
         .matches(exports.VIETNAM_PATTERNS.DOCTOR_ID)
         .withMessage('Mã bác sĩ không hợp lệ'),
@@ -273,7 +264,7 @@ exports.formatVietnamLicense = formatVietnamLicense;
 // ============================================================================
 exports.VIETNAM_UNIQUE_CONSTRAINTS = {
     doctors: ['doctor_id', 'email', 'so_bang_cap'],
-    patients: ['patient_id', 'email', 'so_cccd', 'so_cmnd', 'so_the_bhyt'],
+    patients: ['email', 'so_cccd', 'so_cmnd', 'so_the_bhyt'], // patient_id removed - using department-based ID
     appointments: ['appointment_id'],
     departments: ['department_id', 'ten_khoa'],
     rooms: ['room_id', 'so_phong'],
@@ -296,7 +287,7 @@ exports.default = {
     VIETNAM_RANGES: exports.VIETNAM_RANGES,
     validateDoctorId: exports.validateDoctorId,
     validateCreateDoctor: exports.validateCreateDoctor,
-    validatePatientId: exports.validatePatientId,
+    // validatePatientId removed - using department-based ID system
     validateCreatePatient: exports.validateCreatePatient,
     validateAppointmentId: exports.validateAppointmentId,
     validateCreateAppointment: exports.validateCreateAppointment,

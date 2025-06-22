@@ -16,9 +16,23 @@ export interface SignUpData {
     blood_type?: string;
 }
 export interface AuthResponse {
-    user?: any;
+    user?: {
+        id: string;
+        email?: string;
+        full_name?: string;
+        role?: string;
+        email_confirmed_at?: string;
+        created_at?: string;
+        patient_id?: string;
+        doctor_id?: string;
+        admin_id?: string;
+        phone_number?: string;
+        is_active?: boolean;
+        last_sign_in_at?: string;
+    } | null;
     session?: any;
     error?: string;
+    url?: string;
 }
 export declare class AuthService {
     private generateDoctorId;

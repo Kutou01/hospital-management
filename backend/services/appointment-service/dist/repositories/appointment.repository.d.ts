@@ -1,7 +1,6 @@
 import { Appointment, AppointmentWithDetails, CreateAppointmentDto, UpdateAppointmentDto, AppointmentSearchFilters, ConflictCheck, AppointmentStats } from '../types/appointment.types';
 export declare class AppointmentRepository {
     private supabase;
-    private generateAppointmentId;
     getAllAppointments(filters?: AppointmentSearchFilters, page?: number, limit?: number): Promise<{
         appointments: AppointmentWithDetails[];
         total: number;

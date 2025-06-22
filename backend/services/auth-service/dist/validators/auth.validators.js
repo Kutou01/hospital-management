@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.validateOAuthCallback = exports.validateVerifyOTP = exports.validatePhoneOTP = exports.validateMagicLink = exports.validateRole = exports.validateUserId = exports.validateEmail = exports.validateUpdateProfile = exports.validateChangePassword = exports.validateRefreshToken = exports.validateResetPassword = exports.validateSignIn = exports.validateSignUp = void 0;
+exports.validateOAuthCallback = exports.validateVerifyOTP = exports.validatePhoneOTP = exports.validateMagicLink = exports.validateRole = exports.validateUserId = exports.validateEmail = exports.validateUpdateProfile = exports.validateChangePassword = exports.validateRefreshToken = exports.validateResetPassword = exports.validateSignIn = exports.validateDoctorRegistration = exports.validatePatientRegistration = exports.validateSignUp = void 0;
 const express_validator_1 = require("express-validator");
 exports.validateSignUp = [
     (0, express_validator_1.body)('email')
@@ -52,6 +52,88 @@ exports.validateSignUp = [
         .optional()
         .isLength({ min: 1, max: 20 })
         .withMessage('Department ID is invalid')
+];
+exports.validatePatientRegistration = [
+    (0, express_validator_1.body)('email')
+        .isEmail()
+        .normalizeEmail()
+        .withMessage('Please provide a valid email address'),
+    (0, express_validator_1.body)('password')
+        .isLength({ min: 6 })
+        .withMessage('Password must be at least 6 characters long')
+        .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+        .withMessage('Password must contain at least one lowercase letter, one uppercase letter, and one number'),
+    (0, express_validator_1.body)('full_name')
+        .trim()
+        .isLength({ min: 2, max: 100 })
+        .withMessage('Full name must be between 2 and 100 characters')
+        .matches(/^[a-zA-ZÀ-ỹ\s]+$/)
+        .withMessage('Full name can only contain letters and spaces'),
+    (0, express_validator_1.body)('phone_number')
+        .optional()
+        .matches(/^0\d{9}$/)
+        .withMessage('Phone number must be 10 digits starting with 0'),
+    (0, express_validator_1.body)('gender')
+        .isIn(['male', 'female', 'other'])
+        .withMessage('Gender must be one of: male, female, other'),
+    (0, express_validator_1.body)('date_of_birth')
+        .isISO8601()
+        .withMessage('Date of birth must be a valid date'),
+    (0, express_validator_1.body)('blood_type')
+        .optional()
+        .isIn(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'])
+        .withMessage('Blood type must be one of: A+, A-, B+, B-, AB+, AB-, O+, O-'),
+    (0, express_validator_1.body)('address')
+        .optional()
+        .isObject()
+        .withMessage('Address must be an object'),
+    (0, express_validator_1.body)('emergency_contact')
+        .optional()
+        .isObject()
+        .withMessage('Emergency contact must be an object')
+];
+exports.validateDoctorRegistration = [
+    (0, express_validator_1.body)('email')
+        .isEmail()
+        .normalizeEmail()
+        .withMessage('Please provide a valid email address'),
+    (0, express_validator_1.body)('password')
+        .isLength({ min: 6 })
+        .withMessage('Password must be at least 6 characters long')
+        .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+        .withMessage('Password must contain at least one lowercase letter, one uppercase letter, and one number'),
+    (0, express_validator_1.body)('full_name')
+        .trim()
+        .isLength({ min: 2, max: 100 })
+        .withMessage('Full name must be between 2 and 100 characters')
+        .matches(/^[a-zA-ZÀ-ỹ\s]+$/)
+        .withMessage('Full name can only contain letters and spaces'),
+    (0, express_validator_1.body)('phone_number')
+        .optional()
+        .matches(/^0\d{9}$/)
+        .withMessage('Phone number must be 10 digits starting with 0'),
+    (0, express_validator_1.body)('gender')
+        .isIn(['male', 'female', 'other'])
+        .withMessage('Gender must be one of: male, female, other'),
+    (0, express_validator_1.body)('date_of_birth')
+        .isISO8601()
+        .withMessage('Date of birth must be a valid date'),
+    (0, express_validator_1.body)('specialty')
+        .notEmpty()
+        .isLength({ min: 2, max: 100 })
+        .withMessage('Specialty is required and must be between 2 and 100 characters'),
+    (0, express_validator_1.body)('license_number')
+        .optional()
+        .matches(/^VN-[A-Z]{2}-\d{4}$/)
+        .withMessage('License number must follow format: VN-XX-0000'),
+    (0, express_validator_1.body)('qualification')
+        .optional()
+        .isLength({ min: 2, max: 50 })
+        .withMessage('Qualification must be between 2 and 50 characters'),
+    (0, express_validator_1.body)('department_id')
+        .notEmpty()
+        .matches(/^DEPT\d{3}$/)
+        .withMessage('Department ID is required and must follow format: DEPT001')
 ];
 exports.validateSignIn = [
     (0, express_validator_1.body)('email')

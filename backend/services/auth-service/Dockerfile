@@ -4,8 +4,13 @@ FROM node:18-alpine
 # Set working directory
 WORKDIR /app
 
-# Install curl for health checks
-RUN apk add --no-cache curl
+# Install system dependencies including Python and build tools for bcrypt
+RUN apk add --no-cache \
+    curl \
+    python3 \
+    make \
+    g++ \
+    && ln -sf python3 /usr/bin/python
 
 # Copy package.json files
 COPY services/auth-service/package*.json ./

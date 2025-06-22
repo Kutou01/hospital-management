@@ -85,7 +85,7 @@ export default function ApiDebugger() {
       }
 
       addDebugResult('API Request', 'success', `Making request to: http://localhost:3100/api/patients`, {
-        url: 'http://localhost:3100/api/patients',
+        url: 'http://localhost:3100/api/patients?page=1&limit=5',
         headers: headers,
         method: 'GET'
       })
@@ -117,7 +117,7 @@ export default function ApiDebugger() {
   // Test 4: Test Patient Service directly
   const testPatientService = async () => {
     try {
-      const response = await fetch('http://localhost:3003/health')
+      const response = await fetch('http://localhost:3003/api/patients/health')
       if (response.ok) {
         const data = await response.json()
         addDebugResult('Patient Service Health', 'success', 'Patient Service is responding', data)

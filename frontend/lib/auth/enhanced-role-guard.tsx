@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { sessionManager } from './session-manager'
-import { useEnhancedAuth } from './enhanced-auth-context'
+import { useAuth } from './auth-wrapper'
 import { getDashboardPath } from './dashboard-routes'
 
 interface EnhancedRoleGuardProps {
@@ -21,7 +21,7 @@ export function EnhancedRoleGuard({
   fallback,
   requireActive = true
 }: EnhancedRoleGuardProps) {
-  const { user, loading, isAuthenticated } = useEnhancedAuth()
+  const { user, loading, isAuthenticated } = useAuth()
   const router = useRouter()
   const [isChecking, setIsChecking] = useState(true)
   const [hasAccess, setHasAccess] = useState(false)
@@ -161,7 +161,7 @@ export function EnhancedStaffGuard({
 
 // Hook for checking access without rendering
 export function useRoleAccess(allowedRoles: string[], requireActive = true) {
-  const { user, isAuthenticated } = useEnhancedAuth()
+  const { user, isAuthenticated } = useAuth()
   
   const hasAccess = React.useMemo(() => {
     if (!isAuthenticated || !user) return false

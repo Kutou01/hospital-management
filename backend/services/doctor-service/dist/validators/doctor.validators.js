@@ -147,7 +147,9 @@ exports.validateProfileFields = [
     (0, express_validator_1.body)('full_name')
         .optional()
         .isLength({ min: 2, max: 100 })
-        .withMessage('Full name must be 2-100 characters'),
+        .withMessage('Full name must be 2-100 characters')
+        .matches(/^[\p{L}\s]+$/u)
+        .withMessage('Full name can only contain letters and spaces'),
     (0, express_validator_1.body)('role')
         .optional()
         .equals('doctor')

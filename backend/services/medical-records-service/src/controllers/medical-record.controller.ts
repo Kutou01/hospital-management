@@ -3,6 +3,15 @@ import { MedicalRecordRepository } from '../repositories/medical-record.reposito
 import { logger } from '@hospital/shared';
 import { validationResult } from 'express-validator';
 
+// Extend Request interface to include user
+interface AuthenticatedRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
+
 export class MedicalRecordController {
   private medicalRecordRepository: MedicalRecordRepository;
 
@@ -104,7 +113,7 @@ export class MedicalRecordController {
     }
   }
 
-  async createMedicalRecord(req: Request, res: Response): Promise<void> {
+  async createMedicalRecord(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -134,7 +143,7 @@ export class MedicalRecordController {
     }
   }
 
-  async updateMedicalRecord(req: Request, res: Response): Promise<void> {
+  async updateMedicalRecord(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -235,7 +244,7 @@ export class MedicalRecordController {
   }
 
   // Vital Signs endpoints
-  async createVitalSigns(req: Request, res: Response): Promise<void> {
+  async createVitalSigns(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {

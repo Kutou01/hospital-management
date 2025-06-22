@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Calendar,
   Clock,
@@ -10,98 +10,97 @@ import {
   User,
   AlertCircle,
   CheckCircle,
-  XCircle
+  XCircle,
+  Settings
 } from "lucide-react"
 import { DoctorLayout } from "@/components/layout/UniversalLayout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { useEnhancedAuth } from "@/lib/auth/enhanced-auth-context"
+import { useEnhancedAuth } from "@/lib/auth/auth-wrapper"
+import { appointmentsApi } from "@/lib/api"
+import { ScheduleManager } from "@/components/doctors/ScheduleManager"
+import { doctorsApi } from "@/lib/api/doctors"
+import { toast } from "react-hot-toast"
 
 export default function DoctorSchedule() {
   const { user, loading } = useEnhancedAuth()
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
-  const [viewMode, setViewMode] = useState<'week' | 'day'>('week')
+  const [viewMode, setViewMode] = useState<'week' | 'day' | 'manage'>('week')
+  const [doctorId, setDoctorId] = useState<string | null>(null)
+  const [scheduleData, setScheduleData] = useState<any>({})
+  const [loadingSchedule, setLoadingSchedule] = useState(false)
 
-  // Mock schedule data
-  const scheduleData = {
-    '2024-01-15': [
-      {
-        id: '1',
-        time: '09:00',
-        duration: 30,
-        type: 'appointment',
-        patient: 'Nguyễn Văn A',
-        status: 'confirmed',
-        notes: 'Khám tổng quát'
-      },
-      {
-        id: '2',
-        time: '10:30',
-        duration: 45,
-        type: 'appointment',
-        patient: 'Trần Thị B',
-        status: 'confirmed',
-        notes: 'Tái khám tim mạch'
-      },
-      {
-        id: '3',
-        time: '14:00',
-        duration: 60,
-        type: 'appointment',
-        patient: 'Lê Văn C',
-        status: 'pending',
-        notes: 'Khám chuyên khoa'
-      },
-      {
-        id: '4',
-        time: '16:00',
-        duration: 30,
-        type: 'break',
-        title: 'Coffee Break',
-        status: 'scheduled'
+  // Get doctor ID when user is loaded
+  useEffect(() => {
+    if (user && user.role === 'doctor' && user.profile_id) {
+      loadDoctorProfile()
+    }
+  }, [user])
+
+  const loadDoctorProfile = async () => {
+    try {
+      if (!user?.profile_id) return
+
+      const response = await doctorsApi.getByProfileId(user.profile_id)
+      if (response.success && response.data) {
+        setDoctorId(response.data.doctor_id)
+        loadScheduleData(response.data.doctor_id)
+      } else {
+        toast.error('Không thể tải thông tin bác sĩ')
       }
-    ],
-    '2024-01-16': [
-      {
-        id: '5',
-        time: '08:30',
-        duration: 30,
-        type: 'appointment',
-        patient: 'Phạm Thị D',
-        status: 'confirmed',
-        notes: 'Khám da liễu'
-      },
-      {
-        id: '6',
-        time: '11:00',
-        duration: 120,
-        type: 'surgery',
-        title: 'Minor Surgery',
-        status: 'scheduled',
-        notes: 'Phẫu thuật nhỏ'
+    } catch (error) {
+      console.error('Error loading doctor profile:', error)
+      toast.error('Lỗi khi tải thông tin bác sĩ')
+    }
+  }
+
+  const loadScheduleData = async (doctorIdParam: string) => {
+    try {
+      setLoadingSchedule(true)
+
+      // Load real appointment data from API
+      const response = await appointmentsApi.getByDoctorId(doctorIdParam)
+
+      if (response.success && response.data) {
+        // Transform API data to schedule format
+        const scheduleData: { [key: string]: ScheduleEvent[] } = {}
+
+        response.data.forEach((appointment: any) => {
+          const date = appointment.appointment_date.split('T')[0] // Get date part only
+
+          if (!scheduleData[date]) {
+            scheduleData[date] = []
+          }
+
+          scheduleData[date].push({
+            id: appointment.appointment_id,
+            time: appointment.start_time,
+            duration: appointment.duration || 30,
+            type: 'appointment',
+            patient: appointment.patient_name || 'Unknown Patient',
+            status: appointment.status,
+            notes: appointment.appointment_type || appointment.notes || 'Appointment'
+          })
+        })
+
+        // Sort appointments by time for each date
+        Object.keys(scheduleData).forEach(date => {
+          scheduleData[date].sort((a, b) => a.time.localeCompare(b.time))
+        })
+
+        setScheduleData(scheduleData)
+      } else {
+        toast.error('Không thể tải lịch làm việc')
+        setScheduleData({})
       }
-    ],
-    '2024-01-17': [
-      {
-        id: '7',
-        time: '09:00',
-        duration: 30,
-        type: 'appointment',
-        patient: 'Hoàng Văn E',
-        status: 'confirmed',
-        notes: 'Khám nội khoa'
-      },
-      {
-        id: '8',
-        time: '15:00',
-        duration: 60,
-        type: 'consultation',
-        title: 'Team Consultation',
-        status: 'scheduled',
-        notes: 'Hội chẩn bệnh nhân'
-      }
-    ]
+    } catch (error) {
+      console.error('Error loading schedule data:', error)
+      toast.error('Lỗi khi tải dữ liệu lịch hẹn')
+      setScheduleData({})
+    } finally {
+      setLoadingSchedule(false)
+    }
   }
 
   const timeSlots = [
@@ -220,29 +219,62 @@ export default function DoctorSchedule() {
             >
               Week View
             </Button>
-            <Button className="bg-green-600 hover:bg-green-700">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Slot
+            <Button
+              variant={viewMode === 'manage' ? 'default' : 'outline'}
+              onClick={() => setViewMode('manage')}
+              size="sm"
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Manage Schedule
             </Button>
           </div>
         </div>
 
         {/* Date Navigation */}
-        <div className="flex items-center gap-4">
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-            aria-label="Select date for schedule view"
-          />
-          <div className="text-sm text-gray-600">
-            {viewMode === 'week' ? 'Week View' : 'Day View'}
+        {viewMode !== 'manage' && (
+          <div className="flex items-center gap-4">
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              aria-label="Select date for schedule view"
+            />
+            <div className="text-sm text-gray-600">
+              {viewMode === 'week' ? 'Week View' : 'Day View'}
+            </div>
+            {loadingSchedule && (
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
+                Loading schedule...
+              </div>
+            )}
           </div>
-        </div>
+        )}
       </div>
 
-      {viewMode === 'week' ? (
+      {viewMode === 'manage' ? (
+        /* Schedule Management */
+        <div className="space-y-6">
+          {doctorId ? (
+            <ScheduleManager
+              doctorId={doctorId}
+              onScheduleUpdate={(updatedSchedule) => {
+                toast.success('Lịch làm việc đã được cập nhật')
+                // Reload schedule data if needed
+                loadScheduleData(doctorId)
+              }}
+            />
+          ) : (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+                <p className="text-gray-600">Đang tải thông tin bác sĩ...</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      ) : viewMode === 'week' ? (
         /* Week View */
         <Card>
           <CardHeader>
@@ -358,10 +390,14 @@ export default function DoctorSchedule() {
                 {(!scheduleData[selectedDate] || scheduleData[selectedDate].length === 0) && (
                   <div className="text-center py-8 text-gray-500">
                     <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                    <p>No appointments scheduled for this day</p>
-                    <Button className="mt-2 bg-green-600 hover:bg-green-700" size="sm">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Appointment
+                    <p>Không có lịch hẹn nào cho ngày này</p>
+                    <Button
+                      className="mt-2 bg-green-600 hover:bg-green-700"
+                      size="sm"
+                      onClick={() => setViewMode('manage')}
+                    >
+                      <Settings className="h-4 w-4 mr-2" />
+                      Thiết lập lịch làm việc
                     </Button>
                   </div>
                 )}

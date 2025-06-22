@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 // Import icons directly from lucide-react
 import { ArrowLeft, Mail, Loader2 } from "lucide-react"
-import { supabaseAuth } from "@/lib/auth/supabase-auth"
+import { useAuth } from "@/lib/auth/auth-wrapper"
 import { useToast } from "@/components/ui/toast-provider"
 
 export default function ForgotPasswordPage() {
@@ -19,6 +19,7 @@ export default function ForgotPasswordPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const { showToast } = useToast()
+  const { resetPassword } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,7 +33,7 @@ export default function ForgotPasswordPage() {
     setError("")
 
     try {
-      const result = await supabaseAuth.resetPassword(email)
+      const result = await resetPassword(email)
 
       if (result.error) {
         setError(result.error)

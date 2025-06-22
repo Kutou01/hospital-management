@@ -5,45 +5,77 @@ services:
   api-gateway:
     build:
       context: .
-      dockerfile: ./api-gateway/Dockerfile
+      dockerfile: ./services/api-gateway/Dockerfile
     ports:
       - "3100:3100"
-    env_file:
-      - ./api-gateway/.env
     environment:
       - NODE_ENV=development
       - PORT=3100
+      - AUTH_SERVICE_URL=http://auth-service:3001
       - DOCTOR_SERVICE_URL=http://doctor-service:3002
       - PATIENT_SERVICE_URL=http://patient-service:3003
       - APPOINTMENT_SERVICE_URL=http://appointment-service:3004
+      - DEPARTMENT_SERVICE_URL=http://department-service:3005
+      - MEDICAL_RECORDS_SERVICE_URL=http://medical-records-service:3006
+      - PRESCRIPTION_SERVICE_URL=http://prescription-service:3007
+      - BILLING_SERVICE_URL=http://billing-service:3008
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3011
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
       - DOCTOR_ONLY_MODE=false
-      # Supabase configuration will be loaded from .env file
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
     depends_on:
       - redis
       - rabbitmq
     networks:
       - hospital-network
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+    profiles:
+      - core
+      - full
 
-  # Auth Service - DISABLED FOR DOCTOR-ONLY MODE
-  # auth-service:
-  #   build: ./services/auth-service
-  #   ports:
-  #     - "3001:3001"
-  #   environment:
-  #     - NODE_ENV=development
-  #     - DATABASE_URL=postgresql://postgres:password@auth-db:5432/auth_db
-  #     - JWT_SECRET=your-super-secret-jwt-key
-  #     - JWT_EXPIRES_IN=24h
-  #     - REDIS_URL=redis://redis:6379
-  #     - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
-  #   depends_on:
-  #     - auth-db
-  #     - redis
-  #     - rabbitmq
-  #   networks:
-  #     - hospital-network
+  # Auth Service - Using Supabase Auth
+  auth-service:
+    build:
+      context: .
+      dockerfile: ./services/auth-service/Dockerfile
+    ports:
+      - "3001:3001"
+    env_file:
+      - ./services/auth-service/.env
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+    depends_on:
+      - redis
+      - rabbitmq
+    networks:
+      - hospital-network
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+    profiles:
+      - core
+      - full
 
   # Doctor Service
   doctor-service:
@@ -64,6 +96,18 @@ services:
       - rabbitmq
     networks:
       - hospital-network
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+    profiles:
+      - core
+      - full
 
   # Patient Service - ENABLED
   patient-service:
@@ -84,6 +128,18 @@ services:
       - rabbitmq
     networks:
       - hospital-network
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+    profiles:
+      - core
+      - full
 
   # Appointment Service - ENABLED
   appointment-service:
@@ -106,24 +162,50 @@ services:
       - rabbitmq
     networks:
       - hospital-network
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+    profiles:
+      - core
+      - full
 
-  # Department Service - DISABLED FOR DOCTOR-ONLY MODE
-  # department-service:
-  #   build: ./services/department-service
-  #   ports:
-  #     - "3005:3005"
-  #   environment:
-  #     - NODE_ENV=development
-  #     - DATABASE_URL=postgresql://postgres:password@department-db:5432/department_db
-  #     - REDIS_URL=redis://redis:6379
-  #     - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
-  #     - AUTH_SERVICE_URL=http://auth-service:3001
-  #   depends_on:
-  #     - department-db
-  #     - redis
-  #     - rabbitmq
-  #   networks:
-  #     - hospital-network
+  # Department Service - ENABLED
+  department-service:
+    build:
+      context: .
+      dockerfile: ./services/department-service/Dockerfile
+    ports:
+      - "3005:3005"
+    environment:
+      - NODE_ENV=development
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+      - AUTH_SERVICE_URL=http://auth-service:3001
+    depends_on:
+      - redis
+      - rabbitmq
+    networks:
+      - hospital-network
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+    profiles:
+      - core
+      - full
 
   # Medical Records Service - ENABLED
   medical-records-service:
@@ -132,19 +214,36 @@ services:
       dockerfile: ./services/medical-records-service/Dockerfile
     ports:
       - "3006:3006"
+    env_file:
+      - ./services/medical-records-service/.env
     environment:
       - NODE_ENV=development
+      - PORT=3006
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
       - AUTH_SERVICE_URL=http://auth-service:3001
-      - FILE_STORAGE_SERVICE_URL=http://file-storage-service:3016
+      - DOCTOR_SERVICE_URL=http://doctor-service:3002
+      - PATIENT_SERVICE_URL=http://patient-service:3003
+      - APPOINTMENT_SERVICE_URL=http://appointment-service:3004
     depends_on:
       - redis
       - rabbitmq
     networks:
       - hospital-network
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+    profiles:
+      - core
+      - full
 
   # ALL OTHER SERVICES DISABLED FOR DOCTOR-ONLY MODE
   # Uncomment these services when you want to enable full system
@@ -156,19 +255,37 @@ services:
       dockerfile: ./services/prescription-service/Dockerfile
     ports:
       - "3007:3007"
+    env_file:
+      - ./services/prescription-service/.env
     environment:
       - NODE_ENV=development
+      - PORT=3007
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
       - AUTH_SERVICE_URL=http://auth-service:3001
+      - DOCTOR_SERVICE_URL=http://doctor-service:3002
+      - PATIENT_SERVICE_URL=http://patient-service:3003
+      - MEDICAL_RECORDS_SERVICE_URL=http://medical-records-service:3006
       - NOTIFICATION_SERVICE_URL=http://notification-service:3011
     depends_on:
       - redis
       - rabbitmq
     networks:
       - hospital-network
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+    profiles:
+      - core
+      - full
 
   # Billing & Payment Service - ENABLED
   billing-service:
@@ -177,13 +294,17 @@ services:
       dockerfile: ./services/billing-service/Dockerfile
     ports:
       - "3008:3008"
+    env_file:
+      - ./services/billing-service/.env
     environment:
       - NODE_ENV=development
+      - PORT=3008
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
       - AUTH_SERVICE_URL=http://auth-service:3001
+      - APPOINTMENT_SERVICE_URL=http://appointment-service:3004
       - NOTIFICATION_SERVICE_URL=http://notification-service:3011
       - STRIPE_SECRET_KEY=sk_test_your_stripe_key
     depends_on:
@@ -191,6 +312,18 @@ services:
       - rabbitmq
     networks:
       - hospital-network
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+    profiles:
+      - core
+      - full
 
   # # Room Management Service
   # room-service:
@@ -210,27 +343,44 @@ services:
   #   networks:
   #     - hospital-network
 
-  # # Notification Service
-  # notification-service:
-  #   build: ./services/notification-service
-  #   ports:
-  #     - "3011:3011"
-  #   environment:
-  #     - NODE_ENV=development
-  #     - SUPABASE_URL=${SUPABASE_URL}
-  #     - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-  #     - REDIS_URL=redis://redis:6379
-  #     - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
-  #     - AUTH_SERVICE_URL=http://auth-service:3001
-  #     - SMTP_HOST=smtp.gmail.com
-  #     - SMTP_PORT=587
-  #     - SMTP_USER=your_email@gmail.com
-  #     - SMTP_PASS=your_app_password
-  #   depends_on:
-  #     - redis
-  #     - rabbitmq
-  #   networks:
-  #     - hospital-network
+  # Notification Service - ENABLED
+  notification-service:
+    build:
+      context: .
+      dockerfile: ./services/notification-service/Dockerfile
+    ports:
+      - "3011:3011"
+    env_file:
+      - ./services/notification-service/.env
+    environment:
+      - NODE_ENV=development
+      - PORT=3011
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - SMTP_HOST=smtp.gmail.com
+      - SMTP_PORT=587
+      - SMTP_USER=your_email@gmail.com
+      - SMTP_PASS=your_app_password
+    depends_on:
+      - redis
+      - rabbitmq
+    networks:
+      - hospital-network
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+    profiles:
+      - core
+      - full
 
   # # File Storage Service
   # file-storage-service:
@@ -326,6 +476,18 @@ services:
       - "5432:5432"  # Expose for direct access
     networks:
       - hospital-network
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    profiles:
+      - core
+      - full
 
   # patient-db:
   #   image: postgres:15
@@ -374,6 +536,18 @@ services:
       - redis_data:/data
     networks:
       - hospital-network
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+    profiles:
+      - core
+      - full
 
   # RabbitMQ for message queuing
   rabbitmq:
@@ -388,35 +562,106 @@ services:
       - rabbitmq_data:/var/lib/rabbitmq
     networks:
       - hospital-network
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+    profiles:
+      - core
+      - full
 
-  # Monitoring - DISABLED FOR DOCTOR-ONLY MODE
-  # prometheus:
-  #   image: prom/prometheus:latest
-  #   ports:
-  #     - "9090:9090"
-  #   volumes:
-  #     - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-  #     - prometheus_data:/prometheus
-  #   command:
-  #     - '--config.file=/etc/prometheus/prometheus.yml'
-  #     - '--storage.tsdb.path=/prometheus'
-  #     - '--web.console.libraries=/etc/prometheus/console_libraries'
-  #     - '--web.console.templates=/etc/prometheus/consoles'
-  #     - '--web.enable-lifecycle'
-  #   networks:
-  #     - hospital-network
+  # Monitoring Stack - ENABLED
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: hospital-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/prometheus/rules:/etc/prometheus/rules
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+      - '--storage.tsdb.retention.time=30d'
+    networks:
+      - hospital-network
+    restart: unless-stopped
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    profiles:
+      - monitoring
+      - full
 
-  # grafana:
-  #   image: grafana/grafana:latest
-  #   ports:
-  #     - "3001:3000"
-  #   environment:
-  #     - GF_SECURITY_ADMIN_PASSWORD=admin
-  #   volumes:
-  #     - grafana_data:/var/lib/grafana
-  #     - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
-  #   networks:
-  #     - hospital-network
+  grafana:
+    image: grafana/grafana:latest
+    container_name: hospital-grafana
+    ports:
+      - "3010:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+    networks:
+      - hospital-network
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+    profiles:
+      - monitoring
+      - full
+
+  # Node Exporter for system metrics
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: hospital-node-exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - hospital-network
+    restart: unless-stopped
+    profiles:
+      - monitoring
+      - full
 
 volumes:
   auth_data:

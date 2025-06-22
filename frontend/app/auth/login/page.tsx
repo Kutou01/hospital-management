@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Hospital, Eye, EyeOff, Loader2, Calendar, Stethoscope, ArrowLeft, Mail, Phone } from "lucide-react"
-import { useEnhancedAuth } from "@/lib/auth/enhanced-auth-context"
+import { useAuth } from "@/lib/auth/auth-wrapper"
 import { useToast } from "@/components/ui/toast-provider"
 import { getDashboardPath } from "@/lib/auth/dashboard-routes"
 import OAuthLoginButtons from "@/components/auth/OAuthLoginButtons"
@@ -19,7 +19,7 @@ export default function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { showToast } = useToast()
-  const { user, signIn, loading: authLoading, isAuthenticated, clearError } = useEnhancedAuth()
+  const { user, signIn, loading: authLoading, isAuthenticated, clearError } = useAuth()
 
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")

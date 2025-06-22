@@ -6,9 +6,9 @@ import { body, param, query } from 'express-validator';
 
 // Vietnam-specific format patterns
 export const VIETNAM_PATTERNS = {
-  // ID Patterns (simplified, no year)
+  // ID Patterns (department-based system)
   DOCTOR_ID: /^DOC\d{6}$/,                    // DOC000001
-  PATIENT_ID: /^BN\d{6}$/,                    // BN000001 (Bệnh nhân)
+  // PATIENT_ID removed - using department-based ID system
   APPOINTMENT_ID: /^LK\d{6}$/,                // LK000001 (Lịch khám)
   DEPARTMENT_ID: /^KHOA\d{6}$/,               // KHOA000001
   ROOM_ID: /^PHONG\d{6}$/,                    // PHONG000001
@@ -157,17 +157,10 @@ export const validateCreateDoctor = [
 // PATIENT VALIDATION (Vietnam)
 // ============================================================================
 
-export const validatePatientId = [
-  param('patientId')
-    .matches(VIETNAM_PATTERNS.PATIENT_ID)
-    .withMessage('Mã bệnh nhân phải có định dạng BN + 6 chữ số (VD: BN000001)')
-];
+// validatePatientId removed - using department-based ID system
 
 export const validateCreatePatient = [
-  body('patient_id')
-    .optional()
-    .matches(VIETNAM_PATTERNS.PATIENT_ID)
-    .withMessage('Mã bệnh nhân không hợp lệ'),
+  // patient_id validation removed - using department-based ID system
 
   body('ho_ten')
     .notEmpty()
@@ -245,9 +238,7 @@ export const validateCreateAppointment = [
     .matches(VIETNAM_PATTERNS.APPOINTMENT_ID)
     .withMessage('Mã lịch khám không hợp lệ'),
 
-  body('ma_benh_nhan')
-    .matches(VIETNAM_PATTERNS.PATIENT_ID)
-    .withMessage('Mã bệnh nhân không hợp lệ'),
+  // ma_benh_nhan validation removed - using department-based ID system
 
   body('ma_bac_si')
     .matches(VIETNAM_PATTERNS.DOCTOR_ID)
@@ -331,7 +322,7 @@ export const formatVietnamLicense = (license: string): string => {
 
 export const VIETNAM_UNIQUE_CONSTRAINTS = {
   doctors: ['doctor_id', 'email', 'so_bang_cap'],
-  patients: ['patient_id', 'email', 'so_cccd', 'so_cmnd', 'so_the_bhyt'],
+  patients: ['email', 'so_cccd', 'so_cmnd', 'so_the_bhyt'], // patient_id removed - using department-based ID
   appointments: ['appointment_id'],
   departments: ['department_id', 'ten_khoa'],
   rooms: ['room_id', 'so_phong'],
@@ -355,7 +346,7 @@ export default {
   VIETNAM_RANGES,
   validateDoctorId,
   validateCreateDoctor,
-  validatePatientId,
+  // validatePatientId removed - using department-based ID system
   validateCreatePatient,
   validateAppointmentId,
   validateCreateAppointment,

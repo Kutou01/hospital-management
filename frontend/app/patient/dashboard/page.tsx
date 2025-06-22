@@ -28,12 +28,29 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { useEnhancedAuth } from "@/lib/auth/enhanced-auth-context"
+import { useEnhancedAuth } from "@/lib/auth/auth-wrapper"
+import { appointmentsApi, patientsApi, medicalRecordsApi, prescriptionsApi } from "@/lib/api"
+import { toast } from "sonner"
 
 export default function PatientDashboard() {
   const { user, loading } = useEnhancedAuth()
   const router = useRouter()
   const [currentDate, setCurrentDate] = useState("")
+
+  // State for dashboard data
+  const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([])
+  const [medications, setMedications] = useState<any[]>([])
+  const [recentActivities, setRecentActivities] = useState<any[]>([])
+  const [healthMetrics, setHealthMetrics] = useState<any>({
+    bloodPressure: "N/A",
+    heartRate: "N/A",
+    temperature: "N/A",
+    weight: "N/A",
+    height: "N/A",
+    bmi: "N/A",
+    lastUpdated: "N/A"
+  })
+  const [isLoadingData, setIsLoadingData] = useState(true)
 
   // Handle authentication and redirect
   useEffect(() => {
@@ -76,6 +93,118 @@ export default function PatientDashboard() {
     }))
   }, [])
 
+  // Load dashboard data
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      console.log('🏥 [PatientDashboard] Loading dashboard data for user:', {
+        user,
+        patient_id: user?.patient_id,
+        hasPatientId: !!user?.patient_id
+      })
+
+      if (!user?.patient_id) {
+        console.log('🏥 [PatientDashboard] No patient_id found, trying to fetch from API...')
+
+        // Try to get patient_id via API
+        try {
+          const patientResponse = await patientsApi.getByProfileId(user.id)
+          if (patientResponse.success && patientResponse.data) {
+            console.log('🏥 [PatientDashboard] Found patient via API:', patientResponse.data.patient_id)
+            // Update user object with patient_id (temporary fix)
+            user.patient_id = patientResponse.data.patient_id
+          } else {
+            console.log('🏥 [PatientDashboard] No patient record found for profile_id:', user.id)
+            setIsLoadingData(false)
+            return
+          }
+        } catch (error) {
+          console.error('🏥 [PatientDashboard] Error fetching patient by profile_id:', error)
+          setIsLoadingData(false)
+          return
+        }
+      }
+
+      try {
+        setIsLoadingData(true)
+
+        // Load upcoming appointments
+        console.log('🏥 [PatientDashboard] Loading appointments for patient:', user.patient_id)
+        const appointmentsResponse = await appointmentsApi.getByPatientId(user.patient_id)
+        console.log('🏥 [PatientDashboard] Appointments response:', appointmentsResponse)
+        if (appointmentsResponse.success && appointmentsResponse.data) {
+          // Filter upcoming appointments and sort by date
+          const upcoming = appointmentsResponse.data
+            .filter((apt: any) => {
+              const appointmentDate = new Date(apt.appointment_date)
+              return appointmentDate >= new Date() && apt.status !== 'cancelled'
+            })
+            .sort((a: any, b: any) => new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime())
+            .slice(0, 3) // Get next 3 appointments
+
+          setUpcomingAppointments(upcoming)
+        }
+
+        // Load current medications (prescriptions)
+        console.log('🏥 [PatientDashboard] Loading prescriptions for patient:', user.patient_id)
+        const prescriptionsResponse = await prescriptionsApi.getByPatientId(user.patient_id)
+        console.log('🏥 [PatientDashboard] Prescriptions response:', prescriptionsResponse)
+        if (prescriptionsResponse.success && prescriptionsResponse.data) {
+          // Filter active prescriptions
+          const activeMeds = prescriptionsResponse.data
+            .filter((prescription: any) => prescription.status === 'active')
+            .map((prescription: any) => ({
+              id: prescription.prescription_id,
+              name: prescription.medication_name,
+              dosage: prescription.dosage,
+              timeLeft: prescription.duration || "N/A",
+              progress: 70 // This would be calculated based on start date and duration
+            }))
+
+          setMedications(activeMeds)
+        }
+
+        // Load patient health metrics (from patient profile)
+        console.log('🏥 [PatientDashboard] Loading patient profile for:', user.patient_id)
+        const patientResponse = await patientsApi.getById(user.patient_id)
+        console.log('🏥 [PatientDashboard] Patient profile response:', patientResponse)
+        if (patientResponse.success && patientResponse.data) {
+          const patient = patientResponse.data
+          setHealthMetrics({
+            bloodPressure: patient.blood_pressure || "120/80",
+            heartRate: patient.heart_rate || "72 bpm",
+            temperature: patient.temperature || "36.5°C",
+            weight: patient.weight || "N/A",
+            height: patient.height || "N/A",
+            bmi: patient.bmi || "N/A",
+            lastUpdated: patient.updated_at ? new Date(patient.updated_at).toLocaleDateString('vi-VN') : "N/A"
+          })
+        }
+
+        // Create recent activities from appointments and medical records
+        const recentAppointments = appointmentsResponse.data?.slice(0, 2).map((apt: any) => ({
+          id: apt.appointment_id,
+          type: "appointment" as const,
+          title: apt.status === 'completed' ? "Appointment completed" : "Appointment scheduled",
+          description: `${apt.appointment_type} với ${apt.doctor_name || 'Doctor'}`,
+          time: new Date(apt.appointment_date).toLocaleDateString('vi-VN'),
+          status: apt.status as const,
+          initials: apt.doctor_name?.split(' ').map((n: string) => n[0]).join('') || "DR"
+        })) || []
+
+        setRecentActivities(recentAppointments)
+
+      } catch (error) {
+        console.error('🏥 [PatientDashboard] Error loading dashboard data:', error)
+        toast.error('Không thể tải dữ liệu dashboard')
+      } finally {
+        console.log('🏥 [PatientDashboard] Dashboard data loading completed')
+        setIsLoadingData(false)
+      }
+    }
+
+    loadDashboardData()
+  }, [user?.patient_id])
+
   // Show loading state while user data is being fetched
   if (loading) {
     return (
@@ -106,74 +235,17 @@ export default function PatientDashboard() {
     )
   }
 
-  // Mock data cho patient dashboard
-  const upcomingAppointments = [
-    {
-      id: "1",
-      date: "2024-01-15",
-      time: "10:00",
-      doctor: "Dr. Nguyễn Văn A",
-      department: "Khoa Nội",
-      type: "Khám tổng quát",
-      status: "confirmed"
-    },
-    {
-      id: "2",
-      date: "2024-01-20",
-      time: "14:30",
-      doctor: "Dr. Trần Thị B",
-      department: "Khoa Tim mạch",
-      type: "Tái khám",
-      status: "pending"
-    }
-  ]
-
-  const medications = [
-    {
-      id: "1",
-      name: "Paracetamol 500mg",
-      dosage: "2 viên/ngày",
-      timeLeft: "5 ngày",
-      progress: 60
-    },
-    {
-      id: "2",
-      name: "Vitamin D3",
-      dosage: "1 viên/ngày",
-      timeLeft: "15 ngày",
-      progress: 80
-    }
-  ]
-
-  const recentActivities = [
-    {
-      id: "1",
-      type: "appointment" as const,
-      title: "Appointment completed",
-      description: "Khám tổng quát với Dr. Nguyễn Văn A",
-      time: "2 days ago",
-      status: "completed" as const,
-      initials: "NVA"
-    },
-    {
-      id: "2",
-      type: "report" as const,
-      title: "Lab results available",
-      description: "Kết quả xét nghiệm máu đã có",
-      time: "3 days ago",
-      status: "completed" as const,
-      initials: "LAB"
-    },
-    {
-      id: "3",
-      type: "appointment" as const,
-      title: "Appointment scheduled",
-      description: "Đã đặt lịch khám với Dr. Trần Thị B",
-      time: "1 week ago",
-      status: "pending" as const,
-      initials: "TTB"
-    }
-  ]
+  // Show loading state while data is being fetched
+  if (isLoadingData) {
+    return (
+      <PatientLayout title="Patient Dashboard" activePage="dashboard">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span className="ml-2">Loading dashboard data...</span>
+        </div>
+      </PatientLayout>
+    )
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -225,6 +297,10 @@ export default function PatientDashboard() {
                 <Shield className="h-4 w-4" />
                 {user.email} • {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
               </p>
+              {/* Debug info */}
+              <p className="text-xs text-gray-500 mt-1">
+                Patient ID: {user.patient_id || 'Not found'} | Profile ID: {user.id}
+              </p>
             </div>
           </div>
           <p className="text-gray-600 text-lg">{currentDate}</p>
@@ -253,7 +329,12 @@ export default function PatientDashboard() {
                 <div>
                   <p className="text-sm font-medium text-blue-600">Upcoming Appointments</p>
                   <p className="text-3xl font-bold text-blue-900">{upcomingAppointments.length}</p>
-                  <p className="text-xs text-blue-700 mt-1">Next: Jan 15, 10:00 AM</p>
+                  <p className="text-xs text-blue-700 mt-1">
+                    {upcomingAppointments.length > 0
+                      ? `Next: ${new Date(upcomingAppointments[0].appointment_date).toLocaleDateString('vi-VN')}, ${upcomingAppointments[0].start_time}`
+                      : "No upcoming appointments"
+                    }
+                  </p>
                 </div>
                 <div className="p-3 bg-blue-200 rounded-full">
                   <Calendar className="h-6 w-6 text-blue-600" />
@@ -333,16 +414,18 @@ export default function PatientDashboard() {
             <CardContent className="p-6">
               <div className="space-y-4">
                 {upcomingAppointments.map((appointment) => (
-                  <div key={appointment.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                  <div key={appointment.appointment_id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
                     <div className="flex items-center space-x-4">
                       <div className="text-center bg-white p-3 rounded-lg shadow-sm">
-                        <div className="text-sm font-semibold text-gray-900">{appointment.date}</div>
-                        <div className="text-xs text-gray-500">{appointment.time}</div>
+                        <div className="text-sm font-semibold text-gray-900">
+                          {new Date(appointment.appointment_date).toLocaleDateString('vi-VN')}
+                        </div>
+                        <div className="text-xs text-gray-500">{appointment.start_time}</div>
                       </div>
                       <div>
-                        <p className="font-semibold text-gray-900">{appointment.doctor}</p>
-                        <p className="text-sm text-blue-600">{appointment.department}</p>
-                        <p className="text-xs text-gray-500">{appointment.type}</p>
+                        <p className="font-semibold text-gray-900">{appointment.doctor_name || 'Doctor'}</p>
+                        <p className="text-sm text-blue-600">{appointment.department || 'Department'}</p>
+                        <p className="text-xs text-gray-500">{appointment.appointment_type}</p>
                       </div>
                     </div>
                     <Badge className={`${getStatusColor(appointment.status)} font-medium`}>
@@ -386,7 +469,7 @@ export default function PatientDashboard() {
                     </div>
                     <span className="text-sm font-medium text-gray-700">Blood Pressure</span>
                   </div>
-                  <span className="text-lg font-bold text-red-600">120/80</span>
+                  <span className="text-lg font-bold text-red-600">{healthMetrics.bloodPressure}</span>
                 </div>
                 <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
                   <div className="flex items-center space-x-3">
@@ -395,7 +478,7 @@ export default function PatientDashboard() {
                     </div>
                     <span className="text-sm font-medium text-gray-700">Temperature</span>
                   </div>
-                  <span className="text-lg font-bold text-blue-600">36.5°C</span>
+                  <span className="text-lg font-bold text-blue-600">{healthMetrics.temperature}</span>
                 </div>
                 <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
                   <div className="flex items-center space-x-3">
@@ -404,7 +487,7 @@ export default function PatientDashboard() {
                     </div>
                     <span className="text-sm font-medium text-gray-700">Heart Rate</span>
                   </div>
-                  <span className="text-lg font-bold text-green-600">72 bpm</span>
+                  <span className="text-lg font-bold text-green-600">{healthMetrics.heartRate}</span>
                 </div>
                 <div className="pt-4">
                   <Button className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-medium">

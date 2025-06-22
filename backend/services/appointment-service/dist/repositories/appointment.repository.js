@@ -8,11 +8,7 @@ const database_config_1 = require("../config/database.config");
 const logger_1 = __importDefault(require("@hospital/shared/dist/utils/logger"));
 class AppointmentRepository {
     constructor() {
-        this.supabase = (0, database_config_1.getSupabase)();
-    }
-    generateAppointmentId() {
-        const timestamp = Date.now().toString().slice(-6);
-        return `APT${timestamp}`;
+        this.supabase = database_config_1.supabaseAdmin;
     }
     async getAllAppointments(filters = {}, page = 1, limit = 20) {
         try {
@@ -24,15 +20,18 @@ class AppointmentRepository {
             doctor_id,
             full_name,
             specialty,
-            phone_number,
-            email
+            profile:profiles!doctors_profile_id_fkey (
+              phone_number,
+              email
+            )
           ),
           patients!appointments_patient_id_fkey (
             patient_id,
-            full_name,
-            date_of_birth,
             gender,
+            blood_type,
             profile:profiles!patients_profile_id_fkey (
+              full_name,
+              date_of_birth,
               phone_number,
               email
             )
@@ -85,8 +84,8 @@ class AppointmentRepository {
                     doctor_id: appointment.doctors.doctor_id,
                     full_name: appointment.doctors.full_name,
                     specialty: appointment.doctors.specialty,
-                    phone_number: appointment.doctors.phone_number,
-                    email: appointment.doctors.email
+                    phone_number: appointment.doctors.profile?.phone_number,
+                    email: appointment.doctors.profile?.email
                 } : undefined
             })) || [];
             return {
@@ -109,15 +108,18 @@ class AppointmentRepository {
             doctor_id,
             full_name,
             specialty,
-            phone_number,
-            email
+            profile:profiles!doctors_profile_id_fkey (
+              phone_number,
+              email
+            )
           ),
           patients!appointments_patient_id_fkey (
             patient_id,
-            full_name,
-            date_of_birth,
             gender,
+            blood_type,
             profile:profiles!patients_profile_id_fkey (
+              full_name,
+              date_of_birth,
               phone_number,
               email
             )
@@ -146,8 +148,8 @@ class AppointmentRepository {
                     doctor_id: data.doctors.doctor_id,
                     full_name: data.doctors.full_name,
                     specialty: data.doctors.specialty,
-                    phone_number: data.doctors.phone_number,
-                    email: data.doctors.email
+                    phone_number: data.doctors.profile?.phone_number,
+                    email: data.doctors.profile?.email
                 } : undefined
             };
             return transformedData;
@@ -167,25 +169,24 @@ class AppointmentRepository {
     }
     async createAppointment(appointmentData) {
         try {
-            const appointmentId = this.generateAppointmentId();
-            const newAppointment = {
-                appointment_id: appointmentId,
-                ...appointmentData,
-                status: 'scheduled',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            };
             const { data, error } = await this.supabase
-                .from('appointments')
-                .insert([newAppointment])
-                .select()
-                .single();
+                .rpc('create_appointment', {
+                appointment_data: {
+                    ...appointmentData,
+                    status: 'scheduled'
+                }
+            });
             if (error) {
-                logger_1.default.error('Error creating appointment:', error);
-                throw new Error(`Failed to create appointment: ${error.message}`);
+                logger_1.default.error('Database function error in createAppointment:', error);
+                throw error;
             }
-            logger_1.default.info('Appointment created successfully:', { appointmentId });
-            return data;
+            if (!data || data.length === 0) {
+                throw new Error('Failed to create appointment - no data returned');
+            }
+            logger_1.default.info('Appointment created successfully via database function:', {
+                appointmentId: data[0].appointment_id
+            });
+            return data[0];
         }
         catch (error) {
             logger_1.default.error('Exception in createAppointment:', error);
@@ -194,22 +195,23 @@ class AppointmentRepository {
     }
     async updateAppointment(appointmentId, updateData) {
         try {
-            const updatedData = {
-                ...updateData,
-                updated_at: new Date().toISOString()
-            };
             const { data, error } = await this.supabase
-                .from('appointments')
-                .update(updatedData)
-                .eq('appointment_id', appointmentId)
-                .select()
-                .single();
+                .rpc('update_appointment', {
+                input_appointment_id: appointmentId,
+                appointment_data: updateData
+            });
             if (error) {
-                logger_1.default.error('Error updating appointment:', error);
-                throw new Error(`Failed to update appointment: ${error.message}`);
+                logger_1.default.error('Database function error in updateAppointment:', error);
+                throw error;
             }
-            logger_1.default.info('Appointment updated successfully:', { appointmentId });
-            return data;
+            if (!data || data.length === 0) {
+                throw new Error('Failed to update appointment - appointment not found');
+            }
+            logger_1.default.info('Appointment updated successfully via database function:', {
+                appointmentId,
+                updatedFields: Object.keys(updateData)
+            });
+            return data[0];
         }
         catch (error) {
             logger_1.default.error('Exception in updateAppointment:', error);

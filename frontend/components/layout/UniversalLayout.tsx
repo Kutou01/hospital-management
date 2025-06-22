@@ -7,7 +7,7 @@ import { Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UniversalSidebar, type UniversalSidebarProps } from './UniversalSidebar';
 import { UserMenu } from './UserMenu';
-import { useEnhancedAuth } from '@/lib/auth/enhanced-auth-context';
+import { useEnhancedAuth } from '@/lib/auth/auth-wrapper';
 
 export interface UniversalLayoutProps {
   children: React.ReactNode;

@@ -1,23 +1,19 @@
-import { getSupabase } from '../config/database.config';
+import { supabaseAdmin } from '../config/database.config';
 import logger from '@hospital/shared/dist/utils/logger';
-import { 
-  Appointment, 
-  AppointmentWithDetails, 
-  CreateAppointmentDto, 
-  UpdateAppointmentDto, 
+import {
+  Appointment,
+  AppointmentWithDetails,
+  CreateAppointmentDto,
+  UpdateAppointmentDto,
   AppointmentSearchFilters,
   ConflictCheck,
   AppointmentStats
 } from '../types/appointment.types';
 
 export class AppointmentRepository {
-  private supabase = getSupabase();
+  private supabase = supabaseAdmin;
 
-  // Generate appointment ID
-  private generateAppointmentId(): string {
-    const timestamp = Date.now().toString().slice(-6);
-    return `APT${timestamp}`;
-  }
+  // Remove local ID generation - now handled by database functions
 
   // Get all appointments with optional filters and pagination
   async getAllAppointments(
@@ -34,15 +30,18 @@ export class AppointmentRepository {
             doctor_id,
             full_name,
             specialty,
-            phone_number,
-            email
+            profile:profiles!doctors_profile_id_fkey (
+              phone_number,
+              email
+            )
           ),
           patients!appointments_patient_id_fkey (
             patient_id,
-            full_name,
-            date_of_birth,
             gender,
+            blood_type,
             profile:profiles!patients_profile_id_fkey (
+              full_name,
+              date_of_birth,
               phone_number,
               email
             )
@@ -113,8 +112,8 @@ export class AppointmentRepository {
           doctor_id: appointment.doctors.doctor_id,
           full_name: appointment.doctors.full_name,
           specialty: appointment.doctors.specialty,
-          phone_number: appointment.doctors.phone_number,
-          email: appointment.doctors.email
+          phone_number: appointment.doctors.profile?.phone_number,
+          email: appointment.doctors.profile?.email
         } : undefined
       })) || [];
 
@@ -139,15 +138,18 @@ export class AppointmentRepository {
             doctor_id,
             full_name,
             specialty,
-            phone_number,
-            email
+            profile:profiles!doctors_profile_id_fkey (
+              phone_number,
+              email
+            )
           ),
           patients!appointments_patient_id_fkey (
             patient_id,
-            full_name,
-            date_of_birth,
             gender,
+            blood_type,
             profile:profiles!patients_profile_id_fkey (
+              full_name,
+              date_of_birth,
               phone_number,
               email
             )
@@ -179,8 +181,8 @@ export class AppointmentRepository {
           doctor_id: data.doctors.doctor_id,
           full_name: data.doctors.full_name,
           specialty: data.doctors.specialty,
-          phone_number: data.doctors.phone_number,
-          email: data.doctors.email
+          phone_number: data.doctors.profile?.phone_number,
+          email: data.doctors.profile?.email
         } : undefined
       };
 
@@ -216,29 +218,28 @@ export class AppointmentRepository {
   // Create new appointment
   async createAppointment(appointmentData: CreateAppointmentDto): Promise<Appointment> {
     try {
-      const appointmentId = this.generateAppointmentId();
-      
-      const newAppointment = {
-        appointment_id: appointmentId,
-        ...appointmentData,
-        status: 'scheduled',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-
       const { data, error } = await this.supabase
-        .from('appointments')
-        .insert([newAppointment])
-        .select()
-        .single();
+        .rpc('create_appointment', {
+          appointment_data: {
+            ...appointmentData,
+            status: 'scheduled'
+          }
+        });
 
       if (error) {
-        logger.error('Error creating appointment:', error);
-        throw new Error(`Failed to create appointment: ${error.message}`);
+        logger.error('Database function error in createAppointment:', error);
+        throw error;
       }
 
-      logger.info('Appointment created successfully:', { appointmentId });
-      return data as Appointment;
+      if (!data || data.length === 0) {
+        throw new Error('Failed to create appointment - no data returned');
+      }
+
+      logger.info('Appointment created successfully via database function:', {
+        appointmentId: data[0].appointment_id
+      });
+
+      return data[0] as Appointment;
     } catch (error) {
       logger.error('Exception in createAppointment:', error);
       throw error;
@@ -248,25 +249,27 @@ export class AppointmentRepository {
   // Update appointment
   async updateAppointment(appointmentId: string, updateData: UpdateAppointmentDto): Promise<Appointment> {
     try {
-      const updatedData = {
-        ...updateData,
-        updated_at: new Date().toISOString()
-      };
-
       const { data, error } = await this.supabase
-        .from('appointments')
-        .update(updatedData)
-        .eq('appointment_id', appointmentId)
-        .select()
-        .single();
+        .rpc('update_appointment', {
+          input_appointment_id: appointmentId,
+          appointment_data: updateData
+        });
 
       if (error) {
-        logger.error('Error updating appointment:', error);
-        throw new Error(`Failed to update appointment: ${error.message}`);
+        logger.error('Database function error in updateAppointment:', error);
+        throw error;
       }
 
-      logger.info('Appointment updated successfully:', { appointmentId });
-      return data as Appointment;
+      if (!data || data.length === 0) {
+        throw new Error('Failed to update appointment - appointment not found');
+      }
+
+      logger.info('Appointment updated successfully via database function:', {
+        appointmentId,
+        updatedFields: Object.keys(updateData)
+      });
+
+      return data[0] as Appointment;
     } catch (error) {
       logger.error('Exception in updateAppointment:', error);
       throw error;
@@ -501,6 +504,223 @@ export class AppointmentRepository {
       return transformedData as AppointmentWithDetails[];
     } catch (error) {
       logger.error('Exception in getUpcomingAppointments:', error);
+      throw error;
+    }
+  }
+
+  // CALENDAR INTEGRATION METHODS
+
+  // Get calendar view for appointments
+  async getCalendarView(
+    date: string,
+    doctorId?: string,
+    view: 'day' | 'week' | 'month' = 'month'
+  ): Promise<any> {
+    try {
+      let startDate: string;
+      let endDate: string;
+      const inputDate = new Date(date);
+
+      // Calculate date range based on view
+      switch (view) {
+        case 'day':
+          startDate = date;
+          endDate = date;
+          break;
+        case 'week':
+          const weekStart = new Date(inputDate);
+          weekStart.setDate(inputDate.getDate() - inputDate.getDay());
+          const weekEnd = new Date(weekStart);
+          weekEnd.setDate(weekStart.getDate() + 6);
+          startDate = weekStart.toISOString().split('T')[0];
+          endDate = weekEnd.toISOString().split('T')[0];
+          break;
+        case 'month':
+          const monthStart = new Date(inputDate.getFullYear(), inputDate.getMonth(), 1);
+          const monthEnd = new Date(inputDate.getFullYear(), inputDate.getMonth() + 1, 0);
+          startDate = monthStart.toISOString().split('T')[0];
+          endDate = monthEnd.toISOString().split('T')[0];
+          break;
+      }
+
+      let query = this.supabase
+        .from('appointments')
+        .select(`
+          *,
+          doctors!appointments_doctor_id_fkey (
+            doctor_id,
+            full_name,
+            specialty
+          ),
+          patients!appointments_patient_id_fkey (
+            patient_id,
+            profile:profiles!patients_profile_id_fkey (
+              full_name
+            )
+          )
+        `)
+        .gte('appointment_date', startDate)
+        .lte('appointment_date', endDate)
+        .in('status', ['scheduled', 'confirmed', 'in_progress', 'completed']);
+
+      if (doctorId) {
+        query = query.eq('doctor_id', doctorId);
+      }
+
+      const { data, error } = await query.order('appointment_date').order('start_time');
+
+      if (error) {
+        logger.error('Error fetching calendar view:', error);
+        throw new Error(`Failed to fetch calendar view: ${error.message}`);
+      }
+
+      // Group appointments by date
+      const calendar: { [date: string]: any[] } = {};
+
+      data?.forEach(appointment => {
+        const appointmentDate = appointment.appointment_date;
+        if (!calendar[appointmentDate]) {
+          calendar[appointmentDate] = [];
+        }
+
+        calendar[appointmentDate].push({
+          appointment_id: appointment.appointment_id,
+          start_time: appointment.start_time,
+          end_time: appointment.end_time,
+          status: appointment.status,
+          appointment_type: appointment.appointment_type,
+          doctor: appointment.doctors ? {
+            doctor_id: appointment.doctors.doctor_id,
+            full_name: appointment.doctors.full_name,
+            specialty: appointment.doctors.specialty
+          } : null,
+          patient: appointment.patients ? {
+            patient_id: appointment.patients.patient_id,
+            full_name: appointment.patients.profile?.full_name
+          } : null
+        });
+      });
+
+      return {
+        view,
+        startDate,
+        endDate,
+        calendar,
+        totalAppointments: data?.length || 0
+      };
+    } catch (error) {
+      logger.error('Exception in getCalendarView:', error);
+      throw error;
+    }
+  }
+
+  // Get weekly schedule for a doctor
+  async getWeeklySchedule(
+    doctorId: string,
+    startDate?: string
+  ): Promise<any> {
+    try {
+      const weekStart = startDate ? new Date(startDate) : new Date();
+      if (!startDate) {
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Start from Sunday
+      }
+
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+
+      const startDateStr = weekStart.toISOString().split('T')[0];
+      const endDateStr = weekEnd.toISOString().split('T')[0];
+
+      const { data, error } = await this.supabase
+        .from('appointments')
+        .select(`
+          *,
+          patients!appointments_patient_id_fkey (
+            patient_id,
+            profile:profiles!patients_profile_id_fkey (
+              full_name,
+              phone_number
+            )
+          )
+        `)
+        .eq('doctor_id', doctorId)
+        .gte('appointment_date', startDateStr)
+        .lte('appointment_date', endDateStr)
+        .in('status', ['scheduled', 'confirmed', 'in_progress'])
+        .order('appointment_date')
+        .order('start_time');
+
+      if (error) {
+        logger.error('Error fetching weekly schedule:', error);
+        throw new Error(`Failed to fetch weekly schedule: ${error.message}`);
+      }
+
+      // Create weekly schedule structure
+      const weeklySchedule: { [day: string]: any[] } = {};
+      const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+      // Initialize all days
+      for (let i = 0; i < 7; i++) {
+        const currentDate = new Date(weekStart);
+        currentDate.setDate(weekStart.getDate() + i);
+        const dateStr = currentDate.toISOString().split('T')[0];
+        weeklySchedule[dateStr] = [];
+      }
+
+      // Populate with appointments
+      data?.forEach(appointment => {
+        const appointmentDate = appointment.appointment_date;
+        weeklySchedule[appointmentDate].push({
+          appointment_id: appointment.appointment_id,
+          start_time: appointment.start_time,
+          end_time: appointment.end_time,
+          status: appointment.status,
+          appointment_type: appointment.appointment_type,
+          reason: appointment.reason,
+          patient: appointment.patients ? {
+            patient_id: appointment.patients.patient_id,
+            full_name: appointment.patients.profile?.full_name,
+            phone_number: appointment.patients.profile?.phone_number
+          } : null
+        });
+      });
+
+      return {
+        doctorId,
+        weekStart: startDateStr,
+        weekEnd: endDateStr,
+        schedule: weeklySchedule,
+        totalAppointments: data?.length || 0
+      };
+    } catch (error) {
+      logger.error('Exception in getWeeklySchedule:', error);
+      throw error;
+    }
+  }
+
+  // Get available slots for a doctor on a specific date
+  async getAvailableSlots(
+    doctorId: string,
+    date: string,
+    duration: number = 30
+  ): Promise<any[]> {
+    try {
+      // Use the smart scheduling database function
+      const { data, error } = await this.supabase
+        .rpc('find_optimal_time_slots', {
+          input_doctor_id: doctorId,
+          input_date: date,
+          duration_minutes: duration
+        });
+
+      if (error) {
+        logger.error('Error fetching available slots:', error);
+        throw new Error(`Failed to fetch available slots: ${error.message}`);
+      }
+
+      return data || [];
+    } catch (error) {
+      logger.error('Exception in getAvailableSlots:', error);
       throw error;
     }
   }

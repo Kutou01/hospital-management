@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useEnhancedAuth } from '@/lib/auth/enhanced-auth-context';
-import { supabaseAuth } from '@/lib/auth/supabase-auth';
+import { useAuth } from '@/lib/auth/auth-wrapper';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,7 +20,7 @@ interface ProfileCreationStatus {
 
 export function EnhancedRegisterForm() {
   const router = useRouter();
-  const { loading } = useEnhancedAuth();
+  const { loading, signUp } = useAuth();
 
   const [formData, setFormData] = useState({
     email: '',
@@ -128,23 +128,18 @@ export function EnhancedRegisterForm() {
       console.log('🚀 Starting enhanced signup process...');
       setProfileStatus({ step: 'auth', message: 'Đang tạo tài khoản xác thực...' });
 
-      const result = await supabaseAuth.signUp(submissionData);
+      await signUp(submissionData);
 
-      if (result.error) {
-        setError(result.error);
-        setProfileStatus({ step: 'auth' });
-      } else {
-        setProfileStatus({ step: 'complete', message: 'Đăng ký thành công!' });
-        setSuccess('Đăng ký thành công! Hồ sơ người dùng đã được tạo. Vui lòng kiểm tra email để xác thực tài khoản.');
-        
-        // Show success for a moment then redirect
-        setTimeout(() => {
-          router.push('/auth/login?message=' + encodeURIComponent('Đăng ký thành công! Vui lòng đăng nhập để tiếp tục.') + '&from_register=true');
-        }, 2000);
-      }
-    } catch (err) {
+      setProfileStatus({ step: 'complete', message: 'Đăng ký thành công!' });
+      setSuccess('Đăng ký thành công! Hồ sơ người dùng đã được tạo. Vui lòng kiểm tra email để xác thực tài khoản.');
+
+      // Show success for a moment then redirect
+      setTimeout(() => {
+        router.push('/auth/login?message=' + encodeURIComponent('Đăng ký thành công! Vui lòng đăng nhập để tiếp tục.') + '&from_register=true');
+      }, 2000);
+    } catch (err: any) {
       console.error('Register error:', err);
-      setError('Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.');
+      setError(err.message || 'Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.');
       setProfileStatus({ step: 'auth' });
     } finally {
       setIsSubmitting(false);

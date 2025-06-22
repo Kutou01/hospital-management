@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useEnhancedAuth } from '@/lib/auth/enhanced-auth-context';
+import { useEnhancedAuth } from '@/lib/auth/auth-wrapper';
 import { getDashboardPath } from '@/lib/auth/dashboard-routes';
 
 interface AuthRedirectProps {

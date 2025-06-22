@@ -12,164 +12,86 @@ import {
   Search,
   Plus,
   Stethoscope,
-  Building2,
-  FileText,
-  CreditCard
+  Building2
 } from "lucide-react"
 import { PatientLayout } from "@/components/layout/UniversalLayout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { useEnhancedAuth } from "@/lib/auth/enhanced-auth-context"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
+import { useEnhancedAuth } from "@/lib/auth/auth-wrapper"
+import { appointmentsApi, patientsApi } from "@/lib/api"
+import { toast } from "sonner"
+
+interface Appointment {
+  appointment_id: string
+  patient_id: string
+  doctor_id: string
+  appointment_date: string
+  appointment_time: string
+  treatment_description: string
+  status: string
+  created_at: string
+  updated_at: string
+  // Extended fields from API joins
+  doctor_name?: string
+  doctor_specialization?: string
+  patient_name?: string
+}
 
 export default function PatientAppointments() {
   const { user, loading } = useEnhancedAuth()
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState("all")
-  const router = useRouter()
+  const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [isLoadingAppointments, setIsLoadingAppointments] = useState(true)
+  const [patientId, setPatientId] = useState<string | null>(null)
 
-  // State for local and API appointments
-  const [appointments, setAppointments] = useState([])
-  const [loadingAppointments, setLoadingAppointments] = useState(true)
-
-  // Fetch appointments on component mount
+  // Get patient ID when user is loaded
   useEffect(() => {
-    // Check if there's a recently completed payment with appointment data
-    const checkForNewAppointment = () => {
-      const paymentDataStr = localStorage.getItem('paymentCompleted');
-      if (paymentDataStr) {
-        try {
-          const paymentData = JSON.parse(paymentDataStr);
-
-          // Get doctor info if available
-          let doctorName = "Bác sĩ";
-          const doctorInfoStr = localStorage.getItem('selectedDoctor');
-          if (doctorInfoStr) {
-            try {
-              const doctorInfo = JSON.parse(doctorInfoStr);
-              doctorName = doctorInfo.name || doctorName;
-
-              // Create a new appointment from payment data
-              const newAppointment = {
-                id: paymentData.recordId || `app-${Date.now()}`,
-                doctor: {
-                  name: doctorName,
-                  specialization: doctorInfo.specialty || "Chưa xác định",
-                  hospital: "Bệnh viện Đa khoa"
-                },
-                date: new Date().toISOString().split('T')[0],
-                time: "10:00", // Default time
-                duration: "30 min",
-                type: "Khám theo lịch hẹn",
-                status: "confirmed",
-                location: "Phòng khám bệnh",
-                notes: "Đã thanh toán qua PayOS",
-                paymentInfo: {
-                  amount: paymentData.amount,
-                  orderCode: paymentData.orderCode,
-                  date: paymentData.paymentDate
-                }
-              };
-
-              // Add to beginning of mock appointments
-              setAppointments(prevAppointments => [newAppointment, ...prevAppointments]);
-
-              // Clear the completed payment data to avoid duplication
-              localStorage.removeItem('paymentCompleted');
-            } catch (e) {
-              console.error('Error parsing doctor info:', e);
-            }
-          }
-        } catch (e) {
-          console.error('Error parsing payment data:', e);
-        }
-      }
-    };
-
-    // Add mock data and check for new appointments
-    const loadAppointmentData = async () => {
-      setLoadingAppointments(true);
-
-      // Mock data for patient appointments
-      const mockAppointments = [
-        {
-          id: "1",
-          doctor: {
-            name: "Dr. Nguyễn Văn A",
-            specialization: "Khoa Nội",
-            hospital: "Bệnh viện Đa khoa Thành phố"
-          },
-          date: "2024-01-15",
-          time: "10:00",
-          duration: "30 min",
-          type: "Khám tổng quát",
-          status: "confirmed",
-          location: "Phòng 201, Tầng 2",
-          notes: "Mang theo kết quả xét nghiệm máu"
-        },
-        {
-          id: "2",
-          doctor: {
-            name: "Dr. Trần Thị B",
-            specialization: "Khoa Tim mạch",
-            hospital: "Bệnh viện Đa khoa Thành phố"
-          },
-          date: "2024-01-20",
-          time: "14:30",
-          duration: "45 min",
-          type: "Tái khám",
-          status: "pending",
-          location: "Phòng 305, Tầng 3",
-          notes: "Theo dõi kết quả điều trị tim mạch"
-        },
-        {
-          id: "3",
-          doctor: {
-            name: "Dr. Lê Văn C",
-            specialization: "Khoa Thần kinh",
-            hospital: "Bệnh viện Đa khoa Thành phố"
-          },
-          date: "2024-01-25",
-          time: "09:15",
-          duration: "60 min",
-          type: "Khám chuyên khoa",
-          status: "confirmed",
-          location: "Phòng 108, Tầng 1",
-          notes: "Khám đau đầu mãn tính"
-        },
-        {
-          id: "4",
-          doctor: {
-            name: "Dr. Phạm Thị D",
-            specialization: "Khoa Da liễu",
-            hospital: "Bệnh viện Đa khoa Thành phố"
-          },
-          date: "2024-01-12",
-          time: "11:00",
-          duration: "30 min",
-          type: "Khám tổng quát",
-          status: "completed",
-          location: "Phòng 205, Tầng 2",
-          notes: "Đã hoàn thành khám"
-        }
-      ];
-
-      // Set mock appointments
-      setAppointments(mockAppointments);
-
-      // Then check for any new appointments from payment process
-      checkForNewAppointment();
-
-      setLoadingAppointments(false);
-    };
-
-    if (!loading && user) {
-      loadAppointmentData();
+    if (user && user.role === 'patient' && user.profile_id) {
+      loadPatientProfile()
     }
-  }, [loading, user]);
+  }, [user])
+
+  const loadPatientProfile = async () => {
+    try {
+      if (!user?.profile_id) return
+
+      const response = await patientsApi.getByProfileId(user.profile_id)
+      if (response.success && response.data) {
+        setPatientId(response.data.patient_id)
+        loadAppointments(response.data.patient_id)
+      } else {
+        toast.error('Không thể tải thông tin bệnh nhân')
+      }
+    } catch (error) {
+      console.error('Error loading patient profile:', error)
+      toast.error('Lỗi khi tải thông tin bệnh nhân')
+    }
+  }
+
+  const loadAppointments = async (patientIdParam: string) => {
+    try {
+      setIsLoadingAppointments(true)
+      const response = await appointmentsApi.getByPatientId(patientIdParam)
+
+      if (response.success && response.data) {
+        setAppointments(response.data)
+      } else {
+        toast.error('Không thể tải danh sách lịch hẹn')
+        setAppointments([])
+      }
+    } catch (error) {
+      console.error('Error loading appointments:', error)
+      toast.error('Lỗi khi tải danh sách lịch hẹn')
+      setAppointments([])
+    } finally {
+      setIsLoadingAppointments(false)
+    }
+  }
+
+  // Mock data removed - now using real API data
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -202,21 +124,21 @@ export default function PatientAppointments() {
   }
 
   const filteredAppointments = appointments.filter(appointment => {
-    const matchesSearch = appointment.doctor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      appointment.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      appointment.doctor.specialization.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesFilter = filterStatus === "all" || appointment.status === filterStatus
+    const matchesSearch = (appointment.doctor_name && appointment.doctor_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                         (appointment.treatment_description && appointment.treatment_description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                         (appointment.doctor_specialization && appointment.doctor_specialization.toLowerCase().includes(searchTerm.toLowerCase()))
+    const matchesFilter = filterStatus === "all" || appointment.status.toLowerCase() === filterStatus.toLowerCase()
     return matchesSearch && matchesFilter
   })
 
   // Sort appointments by date and time
   const sortedAppointments = filteredAppointments.sort((a, b) => {
-    const dateA = new Date(`${a.date} ${a.time}`)
-    const dateB = new Date(`${b.date} ${b.time}`)
+    const dateA = new Date(`${a.appointment_date} ${a.appointment_time}`)
+    const dateB = new Date(`${b.appointment_date} ${b.appointment_time}`)
     return dateA.getTime() - dateB.getTime()
   })
 
-  if (loading || loadingAppointments) {
+  if (loading || isLoadingAppointments) {
     return (
       <PatientLayout title="My Appointments" activePage="appointments">
         <div className="flex items-center justify-center h-64">
@@ -245,15 +167,12 @@ export default function PatientAppointments() {
       <div className="mb-6">
         <div className="flex justify-between items-center mb-4">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Lịch hẹn khám bệnh</h2>
-            <p className="text-gray-600">Xem và quản lý lịch hẹn khám bệnh của bạn</p>
+            <h2 className="text-2xl font-bold text-gray-900">My Appointments</h2>
+            <p className="text-gray-600">View and manage your medical appointments</p>
           </div>
-          <Button
-            className="bg-blue-600 hover:bg-blue-700"
-            onClick={() => router.push('/doctors')}
-          >
+          <Button className="bg-blue-600 hover:bg-blue-700">
             <Plus className="h-4 w-4 mr-2" />
-            Đặt lịch mới
+            Book New Appointment
           </Button>
         </div>
 
@@ -262,7 +181,7 @@ export default function PatientAppointments() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
-              placeholder="Tìm kiếm bác sĩ, chuyên khoa, hoặc loại khám..."
+              placeholder="Search doctors, specializations, or appointment types..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
@@ -274,128 +193,109 @@ export default function PatientAppointments() {
             className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             aria-label="Filter appointments by status"
           >
-            <option value="all">Tất cả trạng thái</option>
-            <option value="confirmed">Đã xác nhận</option>
-            <option value="pending">Đang chờ</option>
-            <option value="completed">Hoàn thành</option>
-            <option value="cancelled">Đã hủy</option>
+            <option value="all">All Status</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="pending">Pending</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
           </select>
         </div>
       </div>
 
       {/* Appointments List */}
       <div className="space-y-4">
-        {sortedAppointments.length > 0 ? (
-          sortedAppointments.map((appointment) => (
-            <Card key={appointment.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-4 mb-4">
-                      <div className="flex items-center gap-2">
-                        <Stethoscope className="h-5 w-5 text-blue-500" />
-                        <h3 className="text-lg font-semibold">{appointment.doctor.name}</h3>
-                      </div>
-                      <Badge className={getStatusColor(appointment.status)}>
-                        {getStatusIcon(appointment.status)}
-                        <span className="ml-1 capitalize">
-                          {appointment.status === 'confirmed' ? 'Đã xác nhận' :
-                            appointment.status === 'pending' ? 'Đang chờ' :
-                              appointment.status === 'completed' ? 'Hoàn thành' :
-                                appointment.status === 'cancelled' ? 'Đã hủy' :
-                                  appointment.status}
-                        </span>
-                      </Badge>
-
-                      {/* Payment badge if exists */}
-                      {appointment.paymentInfo && (
-                        <Badge className="bg-green-50 text-green-700">
-                          <CreditCard className="h-3 w-3 mr-1" />
-                          Đã thanh toán
-                        </Badge>
-                      )}
+        {sortedAppointments.map((appointment) => (
+          <Card key={appointment.appointment_id} className="hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="flex items-center gap-2">
+                      <Stethoscope className="h-5 w-5 text-blue-500" />
+                      <h3 className="text-lg font-semibold">
+                        {appointment.doctor_name || 'Bác sĩ chưa xác định'}
+                      </h3>
                     </div>
+                    <Badge className={getStatusColor(appointment.status)}>
+                      {getStatusIcon(appointment.status)}
+                      <span className="ml-1 capitalize">{appointment.status}</span>
+                    </Badge>
+                  </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm">{appointment.date}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm">{appointment.time} ({appointment.duration})</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm">{appointment.location}</span>
-                      </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm">{appointment.appointment_date}</span>
                     </div>
-
-                    <div className="mb-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Building2 className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm font-medium">{appointment.doctor.specialization}</span>
-                        <span className="text-sm text-gray-500">• {appointment.doctor.hospital}</span>
-                      </div>
-                      <p className="text-sm font-medium text-gray-700">Loại khám: {appointment.type}</p>
-                      <p className="text-sm text-gray-600 mt-1">{appointment.notes}</p>
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm">{appointment.appointment_time}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm">Phòng khám</span>
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-2 ml-4">
-                    {appointment.paymentInfo ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => router.push(`/patient/medical-records?appointmentId=${appointment.id}`)}
-                      >
-                        <FileText className="h-4 w-4 mr-1" />
-                        Xem bệnh án
-                      </Button>
-                    ) : (
-                      <Button variant="outline" size="sm">
-                        Xem chi tiết
-                      </Button>
-                    )}
-
-                    {appointment.status === 'pending' && (
-                      <Button
-                        size="sm"
-                        className="bg-blue-600 hover:bg-blue-700"
-                      >
-                        Xác nhận
-                      </Button>
-                    )}
-
-                    {appointment.status === 'confirmed' && !appointment.paymentInfo && (
-                      <Button
-                        size="sm"
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        <CreditCard className="h-4 w-4 mr-1" />
-                        Thanh toán
-                      </Button>
-                    )}
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Building2 className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm font-medium">
+                        {appointment.doctor_specialization || 'Chuyên khoa chưa xác định'}
+                      </span>
+                      <span className="text-sm text-gray-500">• Bệnh viện Đa khoa</span>
+                    </div>
+                    <p className="text-sm font-medium text-gray-700">
+                      Mô tả: {appointment.treatment_description || 'Khám tổng quát'}
+                    </p>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Ngày tạo: {new Date(appointment.created_at).toLocaleDateString('vi-VN')}
+                    </p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))
-        ) : (
-          <div className="text-center py-12">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
-              <Calendar className="h-8 w-8 text-gray-400" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">Không có lịch hẹn nào</h3>
-            <p className="text-gray-600 mb-6">Bạn chưa có lịch hẹn khám bệnh nào</p>
-            <Button
-              className="bg-blue-600 hover:bg-blue-700"
-              onClick={() => router.push('/doctors')}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Đặt lịch ngay
-            </Button>
-          </div>
+
+                <div className="flex gap-2 ml-4">
+                  <Button variant="outline" size="sm">
+                    View Details
+                  </Button>
+                  {appointment.status === 'pending' && (
+                    <Button variant="outline" size="sm" className="text-red-600 border-red-600 hover:bg-red-50">
+                      Cancel
+                    </Button>
+                  )}
+                  {appointment.status === 'confirmed' && (
+                    <Button variant="outline" size="sm" className="text-blue-600 border-blue-600 hover:bg-blue-50">
+                      Reschedule
+                    </Button>
+                  )}
+                  {appointment.status === 'completed' && (
+                    <Button variant="outline" size="sm" className="text-green-600 border-green-600 hover:bg-green-50">
+                      View Report
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+
+        {sortedAppointments.length === 0 && (
+          <Card>
+            <CardContent className="p-12 text-center">
+              <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No appointments found</h3>
+              <p className="text-gray-600 mb-4">
+                {searchTerm || filterStatus !== "all"
+                  ? "Try adjusting your search or filter criteria"
+                  : "You don't have any appointments scheduled yet"
+                }
+              </p>
+              <Button className="bg-blue-600 hover:bg-blue-700">
+                <Plus className="h-4 w-4 mr-2" />
+                Book Your First Appointment
+              </Button>
+            </CardContent>
+          </Card>
         )}
       </div>
     </PatientLayout>

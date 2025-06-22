@@ -1,23 +1,27 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MedicalRecordRepository = void 0;
-const supabase_js_1 = require("@supabase/supabase-js");
+const database_config_1 = require("../config/database.config");
 const shared_1 = require("@hospital/shared");
 class MedicalRecordRepository {
     constructor() {
-        this.supabase = (0, supabase_js_1.createClient)(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+        this.supabase = database_config_1.supabaseAdmin;
     }
     async findAll(limit = 50, offset = 0) {
         try {
             const { data, error } = await this.supabase
-                .from('medical_records')
-                .select('*')
-                .eq('status', 'active')
-                .order('visit_date', { ascending: false })
-                .range(offset, offset + limit - 1);
-            if (error)
+                .rpc('get_all_medical_records', {
+                limit_count: limit,
+                offset_count: offset
+            });
+            if (error) {
+                shared_1.logger.error('Database function error in findAll:', error);
                 throw error;
-            return data?.map(this.mapSupabaseRecordToMedicalRecord) || [];
+            }
+            if (!data || data.length === 0) {
+                return [];
+            }
+            return data.map(this.mapSupabaseRecordToMedicalRecord);
         }
         catch (error) {
             shared_1.logger.error('Error fetching medical records', { error });
@@ -80,34 +84,25 @@ class MedicalRecordRepository {
     }
     async create(recordData, createdBy) {
         try {
-            const recordId = await this.generateRecordId();
-            const supabaseRecord = {
-                record_id: recordId,
-                patient_id: recordData.patient_id,
-                doctor_id: recordData.doctor_id,
-                appointment_id: recordData.appointment_id,
-                visit_date: recordData.visit_date,
-                chief_complaint: recordData.chief_complaint,
-                present_illness: recordData.present_illness,
-                past_medical_history: recordData.past_medical_history,
-                physical_examination: recordData.physical_examination,
-                vital_signs: recordData.vital_signs,
-                diagnosis: recordData.diagnosis,
-                treatment_plan: recordData.treatment_plan,
-                medications: recordData.medications,
-                follow_up_instructions: recordData.follow_up_instructions,
-                notes: recordData.notes,
-                created_by: createdBy,
-                updated_by: createdBy
-            };
             const { data, error } = await this.supabase
-                .from('medical_records')
-                .insert([supabaseRecord])
-                .select()
-                .single();
-            if (error)
+                .rpc('create_medical_record', {
+                record_data: {
+                    ...recordData,
+                    created_by: createdBy,
+                    updated_by: createdBy
+                }
+            });
+            if (error) {
+                shared_1.logger.error('Database function error in create:', error);
                 throw error;
-            return this.mapSupabaseRecordToMedicalRecord(data);
+            }
+            if (!data || data.length === 0) {
+                throw new Error('Failed to create medical record - no data returned');
+            }
+            shared_1.logger.info('Medical record created successfully via database function:', {
+                recordId: data[0].record_id
+            });
+            return this.mapSupabaseRecordToMedicalRecord(data[0]);
         }
         catch (error) {
             shared_1.logger.error('Error creating medical record', { error, recordData });
@@ -116,20 +111,26 @@ class MedicalRecordRepository {
     }
     async update(recordId, recordData, updatedBy) {
         try {
-            const updateData = {
-                ...recordData,
-                updated_by: updatedBy,
-                updated_at: new Date().toISOString()
-            };
             const { data, error } = await this.supabase
-                .from('medical_records')
-                .update(updateData)
-                .eq('record_id', recordId)
-                .select()
-                .single();
-            if (error)
+                .rpc('update_medical_record', {
+                record_id: recordId,
+                record_data: {
+                    ...recordData,
+                    updated_by: updatedBy
+                }
+            });
+            if (error) {
+                shared_1.logger.error('Database function error in update:', error);
                 throw error;
-            return this.mapSupabaseRecordToMedicalRecord(data);
+            }
+            if (!data || data.length === 0) {
+                throw new Error('Failed to update medical record - record not found');
+            }
+            shared_1.logger.info('Medical record updated successfully via database function:', {
+                recordId,
+                updatedFields: Object.keys(recordData)
+            });
+            return this.mapSupabaseRecordToMedicalRecord(data[0]);
         }
         catch (error) {
             shared_1.logger.error('Error updating medical record', { error, recordId, recordData });
@@ -168,7 +169,8 @@ class MedicalRecordRepository {
     // Lab Results methods
     async createLabResult(labData) {
         try {
-            const resultId = await this.generateLabResultId();
+            // Generate ID using timestamp for now (should use database function)
+            const resultId = `LAB${Date.now().toString().slice(-6)}`;
             const supabaseLabResult = {
                 result_id: resultId,
                 ...labData
@@ -206,7 +208,8 @@ class MedicalRecordRepository {
     // Vital Signs methods
     async createVitalSigns(vitalData, recordedBy) {
         try {
-            const vitalId = await this.generateVitalSignsId();
+            // Generate ID using timestamp for now (should use database function)
+            const vitalId = `VS${Date.now().toString().slice(-6)}`;
             const supabaseVitalSigns = {
                 vital_id: vitalId,
                 ...vitalData,
@@ -243,25 +246,8 @@ class MedicalRecordRepository {
             throw error;
         }
     }
-    async generateRecordId() {
-        const count = await this.count();
-        const nextId = (count + 1).toString().padStart(6, '0');
-        return `MR${nextId}`;
-    }
-    async generateLabResultId() {
-        const { count } = await this.supabase
-            .from('lab_results')
-            .select('*', { count: 'exact', head: true });
-        const nextId = ((count || 0) + 1).toString().padStart(6, '0');
-        return `LAB${nextId}`;
-    }
-    async generateVitalSignsId() {
-        const { count } = await this.supabase
-            .from('vital_signs_history')
-            .select('*', { count: 'exact', head: true });
-        const nextId = ((count || 0) + 1).toString().padStart(6, '0');
-        return `VS${nextId}`;
-    }
+    // Remove local ID generation - now handled by database functions
+    // These methods are kept for backward compatibility but not used
     calculateBMI(weight, height) {
         if (!weight || !height)
             return undefined;

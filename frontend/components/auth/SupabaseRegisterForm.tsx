@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useEnhancedAuth } from '@/lib/auth/enhanced-auth-context';
-import { supabaseAuth } from '@/lib/auth/supabase-auth';
+import { useAuth } from '@/lib/auth/auth-wrapper';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,7 +14,7 @@ import { Loader2, Eye, EyeOff } from 'lucide-react';
 
 export function SupabaseRegisterForm() {
   const router = useRouter();
-  const { loading } = useEnhancedAuth();
+  const { loading, signUp } = useAuth();
 
   const [formData, setFormData] = useState({
     email: '',
@@ -119,17 +119,13 @@ export function SupabaseRegisterForm() {
       // Log the data being sent to signUp
       console.log('Form data to submit:', submissionData);
 
-      const result = await supabaseAuth.signUp(submissionData);
+      await signUp(submissionData);
 
-      if (result.error) {
-        setError(result.error);
-      } else {
-        setSuccess('Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.');
-        router.push('/auth/login?message=' + encodeURIComponent('Đăng ký thành công! Vui lòng đăng nhập để tiếp tục.') + '&from_register=true');
-      }
-    } catch (err) {
+      setSuccess('Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.');
+      router.push('/auth/login?message=' + encodeURIComponent('Đăng ký thành công! Vui lòng đăng nhập để tiếp tục.') + '&from_register=true');
+    } catch (err: any) {
       console.error('Register error:', err);
-      setError('Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.');
+      setError(err.message || 'Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.');
     } finally {
       setIsSubmitting(false);
     }

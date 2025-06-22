@@ -103,14 +103,16 @@ function BillingPageContent() {
           { method: 'Bank Transfer', amount: totalRevenue * 0.10, count: Math.floor(paidBills * 0.10) }
         ];
 
-        // Mock recent payments
-        const recentPayments = [
-          { date: '2024-01-15', amount: 250.00, method: 'Credit Card' },
-          { date: '2024-01-14', amount: 180.50, method: 'Cash' },
-          { date: '2024-01-14', amount: 420.00, method: 'Insurance' },
-          { date: '2024-01-13', amount: 95.75, method: 'Credit Card' },
-          { date: '2024-01-13', amount: 310.25, method: 'Bank Transfer' }
-        ];
+        // Get recent payments from bills data
+        const recentPayments = bills
+          .filter(bill => bill.status === 'paid')
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+          .slice(0, 5)
+          .map(bill => ({
+            date: new Date(bill.created_at).toLocaleDateString('vi-VN'),
+            amount: bill.total_amount,
+            method: bill.payment_method || 'Unknown',
+          }));
 
         setStats({
           totalBills,

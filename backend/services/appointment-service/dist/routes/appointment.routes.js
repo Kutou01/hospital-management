@@ -10,6 +10,8 @@ const router = express_1.default.Router();
 const appointmentController = new appointment_controller_1.AppointmentController();
 router.get('/', appointment_validators_1.validateAppointmentSearch, appointmentController.getAllAppointments.bind(appointmentController));
 router.get('/stats', appointmentController.getAppointmentStats.bind(appointmentController));
+router.get('/realtime/status', appointmentController.getRealtimeStatus.bind(appointmentController));
+router.get('/live', appointmentController.getLiveAppointments.bind(appointmentController));
 router.get('/available-slots', appointment_validators_1.validateAvailableSlots, appointmentController.getAvailableTimeSlots.bind(appointmentController));
 router.get('/doctor/:doctorId', appointment_validators_1.validateDoctorId, appointmentController.getAppointmentsByDoctorId.bind(appointmentController));
 router.get('/doctor/:doctorId/upcoming', appointment_validators_1.validateDoctorId, appointmentController.getUpcomingAppointments.bind(appointmentController));

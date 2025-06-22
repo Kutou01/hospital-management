@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from './auth-context'
+import { useAuth } from './auth-wrapper'
 import { getDashboardPath } from './dashboard-routes'
 
 interface RoleGuardProps {

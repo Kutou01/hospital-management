@@ -3,14 +3,14 @@
 import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { useEnhancedAuth } from '@/lib/auth/enhanced-auth-context'
+import { useAuth } from '@/lib/auth/auth-wrapper'
 import { sessionManager } from '@/lib/auth/session-manager'
 import SessionSettings from '@/components/auth/SessionSettings'
 import { ArrowLeft, TestTube } from 'lucide-react'
 import Link from 'next/link'
 
 export default function SessionTestPage() {
-  const { user, loading } = useEnhancedAuth()
+  const { user, loading } = useAuth()
 
   if (loading) {
     return (

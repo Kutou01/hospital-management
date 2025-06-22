@@ -5,6 +5,8 @@ export declare class DoctorController {
     private reviewRepository;
     private shiftRepository;
     private experienceRepository;
+    private appointmentService;
+    private patientService;
     constructor();
     getAllDoctors(req: Request, res: Response): Promise<void>;
     getDoctorById(req: Request, res: Response): Promise<void>;
@@ -36,5 +38,7 @@ export declare class DoctorController {
     getDoctorProfile(req: Request, res: Response): Promise<void>;
     getDoctorAppointments(req: Request, res: Response): Promise<void>;
     getDoctorStats(req: Request, res: Response): Promise<void>;
+    getRealtimeStatus(req: Request, res: Response): Promise<void>;
+    getLiveDoctors(req: Request, res: Response): Promise<void>;
 }
 //# sourceMappingURL=doctor.controller.d.ts.map

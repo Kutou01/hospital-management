@@ -7,3 +7,6 @@ export { default as logger } from './utils/logger';
 
 // Events
 export { EventBus, getEventBus } from './events/event-bus';
+
+// Monitoring
+export * from './monitoring/metrics';

@@ -10,6 +10,8 @@
     "start": "next start --port 3000",
     "lint": "next lint",
     "test": "echo \"No tests specified\" && exit 0",
+    "test:patient-api": "node scripts/test-patient-api.js",
+    "test:doctor-api": "node scripts/test-doctor-api.js",
     "clean": "rm -rf .next node_modules/.cache",
     "setup-auth": "node ../scripts/setup-supabase-auth.js",
     "migrate": "node ../scripts/run-migration.js"
@@ -36,6 +38,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cors": "^2.8.5",
+    "date-fns": "^4.1.0",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",

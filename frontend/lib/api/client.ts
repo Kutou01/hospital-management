@@ -1,6 +1,6 @@
 'use client';
 
-import axios, { AxiosRequestConfig, AxiosResponse, AxiosError, InternalAxiosRequestConfig, AxiosHeaderValue, AxiosHeaders } from 'axios';
+import { supabaseClient } from '../supabase-client';
 
 // API Response types
 export interface ApiResponse<T> {
@@ -12,93 +12,7 @@ export interface ApiResponse<T> {
   };
 }
 
-// Create axios instance with default config
-export const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || '',
-  timeout: 15000, // 15 seconds
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Request interceptor
-apiClient.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    // Get token from local storage if available
-    const token = typeof window !== 'undefined' ? localStorage.getItem('userToken') : null;
-
-    // If token exists, add it to the headers
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-
-    return config;
-  },
-  (error: AxiosError) => {
-    return Promise.reject(error);
-  }
-);
-
-// Response interceptor
-apiClient.interceptors.response.use(
-  (response: AxiosResponse) => {
-    // Any status code in range of 2xx
-    return response;
-  },
-  async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
-
-    // Handle 401 Unauthorized errors - token expired
-    if (error.response?.status === 401 && !originalRequest._retry && typeof window !== 'undefined') {
-      originalRequest._retry = true;
-
-      try {
-        // Try to refresh token
-        const refreshToken = localStorage.getItem('refreshToken');
-
-        if (refreshToken) {
-          const response = await axios.post('/api/auth/refresh', {
-            refreshToken
-          });
-
-          if (response.data?.token) {
-            // Update tokens
-            localStorage.setItem('userToken', response.data.token);
-            localStorage.setItem('refreshToken', response.data.refreshToken);
-
-            // Update the authorization header
-            apiClient.defaults.headers.common['Authorization'] =
-              `Bearer ${response.data.token}`;
-
-            // Retry the original request
-            return apiClient(originalRequest);
-          }
-        }
-
-        // If refresh token doesn't exist or failed to refresh
-        // Redirect to login
-        localStorage.removeItem('userToken');
-        localStorage.removeItem('refreshToken');
-
-        // Check if we're in the browser environment
-        if (typeof window !== 'undefined') {
-          window.location.href = '/auth/login?session=expired';
-        }
-      } catch (refreshError) {
-        // Failed to refresh token
-        localStorage.removeItem('userToken');
-        localStorage.removeItem('refreshToken');
-
-        // Redirect to login
-        window.location.href = '/auth/login?session=expired';
-      }
-    }
-
-    return Promise.reject(error);
-  }
-);
-
-// API Client class - fixed
+// API Client class
 export class ApiClient {
   private baseUrl: string;
 
@@ -106,43 +20,92 @@ export class ApiClient {
     this.baseUrl = baseUrl;
   }
 
-  // Get auth token from localStorage instead of Supabase
+  // Get auth token from localStorage (Auth Service) or Supabase
   private async getAuthToken(): Promise<string | null> {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('userToken');
+    // First try to get Auth Service token
+    const authServiceToken = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+    if (authServiceToken) {
+      return authServiceToken;
     }
-    return null;
+
+    // Fallback to Supabase token
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    return session?.access_token || null;
   }
 
-  // Make HTTP request
+  // Make HTTP request with timeout
   private async makeRequest<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    requireAuth: boolean = true,
+    timeoutMs: number = 30000 // 30 seconds default timeout
   ): Promise<ApiResponse<T>> {
     try {
-      const token = await this.getAuthToken();
-
-      const headers: Record<string, string> = {
+      const headers: HeadersInit = {
         'Content-Type': 'application/json',
-        ...options.headers as Record<string, string>,
+        ...options.headers,
       };
 
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+      // Only add auth token if required
+      if (requireAuth) {
+        const token = await this.getAuthToken();
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
       }
 
-      const response = await fetch(`${this.baseUrl}/api${endpoint}`, {
-        ...options,
-        headers,
-      });
+      // Create abort controller for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
+      try {
+        const response = await fetch(`${this.baseUrl}/api${endpoint}`, {
+          ...options,
+          headers,
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+        return await this.handleResponse<T>(response);
+      } catch (error) {
+        clearTimeout(timeoutId);
+        if (error instanceof Error && error.name === 'AbortError') {
+          throw new Error(`Request timeout after ${timeoutMs}ms`);
+        }
+        throw error;
+      }
+    } catch (error) {
+      console.error('API Request Error:', error);
+      return {
+        success: false,
+        error: {
+          message: error instanceof Error ? error.message : 'Network error',
+        },
+      };
+    }
+  }
+
+  // Handle response parsing
+  private async handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
+    try {
       const data = await response.json();
 
       if (response.ok) {
-        return {
-          success: true,
-          data: data.data || data,
-        };
+        // Handle different response formats
+        if (data.success !== undefined) {
+          // Backend service response format
+          return {
+            success: data.success,
+            data: data.data || data,
+            meta: data.pagination || data.meta,
+          };
+        } else {
+          // Direct data response
+          return {
+            success: true,
+            data: data.data || data,
+          };
+        }
       } else {
         return {
           success: false,
@@ -153,10 +116,11 @@ export class ApiClient {
         };
       }
     } catch (error) {
+      console.error('Response parsing error:', error);
       return {
         success: false,
         error: {
-          message: error instanceof Error ? error.message : 'Network error',
+          message: error instanceof Error ? error.message : 'Response parsing error',
         },
       };
     }
@@ -164,25 +128,31 @@ export class ApiClient {
 
   // HTTP methods
   async get<T>(endpoint: string, params?: Record<string, any>): Promise<ApiResponse<T>> {
-    const url = new URL(`${this.baseUrl}/api${endpoint}`);
+    let finalEndpoint = endpoint;
+
     if (params) {
+      const searchParams = new URLSearchParams();
       Object.keys(params).forEach(key => {
         if (params[key] !== undefined && params[key] !== null) {
-          url.searchParams.append(key, String(params[key]));
+          searchParams.append(key, String(params[key]));
         }
       });
+
+      if (searchParams.toString()) {
+        finalEndpoint += `?${searchParams.toString()}`;
+      }
     }
 
-    return this.makeRequest<T>(endpoint + (url.search ? `?${url.searchParams}` : ''), {
+    return this.makeRequest<T>(finalEndpoint, {
       method: 'GET',
     });
   }
 
-  async post<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
+  async post<T>(endpoint: string, data?: any, requireAuth: boolean = true): Promise<ApiResponse<T>> {
     return this.makeRequest<T>(endpoint, {
       method: 'POST',
       body: data ? JSON.stringify(data) : undefined,
-    });
+    }, requireAuth);
   }
 
   async put<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
@@ -205,24 +175,31 @@ export class ApiClient {
     });
   }
 
-  // File upload method
-  async uploadFile<T>(endpoint: string, file: File): Promise<ApiResponse<T>> {
+  // File upload method with timeout
+  async uploadFile<T>(endpoint: string, file: File, timeoutMs: number = 60000): Promise<ApiResponse<T>> {
     try {
       const token = await this.getAuthToken();
 
       const formData = new FormData();
       formData.append('file', file);
 
-      const headers: Record<string, string> = {};
+      const headers: HeadersInit = {};
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
+
+      // Create abort controller for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
       const response = await fetch(`${this.baseUrl}/api${endpoint}`, {
         method: 'POST',
         headers,
         body: formData,
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       const data = await response.json();
 
@@ -251,13 +228,16 @@ export class ApiClient {
   }
 }
 
-// Helper functions for API responses
+// Create singleton instance
+export const apiClient = new ApiClient();
+
+// Helper functions
 export const handleApiError = (response: ApiResponse<any>): string => {
-  return response.error?.message || 'An unexpected error occurred';
+  return response.error?.message || 'An error occurred';
 };
 
 export const isApiSuccess = <T>(response: ApiResponse<T>): response is ApiResponse<T> & { data: T } => {
-  return response.success === true && response.data !== undefined;
+  return response.success && response.data !== undefined;
 };
 
 export const getApiError = (response: ApiResponse<any>): string | null => {

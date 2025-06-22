@@ -1,295 +1,428 @@
-"use client"
+'use client'
 
-import React, { createContext, useContext, useEffect, useState, useRef } from 'react'
-import { useRouter } from 'next/navigation'
-import { supabaseAuth, HospitalUser } from './supabase-auth'
-import { sessionManager, SessionState } from './session-manager'
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import { User } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
+import { toast } from 'sonner'
 
-interface EnhancedAuthContextType {
-  user: HospitalUser | null
+// Enhanced Auth Types
+export interface EnhancedAuthUser extends User {
+  profile?: {
+    id: string
+    full_name: string
+    role: 'admin' | 'doctor' | 'patient'
+    phone_number?: string
+    is_active: boolean
+    created_at: string
+  }
+}
+
+export interface AuthState {
+  user: EnhancedAuthUser | null
   loading: boolean
-  error: string | null
   isAuthenticated: boolean
-  signIn: (email: string, password: string) => Promise<void>
+  userRole: 'admin' | 'doctor' | 'patient' | null
+}
+
+export interface AuthMethods {
+  // Email/Password Authentication
+  signInWithEmail: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
+  signUpWithEmail: (email: string, password: string, userData: any) => Promise<{ success: boolean; error?: string }>
+  
+  // Magic Link Authentication
+  signInWithMagicLink: (email: string) => Promise<{ success: boolean; error?: string }>
+  
+  // Phone/SMS OTP Authentication
+  signInWithPhone: (phone: string) => Promise<{ success: boolean; error?: string }>
+  verifyOTP: (phone: string, otp: string) => Promise<{ success: boolean; error?: string }>
+  
+  // OAuth Authentication
+  signInWithOAuth: (provider: 'google' | 'facebook' | 'github') => Promise<{ success: boolean; error?: string }>
+  
+  // Session Management
   signOut: () => Promise<void>
-  refreshUser: () => Promise<void>
-  clearError: () => void
-  hasRole: (role: string) => boolean
-  hasAnyRole: (roles: string[]) => boolean
+  refreshSession: () => Promise<void>
+  
+  // Account Management
+  resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>
+  updatePassword: (newPassword: string) => Promise<{ success: boolean; error?: string }>
+  updateProfile: (updates: Partial<EnhancedAuthUser['profile']>) => Promise<{ success: boolean; error?: string }>
+}
+
+export interface EnhancedAuthContextType extends AuthState, AuthMethods {
+  // Device & Security
+  deviceInfo: {
+    id: string
+    name: string
+    lastSeen: Date
+    isCurrentDevice: boolean
+  }[]
+  
+  // Session Analytics
+  sessionInfo: {
+    loginTime: Date
+    lastActivity: Date
+    ipAddress: string
+    userAgent: string
+  } | null
 }
 
 const EnhancedAuthContext = createContext<EnhancedAuthContextType | undefined>(undefined)
 
-export function EnhancedAuthProvider({ children }: { children: React.ReactNode }) {
-  const [sessionState, setSessionState] = useState<SessionState>(sessionManager.getState())
-  const [error, setError] = useState<string | null>(null)
-  const [isInitialized, setIsInitialized] = useState(false)
-  const router = useRouter()
-  const initRef = useRef(false)
-  const verificationRef = useRef(false)
+export const EnhancedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // State Management
+  const [user, setUser] = useState<EnhancedAuthUser | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [deviceInfo, setDeviceInfo] = useState<any[]>([])
+  const [sessionInfo, setSessionInfo] = useState<any>(null)
 
-  // Subscribe to session changes
+  // Computed Properties
+  const isAuthenticated = !!user
+  const userRole = user?.profile?.role || null
+
+  // Initialize Auth State
   useEffect(() => {
-    const unsubscribe = sessionManager.subscribe((state) => {
-      console.log('🔄 [EnhancedAuthProvider] Session state changed:', {
-        isAuthenticated: state.isAuthenticated,
-        hasUser: !!state.user,
-        isLoading: state.isLoading,
-        userRole: state.user?.role
-      })
-      setSessionState(state)
-    })
-
-    return unsubscribe
-  }, [])
-
-  // Initialize and verify session
-  useEffect(() => {
-    if (initRef.current) return
-    initRef.current = true
-
-    const initializeAuth = async () => {
-      try {
-        console.log('🔄 [EnhancedAuthProvider] Initializing auth...')
-        sessionManager.setLoading(true)
-
-        // Check if we have a valid session
-        const existingSession = sessionManager.getSession()
-
-        if (existingSession) {
-          console.log('🔄 [EnhancedAuthProvider] Found existing session')
-
-          // Check if we should verify with server
-          if (sessionManager.shouldVerifySession()) {
-            console.log('🔄 [EnhancedAuthProvider] Verifying session with server...')
-            await verifySessionWithServer()
-          } else {
-            console.log('🔄 [EnhancedAuthProvider] Using cached session')
-          }
-        } else {
-          console.log('🔄 [EnhancedAuthProvider] No existing session found')
-        }
-
-        setError(null)
-      } catch (err) {
-        console.error('❌ [EnhancedAuthProvider] Failed to initialize auth:', err)
-        setError('Failed to initialize authentication')
-        sessionManager.clearSession()
-      } finally {
-        sessionManager.setLoading(false)
-        setIsInitialized(true)
-      }
-    }
-
     initializeAuth()
   }, [])
 
-  // Verify session with server
-  const verifySessionWithServer = async () => {
-    if (verificationRef.current) return
-    verificationRef.current = true
-
+  const initializeAuth = async () => {
     try {
-      const result = await supabaseAuth.getCurrentUser()
+      // Get current session
+      const { data: { session }, error } = await supabase.auth.getSession()
+      
+      if (error) {
+        console.error('Session error:', error)
+        setLoading(false)
+        return
+      }
 
-      if (result.user && !result.error) {
-        // Update session with fresh user data
-        const existingSession = sessionManager.getSession()
-        if (existingSession) {
-          sessionManager.saveSession(
-            result.user,
-            existingSession.accessToken,
-            existingSession.refreshToken,
-            Math.floor((existingSession.expiresAt - Date.now()) / 1000)
-          )
-        }
-        sessionManager.updateLastChecked()
-      } else {
-        console.log('🔄 [EnhancedAuthProvider] Server verification failed, clearing session')
-        sessionManager.clearSession()
+      if (session?.user) {
+        await loadUserProfile(session.user)
+        await loadSessionInfo()
+        await loadDeviceInfo()
       }
     } catch (error) {
-      console.error('❌ [EnhancedAuthProvider] Server verification error:', error)
-      sessionManager.clearSession()
+      console.error('Auth initialization error:', error)
     } finally {
-      verificationRef.current = false
+      setLoading(false)
     }
-  }
 
-  const signIn = async (email: string, password: string) => {
-    try {
-      sessionManager.setLoading(true)
-      setError(null)
-
-      console.log('🔐 [EnhancedAuthProvider] Starting sign in...')
-      const result = await supabaseAuth.signIn({ email, password })
-
-      if (result.error) {
-        // Enhanced error handling with better user messages
-        let userFriendlyError = result.error
-
-        // Provide more specific error messages
-        if (result.error.includes('Invalid login credentials') ||
-          result.error.includes('Email hoặc mật khẩu không đúng')) {
-          userFriendlyError = 'Email hoặc mật khẩu không đúng. Vui lòng kiểm tra lại thông tin và thử lại.'
-        } else if (result.error.includes('Email not confirmed') ||
-          result.error.includes('xác thực email')) {
-          userFriendlyError = 'Tài khoản chưa được xác thực. Vui lòng kiểm tra email và xác thực tài khoản trước khi đăng nhập.'
-        } else if (result.error.includes('Too many requests') ||
-          result.error.includes('Quá nhiều lần thử')) {
-          userFriendlyError = 'Quá nhiều lần thử đăng nhập. Vui lòng đợi một chút rồi thử lại.'
-        } else if (result.error.includes('User not found')) {
-          userFriendlyError = 'Không tìm thấy tài khoản với email này. Vui lòng kiểm tra lại email hoặc đăng ký tài khoản mới.'
-        } else if (result.error.includes('Account is disabled')) {
-          userFriendlyError = 'Tài khoản đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên để được hỗ trợ.'
-        }
-
-        setError(userFriendlyError)
-        console.error('❌ [EnhancedAuthProvider] Sign in failed:', result.error)
-        throw new Error(userFriendlyError)
-      }
-
-      if (result.user && result.session) {
-        console.log('✅ [EnhancedAuthProvider] Sign in successful')
-
-        // Save session
-        sessionManager.saveSession(
-          result.user,
-          result.session.access_token,
-          result.session.refresh_token || '',
-          result.session.expires_in || 3600
-        )
-
-        // Check if we should redirect to doctor booking
-        const isFromBooking = typeof window !== 'undefined' && window.location.search.includes('redirect=booking')
-        const selectedDoctorId = typeof window !== 'undefined' ? localStorage.getItem('selectedDoctorId') : null
-
-        if (isFromBooking && selectedDoctorId) {
-          console.log('🔄 [EnhancedAuthProvider] Redirecting to doctor booking:', selectedDoctorId)
-          router.replace(`/doctors/${selectedDoctorId}`)
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.id)
+        
+        if (session?.user) {
+          await loadUserProfile(session.user)
+          await loadSessionInfo()
         } else {
-          // Navigate to appropriate dashboard
-          const { getDashboardPath } = await import('./dashboard-routes')
-          const redirectPath = getDashboardPath(result.user.role as any)
-          console.log('🔄 [EnhancedAuthProvider] Redirecting to dashboard:', redirectPath)
-          router.replace(redirectPath)
+          setUser(null)
+          setSessionInfo(null)
+          setDeviceInfo([])
         }
+        
+        setLoading(false)
       }
-    } catch (err: any) {
-      console.error('❌ [EnhancedAuthProvider] Sign in failed:', err)
-      sessionManager.clearSession()
+    )
 
-      // Don't override the error if it's already set with a user-friendly message
-      if (!error) {
-        setError(err.message || 'Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.')
+    return () => subscription.unsubscribe()
+  }
+
+  // Load User Profile with Role Information
+  const loadUserProfile = async (authUser: User) => {
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', authUser.id)
+        .single()
+
+      if (error) {
+        console.error('Profile load error:', error)
+        return
       }
 
-      throw err
-    } finally {
-      sessionManager.setLoading(false)
+      const enhancedUser: EnhancedAuthUser = {
+        ...authUser,
+        profile
+      }
+
+      setUser(enhancedUser)
+    } catch (error) {
+      console.error('Load profile error:', error)
     }
   }
 
+  // Load Session Information
+  const loadSessionInfo = async () => {
+    try {
+      const sessionData = {
+        loginTime: new Date(),
+        lastActivity: new Date(),
+        ipAddress: 'Unknown', // Would need external service
+        userAgent: navigator.userAgent
+      }
+      setSessionInfo(sessionData)
+    } catch (error) {
+      console.error('Load session info error:', error)
+    }
+  }
+
+  // Load Device Information
+  const loadDeviceInfo = async () => {
+    try {
+      // Mock device info - in real app would track devices
+      const devices = [
+        {
+          id: 'current-device',
+          name: `${navigator.platform} - ${navigator.userAgent.split(' ')[0]}`,
+          lastSeen: new Date(),
+          isCurrentDevice: true
+        }
+      ]
+      setDeviceInfo(devices)
+    } catch (error) {
+      console.error('Load device info error:', error)
+    }
+  }
+
+  // Email/Password Authentication
+  const signInWithEmail = async (email: string, password: string) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      })
+
+      if (error) {
+        return { success: false, error: error.message }
+      }
+
+      toast.success('Đăng nhập thành công!')
+      return { success: true }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  }
+
+  const signUpWithEmail = async (email: string, password: string, userData: any) => {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: userData
+        }
+      })
+
+      if (error) {
+        return { success: false, error: error.message }
+      }
+
+      toast.success('Đăng ký thành công! Vui lòng kiểm tra email để xác thực.')
+      return { success: true }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  }
+
+  // Magic Link Authentication
+  const signInWithMagicLink = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`
+        }
+      })
+
+      if (error) {
+        return { success: false, error: error.message }
+      }
+
+      toast.success('Magic link đã được gửi đến email của bạn!')
+      return { success: true }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  }
+
+  // Phone/SMS OTP Authentication
+  const signInWithPhone = async (phone: string) => {
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        phone,
+        options: {
+          channel: 'sms'
+        }
+      })
+
+      if (error) {
+        return { success: false, error: error.message }
+      }
+
+      toast.success('Mã OTP đã được gửi đến số điện thoại của bạn!')
+      return { success: true }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  }
+
+  const verifyOTP = async (phone: string, otp: string) => {
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        phone,
+        token: otp,
+        type: 'sms'
+      })
+
+      if (error) {
+        return { success: false, error: error.message }
+      }
+
+      toast.success('Xác thực OTP thành công!')
+      return { success: true }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  }
+
+  // OAuth Authentication
+  const signInWithOAuth = async (provider: 'google' | 'facebook' | 'github') => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
+      })
+
+      if (error) {
+        return { success: false, error: error.message }
+      }
+
+      return { success: true }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  }
+
+  // Session Management
   const signOut = async () => {
     try {
-      sessionManager.setLoading(true)
-      console.log('🚪 [EnhancedAuthProvider] Starting sign out...')
-
-      await supabaseAuth.signOut()
-      sessionManager.clearSession()
-      setError(null)
-
-      console.log('✅ [EnhancedAuthProvider] Sign out successful')
-      router.replace('/auth/login')
-    } catch (err: any) {
-      console.error('❌ [EnhancedAuthProvider] Sign out failed:', err)
-      setError('Failed to sign out')
-      // Still clear session even if server signout fails
-      sessionManager.clearSession()
-      router.replace('/auth/login')
-    } finally {
-      sessionManager.setLoading(false)
+      await supabase.auth.signOut()
+      toast.success('Đăng xuất thành công!')
+    } catch (error: any) {
+      toast.error('Lỗi đăng xuất: ' + error.message)
     }
   }
 
-  const refreshUser = async () => {
+  const refreshSession = async () => {
     try {
-      console.log('🔄 [EnhancedAuthProvider] Refreshing user data...')
-      const result = await supabaseAuth.getCurrentUser()
-
-      if (result.user && !result.error) {
-        const existingSession = sessionManager.getSession()
-        if (existingSession) {
-          sessionManager.saveSession(
-            result.user,
-            existingSession.accessToken,
-            existingSession.refreshToken,
-            Math.floor((existingSession.expiresAt - Date.now()) / 1000)
-          )
-        }
-        setError(null)
-      } else {
-        console.log('🔄 [EnhancedAuthProvider] Refresh failed, clearing session')
-        sessionManager.clearSession()
-        if (result.error) {
-          setError(result.error)
-        }
-      }
-    } catch (err: any) {
-      console.error('❌ [EnhancedAuthProvider] Failed to refresh user:', err)
-      sessionManager.clearSession()
-      setError('Failed to refresh user data')
+      const { data, error } = await supabase.auth.refreshSession()
+      if (error) throw error
+    } catch (error: any) {
+      console.error('Refresh session error:', error)
     }
   }
 
-  const hasRole = (role: string): boolean => {
-    return sessionManager.hasRole(role)
+  // Account Management
+  const resetPassword = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`
+      })
+
+      if (error) {
+        return { success: false, error: error.message }
+      }
+
+      toast.success('Email đặt lại mật khẩu đã được gửi!')
+      return { success: true }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
   }
 
-  const hasAnyRole = (roles: string[]): boolean => {
-    return sessionManager.hasAnyRole(roles)
+  const updatePassword = async (newPassword: string) => {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      })
+
+      if (error) {
+        return { success: false, error: error.message }
+      }
+
+      toast.success('Mật khẩu đã được cập nhật!')
+      return { success: true }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
   }
 
-  const clearError = () => {
-    setError(null)
+  const updateProfile = async (updates: Partial<EnhancedAuthUser['profile']>) => {
+    try {
+      if (!user?.id) {
+        return { success: false, error: 'User not authenticated' }
+      }
+
+      const { error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', user.id)
+
+      if (error) {
+        return { success: false, error: error.message }
+      }
+
+      // Reload user profile
+      await loadUserProfile(user)
+      toast.success('Thông tin đã được cập nhật!')
+      return { success: true }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
   }
 
-  const value: EnhancedAuthContextType = {
-    user: sessionState.user,
-    loading: sessionState.isLoading,
-    error,
-    isAuthenticated: sessionState.isAuthenticated,
-    signIn,
+  // Context Value
+  const contextValue: EnhancedAuthContextType = {
+    // State
+    user,
+    loading,
+    isAuthenticated,
+    userRole,
+    deviceInfo,
+    sessionInfo,
+    
+    // Methods
+    signInWithEmail,
+    signUpWithEmail,
+    signInWithMagicLink,
+    signInWithPhone,
+    verifyOTP,
+    signInWithOAuth,
     signOut,
-    refreshUser,
-    clearError,
-    hasRole,
-    hasAnyRole
-  }
-
-  // Don't render children until auth is initialized
-  if (!isInitialized) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Đang khởi tạo...</p>
-        </div>
-      </div>
-    )
+    refreshSession,
+    resetPassword,
+    updatePassword,
+    updateProfile
   }
 
   return (
-    <EnhancedAuthContext.Provider value={value}>
+    <EnhancedAuthContext.Provider value={contextValue}>
       {children}
     </EnhancedAuthContext.Provider>
   )
 }
 
-export function useEnhancedAuth() {
+// Custom Hook
+export const useEnhancedAuth = () => {
   const context = useContext(EnhancedAuthContext)
   if (context === undefined) {
     throw new Error('useEnhancedAuth must be used within an EnhancedAuthProvider')
   }
   return context
 }
+
+export default EnhancedAuthProvider

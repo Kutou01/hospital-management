@@ -22,7 +22,7 @@ import {
   RefreshCw
 } from "lucide-react"
 import { useToast } from "@/components/ui/toast-provider"
-import { useEnhancedAuth } from "@/lib/auth/enhanced-auth-context"
+import { useEnhancedAuth } from "@/lib/auth/auth-wrapper"
 import { TwoFactorService, TwoFactorSettings } from "@/lib/auth/two-factor-service"
 
 interface TwoFactorAuthProps {

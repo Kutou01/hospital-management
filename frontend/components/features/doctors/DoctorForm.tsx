@@ -104,20 +104,18 @@ export const DoctorForm: React.FC<DoctorFormProps> = ({
   }));
 
   const specializationOptions = [
-    { value: 'Nội tổng hợp', label: 'Nội tổng hợp' },
-    { value: 'Ngoại tổng hợp', label: 'Ngoại tổng hợp' },
-    { value: 'Sản phụ khoa', label: 'Sản phụ khoa' },
-    { value: 'Nhi khoa', label: 'Nhi khoa' },
-    { value: 'Tim mạch can thiệp', label: 'Tim mạch can thiệp' },
-    { value: 'Thần kinh học', label: 'Thần kinh học' },
-    { value: 'Chấn thương và chỉnh hình', label: 'Chấn thương và chỉnh hình' },
-    { value: 'Cấp cứu và hồi sức', label: 'Cấp cứu và hồi sức' },
-    { value: 'Da liễu', label: 'Da liễu' },
-    { value: 'Mắt', label: 'Mắt' },
-    { value: 'Tai mũi họng', label: 'Tai mũi họng' },
-    { value: 'Răng hàm mặt', label: 'Răng hàm mặt' },
-    { value: 'Tâm thần', label: 'Tâm thần' },
-    { value: 'Ung bướu', label: 'Ung bướu' },
+    { value: 'Tim Mạch Học', label: 'Tim Mạch Học' },
+    { value: 'Chấn Thương Chỉnh Hình', label: 'Chấn Thương Chỉnh Hình' },
+    { value: 'Nhi Khoa', label: 'Nhi Khoa' },
+    { value: 'Thần Kinh Học', label: 'Thần Kinh Học' },
+    { value: 'Da Liễu', label: 'Da Liễu' },
+    { value: 'Phụ Sản', label: 'Phụ Sản' },
+    { value: 'Cấp Cứu', label: 'Cấp Cứu' },
+    { value: 'Nội Tổng Hợp', label: 'Nội Tổng Hợp' },
+    { value: 'Ngoại Tổng Hợp', label: 'Ngoại Tổng Hợp' },
+    { value: 'Nhãn Khoa', label: 'Nhãn Khoa' },
+    { value: 'Tai Mũi Họng', label: 'Tai Mũi Họng' },
+    { value: 'Tâm Thần', label: 'Tâm Thần' },
     { value: 'Khác', label: 'Khác' },
   ];
 

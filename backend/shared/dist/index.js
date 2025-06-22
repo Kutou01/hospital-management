@@ -28,4 +28,6 @@ Object.defineProperty(exports, "logger", { enumerable: true, get: function () { 
 var event_bus_1 = require("./events/event-bus");
 Object.defineProperty(exports, "EventBus", { enumerable: true, get: function () { return event_bus_1.EventBus; } });
 Object.defineProperty(exports, "getEventBus", { enumerable: true, get: function () { return event_bus_1.getEventBus; } });
+// Monitoring
+__exportStar(require("./monitoring/metrics"), exports);
 //# sourceMappingURL=index.js.map

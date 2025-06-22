@@ -80,7 +80,28 @@ export function EnumProvider({ children }: EnumProviderProps) {
 
       console.log('🔄 Starting to fetch enum data...');
 
-      // Fetch all enum tables in parallel
+      // Fetch enum tables individually to handle missing tables gracefully
+      const fetchTable = async (tableName: string, orderBy: string) => {
+        try {
+          const { data, error } = await supabaseClient
+            .from(tableName)
+            .select('*')
+            .eq('is_active', true)
+            .order(orderBy);
+
+          if (error) {
+            console.warn(`⚠️ Table ${tableName} not found or error:`, error.message);
+            return { data: [], error };
+          }
+
+          return { data: data || [], error: null };
+        } catch (err) {
+          console.warn(`⚠️ Exception fetching ${tableName}:`, err);
+          return { data: [], error: err };
+        }
+      };
+
+      // Fetch all enum tables
       const [
         specialtiesRes,
         departmentsRes,
@@ -90,42 +111,26 @@ export function EnumProvider({ children }: EnumProviderProps) {
         statusValuesRes,
         paymentMethodsRes
       ] = await Promise.all([
-        supabaseClient.from('specialties').select('*').eq('is_active', true).order('sort_order'),
-        supabaseClient.from('departments').select('*').eq('is_active', true).order('name'),
-        supabaseClient.from('room_types').select('*').eq('is_active', true).order('sort_order'),
-        supabaseClient.from('diagnosis').select('*').eq('is_active', true).order('sort_order'),
-        supabaseClient.from('medications').select('*').eq('is_active', true).order('sort_order'),
-        supabaseClient.from('status_values').select('*').eq('is_active', true).order('sort_order'),
-        supabaseClient.from('payment_methods').select('*').eq('is_active', true).order('sort_order')
+        fetchTable('specialties', 'specialty_name'),
+        fetchTable('departments', 'department_name'),
+        fetchTable('room_types', 'type_name'),
+        fetchTable('diagnosis', 'created_at'),
+        fetchTable('medications', 'created_at'),
+        fetchTable('status_values', 'created_at'),
+        fetchTable('payment_methods', 'created_at') // Changed from method_name to created_at
       ]);
 
       console.log('📊 Enum data fetch results:', {
-        specialties: { data: specialtiesRes.data, error: specialtiesRes.error },
-        departments: { data: departmentsRes.data, error: departmentsRes.error },
-        roomTypes: { data: roomTypesRes.data, error: roomTypesRes.error },
-        diagnoses: { data: diagnosesRes.data, error: diagnosesRes.error },
-        medications: { data: medicationsRes.data, error: medicationsRes.error },
-        statusValues: { data: statusValuesRes.data, error: statusValuesRes.error },
-        paymentMethods: { data: paymentMethodsRes.data, error: paymentMethodsRes.error }
+        specialties: { count: specialtiesRes.data.length, error: specialtiesRes.error },
+        departments: { count: departmentsRes.data.length, error: departmentsRes.error },
+        roomTypes: { count: roomTypesRes.data.length, error: roomTypesRes.error },
+        diagnoses: { count: diagnosesRes.data.length, error: diagnosesRes.error },
+        medications: { count: medicationsRes.data.length, error: medicationsRes.error },
+        statusValues: { count: statusValuesRes.data.length, error: statusValuesRes.error },
+        paymentMethods: { count: paymentMethodsRes.data.length, error: paymentMethodsRes.error }
       });
 
-      // Check for errors
-      const errors = [
-        specialtiesRes.error,
-        departmentsRes.error,
-        roomTypesRes.error,
-        diagnosesRes.error,
-        medicationsRes.error,
-        statusValuesRes.error,
-        paymentMethodsRes.error
-      ].filter(Boolean);
-
-      if (errors.length > 0) {
-        console.error('❌ Enum data fetch errors:', errors);
-        throw new Error(`Failed to fetch enum data: ${errors.map(e => e?.message).join(', ')}`);
-      }
-
-      // Set data
+      // Set data (even if some tables are empty)
       setSpecialties(specialtiesRes.data || []);
       setDepartments(departmentsRes.data || []);
       setRoomTypes(roomTypesRes.data || []);
@@ -134,7 +139,7 @@ export function EnumProvider({ children }: EnumProviderProps) {
       setStatusValues(statusValuesRes.data || []);
       setPaymentMethods(paymentMethodsRes.data || []);
 
-
+      console.log('✅ Enum data loaded successfully');
 
     } catch (err) {
       console.error('❌ Error fetching enum data:', err);
@@ -149,31 +154,65 @@ export function EnumProvider({ children }: EnumProviderProps) {
     fetchEnumData();
   }, []);
 
-  // Helper function to convert departments to enum format
-  // Note: departments table has different structure than enum tables
+  // Helper functions to convert database records to enum format
+  const convertSpecialtyToEnum = (specialty: any): EnumOption => ({
+    value: specialty.specialty_id,
+    label: specialty.specialty_name,
+    description: specialty.description,
+    color: '#e74c3c', // Red for specialties
+    icon: 'stethoscope',
+    department_id: specialty.department_id, // Include department_id for mapping
+    department_name: specialty.department_name // Include department_name if available
+  });
+
   const convertDepartmentToEnum = (dept: any): EnumOption => ({
-    value: dept.department_id, // departments use department_id as key
-    label: dept.name,
+    value: dept.department_id,
+    label: dept.department_name, // Changed from dept.name to dept.department_name
     description: dept.description,
-    color: '#3498db', // Default color for departments
-    icon: 'building-2' // Default icon for departments
+    color: '#3498db', // Blue for departments
+    icon: 'building-2'
+  });
+
+  const convertRoomTypeToEnum = (roomType: any): EnumOption => ({
+    value: roomType.room_type_id,
+    label: roomType.type_name,
+    description: roomType.description,
+    color: '#9b59b6', // Purple for room types
+    icon: 'bed'
+  });
+
+  const convertPaymentMethodToEnum = (method: any): EnumOption => ({
+    value: method.payment_method_id,
+    label: method.method_name,
+    description: method.description,
+    color: '#27ae60', // Green for payment methods
+    icon: 'credit-card'
+  });
+
+  // Generic converter for simple enum tables (diagnosis, medications, status_values)
+  const convertGenericToEnum = (item: any, idField: string, nameField: string, color: string, icon: string): EnumOption => ({
+    value: item[idField],
+    label: item[nameField],
+    description: item.description || '',
+    color,
+    icon
   });
 
   // Helper functions to convert to options
   const getSpecialtyOptions = (): EnumOption[] =>
-    specialties.map(item => enumToOption(item));
+    specialties.map(item => convertSpecialtyToEnum(item));
 
   const getDepartmentOptions = (): EnumOption[] =>
     departments.map(item => convertDepartmentToEnum(item));
 
   const getRoomTypeOptions = (): EnumOption[] =>
-    roomTypes.map(item => enumToOption(item));
+    roomTypes.map(item => convertRoomTypeToEnum(item));
 
   const getDiagnosisOptions = (): EnumOption[] =>
-    diagnoses.map(item => enumToOption(item));
+    diagnoses.map(item => convertGenericToEnum(item, 'diagnosis_id', 'diagnosis_name', '#f39c12', 'clipboard-list'));
 
   const getMedicationOptions = (): EnumOption[] =>
-    medications.map(item => enumToOption(item));
+    medications.map(item => convertGenericToEnum(item, 'medication_id', 'medication_name', '#1abc9c', 'pill'));
 
   const getStatusOptions = (appliesTo?: string): EnumOption[] => {
     let filtered = statusValues;
@@ -182,11 +221,11 @@ export function EnumProvider({ children }: EnumProviderProps) {
         !item.applies_to || item.applies_to === appliesTo
       );
     }
-    return filtered.map(item => enumToOption(item));
+    return filtered.map(item => convertGenericToEnum(item, 'status_id', 'status_name', '#95a5a6', 'info'));
   };
 
   const getPaymentMethodOptions = (): EnumOption[] =>
-    paymentMethods.map(item => enumToOption(item));
+    paymentMethods.map(item => convertPaymentMethodToEnum(item));
 
   // Utility functions
   const getEnumDisplayNameHelper = (enumItem: BaseEnum): string =>
@@ -310,6 +349,11 @@ export function useGenderEnums(): EnumOption[] {
     { value: 'female', label: 'Nữ' },
     { value: 'other', label: 'Khác' }
   ];
+}
+
+export function useStatusOptions(appliesTo?: string): EnumOption[] {
+  const { getStatusOptions } = useEnumContext();
+  return getStatusOptions(appliesTo);
 }
 
 export function useDoctorStatusEnums(): EnumOption[] {

@@ -1,6 +1,6 @@
 import { GetServerSideProps, GetServerSidePropsContext } from 'next';
 import { createSupabaseServerClient } from '../supabase-server';
-import { HospitalUser } from './supabase-auth';
+import { AuthUser as HospitalUser } from '../api/auth';
 
 // Types for auth guard
 export interface AuthGuardOptions {

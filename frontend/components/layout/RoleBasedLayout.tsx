@@ -1,8 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useEnhancedAuth } from '@/lib/auth/enhanced-auth-context';
-import { useIsAdmin, useIsDoctor, useIsPatient } from '@/lib/hooks/useSupabaseAuth';
+import { useAuth } from '@/lib/auth/auth-wrapper';
 import { AdminLayout, DoctorLayout, PatientLayout } from './UniversalLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertCircle, Loader2 } from 'lucide-react';
@@ -18,10 +17,12 @@ export const RoleBasedLayout: React.FC<RoleBasedLayoutProps> = ({
   title,
   activePage,
 }) => {
-  const { user, loading } = useEnhancedAuth();
-  const isAdmin = useIsAdmin();
-  const isDoctor = useIsDoctor();
-  const isPatient = useIsPatient();
+  const { user, loading } = useAuth();
+
+  // Role checking functions
+  const isAdmin = user?.role === 'admin';
+  const isDoctor = user?.role === 'doctor';
+  const isPatient = user?.role === 'patient';
 
   // Loading state
   if (loading) {
@@ -48,7 +49,7 @@ export const RoleBasedLayout: React.FC<RoleBasedLayoutProps> = ({
             <h2 className="text-lg font-semibold mb-2">Authentication Required</h2>
             <p className="text-gray-600 mb-4">Please log in to access this page</p>
             <a
-              href="/auth/login"
+              href="/login"
               className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
             >
               Go to Login

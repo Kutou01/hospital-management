@@ -4,17 +4,17 @@
 
 import { body, param, query } from 'express-validator';
 
-// Vietnam-specific format patterns
+// Vietnam-specific format patterns - UPDATED to use Department-Based ID System
 export const VIETNAM_PATTERNS = {
-  // ID Patterns (department-based system)
-  DOCTOR_ID: /^DOC\d{6}$/,                    // DOC000001
-  // PATIENT_ID removed - using department-based ID system
-  APPOINTMENT_ID: /^LK\d{6}$/,                // LK000001 (Lịch khám)
-  DEPARTMENT_ID: /^KHOA\d{6}$/,               // KHOA000001
-  ROOM_ID: /^PHONG\d{6}$/,                    // PHONG000001
-  MEDICAL_RECORD_ID: /^HSBA\d{6}$/,           // HSBA000001 (Hồ sơ bệnh án)
-  PRESCRIPTION_ID: /^TOA\d{6}$/,              // TOA000001 (Toa thuốc)
-  BILLING_ID: /^HD\d{6}$/,                    // HD000001 (Hóa đơn)
+  // ID Patterns - Consistent with shared validators
+  DOCTOR_ID: /^[A-Z]{4}-DOC-\d{6}-\d{3}$/,           // CARD-DOC-202506-001
+  PATIENT_ID: /^PAT-\d{6}-\d{3}$/,                    // PAT-202506-001
+  APPOINTMENT_ID: /^[A-Z]{4}-APT-\d{6}-\d{3}$/,       // CARD-APT-202506-001
+  DEPARTMENT_ID: /^DEPT\d{3}$/,                       // DEPT001
+  ROOM_ID: /^ROOM\d+$/,                               // ROOM1747555777
+  MEDICAL_RECORD_ID: /^[A-Z]{4}-MR-\d{6}-\d{3}$/,     // CARD-MR-202506-001
+  PRESCRIPTION_ID: /^[A-Z]{4}-RX-\d{6}-\d{3}$/,       // CARD-RX-202506-001
+  BILLING_ID: /^[A-Z]{4}-BILL-\d{6}-\d{3}$/,          // CARD-BILL-202506-001
   
   // Contact Patterns (Vietnam specific)
   PHONE_VN: /^0[0-9]{9}$/,                    // 10 digits starting with 0
@@ -92,7 +92,7 @@ export const VIETNAM_RANGES = {
 export const validateDoctorId = [
   param('doctorId')
     .matches(VIETNAM_PATTERNS.DOCTOR_ID)
-    .withMessage('Mã bác sĩ phải có định dạng DOC + 6 chữ số (VD: DOC000001)')
+    .withMessage('Mã bác sĩ phải có định dạng DEPT-DOC-YYYYMM-XXX (VD: CARD-DOC-202506-001)')
 ];
 
 export const validateCreateDoctor = [
@@ -229,7 +229,7 @@ export const validateCreatePatient = [
 export const validateAppointmentId = [
   param('appointmentId')
     .matches(VIETNAM_PATTERNS.APPOINTMENT_ID)
-    .withMessage('Mã lịch khám phải có định dạng LK + 6 chữ số (VD: LK000001)')
+    .withMessage('Mã lịch khám phải có định dạng DEPT-APT-YYYYMM-XXX (VD: CARD-APT-202506-001)')
 ];
 
 export const validateCreateAppointment = [

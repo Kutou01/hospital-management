@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
-import { AlertTriangle, Shield, LogOut, Settings } from 'lucide-react'
+import { AlertTriangle, Shield, LogOut, Settings, CheckCircle } from 'lucide-react'
 import { sessionManager } from '@/lib/auth/session-manager'
 import { useToast } from '@/components/ui/toast-provider'
 
@@ -118,14 +118,12 @@ export function SessionSettings({ className }: SessionSettingsProps) {
               />
             </div>
             
-            {autoClearEnabled && (
-              <div className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                <p className="text-xs text-yellow-700">
-                  Cảnh báo: Bạn sẽ cần đăng nhập lại mỗi khi mở tab mới
-                </p>
-              </div>
-            )}
+            <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <p className="text-xs text-green-700">
+                Session persistence enabled - You will stay logged in across page reloads and browser restarts
+              </p>
+            </div>
           </div>
 
           {/* Action Buttons */}

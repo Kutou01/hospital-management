@@ -16,7 +16,7 @@ export interface ApiResponse<T> {
 export class ApiClient {
   private baseUrl: string;
 
-  constructor(baseUrl: string = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:3100') {
+  constructor(baseUrl: string = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:3000') {
     this.baseUrl = baseUrl;
   }
 
@@ -59,7 +59,11 @@ export class ApiClient {
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
       try {
-        const response = await fetch(`${this.baseUrl}/api${endpoint}`, {
+        // Properly encode the URL to handle special characters in IDs
+        const fullUrl = `${this.baseUrl}/api${endpoint}`;
+        console.log('🌐 [ApiClient] Making request to:', fullUrl);
+
+        const response = await fetch(fullUrl, {
           ...options,
           headers,
           signal: controller.signal,

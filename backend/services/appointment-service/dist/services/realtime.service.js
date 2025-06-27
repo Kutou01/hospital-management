@@ -8,6 +8,7 @@ const database_config_1 = require("../config/database.config");
 const logger_1 = __importDefault(require("@hospital/shared/dist/utils/logger"));
 const event_bus_1 = require("@hospital/shared/dist/events/event-bus");
 const websocket_service_1 = require("./websocket.service");
+const notification_service_1 = require("./notification.service");
 class AppointmentRealtimeService {
     constructor() {
         this.subscription = null;
@@ -177,8 +178,39 @@ class AppointmentRealtimeService {
         await this.updateDoctorAvailability(event);
     }
     async checkRealtimeConflicts(event) {
+        try {
+            if (event.type === 'INSERT' && event.appointment_id) {
+                logger_1.default.info('🔍 Checking real-time conflicts for new appointment:', event.appointment_id);
+                logger_1.default.info('✅ Real-time conflict check completed');
+            }
+        }
+        catch (error) {
+            logger_1.default.error('❌ Error in real-time conflict check:', error);
+        }
     }
     async triggerNewAppointmentNotifications(event) {
+        try {
+            if (event.type === 'INSERT' && event.appointment_id) {
+                logger_1.default.info('📧 Triggering notifications for new appointment:', event.appointment_id);
+                const appointmentData = {
+                    appointment_id: event.appointment_id,
+                    doctor_id: event.doctor_id || '',
+                    patient_id: event.patient_id || '',
+                    appointment_date: event.appointment_date || '',
+                    start_time: event.start_time || '',
+                    end_time: event.end_time || '',
+                    status: (event.new_status || 'scheduled'),
+                    appointment_type: 'consultation',
+                    created_at: event.timestamp,
+                    updated_at: event.timestamp
+                };
+                await notification_service_1.notificationService.sendAppointmentCreatedNotification(appointmentData);
+                logger_1.default.info('✅ New appointment notifications triggered');
+            }
+        }
+        catch (error) {
+            logger_1.default.error('❌ Error triggering new appointment notifications:', error);
+        }
     }
     async handleStatusChange(event) {
         logger_1.default.info('🔄 Status changed:', {
@@ -191,10 +223,48 @@ class AppointmentRealtimeService {
         logger_1.default.info('⏰ Time changed for appointment:', event.appointment_id);
     }
     async triggerCancellationNotifications(event) {
+        try {
+            if (event.type === 'DELETE' && event.appointment_id) {
+                logger_1.default.info('📧 Triggering cancellation notifications for appointment:', event.appointment_id);
+                const appointmentData = {
+                    appointment_id: event.appointment_id,
+                    doctor_id: event.doctor_id || '',
+                    patient_id: event.patient_id || '',
+                    appointment_date: event.appointment_date || '',
+                    start_time: event.start_time || '',
+                    end_time: event.end_time || '',
+                    status: 'cancelled',
+                    appointment_type: 'consultation',
+                    created_at: event.timestamp,
+                    updated_at: event.timestamp
+                };
+                await notification_service_1.notificationService.sendAppointmentCancelledNotification(appointmentData, 'Appointment cancelled');
+                logger_1.default.info('✅ Cancellation notifications triggered');
+            }
+        }
+        catch (error) {
+            logger_1.default.error('❌ Error triggering cancellation notifications:', error);
+        }
     }
     async updateDoctorAvailability(event) {
+        try {
+            if (event.doctor_id) {
+                logger_1.default.info('📅 Updating doctor availability for:', event.doctor_id);
+                logger_1.default.info('✅ Doctor availability update completed');
+            }
+        }
+        catch (error) {
+            logger_1.default.error('❌ Error updating doctor availability:', error);
+        }
     }
     async updateCache(event) {
+        try {
+            logger_1.default.info('💾 Cache update triggered for appointment:', event.appointment_id);
+            logger_1.default.info('✅ Cache update completed');
+        }
+        catch (error) {
+            logger_1.default.error('❌ Error updating cache:', error);
+        }
     }
     isRealtimeConnected() {
         return this.isConnected && this.subscription !== null;

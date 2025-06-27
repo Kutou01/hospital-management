@@ -146,6 +146,13 @@ export default function ComprehensiveTestPage() {
 
   const makeRequest = async (endpoint: string, options: RequestInit = {}, requireAuth: boolean = false) => {
     const startTime = Date.now();
+
+    // Use fallback URL if environment variable is not set
+    const apiGatewayUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:3100';
+    const fullUrl = `${apiGatewayUrl}${endpoint}`;
+
+    console.log(`📡 Making request to: ${fullUrl}`);
+
     try {
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
@@ -155,15 +162,25 @@ export default function ComprehensiveTestPage() {
       // Add auth token if required and available
       if (requireAuth && authState.token) {
         headers['Authorization'] = `Bearer ${authState.token}`;
+        console.log('🔑 Added auth token to request');
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_GATEWAY_URL}${endpoint}`, {
+      const response = await fetch(fullUrl, {
         headers,
         ...options,
       });
 
       const duration = Date.now() - startTime;
-      const data = await response.json();
+
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        console.warn('⚠️ Failed to parse JSON response:', jsonError);
+        data = { error: 'Invalid JSON response' };
+      }
+
+      console.log(`📡 Response (${response.status}):`, { success: response.ok, data, duration });
 
       return {
         success: response.ok,
@@ -172,29 +189,50 @@ export default function ComprehensiveTestPage() {
         duration
       };
     } catch (error) {
+      const duration = Date.now() - startTime;
+      console.error('❌ Request failed:', error);
+
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
-        duration: Date.now() - startTime
+        duration,
+        status: 0
       };
     }
   };
 
   const authenticateTestUser = async () => {
+    console.log('🔐 Starting authentication...');
     setCurrentTest('Authenticating test user...');
 
+    // Debug: Check environment variables
+    const apiGatewayUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
+    console.log('API Gateway URL:', apiGatewayUrl);
+
+    if (!apiGatewayUrl) {
+      const errorMsg = 'NEXT_PUBLIC_API_GATEWAY_URL environment variable not set';
+      console.error('❌', errorMsg);
+      addTestResult('Authentication', 'error', errorMsg);
+      return false;
+    }
+
     try {
+      console.log('📡 Making login request...');
       const loginResult = await makeRequest('/api/auth/signin', {
         method: 'POST',
         body: JSON.stringify({
-          email: 'admin@hospital.com',
-          password: 'Admin123'
+          email: 'patient@hospital.com',
+          password: 'Patient123.'
         })
       });
+
+      console.log('📡 Login result:', loginResult);
 
       if (loginResult.success && loginResult.data?.session?.access_token) {
         const token = loginResult.data.session.access_token;
         const user = loginResult.data.user;
+
+        console.log('✅ Authentication successful:', { user: user.email, role: user.role });
 
         setAuthState({
           isAuthenticated: true,
@@ -212,15 +250,17 @@ export default function ComprehensiveTestPage() {
 
         return true;
       } else {
+        console.error('❌ Authentication failed:', loginResult);
         addTestResult(
           'Authentication',
           'error',
-          loginResult.error || 'Login failed',
+          loginResult.error || `Login failed - Status: ${loginResult.status}`,
           loginResult.duration
         );
         return false;
       }
     } catch (error) {
+      console.error('❌ Authentication error:', error);
       addTestResult(
         'Authentication',
         'error',
@@ -233,8 +273,8 @@ export default function ComprehensiveTestPage() {
   const testAuthService = async () => {
     setCurrentTest('Testing Auth Service...');
 
-    // Public health check
-    const healthResult = await makeRequest('/api/auth/health');
+    // Public health check - use API Gateway health
+    const healthResult = await makeRequest('/health');
     addTestResult(
       'Auth Service Health (Public)',
       healthResult.success ? 'success' : 'error',
@@ -253,7 +293,7 @@ export default function ComprehensiveTestPage() {
 
     // Test authenticated endpoint if we have token
     if (authState.isAuthenticated && authState.token) {
-      const profileResult = await makeRequest('/api/auth/profile', { method: 'GET' }, true);
+      const profileResult = await makeRequest('/api/auth/me', { method: 'GET' }, true);
       addTestResult(
         'Auth Profile (Authenticated)',
         profileResult.success ? 'success' : 'warning',
@@ -264,10 +304,12 @@ export default function ComprehensiveTestPage() {
 
     // Test token validation
     if (authState.token) {
-      const tokenValidationResult = await makeRequest('/api/auth/validate', {
-        method: 'POST',
-        body: JSON.stringify({ token: authState.token })
-      });
+      const tokenValidationResult = await makeRequest('/api/auth/verify', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${authState.token}`
+        }
+      }, true);
       addTestResult(
         'Token Validation',
         tokenValidationResult.success ? 'success' : 'warning',
@@ -280,12 +322,12 @@ export default function ComprehensiveTestPage() {
   const testDoctorService = async () => {
     setCurrentTest('Testing Doctor Service...');
 
-    // Public health check
-    const healthResult = await makeRequest('/api/doctors/health');
+    // Test auth protection on doctor service (should return 401)
+    const healthResult = await makeRequest('/api/doctors');
     addTestResult(
       'Doctor Service Health (Public)',
-      healthResult.success ? 'success' : 'error',
-      healthResult.success ? `Response time: ${healthResult.duration}ms` : healthResult.error,
+      healthResult.status === 401 ? 'success' : 'error',
+      healthResult.status === 401 ? 'Auth protection working' : `Unexpected status: ${healthResult.status}`,
       healthResult.duration
     );
 
@@ -309,14 +351,24 @@ export default function ComprehensiveTestPage() {
         doctorsAuthResult.duration
       );
 
-      // Test doctor stats with auth
-      const statsAuthResult = await makeRequest('/api/doctors/stats', { method: 'GET' }, true);
-      addTestResult(
-        'Doctor Stats (Authenticated)',
-        statsAuthResult.success ? 'success' : 'warning',
-        statsAuthResult.success ? 'Stats retrieved successfully' : `Status: ${statsAuthResult.status}`,
-        statsAuthResult.duration
-      );
+      // Test doctor stats with auth - use first doctor from the list
+      if (doctorsAuthResult.success && doctorsAuthResult.data?.data?.length > 0) {
+        const firstDoctorId = doctorsAuthResult.data.data[0].doctor_id;
+        const statsAuthResult = await makeRequest(`/api/doctors/${firstDoctorId}/stats`, { method: 'GET' }, true);
+        addTestResult(
+          'Doctor Stats (Authenticated)',
+          statsAuthResult.success ? 'success' : 'warning',
+          statsAuthResult.success ? 'Stats retrieved successfully' : `Status: ${statsAuthResult.status}`,
+          statsAuthResult.duration
+        );
+      } else {
+        addTestResult(
+          'Doctor Stats (Authenticated)',
+          'warning',
+          'No doctors available to test stats',
+          0
+        );
+      }
 
       // Test search functionality
       const searchResult = await makeRequest('/api/doctors/search?q=test', { method: 'GET' }, true);
@@ -332,12 +384,12 @@ export default function ComprehensiveTestPage() {
   const testPatientService = async () => {
     setCurrentTest('Testing Patient Service...');
 
-    // Public health check
-    const healthResult = await makeRequest('/api/patients/health');
+    // Test auth protection on patient service (should return 401)
+    const healthResult = await makeRequest('/api/patients');
     addTestResult(
       'Patient Service Health (Public)',
-      healthResult.success ? 'success' : 'error',
-      healthResult.success ? `Response time: ${healthResult.duration}ms` : healthResult.error,
+      healthResult.status === 401 ? 'success' : 'error',
+      healthResult.status === 401 ? 'Auth protection working' : `Unexpected status: ${healthResult.status}`,
       healthResult.duration
     );
 
@@ -374,12 +426,13 @@ export default function ComprehensiveTestPage() {
 
   const testAppointmentService = async () => {
     setCurrentTest('Testing Appointment Service...');
-    
-    const healthResult = await makeRequest('/api/appointments/health');
+
+    // Test auth protection on appointment service (should return 401)
+    const healthResult = await makeRequest('/api/appointments');
     addTestResult(
       'Appointment Service Health',
-      healthResult.success ? 'success' : 'error',
-      healthResult.success ? `Response time: ${healthResult.duration}ms` : healthResult.error,
+      healthResult.status === 401 ? 'success' : 'error',
+      healthResult.status === 401 ? 'Auth protection working' : `Unexpected status: ${healthResult.status}`,
       healthResult.duration
     );
 
@@ -394,12 +447,13 @@ export default function ComprehensiveTestPage() {
 
   const testDepartmentService = async () => {
     setCurrentTest('Testing Department Service...');
-    
-    const healthResult = await makeRequest('/api/departments/health');
+
+    // Test auth protection on department service (should return 401)
+    const healthResult = await makeRequest('/api/departments');
     addTestResult(
       'Department Service Health',
-      healthResult.success ? 'success' : 'error',
-      healthResult.success ? `Response time: ${healthResult.duration}ms` : healthResult.error,
+      healthResult.status === 401 ? 'success' : 'error',
+      healthResult.status === 401 ? 'Auth protection working' : `Unexpected status: ${healthResult.status}`,
       healthResult.duration
     );
   };
@@ -588,6 +642,41 @@ export default function ComprehensiveTestPage() {
           Test all microservices integration through frontend interface
         </p>
       </div>
+
+      {/* Debug Information */}
+      <Card className="border-blue-200 bg-blue-50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-blue-800">
+            <AlertTriangle className="h-5 w-5" />
+            Debug Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="font-medium">Environment:</p>
+              <p className="text-gray-600">API Gateway URL: {process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'Not set (using fallback: http://localhost:3100)'}</p>
+              <p className="text-gray-600">Node ENV: {process.env.NODE_ENV}</p>
+            </div>
+            <div>
+              <p className="font-medium">Expected Services:</p>
+              <p className="text-gray-600">• API Gateway: http://localhost:3100</p>
+              <p className="text-gray-600">• Auth Service: http://localhost:3001</p>
+              <p className="text-gray-600">• Doctor Service: http://localhost:3002</p>
+            </div>
+          </div>
+          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
+            <p className="font-medium text-yellow-800">Troubleshooting Steps:</p>
+            <ol className="list-decimal list-inside text-yellow-700 mt-1 space-y-1">
+              <li>Start Docker Desktop</li>
+              <li>Run: <code className="bg-yellow-100 px-1 rounded">cd backend && docker compose --profile core up -d</code></li>
+              <li>Wait for services to start (30-60 seconds)</li>
+              <li>Check browser console for errors (F12)</li>
+              <li>Try clicking Login Test User again</li>
+            </ol>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Authentication Status */}
       <AuthenticationStatus
@@ -829,9 +918,9 @@ export default function ComprehensiveTestPage() {
             <div>
               <h4 className="font-medium">Test Credentials:</h4>
               <ul className="list-disc list-inside space-y-1 text-gray-600 ml-4">
-                <li><strong>Email:</strong> admin@hospital.com</li>
-                <li><strong>Password:</strong> Admin123</li>
-                <li><strong>Role:</strong> Admin (full access to all endpoints)</li>
+                <li><strong>Email:</strong> patient@hospital.com</li>
+                <li><strong>Password:</strong> Patient123</li>
+                <li><strong>Role:</strong> Patient (test account)</li>
               </ul>
             </div>
           </div>

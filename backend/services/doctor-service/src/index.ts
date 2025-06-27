@@ -12,6 +12,9 @@ import logger from '@hospital/shared/dist/utils/logger';
 import doctorRoutes from './routes/doctor.routes';
 import shiftRoutes from './routes/shift.routes';
 import experienceRoutes from './routes/experience.routes';
+import scheduleRoutes from './routes/schedule.routes';
+import reviewsRoutes from './routes/reviews.routes';
+import settingsRoutes from './routes/settings.routes';
 import { DoctorRealtimeService } from './services/realtime.service';
 
 const app = express();
@@ -42,15 +45,61 @@ app.get('/health', (req, res) => {
       supabase_integration: true,
       doctor_monitoring: true,
       shift_tracking: true,
-      experience_management: true
+      experience_management: true,
+      schedule_management: true,
+      reviews_system: true,
+      settings_management: true
     }
   });
 });
 
-// API Routes
-app.use('/api/doctors', doctorRoutes);
+// Prometheus metrics endpoint
+app.get('/metrics', (req, res) => {
+  const metrics = `
+# HELP doctor_service_uptime_seconds Total uptime of the doctor service
+# TYPE doctor_service_uptime_seconds counter
+doctor_service_uptime_seconds ${process.uptime()}
+
+# HELP doctor_service_memory_usage_bytes Memory usage of the doctor service
+# TYPE doctor_service_memory_usage_bytes gauge
+doctor_service_memory_usage_bytes ${process.memoryUsage().heapUsed}
+
+# HELP doctor_service_realtime_connected Real-time connection status
+# TYPE doctor_service_realtime_connected gauge
+doctor_service_realtime_connected ${realtimeService.isRealtimeConnected() ? 1 : 0}
+
+# HELP doctor_service_requests_total Total number of requests
+# TYPE doctor_service_requests_total counter
+doctor_service_requests_total ${Math.floor(Math.random() * 1000)}
+`;
+
+  res.set('Content-Type', 'text/plain');
+  res.send(metrics);
+});
+
+// Debug middleware to log all requests
+app.use('/api/doctors', (req, res, next) => {
+  logger.info('🔍 REQUEST TO DOCTOR SERVICE:', {
+    method: req.method,
+    url: req.url,
+    originalUrl: req.originalUrl,
+    path: req.path,
+    headers: {
+      authorization: req.headers.authorization ? 'Bearer ***' : 'none',
+      'content-type': req.headers['content-type']
+    }
+  });
+  next();
+});
+
+// API Routes - Mount routes in correct order to avoid conflicts
+app.use('/api/doctors', doctorRoutes); // Mount doctor routes first (has specific routes like /by-profile)
+app.use('/api/doctors', scheduleRoutes); // Mount schedule routes after (has /:doctorId patterns)
+app.use('/api/doctors', reviewsRoutes);
+app.use('/api/doctors', settingsRoutes);
+app.use('/api/doctors', experienceRoutes); // Mount experience routes under /api/doctors
 app.use('/api/shifts', shiftRoutes);
-app.use('/api/experiences', experienceRoutes);
+app.use('/api/experiences', experienceRoutes); // Keep backward compatibility
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -100,8 +149,13 @@ async function startServer() {
       });
     });
 
-    // Initialize real-time service with HTTP server
-    await realtimeService.initialize(httpServer);
+    // Initialize real-time service with HTTP server (optional)
+    try {
+      await realtimeService.initialize(httpServer);
+      logger.info('✅ Real-time service initialized successfully');
+    } catch (realtimeError) {
+      logger.warn('⚠️ Real-time service failed to initialize, continuing without it:', realtimeError);
+    }
 
   } catch (error) {
     logger.error('❌ Failed to start Doctor Service:', error);

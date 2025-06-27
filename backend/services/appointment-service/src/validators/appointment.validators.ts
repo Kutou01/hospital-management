@@ -1,9 +1,9 @@
 import { body, param, query, ValidationChain } from 'express-validator';
 
-// Validation patterns - Updated for department-based ID system
-const APPOINTMENT_ID_PATTERN = /^APT-\d{6}-\d{3}$/; // APT-202506-001
-const PATIENT_ID_PATTERN = /^PAT-\d{6}-\d{3}$/; // PAT-202506-001
-const DOCTOR_ID_PATTERN = /^[A-Z]{3,4}-DOC-\d{6}-\d{3}$/; // CARD-DOC-202506-001 or GEN-DOC-202506-001
+// Validation patterns - STANDARDIZED Department-Based ID System
+const APPOINTMENT_ID_PATTERN = /^[A-Z]{4}-APT-\d{6}-\d{3}$/;      // CARD-APT-202506-001 (Department-based)
+const PATIENT_ID_PATTERN = /^PAT-\d{6}-\d{3}$/;                   // PAT-202506-001 (Standard)
+const DOCTOR_ID_PATTERN = /^[A-Z]{4}-DOC-\d{6}-\d{3}$/;          // CARD-DOC-202506-001 (4-char dept code)
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_PATTERN = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
 
@@ -11,7 +11,7 @@ const TIME_PATTERN = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
 export const validateAppointmentId: ValidationChain[] = [
   param('appointmentId')
     .matches(APPOINTMENT_ID_PATTERN)
-    .withMessage('Appointment ID must be in format APT-YYYYMM-XXX')
+    .withMessage('Appointment ID must be in department-based format (e.g., CARD-APT-YYYYMM-XXX)')
 ];
 
 export const validatePatientId: ValidationChain[] = [

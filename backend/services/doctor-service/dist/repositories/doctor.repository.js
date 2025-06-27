@@ -43,19 +43,29 @@ class DoctorRepository {
     async findByProfileId(profileId) {
         try {
             const { data, error } = await this.supabase
-                .rpc('get_doctor_by_profile_id', { input_profile_id: profileId });
+                .from('doctors')
+                .select(`
+          *,
+          profiles!inner(email, phone_number, date_of_birth)
+        `)
+                .eq('profile_id', profileId)
+                .eq('is_active', true)
+                .single();
             if (error) {
-                logger_1.default.error('Database function error in findByProfileId:', error);
+                logger_1.default.error('Database error in findByProfileId:', error);
                 return null;
             }
             if (!data) {
                 return null;
             }
-            const doctorData = Array.isArray(data) ? data[0] : data;
-            if (!doctorData) {
-                return null;
-            }
-            return this.mapSupabaseDoctorToDoctor(doctorData);
+            const doctor = {
+                ...data,
+                email: data.profiles.email,
+                phone_number: data.profiles.phone_number,
+                date_of_birth: data.profiles.date_of_birth
+            };
+            delete doctor.profiles;
+            return this.mapSupabaseDoctorToDoctor(doctor);
         }
         catch (error) {
             logger_1.default.error('Error finding doctor by profile ID', { error, profileId });
@@ -417,6 +427,163 @@ class DoctorRepository {
         }
         catch (error) {
             logger_1.default.error('Error counting doctors', { error });
+            throw error;
+        }
+    }
+    async getDashboardStats(doctorId) {
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            const { data: appointmentStats, error: appointmentError } = await this.supabase
+                .from('appointments')
+                .select('status')
+                .eq('doctor_id', doctorId);
+            if (appointmentError) {
+                logger_1.default.error('Error fetching appointment stats:', appointmentError);
+                throw appointmentError;
+            }
+            const { data: todayAppointments, error: todayError } = await this.supabase
+                .from('appointments')
+                .select('appointment_id')
+                .eq('doctor_id', doctorId)
+                .eq('appointment_date', today);
+            if (todayError) {
+                logger_1.default.error('Error fetching today appointments:', todayError);
+                throw todayError;
+            }
+            const { data: patientData, error: patientError } = await this.supabase
+                .from('appointments')
+                .select('patient_id')
+                .eq('doctor_id', doctorId);
+            if (patientError) {
+                logger_1.default.error('Error fetching patient data:', patientError);
+                throw patientError;
+            }
+            const { data: reviewData, error: reviewError } = await this.supabase
+                .from('doctor_reviews')
+                .select('rating')
+                .eq('doctor_id', doctorId);
+            if (reviewError) {
+                logger_1.default.error('Error fetching review data:', reviewError);
+                throw reviewError;
+            }
+            const totalAppointments = appointmentStats?.length || 0;
+            const completedAppointments = appointmentStats?.filter(a => a.status === 'completed').length || 0;
+            const todayAppointmentsCount = todayAppointments?.length || 0;
+            const uniquePatients = [...new Set(patientData?.map(p => p.patient_id))].length;
+            const totalReviews = reviewData?.length || 0;
+            const averageRating = totalReviews > 0 ?
+                reviewData.reduce((sum, r) => sum + r.rating, 0) / totalReviews : 0;
+            return {
+                todayAppointments: todayAppointmentsCount,
+                totalAppointments,
+                completedAppointments,
+                totalPatients: uniquePatients,
+                totalReviews,
+                averageRating: parseFloat(averageRating.toFixed(1))
+            };
+        }
+        catch (error) {
+            logger_1.default.error('Error getting dashboard stats', { error, doctorId });
+            throw error;
+        }
+    }
+    async getRecentAppointments(doctorId, limit = 5) {
+        try {
+            const { data, error } = await this.supabase
+                .from('appointments')
+                .select(`
+          appointment_id,
+          patient_id,
+          appointment_date,
+          start_time,
+          end_time,
+          status,
+          appointment_type,
+          reason,
+          priority,
+          patients!inner(
+            patient_id,
+            full_name,
+            phone_number
+          )
+        `)
+                .eq('doctor_id', doctorId)
+                .order('appointment_date', { ascending: false })
+                .order('start_time', { ascending: false })
+                .limit(limit);
+            if (error) {
+                logger_1.default.error('Error fetching recent appointments:', error);
+                throw error;
+            }
+            return data?.map(appointment => ({
+                appointment_id: appointment.appointment_id,
+                patient_name: appointment.patients?.full_name || 'Unknown Patient',
+                patient_phone: appointment.patients?.phone_number,
+                appointment_date: appointment.appointment_date,
+                start_time: appointment.start_time,
+                end_time: appointment.end_time,
+                status: appointment.status,
+                appointment_type: appointment.appointment_type,
+                reason: appointment.reason,
+                priority: appointment.priority || 'normal'
+            })) || [];
+        }
+        catch (error) {
+            logger_1.default.error('Error getting recent appointments', { error, doctorId });
+            throw error;
+        }
+    }
+    async getWeeklyStats(doctorId) {
+        try {
+            const today = new Date();
+            const weekStart = new Date(today.setDate(today.getDate() - today.getDay()));
+            const weekEnd = new Date(today.setDate(today.getDate() - today.getDay() + 6));
+            const { data, error } = await this.supabase
+                .from('appointments')
+                .select('status, consultation_fee')
+                .eq('doctor_id', doctorId)
+                .gte('appointment_date', weekStart.toISOString().split('T')[0])
+                .lte('appointment_date', weekEnd.toISOString().split('T')[0]);
+            if (error) {
+                logger_1.default.error('Error fetching weekly stats:', error);
+                throw error;
+            }
+            const appointments = data?.length || 0;
+            const revenue = data?.reduce((sum, apt) => sum + (apt.consultation_fee || 0), 0) || 0;
+            return { appointments, revenue };
+        }
+        catch (error) {
+            logger_1.default.error('Error getting weekly stats', { error, doctorId });
+            throw error;
+        }
+    }
+    async getMonthlyStats(doctorId) {
+        try {
+            const today = new Date();
+            const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+            const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            const { data, error } = await this.supabase
+                .from('appointments')
+                .select('status, consultation_fee')
+                .eq('doctor_id', doctorId)
+                .gte('appointment_date', monthStart.toISOString().split('T')[0])
+                .lte('appointment_date', monthEnd.toISOString().split('T')[0]);
+            if (error) {
+                logger_1.default.error('Error fetching monthly stats:', error);
+                throw error;
+            }
+            const totalAppointments = data?.length || 0;
+            const completedAppointments = data?.filter(a => a.status === 'completed').length || 0;
+            const revenue = data?.reduce((sum, apt) => sum + (apt.consultation_fee || 0), 0) || 0;
+            const successRate = totalAppointments > 0 ? (completedAppointments / totalAppointments) * 100 : 0;
+            return {
+                appointments: totalAppointments,
+                revenue,
+                success_rate: parseFloat(successRate.toFixed(1))
+            };
+        }
+        catch (error) {
+            logger_1.default.error('Error getting monthly stats', { error, doctorId });
             throw error;
         }
     }

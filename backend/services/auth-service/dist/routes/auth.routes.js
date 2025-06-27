@@ -13,6 +13,14 @@ const router = express_1.default.Router();
 const authController = new auth_controller_1.AuthController();
 router.post('/signup', auth_validators_1.validateSignUp, authController.signUp);
 router.post('/signin', auth_validators_1.validateSignIn, authController.signIn);
+router.post('/login', auth_validators_1.validateSignIn, authController.signIn);
+router.get('/health', (req, res) => {
+    res.json({
+        service: 'Auth Service',
+        status: 'healthy',
+        timestamp: new Date().toISOString()
+    });
+});
 router.post('/signout', auth_middleware_1.authMiddleware, authController.signOut);
 router.post('/refresh', auth_validators_1.validateRefreshToken, authController.refreshToken);
 router.post('/reset-password', auth_validators_1.validateResetPassword, authController.resetPassword);

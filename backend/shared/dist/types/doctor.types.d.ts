@@ -133,6 +133,11 @@ export interface DoctorReview {
     helpful_count: number;
     created_at: Date;
     updated_at: Date;
+    patients?: {
+        patient_id: string;
+        full_name: string;
+        phone_number?: string;
+    };
 }
 export interface CreateReviewRequest {
     doctor_id: string;

@@ -23,8 +23,8 @@ export const validateProfileId: ValidationChain[] = [
 
 export const validateDoctorId: ValidationChain[] = [
   param('doctorId')
-    .matches(/^DOC-\d{6}-\d{3}$/)
-    .withMessage('Doctor ID must be in format DOC-YYYYMM-XXX (Department-Based ID)')
+    .matches(/^[A-Z]{4}-DOC-\d{6}-\d{3}$/)
+    .withMessage('Doctor ID must be in department-based format (e.g., CARD-DOC-YYYYMM-XXX)')
 ];
 
 // Create patient validation

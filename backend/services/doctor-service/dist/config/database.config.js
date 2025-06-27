@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.supabaseAdmin = void 0;
+exports.supabase = exports.supabaseAdmin = void 0;
 exports.getSupabase = getSupabase;
 exports.testDatabaseConnection = testDatabaseConnection;
 const supabase_js_1 = require("@supabase/supabase-js");
@@ -37,6 +37,7 @@ exports.supabaseAdmin = (0, supabase_js_1.createClient)(supabaseUrl, supabaseSer
         }
     }
 });
+exports.supabase = exports.supabaseAdmin;
 function getSupabase() {
     return exports.supabaseAdmin;
 }

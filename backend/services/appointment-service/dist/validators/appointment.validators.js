@@ -2,15 +2,15 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.validateConfirmAppointment = exports.validateAvailableSlots = exports.validateAppointmentSearch = exports.validateUpdateAppointment = exports.validateCreateAppointment = exports.validateDoctorId = exports.validatePatientId = exports.validateAppointmentId = void 0;
 const express_validator_1 = require("express-validator");
-const APPOINTMENT_ID_PATTERN = /^APT-\d{6}-\d{3}$/;
+const APPOINTMENT_ID_PATTERN = /^[A-Z]{4}-APT-\d{6}-\d{3}$/;
 const PATIENT_ID_PATTERN = /^PAT-\d{6}-\d{3}$/;
-const DOCTOR_ID_PATTERN = /^[A-Z]{3,4}-DOC-\d{6}-\d{3}$/;
+const DOCTOR_ID_PATTERN = /^[A-Z]{4}-DOC-\d{6}-\d{3}$/;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_PATTERN = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
 exports.validateAppointmentId = [
     (0, express_validator_1.param)('appointmentId')
         .matches(APPOINTMENT_ID_PATTERN)
-        .withMessage('Appointment ID must be in format APT-YYYYMM-XXX')
+        .withMessage('Appointment ID must be in department-based format (e.g., CARD-APT-YYYYMM-XXX)')
 ];
 exports.validatePatientId = [
     (0, express_validator_1.param)('patientId')

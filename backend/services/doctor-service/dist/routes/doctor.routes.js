@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const express_validator_1 = require("express-validator");
 const doctor_controller_1 = require("../controllers/doctor.controller");
+const auth_middleware_1 = require("../middleware/auth.middleware");
 const router = express_1.default.Router();
 const doctorController = new doctor_controller_1.DoctorController();
 const validateCreateDoctor = [
@@ -47,6 +48,14 @@ const validateSearchQuery = [
     (0, express_validator_1.query)('page').optional().isInt({ min: 1 }),
     (0, express_validator_1.query)('limit').optional().isInt({ min: 1, max: 100 })
 ];
+router.get('/test-simple', async (req, res) => {
+    res.json({
+        success: true,
+        message: 'Doctor service is working',
+        timestamp: new Date().toISOString(),
+        service: 'doctor-service'
+    });
+});
 router.get('/test-all', async (req, res) => {
     try {
         const testResults = {
@@ -117,6 +126,7 @@ router.put('/:doctorId', validateDoctorId, validateUpdateDoctor, doctorControlle
 router.delete('/:doctorId', validateDoctorId, doctorController.deleteDoctor.bind(doctorController));
 router.get('/:doctorId/profile', validateDoctorId, doctorController.getDoctorProfile.bind(doctorController));
 router.get('/:doctorId/schedule', validateDoctorId, doctorController.getDoctorSchedule.bind(doctorController));
+router.get('/:doctorId/schedule/today', validateDoctorId, doctorController.getTodaySchedule.bind(doctorController));
 router.get('/:doctorId/schedule/weekly', validateDoctorId, doctorController.getWeeklySchedule.bind(doctorController));
 router.put('/:doctorId/schedule', validateDoctorId, doctorController.updateSchedule.bind(doctorController));
 router.get('/:doctorId/availability', validateDoctorId, doctorController.getAvailability.bind(doctorController));
@@ -125,5 +135,13 @@ router.get('/:doctorId/reviews', validateDoctorId, doctorController.getDoctorRev
 router.get('/:doctorId/reviews/stats', validateDoctorId, doctorController.getReviewStats.bind(doctorController));
 router.get('/:doctorId/appointments', validateDoctorId, doctorController.getDoctorAppointments.bind(doctorController));
 router.get('/:doctorId/stats', validateDoctorId, doctorController.getDoctorStats.bind(doctorController));
+router.get('/:doctorId/experiences', validateDoctorId, doctorController.getDoctorExperiences.bind(doctorController));
+router.get('/:doctorId/appointment-stats', validateDoctorId, doctorController.getDoctorStats.bind(doctorController));
+router.get('/dashboard/stats', auth_middleware_1.authMiddleware, auth_middleware_1.requireDoctor, doctorController.getCurrentDoctorStats.bind(doctorController));
+router.get('/dashboard/complete', auth_middleware_1.authMiddleware, auth_middleware_1.requireDoctor, doctorController.getDashboardComplete.bind(doctorController));
+router.get('/appointments/today', auth_middleware_1.authMiddleware, auth_middleware_1.requireDoctor, doctorController.getTodayAppointments.bind(doctorController));
+router.get('/appointments/upcoming', auth_middleware_1.authMiddleware, auth_middleware_1.requireDoctor, doctorController.getUpcomingAppointments.bind(doctorController));
+router.get('/:doctorId/appointments/stats', validateDoctorId, doctorController.getDoctorStats.bind(doctorController));
+router.get('/activity/recent', auth_middleware_1.authMiddleware, auth_middleware_1.requireDoctor, doctorController.getRecentActivity.bind(doctorController));
 exports.default = router;
 //# sourceMappingURL=doctor.routes.js.map

@@ -26,7 +26,7 @@ interface AppointmentStats {
     }>;
 }
 export declare class AppointmentService {
-    private baseUrl;
+    private apiGatewayClient;
     constructor();
     getDoctorAppointments(doctorId: string, filters?: {
         date?: string;
@@ -42,6 +42,8 @@ export declare class AppointmentService {
     isServiceAvailable(): Promise<boolean>;
     getTodayAppointments(doctorId: string): Promise<AppointmentData[]>;
     getMonthlyAppointments(doctorId: string): Promise<AppointmentData[]>;
+    getUpcomingAppointments(doctorId: string): Promise<AppointmentData[]>;
+    getRecentActivity(doctorId: string): Promise<any[]>;
     private getDefaultStats;
 }
 export {};

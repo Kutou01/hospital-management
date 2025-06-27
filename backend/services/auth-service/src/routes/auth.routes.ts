@@ -92,6 +92,53 @@ router.post('/signin', validateSignIn, authController.signIn);
 
 /**
  * @swagger
+ * /api/auth/login:
+ *   post:
+ *     summary: Sign in user (alias for signin)
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: User signed in successfully
+ *       401:
+ *         description: Invalid credentials
+ */
+router.post('/login', validateSignIn, authController.signIn);
+
+/**
+ * @swagger
+ * /api/auth/health:
+ *   get:
+ *     summary: Auth service health check
+ *     tags: [Authentication]
+ *     responses:
+ *       200:
+ *         description: Service is healthy
+ */
+router.get('/health', (req, res) => {
+  res.json({
+    service: 'Auth Service',
+    status: 'healthy',
+    timestamp: new Date().toISOString()
+  });
+});
+
+/**
+ * @swagger
  * /api/auth/signout:
  *   post:
  *     summary: Sign out user

@@ -323,7 +323,7 @@ export default function DoctorApiTest() {
     try {
       const response = await doctorsApi.getStats(selectedDoctorId)
       const duration = Date.now() - startTime
-      
+
       if (response.success && response.data) {
         addTestResult(
           'GET /api/doctors/:id/stats',
@@ -353,35 +353,252 @@ export default function DoctorApiTest() {
     }
   }
 
+  // Test 8: Get Doctor Schedule
+  const testGetDoctorSchedule = async () => {
+    if (!selectedDoctorId) {
+      addTestResult('GET /api/doctors/:id/schedule', 'error', 'No doctor ID selected', null)
+      return
+    }
+
+    const startTime = Date.now()
+    try {
+      const response = await doctorsApi.getSchedule(selectedDoctorId)
+      const duration = Date.now() - startTime
+
+      if (response.success && response.data) {
+        const schedules = Array.isArray(response.data) ? response.data : []
+        addTestResult(
+          'GET /api/doctors/:id/schedule',
+          'success',
+          `Retrieved ${schedules.length} schedule entries`,
+          response.data,
+          duration
+        )
+      } else {
+        addTestResult(
+          'GET /api/doctors/:id/schedule',
+          'error',
+          response.error?.message || 'Failed to get doctor schedule',
+          response,
+          duration
+        )
+      }
+    } catch (error) {
+      const duration = Date.now() - startTime
+      addTestResult(
+        'GET /api/doctors/:id/schedule',
+        'error',
+        error instanceof Error ? error.message : 'Unknown error',
+        error,
+        duration
+      )
+    }
+  }
+
+  // Test 9: Get Today's Schedule
+  const testGetTodaySchedule = async () => {
+    if (!selectedDoctorId) {
+      addTestResult('GET /api/doctors/:id/schedule/today', 'error', 'No doctor ID selected', null)
+      return
+    }
+
+    const startTime = Date.now()
+    try {
+      const response = await doctorsApi.getTodaySchedule(selectedDoctorId)
+      const duration = Date.now() - startTime
+
+      if (response.success && response.data) {
+        const todaySchedule = Array.isArray(response.data) ? response.data : []
+        addTestResult(
+          'GET /api/doctors/:id/schedule/today',
+          'success',
+          `Retrieved ${todaySchedule.length} appointments for today`,
+          response.data,
+          duration
+        )
+      } else {
+        addTestResult(
+          'GET /api/doctors/:id/schedule/today',
+          'error',
+          response.error?.message || 'Failed to get today schedule',
+          response,
+          duration
+        )
+      }
+    } catch (error) {
+      const duration = Date.now() - startTime
+      addTestResult(
+        'GET /api/doctors/:id/schedule/today',
+        'error',
+        error instanceof Error ? error.message : 'Unknown error',
+        error,
+        duration
+      )
+    }
+  }
+
+  // Test 10: Get Doctor Reviews
+  const testGetDoctorReviews = async () => {
+    if (!selectedDoctorId) {
+      addTestResult('GET /api/doctors/:id/reviews', 'error', 'No doctor ID selected', null)
+      return
+    }
+
+    const startTime = Date.now()
+    try {
+      const response = await doctorsApi.getReviews(selectedDoctorId, 1, 5)
+      const duration = Date.now() - startTime
+
+      if (response.success && response.data) {
+        const reviews = Array.isArray(response.data) ? response.data : []
+        addTestResult(
+          'GET /api/doctors/:id/reviews',
+          'success',
+          `Retrieved ${reviews.length} reviews`,
+          response.data,
+          duration
+        )
+      } else {
+        addTestResult(
+          'GET /api/doctors/:id/reviews',
+          'error',
+          response.error?.message || 'Failed to get doctor reviews',
+          response,
+          duration
+        )
+      }
+    } catch (error) {
+      const duration = Date.now() - startTime
+      addTestResult(
+        'GET /api/doctors/:id/reviews',
+        'error',
+        error instanceof Error ? error.message : 'Unknown error',
+        error,
+        duration
+      )
+    }
+  }
+
+  // Test 11: Get Doctor Experiences
+  const testGetDoctorExperiences = async () => {
+    if (!selectedDoctorId) {
+      addTestResult('GET /api/doctors/:id/experiences', 'error', 'No doctor ID selected', null)
+      return
+    }
+
+    const startTime = Date.now()
+    try {
+      const response = await doctorsApi.getExperiences(selectedDoctorId)
+      const duration = Date.now() - startTime
+
+      if (response.success && response.data) {
+        const experiences = Array.isArray(response.data) ? response.data : []
+        addTestResult(
+          'GET /api/doctors/:id/experiences',
+          'success',
+          `Retrieved ${experiences.length} work experiences`,
+          response.data,
+          duration
+        )
+      } else {
+        addTestResult(
+          'GET /api/doctors/:id/experiences',
+          'error',
+          response.error?.message || 'Failed to get doctor experiences',
+          response,
+          duration
+        )
+      }
+    } catch (error) {
+      const duration = Date.now() - startTime
+      addTestResult(
+        'GET /api/doctors/:id/experiences',
+        'error',
+        error instanceof Error ? error.message : 'Unknown error',
+        error,
+        duration
+      )
+    }
+  }
+
   // Run all tests
   const runAllTests = async () => {
     setIsRunning(true)
     clearResults()
-    
+
     showToast("🧪 Testing", "Starting Doctor API integration tests...", "info")
-    
+
+    // Basic CRUD tests
     await testGetAllDoctors()
     await new Promise(resolve => setTimeout(resolve, 1000))
-    
+
     await testCreateDoctor()
     await new Promise(resolve => setTimeout(resolve, 1000))
-    
+
     await testGetDoctorById()
     await new Promise(resolve => setTimeout(resolve, 1000))
-    
+
     await testGetDoctorProfile()
     await new Promise(resolve => setTimeout(resolve, 1000))
-    
+
     await testUpdateDoctor()
     await new Promise(resolve => setTimeout(resolve, 1000))
-    
+
+    // Search and stats tests
     await testSearchDoctors()
     await new Promise(resolve => setTimeout(resolve, 1000))
-    
+
     await testGetDoctorStats()
-    
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
+    // Profile-related tests
+    await testGetDoctorSchedule()
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
+    await testGetTodaySchedule()
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
+    await testGetDoctorReviews()
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
+    await testGetDoctorExperiences()
+
     setIsRunning(false)
-    showToast("✅ Complete", "Doctor API tests completed!", "success")
+    showToast("✅ Complete", "All Doctor API tests completed!", "success")
+  }
+
+  // Run profile-specific tests only
+  const runProfileTests = async () => {
+    setIsRunning(true)
+    clearResults()
+
+    showToast("👤 Profile Testing", "Starting Doctor Profile API tests...", "info")
+
+    if (!selectedDoctorId) {
+      // Try to get a doctor ID first
+      await testGetAllDoctors()
+      await new Promise(resolve => setTimeout(resolve, 500))
+    }
+
+    await testGetDoctorProfile()
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
+    await testGetDoctorSchedule()
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
+    await testGetTodaySchedule()
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
+    await testGetDoctorReviews()
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
+    await testGetDoctorExperiences()
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
+    await testGetDoctorStats()
+
+    setIsRunning(false)
+    showToast("✅ Profile Complete", "Doctor Profile API tests completed!", "success")
   }
 
   if (!isAuthenticated) {
@@ -409,9 +626,9 @@ export default function DoctorApiTest() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center gap-4">
-            <Button 
-              onClick={runAllTests} 
+          <div className="flex flex-wrap items-center gap-4">
+            <Button
+              onClick={runAllTests}
               disabled={isRunning}
               className="flex items-center gap-2"
             >
@@ -422,15 +639,29 @@ export default function DoctorApiTest() {
               )}
               Run All Tests
             </Button>
-            
-            <Button 
-              variant="outline" 
+
+            <Button
+              onClick={runProfileTests}
+              disabled={isRunning}
+              variant="secondary"
+              className="flex items-center gap-2"
+            >
+              {isRunning ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <UserCheck className="h-4 w-4" />
+              )}
+              Profile Tests Only
+            </Button>
+
+            <Button
+              variant="outline"
               onClick={clearResults}
               disabled={isRunning}
             >
               Clear Results
             </Button>
-            
+
             <Badge variant="outline">
               User: {user?.role} | {user?.full_name}
             </Badge>

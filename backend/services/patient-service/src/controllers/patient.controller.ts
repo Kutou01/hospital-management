@@ -160,6 +160,42 @@ export class PatientController {
     }
   }
 
+  // Get patient count for a specific doctor
+  async getPatientCountForDoctor(req: Request, res: Response): Promise<void> {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        res.status(400).json({
+          success: false,
+          error: 'Validation failed',
+          details: errors.array(),
+          timestamp: new Date().toISOString()
+        });
+        return;
+      }
+
+      const { doctorId } = req.params;
+      const count = await this.patientRepository.getPatientCountForDoctor(doctorId);
+
+      const response = {
+        success: true,
+        data: { count },
+        message: `Found ${count} unique patients for doctor ${doctorId}`,
+        timestamp: new Date().toISOString()
+      };
+
+      res.json(response);
+    } catch (error) {
+      logger.error('Error in getPatientCountForDoctor:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get patient count for doctor',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
   // Get patients by doctor ID
   async getPatientsByDoctorId(req: Request, res: Response): Promise<void> {
     try {

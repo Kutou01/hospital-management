@@ -22,7 +22,7 @@ class SessionManager {
   private readonly STATE_KEY = 'hospital_auth_state'
   private readonly SESSION_DURATION = 24 * 60 * 60 * 1000 // 24 hours
   private readonly CHECK_INTERVAL = 5 * 60 * 1000 // 5 minutes
-  private readonly CLEAR_ON_TAB_CLOSE = false // Enable auto-clear on tab close
+  private readonly CLEAR_ON_TAB_CLOSE = false // DISABLED: auto-clear on tab close for development
   
   private sessionState: SessionState = {
     isAuthenticated: false,
@@ -51,9 +51,9 @@ class SessionManager {
     if (typeof window === 'undefined') return
 
     try {
-      // Check both localStorage and sessionStorage based on configuration
-      const storage = this.CLEAR_ON_TAB_CLOSE ? sessionStorage : localStorage
-      const storedSession = storage.getItem(this.SESSION_KEY) || localStorage.getItem(this.SESSION_KEY)
+      // Always use localStorage for persistent sessions (development mode)
+      const storage = localStorage
+      const storedSession = storage.getItem(this.SESSION_KEY)
       const storedState = sessionStorage.getItem(this.STATE_KEY)
 
       if (storedSession) {
@@ -73,7 +73,7 @@ class SessionManager {
             userId: session.user.id,
             role: session.user.role,
             expiresIn: Math.round((session.expiresAt - Date.now()) / 1000 / 60) + ' minutes',
-            storage: this.CLEAR_ON_TAB_CLOSE ? 'sessionStorage' : 'localStorage'
+            storage: 'localStorage (persistent)'
           })
         } else {
           console.log('🔄 [SessionManager] Session expired, clearing...')
@@ -120,8 +120,8 @@ class SessionManager {
     }
 
     try {
-      // Use sessionStorage instead of localStorage if CLEAR_ON_TAB_CLOSE is enabled
-      const storage = this.CLEAR_ON_TAB_CLOSE ? sessionStorage : localStorage
+      // Always use localStorage for persistent sessions (development mode)
+      const storage = localStorage
 
       storage.setItem(this.SESSION_KEY, JSON.stringify(session))
       sessionStorage.setItem(this.STATE_KEY, JSON.stringify({
@@ -133,7 +133,7 @@ class SessionManager {
         userId: user.id,
         role: user.role,
         expiresIn: Math.round(expiresIn / 60) + ' minutes',
-        storage: this.CLEAR_ON_TAB_CLOSE ? 'sessionStorage' : 'localStorage'
+        storage: 'localStorage (persistent)'
       })
 
       this.notifyListeners()
@@ -285,12 +285,14 @@ class SessionManager {
   private setupEventListeners(): void {
     if (typeof window === 'undefined') return
 
-    // Handle tab/window close
+    // Handle tab/window close - DISABLED for development
     window.addEventListener('beforeunload', () => {
-      if (this.CLEAR_ON_TAB_CLOSE && this.isAuthenticated()) {
-        console.log('🔄 [SessionManager] Tab closing, clearing session...')
-        this.clearSession()
-      }
+      // DISABLED: Auto-clear session on tab close for development convenience
+      // if (this.CLEAR_ON_TAB_CLOSE && this.isAuthenticated()) {
+      //   console.log('🔄 [SessionManager] Tab closing, clearing session...')
+      //   this.clearSession()
+      // }
+      console.log('🔄 [SessionManager] Tab closing, but auto-clear is disabled for development')
     })
 
     // Handle page visibility change (tab switch)
@@ -323,10 +325,10 @@ class SessionManager {
     this.clearSession()
   }
 
-  // Enable/disable auto-clear on tab close
+  // Enable/disable auto-clear on tab close - DISABLED for development
   setAutoCleanOnTabClose(enabled: boolean): void {
-    // This would require restarting the session manager to take effect
-    console.log(`🔄 [SessionManager] Auto-clear on tab close: ${enabled ? 'enabled' : 'disabled'}`)
+    // DISABLED: Auto-clear functionality is disabled for development convenience
+    console.log(`🔄 [SessionManager] Auto-clear on tab close request: ${enabled ? 'enabled' : 'disabled'} (IGNORED - disabled for development)`)
   }
 }
 

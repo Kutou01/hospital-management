@@ -49,10 +49,12 @@ const authMiddleware = async (req, res, next) => {
             }
             const user = responseData.user;
             // Add user info to request headers for downstream services
+            // Use Buffer.from to properly encode Vietnamese characters
             req.headers['x-user-id'] = user.id;
             req.headers['x-user-email'] = user.email || '';
             req.headers['x-user-role'] = user.role;
-            req.headers['x-user-name'] = user.full_name || '';
+            req.headers['x-user-name'] = user.full_name ?
+                Buffer.from(user.full_name, 'utf8').toString('base64') : '';
             console.log('Request authenticated via Auth Service', {
                 userId: user.id,
                 email: user.email,

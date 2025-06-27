@@ -1,7 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.validateOAuthCallback = exports.validateVerifyOTP = exports.validatePhoneOTP = exports.validateMagicLink = exports.validateRole = exports.validateUserId = exports.validateEmail = exports.validateUpdateProfile = exports.validateChangePassword = exports.validateRefreshToken = exports.validateResetPassword = exports.validateSignIn = exports.validateDoctorRegistration = exports.validatePatientRegistration = exports.validateSignUp = void 0;
+exports.validateDepartmentId = exports.validateAdminId = exports.validatePatientId = exports.validateDoctorId = exports.validateOAuthCallback = exports.validateVerifyOTP = exports.validatePhoneOTP = exports.validateMagicLink = exports.validateRole = exports.validateUserId = exports.validateEmail = exports.validateUpdateProfile = exports.validateChangePassword = exports.validateRefreshToken = exports.validateResetPassword = exports.validateSignIn = exports.validateDoctorRegistration = exports.validatePatientRegistration = exports.validateSignUp = void 0;
 const express_validator_1 = require("express-validator");
+// Standardized ID Format Patterns - Consistent with shared validators
+const DOCTOR_ID_PATTERN = /^[A-Z]{4}-DOC-\d{6}-\d{3}$/; // CARD-DOC-202506-001
+const PATIENT_ID_PATTERN = /^PAT-\d{6}-\d{3}$/; // PAT-202506-001
+const ADMIN_ID_PATTERN = /^ADM-\d{6}-\d{3}$/; // ADM-202506-001
+const DEPARTMENT_ID_PATTERN = /^DEPT\d{3}$/; // DEPT001
 exports.validateSignUp = [
     (0, express_validator_1.body)('email')
         .isEmail()
@@ -241,5 +246,26 @@ exports.validateOAuthCallback = [
         .optional()
         .isIn(['google', 'github', 'facebook', 'apple'])
         .withMessage('Provider must be one of: google, github, facebook, apple')
+];
+// ID Format validators - for cross-service validation
+exports.validateDoctorId = [
+    (0, express_validator_1.param)('doctorId')
+        .matches(DOCTOR_ID_PATTERN)
+        .withMessage('Doctor ID must be in department-based format (e.g., CARD-DOC-202506-001)')
+];
+exports.validatePatientId = [
+    (0, express_validator_1.param)('patientId')
+        .matches(PATIENT_ID_PATTERN)
+        .withMessage('Patient ID must be in format PAT-YYYYMM-XXX')
+];
+exports.validateAdminId = [
+    (0, express_validator_1.param)('adminId')
+        .matches(ADMIN_ID_PATTERN)
+        .withMessage('Admin ID must be in format ADM-YYYYMM-XXX')
+];
+exports.validateDepartmentId = [
+    (0, express_validator_1.param)('departmentId')
+        .matches(DEPARTMENT_ID_PATTERN)
+        .withMessage('Department ID must be in format DEPT001')
 ];
 //# sourceMappingURL=auth.validators.js.map

@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Info, TestTube, Database, Server, UserCheck } from 'lucide-react'
 import DoctorApiTest from '@/components/test/DoctorApiTest'
 import SimpleDoctorApiTest from '@/components/test/SimpleDoctorApiTest'
+import DoctorProfileApiTest from '@/components/test/DoctorProfileApiTest'
 import { useAuth } from '@/lib/auth/auth-wrapper'
 
 export default function DoctorApiTestPage() {
@@ -155,6 +156,26 @@ export default function DoctorApiTestPage() {
                   <code>/api/doctors/:id/stats</code>
                   <span className="text-gray-600">- Get doctor statistics</span>
                 </li>
+                <li className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-xs">GET</Badge>
+                  <code>/api/doctors/:id/schedule</code>
+                  <span className="text-gray-600">- Get doctor schedule</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-xs">GET</Badge>
+                  <code>/api/doctors/:id/schedule/today</code>
+                  <span className="text-gray-600">- Get today's schedule</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-xs">GET</Badge>
+                  <code>/api/doctors/:id/reviews</code>
+                  <span className="text-gray-600">- Get doctor reviews</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-xs">GET</Badge>
+                  <code>/api/doctors/:id/experiences</code>
+                  <span className="text-gray-600">- Get work experiences</span>
+                </li>
               </ul>
             </div>
             
@@ -165,6 +186,9 @@ export default function DoctorApiTestPage() {
                 <li>• Department-based ID generation</li>
                 <li>• CRUD operations with validation</li>
                 <li>• Doctor profile management</li>
+                <li>• Schedule and appointment management</li>
+                <li>• Review and rating system</li>
+                <li>• Work experience tracking</li>
                 <li>• Search and filtering functionality</li>
                 <li>• Statistics and analytics</li>
                 <li>• Error handling and responses</li>
@@ -175,6 +199,9 @@ export default function DoctorApiTestPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Doctor Profile API Tests */}
+      <DoctorProfileApiTest />
 
       {/* Simple Doctor API Tests */}
       <SimpleDoctorApiTest />

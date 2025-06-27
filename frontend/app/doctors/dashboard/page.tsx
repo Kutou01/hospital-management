@@ -16,7 +16,13 @@ import {
   TestTube,
   Zap,
   Shield,
-  Award
+  Award,
+  RefreshCw,
+  BarChart3,
+  Heart,
+  Timer,
+  Target,
+  DollarSign
 } from "lucide-react"
 import { DoctorLayout } from "@/components/layout/UniversalLayout"
 import { StatCard } from "@/components/dashboard/StatCard"
@@ -39,15 +45,31 @@ interface DashboardStats {
   completedAppointments: number
   averageRating: number
   totalReviews: number
+  thisWeekAppointments: number
+  thisMonthAppointments: number
+  successRate: number
+  totalRevenue: number
 }
 
 interface RecentAppointment {
-  id: string
+  appointment_id: string
   patient_name: string
+  patient_phone?: string
   appointment_date: string
   start_time: string
-  appointment_type: string
+  end_time?: string
   status: string
+  appointment_type: string
+  reason?: string
+  priority?: 'normal' | 'urgent' | 'emergency'
+}
+
+interface TodaySchedule {
+  time: string
+  patient_name?: string
+  appointment_type?: string
+  status: 'available' | 'booked' | 'completed' | 'cancelled'
+  duration: number
 }
 
 export default function DoctorDashboard() {
@@ -60,10 +82,17 @@ export default function DoctorDashboard() {
     upcomingAppointments: 0,
     completedAppointments: 0,
     averageRating: 0,
-    totalReviews: 0
+    totalReviews: 0,
+    thisWeekAppointments: 0,
+    thisMonthAppointments: 0,
+    successRate: 0,
+    totalRevenue: 0
   })
   const [recentAppointments, setRecentAppointments] = useState<RecentAppointment[]>([])
+  const [todaySchedule, setTodaySchedule] = useState<TodaySchedule[]>([])
   const [isLoadingStats, setIsLoadingStats] = useState(true)
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   // Debug logs
   console.log('🏥 [DoctorDashboard] Render state:', {
@@ -120,7 +149,7 @@ export default function DoctorDashboard() {
   // Fetch dashboard data when user is available
   useEffect(() => {
     if (user && user.role === 'doctor') {
-      fetchDashboardData()
+      fetchDashboardDataOptimized()
     }
   }, [user])
 
@@ -197,6 +226,94 @@ export default function DoctorDashboard() {
     } finally {
       setIsLoadingStats(false)
     }
+  }
+
+  // Auto-refresh every 5 minutes
+  useEffect(() => {
+    if (user && user.role === 'doctor') {
+      const interval = setInterval(() => {
+        fetchDashboardDataOptimized(true) // Silent refresh
+      }, 5 * 60 * 1000) // 5 minutes
+
+      return () => clearInterval(interval)
+    }
+  }, [user])
+
+  const fetchDashboardDataOptimized = async (silent: boolean = false) => {
+    if (!user || user.role !== 'doctor') {
+      console.log('User not available or not a doctor:', user)
+      setIsLoadingStats(false)
+      return
+    }
+
+    try {
+      if (!silent) {
+        setIsLoadingStats(true)
+      } else {
+        setIsRefreshing(true)
+      }
+
+      console.log('🔄 [Dashboard] Fetching complete dashboard data...')
+
+      // Use the new optimized endpoint
+      const dashboardResponse = await doctorsApi.getDashboardComplete()
+
+      if (dashboardResponse.success && dashboardResponse.data) {
+        const data = dashboardResponse.data
+
+        console.log('✅ [Dashboard] Data loaded successfully:', {
+          responseTime: data.responseTime,
+          lastUpdated: data.lastUpdated,
+          statsCount: Object.keys(data.stats || {}).length,
+          scheduleCount: data.todaySchedule?.length || 0,
+          appointmentsCount: data.recentAppointments?.length || 0
+        })
+
+        // Update dashboard stats
+        setDashboardStats({
+          totalPatients: data.stats.totalPatients || 0,
+          todayAppointments: data.stats.todayAppointments || 0,
+          upcomingAppointments: data.stats.upcomingAppointments || 0,
+          completedAppointments: data.stats.completedAppointments || 0,
+          averageRating: data.stats.averageRating || 0,
+          totalReviews: data.stats.totalReviews || 0,
+          thisWeekAppointments: data.stats.thisWeekAppointments || 0,
+          thisMonthAppointments: data.stats.thisMonthAppointments || 0,
+          successRate: data.stats.successRate || 0,
+          totalRevenue: data.stats.totalRevenue || 0
+        })
+
+        // Update recent appointments
+        setRecentAppointments(data.recentAppointments || [])
+
+        // Update today's schedule
+        setTodaySchedule(data.todaySchedule || [])
+
+        // Update last updated time
+        setLastUpdated(new Date(data.lastUpdated))
+
+        if (!silent) {
+          toast.success(`Dashboard updated successfully (${data.responseTime}ms)`)
+        }
+
+      } else {
+        console.error('❌ [Dashboard] Failed to load data:', dashboardResponse)
+        toast.error('Không thể tải dữ liệu dashboard')
+      }
+
+    } catch (error) {
+      console.error('❌ [Dashboard] Error fetching data:', error)
+      if (!silent) {
+        toast.error('Lỗi khi tải dữ liệu dashboard')
+      }
+    } finally {
+      setIsLoadingStats(false)
+      setIsRefreshing(false)
+    }
+  }
+
+  const handleRefresh = () => {
+    fetchDashboardDataOptimized()
   }
 
   // Show loading state while user data is being fetched
@@ -279,21 +396,38 @@ export default function DoctorDashboard() {
       activePage="dashboard"
       subtitle="Welcome to your medical practice portal"
       headerActions={
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Calendar className="h-4 w-4 mr-2" />
-            View Schedule
-          </Button>
-          <Button size="sm">
-            <Users className="h-4 w-4 mr-2" />
-            My Patients
+        <div className="flex gap-2 items-center">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Refreshing...' : 'Refresh'}
           </Button>
           <Button variant="outline" size="sm" asChild>
-            <a href="/session-test" target="_blank">
-              <TestTube className="h-4 w-4 mr-2" />
-              Test Session
+            <a href="/doctors/schedule">
+              <Calendar className="h-4 w-4 mr-2" />
+              Schedule
             </a>
           </Button>
+          <Button size="sm" asChild>
+            <a href="/doctors/patients">
+              <Users className="h-4 w-4 mr-2" />
+              Patients
+            </a>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <a href="/doctors/appointments">
+              <Clock className="h-4 w-4 mr-2" />
+              Appointments
+            </a>
+          </Button>
+          <div className="text-xs text-gray-500 flex items-center">
+            <Timer className="h-3 w-3 mr-1" />
+            Last updated: {lastUpdated.toLocaleTimeString()}
+          </div>
         </div>
       }
     >
@@ -424,6 +558,80 @@ export default function DoctorDashboard() {
           </Card>
         </div>
 
+        {/* Additional Stats Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+          <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200 hover:shadow-lg transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-indigo-600">Success Rate</p>
+                  {isLoadingStats ? (
+                    <div className="animate-pulse bg-indigo-200 h-8 w-16 rounded mt-1"></div>
+                  ) : (
+                    <p className="text-3xl font-bold text-indigo-900">{dashboardStats.successRate.toFixed(1)}%</p>
+                  )}
+                  <p className="text-xs text-indigo-700 mt-1">This month</p>
+                </div>
+                <div className="p-3 bg-indigo-200 rounded-full">
+                  <Target className="h-6 w-6 text-indigo-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200 hover:shadow-lg transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-emerald-600">Monthly Revenue</p>
+                  {isLoadingStats ? (
+                    <div className="animate-pulse bg-emerald-200 h-8 w-16 rounded mt-1"></div>
+                  ) : (
+                    <p className="text-3xl font-bold text-emerald-900">
+                      ${dashboardStats.totalRevenue.toLocaleString()}
+                    </p>
+                  )}
+                  <p className="text-xs text-emerald-700 mt-1">Total earnings</p>
+                </div>
+                <div className="p-3 bg-emerald-200 rounded-full">
+                  <DollarSign className="h-6 w-6 text-emerald-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-rose-50 to-rose-100 border-rose-200 hover:shadow-lg transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-rose-600">Patient Rating</p>
+                  {isLoadingStats ? (
+                    <div className="animate-pulse bg-rose-200 h-8 w-16 rounded mt-1"></div>
+                  ) : (
+                    <div className="flex items-center">
+                      <p className="text-3xl font-bold text-rose-900">{dashboardStats.averageRating.toFixed(1)}</p>
+                      <div className="ml-2 flex">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Heart
+                            key={star}
+                            className={`h-4 w-4 ${
+                              star <= dashboardStats.averageRating ? 'text-rose-400 fill-current' : 'text-gray-300'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <p className="text-xs text-rose-700 mt-1">{dashboardStats.totalReviews} reviews</p>
+                </div>
+                <div className="p-3 bg-rose-200 rounded-full">
+                  <Award className="h-6 w-6 text-rose-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           {/* Today's Schedule */}
           <Card className="lg:col-span-2 shadow-lg border-0 bg-white">
@@ -456,8 +664,8 @@ export default function DoctorDashboard() {
                 </div>
               ) : recentAppointments.length > 0 ? (
                 <div className="space-y-4">
-                  {recentAppointments.map((appointment) => (
-                    <div key={appointment.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                  {recentAppointments.map((appointment, index) => (
+                    <div key={appointment.id || `appointment-${index}`} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
                       <div className="flex items-center space-x-4">
                         <div className="text-center bg-white p-3 rounded-lg shadow-sm">
                           <div className="text-sm font-semibold text-gray-900">{appointment.start_time}</div>
@@ -476,7 +684,13 @@ export default function DoctorDashboard() {
               ) : (
                 <div className="text-center py-8">
                   <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500">No appointments scheduled for today</p>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No appointments today</h3>
+                  <p className="text-gray-600">You have a free day! Take some time to rest or catch up on other tasks.</p>
+                  <Button variant="outline" size="sm" className="mt-4" asChild>
+                    <a href="/doctors/schedule">
+                      Set up schedule
+                    </a>
+                  </Button>
                 </div>
               )}
             </CardContent>
@@ -517,6 +731,136 @@ export default function DoctorDashboard() {
                   Update Schedule
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Today's Schedule Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <Card className="shadow-lg border-0 bg-white">
+            <CardHeader className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-t-lg">
+              <CardTitle className="text-xl font-semibold flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                Today's Time Slots
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              {isLoadingStats ? (
+                <div className="space-y-3">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className="animate-pulse bg-gray-200 h-8 w-16 rounded"></div>
+                        <div className="animate-pulse bg-gray-200 h-4 w-24 rounded"></div>
+                      </div>
+                      <div className="animate-pulse bg-gray-200 h-6 w-16 rounded-full"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : todaySchedule.length > 0 ? (
+                <div className="space-y-3 max-h-80 overflow-y-auto">
+                  {todaySchedule.slice(0, 8).map((slot, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                      <div className="flex items-center space-x-3">
+                        <div className={`px-2 py-1 rounded text-xs font-medium min-w-[50px] text-center ${
+                          slot.status === 'available' ? 'bg-blue-100 text-blue-800' :
+                          slot.status === 'booked' ? 'bg-green-100 text-green-800' :
+                          slot.status === 'completed' ? 'bg-purple-100 text-purple-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {slot.time}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">
+                            {slot.patient_name || 'Available'}
+                          </p>
+                          {slot.appointment_type && (
+                            <p className="text-xs text-gray-600">{slot.appointment_type}</p>
+                          )}
+                          {slot.reason && (
+                            <p className="text-xs text-gray-500">• {slot.reason}</p>
+                          )}
+                        </div>
+                      </div>
+                      <Badge className={`text-xs ${getStatusColor(slot.status)}`}>
+                        {slot.status}
+                      </Badge>
+                    </div>
+                  ))}
+                  {todaySchedule.length > 8 && (
+                    <div className="text-center pt-3">
+                      <Button variant="outline" size="sm" asChild>
+                        <a href="/doctors/schedule">
+                          View all {todaySchedule.length} slots
+                        </a>
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-6">
+                  <Clock className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+                  <p className="text-sm text-gray-500">No schedule set for today</p>
+                  <Button variant="outline" size="sm" className="mt-3" asChild>
+                    <a href="/doctors/schedule">
+                      <Calendar className="h-4 w-4 mr-2" />
+                      Set Schedule
+                    </a>
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Recent Appointments */}
+          <Card className="shadow-lg border-0 bg-white">
+            <CardHeader className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-t-lg">
+              <CardTitle className="text-xl font-semibold flex items-center gap-2">
+                <Activity className="h-5 w-5" />
+                Recent Appointments
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              {isLoadingStats ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className="animate-pulse bg-gray-200 h-8 w-16 rounded"></div>
+                        <div className="animate-pulse bg-gray-200 h-4 w-24 rounded"></div>
+                      </div>
+                      <div className="animate-pulse bg-gray-200 h-6 w-16 rounded-full"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : recentAppointments.length > 0 ? (
+                <div className="space-y-3">
+                  {recentAppointments.slice(0, 5).map((appointment, index) => (
+                    <div key={appointment.appointment_id || index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                      <div className="flex items-center space-x-3">
+                        <div className="text-center bg-white p-2 rounded-lg shadow-sm min-w-[50px]">
+                          <div className="text-xs font-semibold text-gray-900">{appointment.start_time}</div>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{appointment.patient_name}</p>
+                          <p className="text-xs text-gray-600">{appointment.appointment_type}</p>
+                          {appointment.reason && (
+                            <p className="text-xs text-gray-500">• {appointment.reason}</p>
+                          )}
+                        </div>
+                      </div>
+                      <Badge className={`text-xs ${getStatusColor(appointment.status)}`}>
+                        {appointment.status}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6">
+                  <Calendar className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+                  <p className="text-sm text-gray-500">No recent appointments</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

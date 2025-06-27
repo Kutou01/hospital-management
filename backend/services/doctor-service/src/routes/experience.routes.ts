@@ -88,6 +88,9 @@ const validateUpdateExperience = [
  */
 router.get('/doctor/:doctorId', validateDoctorId, doctorController.getDoctorExperiences.bind(doctorController));
 
+// Support frontend pattern: /api/doctors/{id}/experience
+router.get('/:doctorId/experience', validateDoctorId, doctorController.getDoctorExperiences.bind(doctorController));
+
 /**
  * @swagger
  * /api/experiences/doctor/{doctorId}/timeline:

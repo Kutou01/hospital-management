@@ -556,4 +556,28 @@ export class PatientRepository {
       throw error;
     }
   }
+
+  // Get unique patient count for a specific doctor (through appointments)
+  async getPatientCountForDoctor(doctorId: string): Promise<number> {
+    try {
+      const { data, error } = await this.supabase
+        .from('appointments')
+        .select('patient_id')
+        .eq('doctor_id', doctorId);
+
+      if (error) {
+        logger.error('Error fetching patient count for doctor:', error);
+        throw error;
+      }
+
+      // Get unique patient IDs
+      const uniquePatients = [...new Set((data || []).map(a => a.patient_id))];
+
+      return uniquePatients.length;
+
+    } catch (error) {
+      logger.error('Exception in getPatientCountForDoctor:', error);
+      throw error;
+    }
+  }
 }

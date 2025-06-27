@@ -39,11 +39,15 @@ function createApp() {
         origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
         credentials: true,
     }));
-    // Rate limiting
+    // Rate limiting - exclude health endpoints
     const limiter = (0, express_rate_limit_1.default)({
         windowMs: 15 * 60 * 1000, // 15 minutes
         max: 1000, // limit each IP to 1000 requests per windowMs
         message: 'Too many requests from this IP, please try again later.',
+        skip: (req) => {
+            // Skip rate limiting for health check endpoints
+            return req.path.includes('/health') || req.path === '/metrics';
+        }
     });
     app.use(limiter);
     // Body parsing middleware
@@ -84,11 +88,77 @@ function createApp() {
     app.use('/docs', swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(specs));
     // Health check endpoint
     app.use('/health', health_routes_1.default);
+    // Public health endpoints for individual services (no auth required)
+    app.get('/api/auth/health', (0, http_proxy_middleware_1.createProxyMiddleware)({
+        target: process.env.AUTH_SERVICE_URL || 'http://auth-service:3001',
+        changeOrigin: true,
+        pathRewrite: {
+            '^/api/auth/health': '/health',
+        },
+        onError: (err, req, res) => {
+            console.error('Auth Service Health Proxy Error:', err);
+            res.status(503).json({ error: 'Auth service health check unavailable' });
+        },
+    }));
+    app.get('/api/doctors/health', (0, http_proxy_middleware_1.createProxyMiddleware)({
+        target: process.env.DOCTOR_SERVICE_URL || 'http://doctor-service:3002',
+        changeOrigin: true,
+        pathRewrite: {
+            '^/api/doctors/health': '/health',
+        },
+        onError: (err, req, res) => {
+            console.error('Doctor Service Health Proxy Error:', err);
+            res.status(503).json({ error: 'Doctor service health check unavailable' });
+        },
+    }));
+    app.get('/api/patients/health', (0, http_proxy_middleware_1.createProxyMiddleware)({
+        target: process.env.PATIENT_SERVICE_URL || 'http://patient-service:3003',
+        changeOrigin: true,
+        pathRewrite: {
+            '^/api/patients/health': '/health',
+        },
+        onError: (err, req, res) => {
+            console.error('Patient Service Health Proxy Error:', err);
+            res.status(503).json({ error: 'Patient service health check unavailable' });
+        },
+    }));
+    app.get('/api/appointments/health', (0, http_proxy_middleware_1.createProxyMiddleware)({
+        target: process.env.APPOINTMENT_SERVICE_URL || 'http://appointment-service:3004',
+        changeOrigin: true,
+        pathRewrite: {
+            '^/api/appointments/health': '/health',
+        },
+        onError: (err, req, res) => {
+            console.error('Appointment Service Health Proxy Error:', err);
+            res.status(503).json({ error: 'Appointment service health check unavailable' });
+        },
+    }));
+    app.get('/api/departments/health', (0, http_proxy_middleware_1.createProxyMiddleware)({
+        target: process.env.DEPARTMENT_SERVICE_URL || 'http://department-service:3005',
+        changeOrigin: true,
+        pathRewrite: {
+            '^/api/departments/health': '/health',
+        },
+        onError: (err, req, res) => {
+            console.error('Department Service Health Proxy Error:', err);
+            res.status(503).json({ error: 'Department service health check unavailable' });
+        },
+    }));
     // Metrics endpoint for Prometheus
     app.get('/metrics', shared_1.getMetricsHandler);
     // Auth Service Routes (Public - no auth middleware)
-    app.use('/api/auth', (0, http_proxy_middleware_1.createProxyMiddleware)({
-        target: process.env.AUTH_SERVICE_URL || 'http://auth-service:3001',
+    const authServiceUrl = process.env.AUTH_SERVICE_URL || 'http://auth-service:3001';
+    console.log('🔧 Auth Service URL:', authServiceUrl);
+    console.log('🔧 Environment AUTH_SERVICE_URL:', process.env.AUTH_SERVICE_URL);
+    // General auth routes (excluding health which is handled above)
+    app.use('/api/auth', (req, res, next) => {
+        // Skip if this is a health check request (already handled above)
+        if (req.path === '/health') {
+            return next('route');
+        }
+        next();
+    }, (0, http_proxy_middleware_1.createProxyMiddleware)({
+        target: authServiceUrl,
         changeOrigin: true,
         pathRewrite: {
             '^/api/auth': '/api/auth',
@@ -117,19 +187,95 @@ function createApp() {
     }));
     // Protected routes - require authentication via Auth Service
     // Doctor Service Routes
-    app.use('/api/doctors', auth_middleware_1.authMiddleware, (0, http_proxy_middleware_1.createProxyMiddleware)({
+    app.use('/api/doctors', (req, res, next) => {
+        // Skip auth for health check (already handled above)
+        if (req.path === '/health') {
+            return next('route');
+        }
+        next();
+    }, auth_middleware_1.authMiddleware, (0, http_proxy_middleware_1.createProxyMiddleware)({
         target: process.env.DOCTOR_SERVICE_URL || 'http://doctor-service:3002',
         changeOrigin: true,
         pathRewrite: {
             '^/api/doctors': '/api/doctors',
         },
+        timeout: 30000,
+        proxyTimeout: 30000,
         onError: (err, req, res) => {
-            console.error('Doctor Service Proxy Error:', err);
-            res.status(503).json({ error: 'Doctor service unavailable' });
+            console.error('🚨 Doctor Service Proxy Error:', err);
+            if (!res.headersSent) {
+                res.status(503).json({
+                    error: 'Doctor service unavailable',
+                    details: err.message,
+                    timestamp: new Date().toISOString()
+                });
+            }
         },
+        onProxyReq: (proxyReq, req, res) => {
+            console.log('🔄 Proxying doctor request:', req.method, req.originalUrl, '→', proxyReq.path);
+            // Forward authentication headers
+            if (req.headers.authorization) {
+                proxyReq.setHeader('Authorization', req.headers.authorization);
+            }
+            // Forward user info from auth middleware
+            if (req.user) {
+                proxyReq.setHeader('X-User-ID', req.user.userId);
+                proxyReq.setHeader('X-User-Role', req.user.role);
+                proxyReq.setHeader('X-User-Email', req.user.email);
+            }
+            // Fix content-length for POST/PUT/PATCH requests
+            if (req.body && (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH')) {
+                const bodyData = JSON.stringify(req.body);
+                proxyReq.setHeader('Content-Type', 'application/json');
+                proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+                proxyReq.write(bodyData);
+            }
+        },
+        onProxyRes: (proxyRes, req, res) => {
+            console.log('✅ Doctor service response:', proxyRes.statusCode, req.method, req.originalUrl);
+        }
+    }));
+    // Doctor Experience Routes (also route to Doctor Service)
+    app.use('/api/experiences', auth_middleware_1.authMiddleware, (0, http_proxy_middleware_1.createProxyMiddleware)({
+        target: process.env.DOCTOR_SERVICE_URL || 'http://doctor-service:3002',
+        changeOrigin: true,
+        pathRewrite: {
+            '^/api/experiences': '/api/experiences',
+        },
+        timeout: 30000,
+        proxyTimeout: 30000,
+        onError: (err, req, res) => {
+            console.error('🚨 Doctor Experience Service Proxy Error:', err);
+            if (!res.headersSent) {
+                res.status(503).json({
+                    error: 'Doctor experience service unavailable',
+                    details: err.message,
+                    timestamp: new Date().toISOString()
+                });
+            }
+        },
+        onProxyReq: (proxyReq, req, res) => {
+            console.log('🔄 Proxying experience request:', req.method, req.originalUrl, '→', proxyReq.path);
+            // Fix content-length for POST/PUT/PATCH requests
+            if (req.body && (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH')) {
+                const bodyData = JSON.stringify(req.body);
+                proxyReq.setHeader('Content-Type', 'application/json');
+                proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+                proxyReq.write(bodyData);
+            }
+        },
+        onProxyRes: (proxyRes, req, res) => {
+            console.log('✅ Experience service response:', proxyRes.statusCode, req.method, req.originalUrl);
+        }
     }));
     // Patient Service Routes - ENABLED
-    app.use('/api/patients', auth_middleware_1.authMiddleware, (0, http_proxy_middleware_1.createProxyMiddleware)({
+    app.use('/api/patients', (req, res, next) => {
+        // Skip auth for health check (already handled above)
+        if (req.path === '/health') {
+            return next('route');
+        }
+        next();
+    }, auth_middleware_1.authMiddleware, (0, http_proxy_middleware_1.createProxyMiddleware)({
         target: process.env.PATIENT_SERVICE_URL || 'http://patient-service:3003',
         changeOrigin: true,
         pathRewrite: {
@@ -141,7 +287,13 @@ function createApp() {
         },
     }));
     // Appointment Service Routes - ENABLED
-    app.use('/api/appointments', auth_middleware_1.authMiddleware, (0, http_proxy_middleware_1.createProxyMiddleware)({
+    app.use('/api/appointments', (req, res, next) => {
+        // Skip auth for health check (already handled above)
+        if (req.path === '/health') {
+            return next('route');
+        }
+        next();
+    }, auth_middleware_1.authMiddleware, (0, http_proxy_middleware_1.createProxyMiddleware)({
         target: process.env.APPOINTMENT_SERVICE_URL || 'http://appointment-service:3004',
         changeOrigin: true,
         pathRewrite: {
@@ -188,21 +340,60 @@ function createApp() {
             res.status(503).json({ error: 'Billing service unavailable' });
         },
     }));
-    // Other Service Routes - Services not yet implemented
-    const disabledServices = [
-        { path: '/api/rooms', name: 'Room' },
-        { path: '/api/departments', name: 'Department' },
-        { path: '/api/notifications', name: 'Notification' }
-    ];
-    disabledServices.forEach(service => {
-        // These services are not yet implemented
-        app.use(service.path, (req, res) => {
-            res.status(503).json({
-                error: 'Service not implemented yet',
-                message: `${service.name} service is not yet implemented`
-            });
-        });
-    });
+    // Department Service Routes - ENABLED (100% Complete)
+    app.use('/api/departments', (req, res, next) => {
+        // Skip auth for health check (already handled above)
+        if (req.path === '/health') {
+            return next('route');
+        }
+        next();
+    }, auth_middleware_1.authMiddleware, (0, http_proxy_middleware_1.createProxyMiddleware)({
+        target: process.env.DEPARTMENT_SERVICE_URL || 'http://department-service:3005',
+        changeOrigin: true,
+        pathRewrite: {
+            '^/api/departments': '/api/departments',
+        },
+        onError: (err, req, res) => {
+            console.error('Department Service Proxy Error:', err);
+            res.status(503).json({ error: 'Department service unavailable' });
+        },
+    }));
+    // Specialty Service Routes (part of Department Service)
+    app.use('/api/specialties', auth_middleware_1.authMiddleware, (0, http_proxy_middleware_1.createProxyMiddleware)({
+        target: process.env.DEPARTMENT_SERVICE_URL || 'http://department-service:3005',
+        changeOrigin: true,
+        pathRewrite: {
+            '^/api/specialties': '/api/specialties',
+        },
+        onError: (err, req, res) => {
+            console.error('Specialty Service Proxy Error:', err);
+            res.status(503).json({ error: 'Specialty service unavailable' });
+        },
+    }));
+    // Room Service Routes (part of Department Service)
+    app.use('/api/rooms', auth_middleware_1.authMiddleware, (0, http_proxy_middleware_1.createProxyMiddleware)({
+        target: process.env.DEPARTMENT_SERVICE_URL || 'http://department-service:3005',
+        changeOrigin: true,
+        pathRewrite: {
+            '^/api/rooms': '/api/rooms',
+        },
+        onError: (err, req, res) => {
+            console.error('Room Service Proxy Error:', err);
+            res.status(503).json({ error: 'Room service unavailable' });
+        },
+    }));
+    // Notification Service Routes - ENABLED
+    app.use('/api/notifications', auth_middleware_1.authMiddleware, (0, http_proxy_middleware_1.createProxyMiddleware)({
+        target: process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:3011',
+        changeOrigin: true,
+        pathRewrite: {
+            '^/api/notifications': '/api/notifications',
+        },
+        onError: (err, req, res) => {
+            console.error('Notification Service Proxy Error:', err);
+            res.status(503).json({ error: 'Notification service unavailable' });
+        },
+    }));
     // Root endpoint
     app.get('/', (req, res) => {
         res.json({
@@ -212,11 +403,132 @@ function createApp() {
             status: 'running',
             timestamp: new Date().toISOString(),
             docs: '/docs',
-            availableServices: ['auth', 'doctors', 'patients', 'appointments', 'medical-records', 'prescriptions', 'billing'],
-            disabledServices: ['rooms', 'departments', 'notifications'],
+            availableServices: ['auth', 'doctors', 'patients', 'appointments', 'departments', 'specialties', 'rooms', 'medical-records', 'prescriptions', 'billing', 'notifications'],
+            disabledServices: [],
             services: serviceRegistry.getRegisteredServices(),
         });
     });
+    // ========================================
+    // INTERNAL SERVICE-TO-SERVICE ROUTING
+    // ========================================
+    // These endpoints allow services to communicate through API Gateway
+    // instead of direct service-to-service calls
+    // Internal Patient Service Routes (for service-to-service communication)
+    app.use('/internal/patients', (0, http_proxy_middleware_1.createProxyMiddleware)({
+        target: process.env.PATIENT_SERVICE_URL || 'http://patient-service:3003',
+        changeOrigin: true,
+        pathRewrite: {
+            '^/internal/patients': '/api/patients',
+        },
+        timeout: 10000,
+        proxyTimeout: 10000,
+        onError: (err, req, res) => {
+            console.error('🚨 Internal Patient Service Proxy Error:', err);
+            if (!res.headersSent) {
+                res.status(503).json({
+                    error: 'Internal patient service unavailable',
+                    details: err.message,
+                    timestamp: new Date().toISOString()
+                });
+            }
+        },
+        onProxyReq: (proxyReq, req, res) => {
+            // Forward service-to-service headers
+            if (req.headers['x-service-name']) {
+                proxyReq.setHeader('x-service-name', req.headers['x-service-name']);
+            }
+            if (req.headers['x-request-id']) {
+                proxyReq.setHeader('x-request-id', req.headers['x-request-id']);
+            }
+        }
+    }));
+    // Internal Appointment Service Routes (for service-to-service communication)
+    app.use('/internal/appointments', (0, http_proxy_middleware_1.createProxyMiddleware)({
+        target: process.env.APPOINTMENT_SERVICE_URL || 'http://appointment-service:3004',
+        changeOrigin: true,
+        pathRewrite: {
+            '^/internal/appointments': '/api/appointments',
+        },
+        timeout: 10000,
+        proxyTimeout: 10000,
+        onError: (err, req, res) => {
+            console.error('🚨 Internal Appointment Service Proxy Error:', err);
+            if (!res.headersSent) {
+                res.status(503).json({
+                    error: 'Internal appointment service unavailable',
+                    details: err.message,
+                    timestamp: new Date().toISOString()
+                });
+            }
+        },
+        onProxyReq: (proxyReq, req, res) => {
+            // Forward service-to-service headers
+            if (req.headers['x-service-name']) {
+                proxyReq.setHeader('x-service-name', req.headers['x-service-name']);
+            }
+            if (req.headers['x-request-id']) {
+                proxyReq.setHeader('x-request-id', req.headers['x-request-id']);
+            }
+        }
+    }));
+    // Internal Doctor Service Routes (for service-to-service communication)
+    app.use('/internal/doctors', (0, http_proxy_middleware_1.createProxyMiddleware)({
+        target: process.env.DOCTOR_SERVICE_URL || 'http://doctor-service:3002',
+        changeOrigin: true,
+        pathRewrite: {
+            '^/internal/doctors': '/api/doctors',
+        },
+        timeout: 10000,
+        proxyTimeout: 10000,
+        onError: (err, req, res) => {
+            console.error('🚨 Internal Doctor Service Proxy Error:', err);
+            if (!res.headersSent) {
+                res.status(503).json({
+                    error: 'Internal doctor service unavailable',
+                    details: err.message,
+                    timestamp: new Date().toISOString()
+                });
+            }
+        },
+        onProxyReq: (proxyReq, req, res) => {
+            // Forward service-to-service headers
+            if (req.headers['x-service-name']) {
+                proxyReq.setHeader('x-service-name', req.headers['x-service-name']);
+            }
+            if (req.headers['x-request-id']) {
+                proxyReq.setHeader('x-request-id', req.headers['x-request-id']);
+            }
+        }
+    }));
+    // Internal Department Service Routes (for service-to-service communication)
+    app.use('/internal/departments', (0, http_proxy_middleware_1.createProxyMiddleware)({
+        target: process.env.DEPARTMENT_SERVICE_URL || 'http://department-service:3005',
+        changeOrigin: true,
+        pathRewrite: {
+            '^/internal/departments': '/api/departments',
+        },
+        timeout: 10000,
+        proxyTimeout: 10000,
+        onError: (err, req, res) => {
+            console.error('🚨 Internal Department Service Proxy Error:', err);
+            if (!res.headersSent) {
+                res.status(503).json({
+                    error: 'Internal department service unavailable',
+                    details: err.message,
+                    timestamp: new Date().toISOString()
+                });
+            }
+        },
+        onProxyReq: (proxyReq, req, res) => {
+            // Forward service-to-service headers
+            if (req.headers['x-service-name']) {
+                proxyReq.setHeader('x-service-name', req.headers['x-service-name']);
+            }
+            if (req.headers['x-request-id']) {
+                proxyReq.setHeader('x-request-id', req.headers['x-request-id']);
+            }
+        }
+    }));
     // Service discovery endpoint
     app.get('/services', (req, res) => {
         res.json({
@@ -238,6 +550,18 @@ function createApp() {
                     url: process.env.APPOINTMENT_SERVICE_URL || 'http://appointment-service:3004',
                     status: 'active'
                 },
+                departments: {
+                    url: process.env.DEPARTMENT_SERVICE_URL || 'http://department-service:3005',
+                    status: 'active'
+                },
+                specialties: {
+                    url: process.env.DEPARTMENT_SERVICE_URL || 'http://department-service:3005',
+                    status: 'active'
+                },
+                rooms: {
+                    url: process.env.DEPARTMENT_SERVICE_URL || 'http://department-service:3005',
+                    status: 'active'
+                },
                 'medical-records': {
                     url: process.env.MEDICAL_RECORDS_SERVICE_URL || 'http://medical-records-service:3006',
                     status: 'active'
@@ -249,9 +573,21 @@ function createApp() {
                 billing: {
                     url: process.env.BILLING_SERVICE_URL || 'http://billing-service:3008',
                     status: 'active'
+                },
+                notifications: {
+                    url: process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:3011',
+                    status: 'active'
                 }
             },
-            disabledServices: ['rooms', 'departments', 'notifications'],
+            disabledServices: [],
+            internalRoutes: {
+                patients: '/internal/patients',
+                appointments: '/internal/appointments',
+                doctors: '/internal/doctors',
+                departments: '/internal/departments'
+            },
+            communicationPattern: 'Pure API Gateway Communication',
+            timestamp: new Date().toISOString()
         });
     });
     // 404 handler
@@ -261,7 +597,7 @@ function createApp() {
             path: req.originalUrl,
             method: req.method,
             mode: DOCTOR_ONLY_MODE ? 'doctor-only-development' : 'full-system',
-            availableRoutes: ['/api/auth', '/api/doctors', '/api/patients', '/api/appointments', '/api/medical-records', '/api/prescriptions', '/api/billing', '/health', '/docs', '/services']
+            availableRoutes: ['/api/auth', '/api/doctors', '/api/patients', '/api/appointments', '/api/departments', '/api/specialties', '/api/rooms', '/api/medical-records', '/api/prescriptions', '/api/billing', '/api/notifications', '/health', '/docs', '/services', '/internal/appointments', '/internal/doctors', '/internal/patients', '/internal/departments']
         });
     });
     // Error handling middleware (must be last)

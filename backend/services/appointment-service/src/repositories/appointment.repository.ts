@@ -24,29 +24,7 @@ export class AppointmentRepository {
     try {
       let query = this.supabase
         .from('appointments')
-        .select(`
-          *,
-          doctors!appointments_doctor_id_fkey (
-            doctor_id,
-            full_name,
-            specialty,
-            profile:profiles!doctors_profile_id_fkey (
-              phone_number,
-              email
-            )
-          ),
-          patients!appointments_patient_id_fkey (
-            patient_id,
-            gender,
-            blood_type,
-            profile:profiles!patients_profile_id_fkey (
-              full_name,
-              date_of_birth,
-              phone_number,
-              email
-            )
-          )
-        `, { count: 'exact' });
+        .select('*', { count: 'exact' });
 
       // Apply filters
       if (filters.doctor_id) {
@@ -97,25 +75,42 @@ export class AppointmentRepository {
         throw new Error(`Failed to fetch appointments: ${error.message}`);
       }
 
-      // Transform data to include nested patient/doctor info
-      const transformedData = data?.map(appointment => ({
-        ...appointment,
-        patient: appointment.patients ? {
-          patient_id: appointment.patients.patient_id,
-          full_name: appointment.patients.full_name,
-          date_of_birth: appointment.patients.date_of_birth,
-          gender: appointment.patients.gender,
-          phone_number: appointment.patients.profile?.phone_number,
-          email: appointment.patients.profile?.email
-        } : undefined,
-        doctor: appointment.doctors ? {
-          doctor_id: appointment.doctors.doctor_id,
-          full_name: appointment.doctors.full_name,
-          specialty: appointment.doctors.specialty,
-          phone_number: appointment.doctors.profile?.phone_number,
-          email: appointment.doctors.profile?.email
-        } : undefined
-      })) || [];
+      // Fetch doctor and patient details separately for each appointment
+      const transformedData = await Promise.all((data || []).map(async (appointment: any) => {
+        // Fetch doctor details
+        let doctor = null;
+        if (appointment.doctor_id) {
+          const { data: doctorData } = await this.supabase
+            .from('doctors')
+            .select('doctor_id, full_name, specialty')
+            .eq('doctor_id', appointment.doctor_id)
+            .single();
+
+          if (doctorData) {
+            doctor = doctorData;
+          }
+        }
+
+        // Fetch patient details
+        let patient = null;
+        if (appointment.patient_id) {
+          const { data: patientData } = await this.supabase
+            .from('patients')
+            .select('patient_id, gender, blood_type')
+            .eq('patient_id', appointment.patient_id)
+            .single();
+
+          if (patientData) {
+            patient = patientData;
+          }
+        }
+
+        return {
+          ...appointment,
+          doctor,
+          patient
+        };
+      }));
 
       return {
         appointments: transformedData as AppointmentWithDetails[],
@@ -134,20 +129,20 @@ export class AppointmentRepository {
         .from('appointments')
         .select(`
           *,
-          doctors!appointments_doctor_id_fkey (
+          doctors!doctor_id (
             doctor_id,
             full_name,
             specialty,
-            profile:profiles!doctors_profile_id_fkey (
+            profile:profiles!profile_id (
               phone_number,
               email
             )
           ),
-          patients!appointments_patient_id_fkey (
+          patients!patient_id (
             patient_id,
             gender,
             blood_type,
-            profile:profiles!patients_profile_id_fkey (
+            profile:profiles!profile_id (
               full_name,
               date_of_birth,
               phone_number,
@@ -465,12 +460,12 @@ export class AppointmentRepository {
         .from('appointments')
         .select(`
           *,
-          patients!appointments_patient_id_fkey (
+          patients!patient_id (
             patient_id,
             full_name,
             date_of_birth,
             gender,
-            profile:profiles!patients_profile_id_fkey (
+            profile:profiles!profile_id (
               phone_number,
               email
             )
@@ -547,14 +542,14 @@ export class AppointmentRepository {
         .from('appointments')
         .select(`
           *,
-          doctors!appointments_doctor_id_fkey (
+          doctors!doctor_id (
             doctor_id,
             full_name,
             specialty
           ),
-          patients!appointments_patient_id_fkey (
+          patients!patient_id (
             patient_id,
-            profile:profiles!patients_profile_id_fkey (
+            profile:profiles!profile_id (
               full_name
             )
           )
@@ -635,9 +630,9 @@ export class AppointmentRepository {
         .from('appointments')
         .select(`
           *,
-          patients!appointments_patient_id_fkey (
+          patients!patient_id (
             patient_id,
-            profile:profiles!patients_profile_id_fkey (
+            profile:profiles!profile_id (
               full_name,
               phone_number
             )
@@ -721,6 +716,94 @@ export class AppointmentRepository {
       return data || [];
     } catch (error) {
       logger.error('Exception in getAvailableSlots:', error);
+      throw error;
+    }
+  }
+
+  // Get appointment statistics for a specific doctor
+  async getDoctorAppointmentStats(doctorId: string): Promise<any> {
+    try {
+      const now = new Date();
+      const today = now.toISOString().split('T')[0];
+      const thisWeekStart = new Date(now.setDate(now.getDate() - now.getDay()));
+      const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      // Get all appointments for this doctor
+      const { data: appointments, error } = await this.supabase
+        .from('appointments')
+        .select('appointment_id, status, appointment_type, appointment_date')
+        .eq('doctor_id', doctorId);
+
+      if (error) {
+        logger.error('Error fetching doctor appointment stats:', error);
+        throw error;
+      }
+
+      const appointmentList = appointments || [];
+
+      // Calculate statistics
+      const total = appointmentList.length;
+      const todayAppointments = appointmentList.filter(a => a.appointment_date === today).length;
+      const thisWeekAppointments = appointmentList.filter(a =>
+        new Date(a.appointment_date) >= thisWeekStart
+      ).length;
+      const thisMonthAppointments = appointmentList.filter(a =>
+        new Date(a.appointment_date) >= thisMonthStart
+      ).length;
+
+      // Group by status
+      const byStatus = {
+        scheduled: appointmentList.filter(a => a.status === 'scheduled').length,
+        confirmed: appointmentList.filter(a => a.status === 'confirmed').length,
+        in_progress: appointmentList.filter(a => a.status === 'in_progress').length,
+        completed: appointmentList.filter(a => a.status === 'completed').length,
+        cancelled: appointmentList.filter(a => a.status === 'cancelled').length,
+        no_show: appointmentList.filter(a => a.status === 'no_show').length
+      };
+
+      // Group by type
+      const byType = {
+        consultation: appointmentList.filter(a => a.appointment_type === 'consultation').length,
+        follow_up: appointmentList.filter(a => a.appointment_type === 'follow_up').length,
+        emergency: appointmentList.filter(a => a.appointment_type === 'emergency').length,
+        routine_checkup: appointmentList.filter(a => a.appointment_type === 'routine_checkup').length
+      };
+
+      return {
+        total_appointments: total,
+        appointments_this_month: thisMonthAppointments,
+        today_appointments: todayAppointments,
+        this_week_appointments: thisWeekAppointments,
+        by_status: byStatus,
+        by_type: byType
+      };
+
+    } catch (error) {
+      logger.error('Exception in getDoctorAppointmentStats:', error);
+      throw error;
+    }
+  }
+
+  // Get unique patient count for a specific doctor
+  async getDoctorPatientCount(doctorId: string): Promise<number> {
+    try {
+      const { data: appointments, error } = await this.supabase
+        .from('appointments')
+        .select('patient_id')
+        .eq('doctor_id', doctorId);
+
+      if (error) {
+        logger.error('Error fetching doctor patient count:', error);
+        throw error;
+      }
+
+      // Get unique patient IDs
+      const uniquePatients = [...new Set((appointments || []).map(a => a.patient_id))];
+
+      return uniquePatients.length;
+
+    } catch (error) {
+      logger.error('Exception in getDoctorPatientCount:', error);
       throw error;
     }
   }

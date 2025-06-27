@@ -22,7 +22,6 @@ services:
       - NOTIFICATION_SERVICE_URL=http://notification-service:3011
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
-      - DOCTOR_ONLY_MODE=false
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
     depends_on:
@@ -91,9 +90,13 @@ services:
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
       - AUTH_SERVICE_URL=http://auth-service:3001
+      # Pure API Gateway Communication - All service calls go through API Gateway
+      - API_GATEWAY_URL=http://api-gateway:3100
     depends_on:
-      - redis
-      - rabbitmq
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     networks:
       - hospital-network
     # Resource limits
@@ -124,8 +127,10 @@ services:
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
       - AUTH_SERVICE_URL=http://auth-service:3001
     depends_on:
-      - redis
-      - rabbitmq
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     networks:
       - hospital-network
     # Resource limits
@@ -155,11 +160,13 @@ services:
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
       - AUTH_SERVICE_URL=http://auth-service:3001
-      - DOCTOR_SERVICE_URL=http://doctor-service:3002
-      - PATIENT_SERVICE_URL=http://patient-service:3003
+      # Pure API Gateway Communication - All service calls go through API Gateway
+      - API_GATEWAY_URL=http://api-gateway:3100
     depends_on:
-      - redis
-      - rabbitmq
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     networks:
       - hospital-network
     # Resource limits
@@ -224,9 +231,8 @@ services:
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
       - AUTH_SERVICE_URL=http://auth-service:3001
-      - DOCTOR_SERVICE_URL=http://doctor-service:3002
-      - PATIENT_SERVICE_URL=http://patient-service:3003
-      - APPOINTMENT_SERVICE_URL=http://appointment-service:3004
+      # Pure API Gateway Communication - All service calls go through API Gateway
+      - API_GATEWAY_URL=http://api-gateway:3100
     depends_on:
       - redis
       - rabbitmq
@@ -536,6 +542,12 @@ services:
       - redis_data:/data
     networks:
       - hospital-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
     # Resource limits
     deploy:
       resources:
@@ -562,6 +574,12 @@ services:
       - rabbitmq_data:/var/lib/rabbitmq
     networks:
       - hospital-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     # Resource limits
     deploy:
       resources:

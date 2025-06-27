@@ -1,6 +1,6 @@
 import { DoctorInfo } from '../types/appointment.types';
 export declare class DoctorService {
-    private baseUrl;
+    private apiGatewayClient;
     constructor();
     getDoctorById(doctorId: string): Promise<DoctorInfo | null>;
     checkDoctorAvailability(doctorId: string, date: string, startTime: string, endTime: string): Promise<boolean>;

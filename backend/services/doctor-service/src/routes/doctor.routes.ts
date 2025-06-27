@@ -1,6 +1,10 @@
 import express from 'express';
 import { body, param, query } from 'express-validator';
 import { DoctorController } from '../controllers/doctor.controller';
+import { authMiddleware, requireDoctor, authenticateToken } from '../middleware/auth.middleware';
+import logger from '@hospital/shared/dist/utils/logger';
+
+// Force rebuild timestamp: 2025-06-23 01:15
 
 const router = express.Router();
 const doctorController = new DoctorController();
@@ -51,6 +55,16 @@ const validateSearchQuery = [
 ];
 
 // Routes
+
+// GET /api/doctors/test-simple - Simple test without auth
+router.get('/test-simple', async (req, res) => {
+  res.json({
+    success: true,
+    message: 'Doctor service is working',
+    timestamp: new Date().toISOString(),
+    service: 'doctor-service'
+  });
+});
 
 // GET /api/doctors/test-all - Comprehensive test endpoint
 router.get('/test-all', async (req, res) => {
@@ -200,6 +214,8 @@ router.get('/realtime/status', doctorController.getRealtimeStatus.bind(doctorCon
  *         description: Live doctors with real-time capabilities
  */
 router.get('/live', doctorController.getLiveDoctors.bind(doctorController));
+
+
 
 /**
  * @swagger
@@ -402,6 +418,7 @@ router.get('/:doctorId/schedule', validateDoctorId, doctorController.getDoctorSc
  *       200:
  *         description: Doctor's weekly schedule
  */
+router.get('/:doctorId/schedule/today', validateDoctorId, doctorController.getTodaySchedule.bind(doctorController));
 router.get('/:doctorId/schedule/weekly', validateDoctorId, doctorController.getWeeklySchedule.bind(doctorController));
 
 /**
@@ -593,5 +610,135 @@ router.get('/:doctorId/appointments', validateDoctorId, doctorController.getDoct
  *         description: Doctor not found
  */
 router.get('/:doctorId/stats', validateDoctorId, doctorController.getDoctorStats.bind(doctorController));
+
+// =====================================================
+// EXPERIENCE MANAGEMENT ROUTES
+// =====================================================
+
+/**
+ * @swagger
+ * /api/doctors/{doctorId}/experiences:
+ *   get:
+ *     summary: Get doctor's work experiences
+ *     tags: [Doctor Experience]
+ *     parameters:
+ *       - in: path
+ *         name: doctorId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [work, education, certification]
+ *         description: Filter experiences by type
+ *     responses:
+ *       200:
+ *         description: Doctor's experiences
+ *       404:
+ *         description: Doctor not found
+ */
+router.get('/:doctorId/experiences', validateDoctorId, doctorController.getDoctorExperiences.bind(doctorController));
+
+/**
+ * @swagger
+ * /api/doctors/{doctorId}/appointment-stats:
+ *   get:
+ *     summary: Get doctor's appointment statistics
+ *     tags: [Doctor Statistics]
+ *     parameters:
+ *       - in: path
+ *         name: doctorId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: period
+ *         schema:
+ *           type: string
+ *           enum: [week, month, year]
+ *         description: Statistics period
+ *     responses:
+ *       200:
+ *         description: Appointment statistics
+ *       404:
+ *         description: Doctor not found
+ */
+router.get('/:doctorId/appointment-stats', validateDoctorId, doctorController.getDoctorStats.bind(doctorController));
+
+// =====================================================
+// AUTHENTICATED DOCTOR DASHBOARD ROUTES (Must be before /:doctorId routes)
+// =====================================================
+
+/**
+ * @swagger
+ * /api/doctors/dashboard/stats:
+ *   get:
+ *     summary: Get current authenticated doctor's dashboard statistics
+ *     tags: [Doctor Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Dashboard statistics
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Doctor not found
+ */
+router.get('/dashboard/stats', authMiddleware, requireDoctor, doctorController.getCurrentDoctorStats.bind(doctorController));
+router.get('/dashboard/complete', authMiddleware, requireDoctor, doctorController.getDashboardComplete.bind(doctorController));
+
+/**
+ * @swagger
+ * /api/doctors/appointments/today:
+ *   get:
+ *     summary: Get current authenticated doctor's appointments for today
+ *     tags: [Doctor Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Today's appointments
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/appointments/today', authMiddleware, requireDoctor, doctorController.getTodayAppointments.bind(doctorController));
+
+/**
+ * @swagger
+ * /api/doctors/appointments/upcoming:
+ *   get:
+ *     summary: Get current authenticated doctor's upcoming appointments
+ *     tags: [Doctor Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Upcoming appointments
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/appointments/upcoming', authMiddleware, requireDoctor, doctorController.getUpcomingAppointments.bind(doctorController));
+
+// Add the missing appointments/stats endpoint that frontend is calling (MUST be after specific routes)
+router.get('/:doctorId/appointments/stats', validateDoctorId, doctorController.getDoctorStats.bind(doctorController));
+
+/**
+ * @swagger
+ * /api/doctors/activity/recent:
+ *   get:
+ *     summary: Get current authenticated doctor's recent activity
+ *     tags: [Doctor Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Recent activity
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/activity/recent', authMiddleware, requireDoctor, doctorController.getRecentActivity.bind(doctorController));
 
 export default router;

@@ -110,7 +110,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = (props) => (
 export interface DoctorLayoutProps extends Omit<UniversalLayoutProps, 'role'> {}
 
 export const DoctorLayout: React.FC<DoctorLayoutProps> = (props) => (
-  <UniversalLayout {...props} role="doctor" />
+  <UniversalLayout {...props} role="doctor" sidebarProps={{ compact: true, ...props.sidebarProps }} />
 );
 
 export interface PatientLayoutProps extends Omit<UniversalLayoutProps, 'role'> {}

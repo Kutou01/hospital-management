@@ -835,4 +835,80 @@ export class AppointmentController {
       });
     }
   }
+
+  // Get appointment statistics for a doctor
+  async getDoctorAppointmentStats(req: Request, res: Response): Promise<void> {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        res.status(400).json({
+          success: false,
+          error: 'Validation failed',
+          details: errors.array(),
+          timestamp: new Date().toISOString()
+        });
+        return;
+      }
+
+      const { doctorId } = req.params;
+
+      // Get appointment statistics
+      const stats = await this.appointmentRepository.getDoctorAppointmentStats(doctorId);
+
+      const response: AppointmentResponse = {
+        success: true,
+        data: stats,
+        message: 'Doctor appointment statistics retrieved successfully',
+        timestamp: new Date().toISOString()
+      };
+
+      res.json(response);
+
+    } catch (error) {
+      logger.error('Error getting doctor appointment stats:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get doctor appointment statistics',
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
+  // Get patient count for a doctor
+  async getDoctorPatientCount(req: Request, res: Response): Promise<void> {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        res.status(400).json({
+          success: false,
+          error: 'Validation failed',
+          details: errors.array(),
+          timestamp: new Date().toISOString()
+        });
+        return;
+      }
+
+      const { doctorId } = req.params;
+
+      // Get unique patient count for doctor
+      const patientCount = await this.appointmentRepository.getDoctorPatientCount(doctorId);
+
+      const response = {
+        success: true,
+        data: { total_patients: patientCount },
+        message: 'Doctor patient count retrieved successfully',
+        timestamp: new Date().toISOString()
+      };
+
+      res.json(response);
+
+    } catch (error) {
+      logger.error('Error getting doctor patient count:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get doctor patient count',
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
 }

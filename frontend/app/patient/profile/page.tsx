@@ -22,6 +22,7 @@ import {
   Star
 } from "lucide-react"
 import { RoleBasedLayout } from "@/components/layout/RoleBasedLayout"
+import { ProfessionalProfile } from "@/components/profile/ProfessionalProfile"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"

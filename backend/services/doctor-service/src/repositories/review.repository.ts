@@ -18,7 +18,16 @@ export class ReviewRepository {
     try {
       const { data, error } = await this.supabase
         .from('doctor_reviews')
-        .select('*')
+        .select(`
+          *,
+          patients:patient_id (
+            patient_id,
+            profiles:profile_id (
+              full_name,
+              phone_number
+            )
+          )
+        `)
         .eq('doctor_id', doctorId)
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
@@ -346,7 +355,13 @@ export class ReviewRepository {
       is_verified: supabaseReview.is_verified,
       helpful_count: supabaseReview.helpful_count,
       created_at: new Date(supabaseReview.created_at),
-      updated_at: new Date(supabaseReview.updated_at)
+      updated_at: new Date(supabaseReview.updated_at),
+      // Include patient information if available
+      patients: supabaseReview.patients ? {
+        patient_id: supabaseReview.patients.patient_id,
+        full_name: supabaseReview.patients.profiles?.full_name || 'Bệnh nhân ẩn danh',
+        phone_number: supabaseReview.patients.profiles?.phone_number || ''
+      } : undefined
     };
   }
 }

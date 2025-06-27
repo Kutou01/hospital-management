@@ -1,4 +1,10 @@
-import { body } from 'express-validator';
+import { body, param, query } from 'express-validator';
+
+// Standardized ID Format Patterns - Consistent with shared validators
+const DOCTOR_ID_PATTERN = /^[A-Z]{4}-DOC-\d{6}-\d{3}$/;           // CARD-DOC-202506-001
+const PATIENT_ID_PATTERN = /^PAT-\d{6}-\d{3}$/;                   // PAT-202506-001
+const ADMIN_ID_PATTERN = /^ADM-\d{6}-\d{3}$/;                     // ADM-202506-001
+const DEPARTMENT_ID_PATTERN = /^DEPT\d{3}$/;                      // DEPT001
 
 export const validateSignUp = [
   body('email')
@@ -162,7 +168,7 @@ export const validateDoctorRegistration = [
 
   body('department_id')
     .notEmpty()
-    .matches(/^DEPT\d{3}$/)
+    .matches(DEPARTMENT_ID_PATTERN)
     .withMessage('Department ID is required and must follow format: DEPT001')
 ];
 
@@ -269,6 +275,31 @@ export const validatePhoneOTP = [
   body('phone_number')
     .matches(/^\+84\d{9}$/)
     .withMessage('Phone number must be in format +84xxxxxxxxx (Vietnamese phone number)')
+];
+
+// ID Format validators - for cross-service validation
+export const validateDoctorId = [
+  param('doctorId')
+    .matches(DOCTOR_ID_PATTERN)
+    .withMessage('Doctor ID must be in department-based format (e.g., CARD-DOC-202506-001)')
+];
+
+export const validatePatientId = [
+  param('patientId')
+    .matches(PATIENT_ID_PATTERN)
+    .withMessage('Patient ID must be in format PAT-YYYYMM-XXX')
+];
+
+export const validateAdminId = [
+  param('adminId')
+    .matches(ADMIN_ID_PATTERN)
+    .withMessage('Admin ID must be in format ADM-YYYYMM-XXX')
+];
+
+export const validateDepartmentId = [
+  param('departmentId')
+    .matches(DEPARTMENT_ID_PATTERN)
+    .withMessage('Department ID must be in format DEPT001')
 ];
 
 export const validateVerifyOTP = [

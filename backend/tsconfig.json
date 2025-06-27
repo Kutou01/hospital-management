@@ -38,7 +38,7 @@
   ],
   "references": [
     { "path": "./shared" },
-    { "path": "./api-gateway" },
+    { "path": "./services/api-gateway" },
     { "path": "./services/auth-service" }
   ]
 }

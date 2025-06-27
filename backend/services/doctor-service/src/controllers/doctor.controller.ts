@@ -354,6 +354,30 @@ export class DoctorController {
     }
   }
 
+  async getTodaySchedule(req: Request, res: Response): Promise<void> {
+    try {
+      const { doctorId } = req.params;
+      const today = new Date();
+      const dayOfWeek = today.getDay(); // 0 = Sunday, 6 = Saturday
+
+      // Get today's schedule from weekly schedule
+      const weeklySchedule = await this.scheduleRepository.getWeeklySchedule(doctorId);
+      const todaySchedule = weeklySchedule.filter((slot: any) => slot.day_of_week === dayOfWeek);
+
+      res.json({
+        success: true,
+        data: todaySchedule
+      });
+    } catch (error) {
+      logger.error('Error fetching today schedule', { error, doctorId: req.params.doctorId });
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: process.env.NODE_ENV === 'development' ? error : undefined
+      });
+    }
+  }
+
   async getWeeklySchedule(req: Request, res: Response): Promise<void> {
     try {
       const { doctorId } = req.params;
@@ -1153,6 +1177,340 @@ export class DoctorController {
         error: 'Failed to fetch live doctors',
         message: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString()
+      });
+    }
+  }
+
+  // =====================================================
+  // AUTHENTICATED DOCTOR DASHBOARD METHODS
+  // =====================================================
+
+  async getCurrentDoctorProfile(req: any, res: Response): Promise<void> {
+    try {
+      // Get user info from auth middleware
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
+
+      // DEBUG: Log user info
+      logger.info('🔍 DEBUG getCurrentDoctorProfile - req.user:', {
+        userId,
+        userRole,
+        fullUser: req.user
+      });
+
+      if (!userId || userRole !== 'doctor') {
+        res.status(401).json({
+          success: false,
+          message: 'Unauthorized: Doctor access required'
+        });
+        return;
+      }
+
+      // Find doctor by profile_id
+      logger.info('🔍 DEBUG - Looking for doctor with profile_id:', userId);
+      const doctor = await this.doctorRepository.findByProfileId(userId);
+
+      if (!doctor) {
+        logger.error('🔍 DEBUG - Doctor not found for profile_id:', userId);
+        res.status(404).json({
+          success: false,
+          message: 'Doctor not found'
+        });
+        return;
+      }
+
+      logger.info('🔍 DEBUG - Doctor found:', {
+        doctor_id: doctor.doctor_id,
+        full_name: doctor.full_name
+      });
+
+      res.json({
+        success: true,
+        data: doctor
+      });
+    } catch (error) {
+      logger.error('Error getting current doctor profile:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: process.env.NODE_ENV === 'development' ? error : undefined
+      });
+    }
+  }
+
+  async getCurrentDoctorStats(req: any, res: Response): Promise<void> {
+    try {
+      // Get user info from auth middleware
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
+
+      if (!userId || userRole !== 'doctor') {
+        res.status(401).json({
+          success: false,
+          message: 'Unauthorized: Doctor access required'
+        });
+        return;
+      }
+
+      // Find doctor by profile_id
+      const doctor = await this.doctorRepository.findByProfileId(userId);
+
+      if (!doctor) {
+        res.status(404).json({
+          success: false,
+          message: 'Doctor not found'
+        });
+        return;
+      }
+
+      // Get dashboard statistics
+      const stats = await this.doctorRepository.getDashboardStats(doctor.doctor_id);
+
+      res.json({
+        success: true,
+        data: stats
+      });
+    } catch (error) {
+      logger.error('Error getting current doctor stats:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: process.env.NODE_ENV === 'development' ? error : undefined
+      });
+    }
+  }
+
+  /**
+   * Get complete dashboard data for current authenticated doctor
+   * Includes stats, today's schedule, recent appointments, and quick metrics
+   */
+  async getDashboardComplete(req: any, res: Response): Promise<void> {
+    try {
+      const startTime = Date.now();
+
+      // Get user info from auth middleware
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
+
+      if (!userId || userRole !== 'doctor') {
+        res.status(401).json({
+          success: false,
+          message: 'Unauthorized: Doctor access required'
+        });
+        return;
+      }
+
+      // Find doctor by profile_id
+      const doctor = await this.doctorRepository.findByProfileId(userId);
+
+      if (!doctor) {
+        res.status(404).json({
+          success: false,
+          message: 'Doctor not found'
+        });
+        return;
+      }
+
+      const doctorId = doctor.doctor_id;
+
+      // Get all dashboard data in parallel for optimal performance
+      const [
+        dashboardStats,
+        todaySchedule,
+        recentAppointments,
+        reviewStats,
+        weeklyStats,
+        monthlyStats
+      ] = await Promise.allSettled([
+        this.doctorRepository.getDashboardStats(doctorId),
+        this.scheduleRepository.getTodaySchedule(doctorId),
+        this.doctorRepository.getRecentAppointments(doctorId, 5),
+        this.reviewRepository.getReviewStats(doctorId),
+        this.doctorRepository.getWeeklyStats(doctorId),
+        this.doctorRepository.getMonthlyStats(doctorId)
+      ]);
+
+      // Process results and handle errors gracefully
+      const processResult = (result: any, fallback: any = null) => {
+        return result.status === 'fulfilled' ? result.value : fallback;
+      };
+
+      const stats = processResult(dashboardStats, {
+        todayAppointments: 0,
+        totalAppointments: 0,
+        completedAppointments: 0,
+        totalPatients: 0,
+        totalReviews: 0,
+        averageRating: 0
+      });
+
+      const schedule = processResult(todaySchedule, []);
+      const appointments = processResult(recentAppointments, []);
+      const reviews = processResult(reviewStats, { average_rating: 0, total_reviews: 0 });
+      const weekly = processResult(weeklyStats, { appointments: 0, revenue: 0 });
+      const monthly = processResult(monthlyStats, { appointments: 0, revenue: 0, success_rate: 0 });
+
+      // Combine all data
+      const dashboardData = {
+        stats: {
+          ...stats,
+          thisWeekAppointments: weekly.appointments || 0,
+          thisMonthAppointments: monthly.appointments || 0,
+          successRate: monthly.success_rate || 0,
+          totalRevenue: monthly.revenue || 0,
+          averageRating: reviews.average_rating || 0,
+          totalReviews: reviews.total_reviews || 0
+        },
+        todaySchedule: schedule,
+        recentAppointments: appointments,
+        quickMetrics: {
+          patientsToday: schedule.filter((s: any) => s.status === 'booked').length,
+          completedToday: schedule.filter((s: any) => s.status === 'completed').length,
+          upcomingToday: schedule.filter((s: any) => s.status === 'booked' && new Date(s.start_time) > new Date()).length,
+          emergencyCount: appointments.filter((a: any) => a.priority === 'emergency').length
+        },
+        lastUpdated: new Date().toISOString(),
+        responseTime: Date.now() - startTime
+      };
+
+      res.json({
+        success: true,
+        data: dashboardData,
+        message: 'Dashboard data loaded successfully'
+      });
+
+    } catch (error) {
+      logger.error('Error getting complete dashboard data:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: process.env.NODE_ENV === 'development' ? error : undefined
+      });
+    }
+  }
+
+  async getTodayAppointments(req: any, res: Response): Promise<void> {
+    try {
+      // Get user info from auth middleware
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
+
+      if (!userId || userRole !== 'doctor') {
+        res.status(401).json({
+          success: false,
+          message: 'Unauthorized: Doctor access required'
+        });
+        return;
+      }
+
+      // Find doctor by profile_id
+      const doctor = await this.doctorRepository.findByProfileId(userId);
+
+      if (!doctor) {
+        res.status(404).json({
+          success: false,
+          message: 'Doctor not found'
+        });
+        return;
+      }
+
+      // Get today's appointments
+      const appointments = await this.appointmentService.getTodayAppointments(doctor.doctor_id);
+
+      res.json({
+        success: true,
+        data: appointments
+      });
+    } catch (error) {
+      logger.error('Error getting today appointments:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: process.env.NODE_ENV === 'development' ? error : undefined
+      });
+    }
+  }
+
+  async getUpcomingAppointments(req: any, res: Response): Promise<void> {
+    try {
+      // Get user info from auth middleware
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
+
+      if (!userId || userRole !== 'doctor') {
+        res.status(401).json({
+          success: false,
+          message: 'Unauthorized: Doctor access required'
+        });
+        return;
+      }
+
+      // Find doctor by profile_id
+      const doctor = await this.doctorRepository.findByProfileId(userId);
+
+      if (!doctor) {
+        res.status(404).json({
+          success: false,
+          message: 'Doctor not found'
+        });
+        return;
+      }
+
+      // Get upcoming appointments
+      const appointments = await this.appointmentService.getUpcomingAppointments(doctor.doctor_id);
+
+      res.json({
+        success: true,
+        data: appointments
+      });
+    } catch (error) {
+      logger.error('Error getting upcoming appointments:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: process.env.NODE_ENV === 'development' ? error : undefined
+      });
+    }
+  }
+
+  async getRecentActivity(req: any, res: Response): Promise<void> {
+    try {
+      // Get user info from auth middleware
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
+
+      if (!userId || userRole !== 'doctor') {
+        res.status(401).json({
+          success: false,
+          message: 'Unauthorized: Doctor access required'
+        });
+        return;
+      }
+
+      // Find doctor by profile_id
+      const doctor = await this.doctorRepository.findByProfileId(userId);
+
+      if (!doctor) {
+        res.status(404).json({
+          success: false,
+          message: 'Doctor not found'
+        });
+        return;
+      }
+
+      // Get recent activity
+      const activity = await this.appointmentService.getRecentActivity(doctor.doctor_id);
+
+      res.json({
+        success: true,
+        data: activity
+      });
+    } catch (error) {
+      logger.error('Error getting recent activity:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: process.env.NODE_ENV === 'development' ? error : undefined
       });
     }
   }

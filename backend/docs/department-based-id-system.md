@@ -13,7 +13,7 @@ Hệ thống ID dựa trên khoa (Department-based ID System) được thiết k
 Ví dụ:
 CARD-DOC-202412-001  // Bác sĩ tim mạch thứ 1 tháng 12/2024
 NEUR-DOC-202412-001  // Bác sĩ thần kinh thứ 1 tháng 12/2024
-PEDI-APP-202412-001  // Lịch hẹn nhi khoa thứ 1 tháng 12/2024
+PEDI-APT-202412-001  // Lịch hẹn nhi khoa thứ 1 tháng 12/2024
 ```
 
 ### **Standard Entities:**
@@ -68,7 +68,7 @@ SELECT generate_doctor_id('DEPT001'); -- Returns: 'CARD-DOC-202412-001'
 SELECT generate_patient_id(); -- Returns: 'PAT-202412-001'
 
 -- Appointments (department-based, derived from doctor)
-SELECT generate_appointment_id('DEPT001'); -- Returns: 'CARD-APP-202412-001'
+SELECT generate_appointment_id('DEPT001'); -- Returns: 'CARD-APT-202412-001'
 
 -- Medical Records (department-based, derived from doctor)
 SELECT generate_medical_record_id('DEPT002'); -- Returns: 'NEUR-MR-202412-001'
@@ -111,7 +111,7 @@ VALUES (uuid, 'BS. Nguyễn Văn A', 'Tim mạch', 'DEPT001', ...);
 ```sql
 INSERT INTO appointments (patient_id, doctor_id, appointment_date, ...)
 VALUES ('PAT-202412-001', 'CARD-DOC-202412-001', '2024-12-15', ...);
--- Tự động tạo: appointment_id = 'CARD-APP-202412-001' (dựa trên doctor's department)
+-- Tự động tạo: appointment_id = 'CARD-APT-202412-001' (dựa trên doctor's department)
 ```
 
 ## 👤 User Registration Integration

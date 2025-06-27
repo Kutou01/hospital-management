@@ -16,20 +16,20 @@ class AppointmentRepository {
                 .from('appointments')
                 .select(`
           *,
-          doctors!appointments_doctor_id_fkey (
+          doctors!doctor_id (
             doctor_id,
             full_name,
             specialty,
-            profile:profiles!doctors_profile_id_fkey (
+            profile:profiles!profile_id (
               phone_number,
               email
             )
           ),
-          patients!appointments_patient_id_fkey (
+          patients!patient_id (
             patient_id,
             gender,
             blood_type,
-            profile:profiles!patients_profile_id_fkey (
+            profile:profiles!profile_id (
               full_name,
               date_of_birth,
               phone_number,
@@ -104,20 +104,20 @@ class AppointmentRepository {
                 .from('appointments')
                 .select(`
           *,
-          doctors!appointments_doctor_id_fkey (
+          doctors!doctor_id (
             doctor_id,
             full_name,
             specialty,
-            profile:profiles!doctors_profile_id_fkey (
+            profile:profiles!profile_id (
               phone_number,
               email
             )
           ),
-          patients!appointments_patient_id_fkey (
+          patients!patient_id (
             patient_id,
             gender,
             blood_type,
-            profile:profiles!patients_profile_id_fkey (
+            profile:profiles!profile_id (
               full_name,
               date_of_birth,
               phone_number,
@@ -364,12 +364,12 @@ class AppointmentRepository {
                 .from('appointments')
                 .select(`
           *,
-          patients!appointments_patient_id_fkey (
+          patients!patient_id (
             patient_id,
             full_name,
             date_of_birth,
             gender,
-            profile:profiles!patients_profile_id_fkey (
+            profile:profiles!profile_id (
               phone_number,
               email
             )
@@ -400,6 +400,247 @@ class AppointmentRepository {
         }
         catch (error) {
             logger_1.default.error('Exception in getUpcomingAppointments:', error);
+            throw error;
+        }
+    }
+    async getCalendarView(date, doctorId, view = 'month') {
+        try {
+            let startDate;
+            let endDate;
+            const inputDate = new Date(date);
+            switch (view) {
+                case 'day':
+                    startDate = date;
+                    endDate = date;
+                    break;
+                case 'week':
+                    const weekStart = new Date(inputDate);
+                    weekStart.setDate(inputDate.getDate() - inputDate.getDay());
+                    const weekEnd = new Date(weekStart);
+                    weekEnd.setDate(weekStart.getDate() + 6);
+                    startDate = weekStart.toISOString().split('T')[0];
+                    endDate = weekEnd.toISOString().split('T')[0];
+                    break;
+                case 'month':
+                    const monthStart = new Date(inputDate.getFullYear(), inputDate.getMonth(), 1);
+                    const monthEnd = new Date(inputDate.getFullYear(), inputDate.getMonth() + 1, 0);
+                    startDate = monthStart.toISOString().split('T')[0];
+                    endDate = monthEnd.toISOString().split('T')[0];
+                    break;
+            }
+            let query = this.supabase
+                .from('appointments')
+                .select(`
+          *,
+          doctors!doctor_id (
+            doctor_id,
+            full_name,
+            specialty
+          ),
+          patients!patient_id (
+            patient_id,
+            profile:profiles!profile_id (
+              full_name
+            )
+          )
+        `)
+                .gte('appointment_date', startDate)
+                .lte('appointment_date', endDate)
+                .in('status', ['scheduled', 'confirmed', 'in_progress', 'completed']);
+            if (doctorId) {
+                query = query.eq('doctor_id', doctorId);
+            }
+            const { data, error } = await query.order('appointment_date').order('start_time');
+            if (error) {
+                logger_1.default.error('Error fetching calendar view:', error);
+                throw new Error(`Failed to fetch calendar view: ${error.message}`);
+            }
+            const calendar = {};
+            data?.forEach(appointment => {
+                const appointmentDate = appointment.appointment_date;
+                if (!calendar[appointmentDate]) {
+                    calendar[appointmentDate] = [];
+                }
+                calendar[appointmentDate].push({
+                    appointment_id: appointment.appointment_id,
+                    start_time: appointment.start_time,
+                    end_time: appointment.end_time,
+                    status: appointment.status,
+                    appointment_type: appointment.appointment_type,
+                    doctor: appointment.doctors ? {
+                        doctor_id: appointment.doctors.doctor_id,
+                        full_name: appointment.doctors.full_name,
+                        specialty: appointment.doctors.specialty
+                    } : null,
+                    patient: appointment.patients ? {
+                        patient_id: appointment.patients.patient_id,
+                        full_name: appointment.patients.profile?.full_name
+                    } : null
+                });
+            });
+            return {
+                view,
+                startDate,
+                endDate,
+                calendar,
+                totalAppointments: data?.length || 0
+            };
+        }
+        catch (error) {
+            logger_1.default.error('Exception in getCalendarView:', error);
+            throw error;
+        }
+    }
+    async getWeeklySchedule(doctorId, startDate) {
+        try {
+            const weekStart = startDate ? new Date(startDate) : new Date();
+            if (!startDate) {
+                weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+            }
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 6);
+            const startDateStr = weekStart.toISOString().split('T')[0];
+            const endDateStr = weekEnd.toISOString().split('T')[0];
+            const { data, error } = await this.supabase
+                .from('appointments')
+                .select(`
+          *,
+          patients!patient_id (
+            patient_id,
+            profile:profiles!profile_id (
+              full_name,
+              phone_number
+            )
+          )
+        `)
+                .eq('doctor_id', doctorId)
+                .gte('appointment_date', startDateStr)
+                .lte('appointment_date', endDateStr)
+                .in('status', ['scheduled', 'confirmed', 'in_progress'])
+                .order('appointment_date')
+                .order('start_time');
+            if (error) {
+                logger_1.default.error('Error fetching weekly schedule:', error);
+                throw new Error(`Failed to fetch weekly schedule: ${error.message}`);
+            }
+            const weeklySchedule = {};
+            const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            for (let i = 0; i < 7; i++) {
+                const currentDate = new Date(weekStart);
+                currentDate.setDate(weekStart.getDate() + i);
+                const dateStr = currentDate.toISOString().split('T')[0];
+                weeklySchedule[dateStr] = [];
+            }
+            data?.forEach(appointment => {
+                const appointmentDate = appointment.appointment_date;
+                weeklySchedule[appointmentDate].push({
+                    appointment_id: appointment.appointment_id,
+                    start_time: appointment.start_time,
+                    end_time: appointment.end_time,
+                    status: appointment.status,
+                    appointment_type: appointment.appointment_type,
+                    reason: appointment.reason,
+                    patient: appointment.patients ? {
+                        patient_id: appointment.patients.patient_id,
+                        full_name: appointment.patients.profile?.full_name,
+                        phone_number: appointment.patients.profile?.phone_number
+                    } : null
+                });
+            });
+            return {
+                doctorId,
+                weekStart: startDateStr,
+                weekEnd: endDateStr,
+                schedule: weeklySchedule,
+                totalAppointments: data?.length || 0
+            };
+        }
+        catch (error) {
+            logger_1.default.error('Exception in getWeeklySchedule:', error);
+            throw error;
+        }
+    }
+    async getAvailableSlots(doctorId, date, duration = 30) {
+        try {
+            const { data, error } = await this.supabase
+                .rpc('find_optimal_time_slots', {
+                input_doctor_id: doctorId,
+                input_date: date,
+                duration_minutes: duration
+            });
+            if (error) {
+                logger_1.default.error('Error fetching available slots:', error);
+                throw new Error(`Failed to fetch available slots: ${error.message}`);
+            }
+            return data || [];
+        }
+        catch (error) {
+            logger_1.default.error('Exception in getAvailableSlots:', error);
+            throw error;
+        }
+    }
+    async getDoctorAppointmentStats(doctorId) {
+        try {
+            const now = new Date();
+            const today = now.toISOString().split('T')[0];
+            const thisWeekStart = new Date(now.setDate(now.getDate() - now.getDay()));
+            const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+            const { data: appointments, error } = await this.supabase
+                .from('appointments')
+                .select('appointment_id, status, appointment_type, appointment_date')
+                .eq('doctor_id', doctorId);
+            if (error) {
+                logger_1.default.error('Error fetching doctor appointment stats:', error);
+                throw error;
+            }
+            const appointmentList = appointments || [];
+            const total = appointmentList.length;
+            const todayAppointments = appointmentList.filter(a => a.appointment_date === today).length;
+            const thisWeekAppointments = appointmentList.filter(a => new Date(a.appointment_date) >= thisWeekStart).length;
+            const thisMonthAppointments = appointmentList.filter(a => new Date(a.appointment_date) >= thisMonthStart).length;
+            const byStatus = {
+                scheduled: appointmentList.filter(a => a.status === 'scheduled').length,
+                confirmed: appointmentList.filter(a => a.status === 'confirmed').length,
+                in_progress: appointmentList.filter(a => a.status === 'in_progress').length,
+                completed: appointmentList.filter(a => a.status === 'completed').length,
+                cancelled: appointmentList.filter(a => a.status === 'cancelled').length,
+                no_show: appointmentList.filter(a => a.status === 'no_show').length
+            };
+            const byType = {
+                consultation: appointmentList.filter(a => a.appointment_type === 'consultation').length,
+                follow_up: appointmentList.filter(a => a.appointment_type === 'follow_up').length,
+                emergency: appointmentList.filter(a => a.appointment_type === 'emergency').length,
+                routine_checkup: appointmentList.filter(a => a.appointment_type === 'routine_checkup').length
+            };
+            return {
+                total_appointments: total,
+                appointments_this_month: thisMonthAppointments,
+                today_appointments: todayAppointments,
+                this_week_appointments: thisWeekAppointments,
+                by_status: byStatus,
+                by_type: byType
+            };
+        }
+        catch (error) {
+            logger_1.default.error('Exception in getDoctorAppointmentStats:', error);
+            throw error;
+        }
+    }
+    async getDoctorPatientCount(doctorId) {
+        try {
+            const { data: appointments, error } = await this.supabase
+                .from('appointments')
+                .select('patient_id')
+                .eq('doctor_id', doctorId);
+            if (error) {
+                logger_1.default.error('Error fetching doctor patient count:', error);
+                throw error;
+            }
+            const uniquePatients = [...new Set((appointments || []).map(a => a.patient_id))];
+            return uniquePatients.length;
+        }
+        catch (error) {
+            logger_1.default.error('Exception in getDoctorPatientCount:', error);
             throw error;
         }
     }

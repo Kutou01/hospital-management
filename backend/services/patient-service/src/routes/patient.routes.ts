@@ -181,6 +181,14 @@ router.get('/validate/:patientId', validatePatientId, handleValidationErrors, (r
   });
 });
 
+// GET /api/patients/count/doctor/:doctorId - Get patient count for doctor
+router.get(
+  '/count/doctor/:doctorId',
+  validateDoctorId,
+  handleValidationErrors,
+  patientController.getPatientCountForDoctor.bind(patientController)
+);
+
 // GET /api/patients/doctor/:doctorId - Get patients by doctor ID
 router.get(
   '/doctor/:doctorId',

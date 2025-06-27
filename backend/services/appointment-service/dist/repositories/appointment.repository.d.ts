@@ -21,5 +21,10 @@ export declare class AppointmentRepository {
     appointmentExists(appointmentId: string): Promise<boolean>;
     getAppointmentStats(): Promise<AppointmentStats>;
     getUpcomingAppointments(doctorId: string, days?: number): Promise<AppointmentWithDetails[]>;
+    getCalendarView(date: string, doctorId?: string, view?: 'day' | 'week' | 'month'): Promise<any>;
+    getWeeklySchedule(doctorId: string, startDate?: string): Promise<any>;
+    getAvailableSlots(doctorId: string, date: string, duration?: number): Promise<any[]>;
+    getDoctorAppointmentStats(doctorId: string): Promise<any>;
+    getDoctorPatientCount(doctorId: string): Promise<number>;
 }
 //# sourceMappingURL=appointment.repository.d.ts.map

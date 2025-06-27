@@ -270,6 +270,75 @@ class ScheduleRepository {
             updated_at: new Date(supabaseSchedule.updated_at)
         };
     }
+    async getTodaySchedule(doctorId) {
+        try {
+            const today = new Date();
+            const dayOfWeek = today.getDay();
+            const todayDate = today.toISOString().split('T')[0];
+            const schedule = await this.findByDoctorAndDay(doctorId, dayOfWeek);
+            if (!schedule || !schedule.is_available) {
+                return [];
+            }
+            const { data: appointments, error: appointmentError } = await this.supabase
+                .from('appointments')
+                .select(`
+          appointment_id,
+          start_time,
+          end_time,
+          status,
+          appointment_type,
+          reason,
+          patients!inner(
+            full_name,
+            phone_number
+          )
+        `)
+                .eq('doctor_id', doctorId)
+                .eq('appointment_date', todayDate);
+            if (appointmentError) {
+                logger_1.default.error('Error fetching today appointments:', appointmentError);
+                throw appointmentError;
+            }
+            const timeSlots = this.generateTimeSlotsForSchedule(schedule.start_time, schedule.end_time, schedule.break_start, schedule.break_end, schedule.slot_duration || 30);
+            const scheduleWithAppointments = timeSlots.map(slot => {
+                const appointment = appointments?.find(apt => apt.start_time === slot.time);
+                return {
+                    time: slot.time,
+                    patient_name: appointment?.patients?.full_name,
+                    appointment_type: appointment?.appointment_type,
+                    status: appointment ? appointment.status : 'available',
+                    duration: schedule.slot_duration || 30,
+                    reason: appointment?.reason,
+                    appointment_id: appointment?.appointment_id
+                };
+            });
+            return scheduleWithAppointments;
+        }
+        catch (error) {
+            logger_1.default.error('Error getting today schedule', { error, doctorId });
+            throw error;
+        }
+    }
+    generateTimeSlotsForSchedule(startTime, endTime, breakStart, breakEnd, slotDuration = 30) {
+        const slots = [];
+        const start = new Date(`2000-01-01T${startTime}`);
+        const end = new Date(`2000-01-01T${endTime}`);
+        const breakStartTime = breakStart ? new Date(`2000-01-01T${breakStart}`) : null;
+        const breakEndTime = breakEnd ? new Date(`2000-01-01T${breakEnd}`) : null;
+        let current = new Date(start);
+        while (current < end) {
+            const timeString = current.toTimeString().slice(0, 5);
+            if (breakStartTime && breakEndTime) {
+                if (current >= breakStartTime && current < breakEndTime) {
+                    current.setMinutes(current.getMinutes() + slotDuration);
+                    continue;
+                }
+            }
+            slots.push({ time: timeString });
+            current.setMinutes(current.getMinutes() + slotDuration);
+        }
+        return slots;
+    }
 }
 exports.ScheduleRepository = ScheduleRepository;
 //# sourceMappingURL=schedule.repository.js.map

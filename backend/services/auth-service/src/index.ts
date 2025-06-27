@@ -32,16 +32,20 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id', 'x-user-role']
 }));
 
-// Rate limiting
+// Rate limiting - exclude health endpoints (TEMPORARILY DISABLED FOR TESTING)
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'), // limit each IP to 100 requests per windowMs
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '10000'), // Increased limit for development
   message: {
     error: 'Too many requests from this IP, please try again later.',
     retryAfter: '15 minutes'
   },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting for health check endpoints AND development testing
+    return req.path.includes('/health') || req.path === '/metrics' || process.env.NODE_ENV === 'development';
+  }
 });
 
 app.use('/api/', limiter);

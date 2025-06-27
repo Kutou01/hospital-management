@@ -343,8 +343,8 @@ export default function DoctorSchedule() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {(scheduleData[selectedDate] || []).map((appointment) => (
-                  <div key={appointment.id} className={`p-4 rounded-lg border ${getTypeColor(appointment.type)}`}>
+                {(scheduleData[selectedDate] || []).map((appointment, index) => (
+                  <div key={appointment.id || `appointment-${index}`} className={`p-4 rounded-lg border ${getTypeColor(appointment.type)}`}>
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">

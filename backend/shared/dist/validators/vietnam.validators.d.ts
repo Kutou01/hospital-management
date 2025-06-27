@@ -1,5 +1,6 @@
 export declare const VIETNAM_PATTERNS: {
     DOCTOR_ID: RegExp;
+    PATIENT_ID: RegExp;
     APPOINTMENT_ID: RegExp;
     DEPARTMENT_ID: RegExp;
     ROOM_ID: RegExp;
@@ -112,6 +113,7 @@ export declare const validateUniqueness: (table: string, field: string, value: a
 declare const _default: {
     VIETNAM_PATTERNS: {
         DOCTOR_ID: RegExp;
+        PATIENT_ID: RegExp;
         APPOINTMENT_ID: RegExp;
         DEPARTMENT_ID: RegExp;
         ROOM_ID: RegExp;

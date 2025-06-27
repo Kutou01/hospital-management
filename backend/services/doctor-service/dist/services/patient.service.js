@@ -4,27 +4,28 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PatientService = void 0;
-const axios_1 = __importDefault(require("axios"));
 const logger_1 = __importDefault(require("@hospital/shared/dist/utils/logger"));
+const api_gateway_client_1 = require("@hospital/shared/dist/clients/api-gateway.client");
 class PatientService {
     constructor() {
-        this.baseUrl = process.env.PATIENT_SERVICE_URL || 'http://localhost:3003';
+        this.apiGatewayClient = (0, api_gateway_client_1.createApiGatewayClient)({
+            ...api_gateway_client_1.defaultApiGatewayConfig,
+            serviceName: 'doctor-service',
+        });
     }
     async getPatientById(patientId) {
         try {
-            const response = await axios_1.default.get(`${this.baseUrl}/api/patients/${patientId}`, {
-                timeout: 5000,
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-            if (response.data.success && response.data.data) {
-                return response.data.data;
+            logger_1.default.info('🔄 Fetching patient via API Gateway', { patientId });
+            const response = await this.apiGatewayClient.getPatient(patientId);
+            if (response.success && response.data) {
+                logger_1.default.info('✅ Patient fetched successfully via API Gateway', { patientId });
+                return response.data;
             }
+            logger_1.default.warn('⚠️ Patient not found via API Gateway', { patientId });
             return null;
         }
         catch (error) {
-            logger_1.default.error('Error fetching patient information:', {
+            logger_1.default.error('❌ Error fetching patient via API Gateway:', {
                 error: error instanceof Error ? error.message : 'Unknown error',
                 patientId
             });
@@ -57,22 +58,20 @@ class PatientService {
     }
     async getDoctorPatientStats(doctorId) {
         try {
-            const response = await axios_1.default.get(`${this.baseUrl}/api/patients/doctor/${doctorId}/stats`, {
-                timeout: 5000,
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-            if (response.data.success && response.data.data) {
-                return response.data.data;
+            logger_1.default.info('🔄 Fetching patient stats via API Gateway', { doctorId });
+            const response = await this.apiGatewayClient.getPatientStats(doctorId);
+            if (response.success && response.data) {
+                logger_1.default.info('✅ Patient stats fetched successfully via API Gateway', { doctorId });
+                return response.data;
             }
+            logger_1.default.warn('⚠️ No patient stats found via API Gateway', { doctorId });
             return {
                 total_patients: 0,
                 unique_patients_this_month: 0
             };
         }
         catch (error) {
-            logger_1.default.error('Error fetching patient stats for doctor:', {
+            logger_1.default.error('❌ Error fetching patient stats via API Gateway:', {
                 error: error instanceof Error ? error.message : 'Unknown error',
                 doctorId
             });
@@ -84,38 +83,39 @@ class PatientService {
     }
     async isServiceAvailable() {
         try {
-            const response = await axios_1.default.get(`${this.baseUrl}/health`, {
-                timeout: 2000
-            });
-            return response.status === 200;
+            logger_1.default.info('🔄 Checking patient service health via API Gateway');
+            const isHealthy = await this.apiGatewayClient.checkServiceHealth('patients');
+            if (isHealthy) {
+                logger_1.default.info('✅ Patient service is healthy via API Gateway');
+            }
+            else {
+                logger_1.default.warn('⚠️ Patient service is not healthy via API Gateway');
+            }
+            return isHealthy;
         }
         catch (error) {
-            logger_1.default.warn('Patient Service is not available:', {
-                error: error instanceof Error ? error.message : 'Unknown error',
-                baseUrl: this.baseUrl
+            logger_1.default.error('❌ Error checking patient service health via API Gateway:', {
+                error: error instanceof Error ? error.message : 'Unknown error'
             });
             return false;
         }
     }
     async searchPatients(query, limit = 10) {
         try {
-            const response = await axios_1.default.get(`${this.baseUrl}/api/patients/search`, {
-                params: {
-                    q: query,
-                    limit
-                },
-                timeout: 5000,
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-            if (response.data.success && Array.isArray(response.data.data)) {
-                return response.data.data;
+            logger_1.default.info('🔄 Searching patients via API Gateway', { query, limit });
+            const response = await this.apiGatewayClient.searchPatients(query, limit);
+            if (response.success && Array.isArray(response.data)) {
+                logger_1.default.info('✅ Patients search completed via API Gateway', {
+                    query,
+                    resultCount: response.data.length
+                });
+                return response.data;
             }
+            logger_1.default.warn('⚠️ No patients found via API Gateway', { query });
             return [];
         }
         catch (error) {
-            logger_1.default.error('Error searching patients:', {
+            logger_1.default.error('❌ Error searching patients via API Gateway:', {
                 error: error instanceof Error ? error.message : 'Unknown error',
                 query,
                 limit
@@ -125,19 +125,16 @@ class PatientService {
     }
     async getPatientCountForDoctor(doctorId) {
         try {
-            const response = await axios_1.default.get(`${this.baseUrl}/api/patients/count/doctor/${doctorId}`, {
-                timeout: 5000,
-                headers: {
-                    'Content-Type': 'application/json'
-                }
+            logger_1.default.info('🔄 Fetching patient count via API Gateway', { doctorId });
+            const stats = await this.getDoctorPatientStats(doctorId);
+            logger_1.default.info('✅ Patient count fetched via API Gateway', {
+                doctorId,
+                count: stats.total_patients
             });
-            if (response.data.success && response.data.data) {
-                return response.data.data.count || 0;
-            }
-            return 0;
+            return stats.total_patients;
         }
         catch (error) {
-            logger_1.default.error('Error fetching patient count for doctor:', {
+            logger_1.default.error('❌ Error fetching patient count via API Gateway:', {
                 error: error instanceof Error ? error.message : 'Unknown error',
                 doctorId
             });

@@ -30,13 +30,16 @@ app.use((0, cors_1.default)({
 }));
 const limiter = (0, express_rate_limit_1.default)({
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'),
-    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'),
+    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '10000'),
     message: {
         error: 'Too many requests from this IP, please try again later.',
         retryAfter: '15 minutes'
     },
     standardHeaders: true,
     legacyHeaders: false,
+    skip: (req) => {
+        return req.path.includes('/health') || req.path === '/metrics' || process.env.NODE_ENV === 'development';
+    }
 });
 app.use('/api/', limiter);
 app.use((0, morgan_1.default)('combined'));

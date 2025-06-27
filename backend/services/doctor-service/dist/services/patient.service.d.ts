@@ -11,7 +11,7 @@ interface PatientStats {
     unique_patients_this_month: number;
 }
 export declare class PatientService {
-    private baseUrl;
+    private apiGatewayClient;
     constructor();
     getPatientById(patientId: string): Promise<PatientData | null>;
     getPatientsByIds(patientIds: string[]): Promise<PatientData[]>;

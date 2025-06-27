@@ -14,33 +14,50 @@ export class EventBus {
   }
 
   async connect(url: string): Promise<void> {
-    try {
-      this.connection = await amqp.connect(url);
-      this.channel = await this.connection.createChannel();
+    const maxRetries = 5;
+    const retryDelay = 5000; // 5 seconds
 
-      // Create exchange
-      await this.channel.assertExchange(this.exchangeName, 'topic', {
-        durable: true,
-      });
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        logger.info(`Attempting to connect to RabbitMQ (attempt ${attempt}/${maxRetries})...`);
 
-      // Handle connection errors
-      this.connection.on('error', (err: any) => {
-        logger.error('RabbitMQ connection error', { error: err.message });
-      });
+        this.connection = await amqp.connect(url);
+        this.channel = await this.connection.createChannel();
 
-      this.connection.on('close', () => {
-        logger.warn('RabbitMQ connection closed');
-      });
+        // Create exchange
+        await this.channel.assertExchange(this.exchangeName, 'topic', {
+          durable: true,
+        });
 
-      logger.info('Connected to RabbitMQ', {
-        service: this.serviceName,
-        exchange: this.exchangeName
-      });
-    } catch (error) {
-      logger.error('Failed to connect to RabbitMQ', {
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-      throw error;
+        // Handle connection errors
+        this.connection.on('error', (err: any) => {
+          logger.error('RabbitMQ connection error', { error: err.message });
+        });
+
+        this.connection.on('close', () => {
+          logger.warn('RabbitMQ connection closed');
+        });
+
+        logger.info('Connected to RabbitMQ', {
+          service: this.serviceName,
+          exchange: this.exchangeName
+        });
+        return; // Success, exit retry loop
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        logger.error(`Failed to connect to RabbitMQ (attempt ${attempt}/${maxRetries})`, {
+          error: errorMessage
+        });
+
+        if (attempt === maxRetries) {
+          logger.error('Max retries reached. Unable to connect to RabbitMQ');
+          throw error;
+        }
+
+        // Wait before retrying
+        logger.info(`Retrying in ${retryDelay / 1000} seconds...`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+      }
     }
   }
 

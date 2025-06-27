@@ -60,6 +60,20 @@ router.get(
   appointmentController.getUpcomingAppointments.bind(appointmentController)
 );
 
+// GET /api/appointments/doctor/:doctorId/stats - Get appointment statistics for doctor
+router.get(
+  '/doctor/:doctorId/stats',
+  validateDoctorId,
+  appointmentController.getDoctorAppointmentStats.bind(appointmentController)
+);
+
+// GET /api/appointments/doctor/:doctorId/patients/count - Get patient count for doctor
+router.get(
+  '/doctor/:doctorId/patients/count',
+  validateDoctorId,
+  appointmentController.getDoctorPatientCount.bind(appointmentController)
+);
+
 // GET /api/appointments/patient/:patientId - Get appointments by patient ID
 router.get(
   '/patient/:patientId',

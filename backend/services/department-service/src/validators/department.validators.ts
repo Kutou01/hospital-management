@@ -1,8 +1,8 @@
 import { body, param, query, ValidationChain } from 'express-validator';
 
-// Validation patterns
-const DEPARTMENT_ID_PATTERN = /^DEPT\d{3}$/; // DEPT001, DEPT002, etc.
-const DEPARTMENT_CODE_PATTERN = /^[A-Z]{3,4}$/; // CARD, NEUR, PEDI, etc.
+// Validation patterns - STANDARDIZED
+const DEPARTMENT_ID_PATTERN = /^DEPT\d{3}$/; // DEPT001, DEPT002, etc. (exactly 3 digits)
+const DEPARTMENT_CODE_PATTERN = /^[A-Z]{4}$/; // CARD, NEUR, PEDI, etc. (exactly 4 characters)
 const PHONE_PATTERN = /^0\d{9}$/; // Vietnamese phone number
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { authServiceApi, AuthUser, RegisterData } from '../api/auth'
 import { sessionManager } from './session-manager'
 import { getDashboardPath } from './dashboard-routes'
+import { saveUserSession, restoreUserSession, clearUserSession, getStoredTokens } from './session-persistence'
 
 // Auth types - now only using Auth Service
 export type AuthType = 'service'
@@ -126,10 +127,17 @@ export function UnifiedAuthProvider({ children }: { children: React.ReactNode })
     const initializeAuth = async () => {
       try {
         console.log('🔄 [UnifiedAuth] Initializing auth state...')
-        
+
         // Always use Auth Service
         setAuthType('service')
         console.log('🔍 [UnifiedAuth] Using Auth Service')
+
+        // First try to restore from localStorage immediately for faster UX
+        const restoredSession = restoreUserSession()
+        if (restoredSession) {
+          setUser(restoredSession)
+          console.log('⚡ [UnifiedAuth] Quick restore from session persistence for:', restoredSession.email)
+        }
 
         await initializeAuthService()
       } catch (err) {
@@ -147,18 +155,86 @@ export function UnifiedAuthProvider({ children }: { children: React.ReactNode })
   // Initialize Auth Service
   const initializeAuthService = async () => {
     try {
+      // First check if we have a stored token
+      const storedToken = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+
+      if (!storedToken) {
+        // Don't override user if already restored from session persistence
+        if (user) {
+          return
+        }
+
+        // Try to restore from stored user data even without token (for development)
+        try {
+          const restoredSession = restoreUserSession()
+          if (restoredSession) {
+            setUser(restoredSession)
+            return
+          }
+        } catch (fallbackErr) {
+          console.error('❌ [UnifiedAuth] Session restoration failed:', fallbackErr)
+        }
+
+        return
+      }
+
       const response = await authServiceApi.getCurrentUser()
-      
-      if (response.success && response.data) {
-        const unifiedUser = convertAuthUser(response.data)
+
+      if (response.success && response.data?.user) {
+        const unifiedUser = convertAuthUser(response.data.user)
         setUser(unifiedUser)
-        console.log('✅ [UnifiedAuth] Auth Service user loaded:', unifiedUser.role)
+
+        // Update stored user data for faster future restoration
+        saveUserSession(unifiedUser, {
+          access_token: storedToken,
+          refresh_token: localStorage.getItem('refresh_token') || ''
+        })
+
+        console.log('✅ [UnifiedAuth] Auth Service user restored from token:', unifiedUser.role)
       } else {
-        console.log('ℹ️ [UnifiedAuth] No Auth Service session found')
+        // Try to restore from stored user data as fallback
+        try {
+          const storedUserData = localStorage.getItem('user_data')
+          if (storedUserData) {
+            const userData = JSON.parse(storedUserData)
+            setUser(userData)
+            return
+          }
+        } catch (fallbackErr) {
+          console.error('❌ [UnifiedAuth] Fallback restoration failed:', fallbackErr)
+        }
+
+        // Clear invalid tokens
+        localStorage.removeItem('auth_token')
+        localStorage.removeItem('refresh_token')
+        localStorage.removeItem('user_data')
+        sessionStorage.removeItem('auth_token')
+        sessionStorage.removeItem('refresh_token')
+        sessionStorage.removeItem('user_data')
         setUser(null)
       }
     } catch (err) {
       console.error('❌ [UnifiedAuth] Auth Service initialization failed:', err)
+
+      // Try to restore from stored user data as fallback
+      try {
+        const storedUserData = localStorage.getItem('user_data')
+        if (storedUserData) {
+          const userData = JSON.parse(storedUserData)
+          setUser(userData)
+          return
+        }
+      } catch (fallbackErr) {
+        console.error('❌ [UnifiedAuth] Fallback restoration failed:', fallbackErr)
+      }
+
+      // Clear potentially corrupted tokens only if fallback also fails
+      localStorage.removeItem('auth_token')
+      localStorage.removeItem('refresh_token')
+      localStorage.removeItem('user_data')
+      sessionStorage.removeItem('auth_token')
+      sessionStorage.removeItem('refresh_token')
+      sessionStorage.removeItem('user_data')
       setUser(null)
     }
   }
@@ -171,7 +247,6 @@ export function UnifiedAuthProvider({ children }: { children: React.ReactNode })
       setLoading(true)
       setError(null)
 
-      console.log('🔐 [UnifiedAuth] Signing in with Auth Service...')
       await signInWithAuthService(email, password)
     } catch (err: any) {
       console.error('❌ [UnifiedAuth] Sign in failed:', err)
@@ -194,15 +269,20 @@ export function UnifiedAuthProvider({ children }: { children: React.ReactNode })
     setUser(unifiedUser)
     setAuthType('service')
 
-    // Store token for future requests
+    // Store token for future requests - use localStorage for persistence across browser sessions
     if (response.data.session?.access_token) {
       localStorage.setItem('auth_token', response.data.session.access_token)
+
       if (response.data.session.refresh_token) {
         localStorage.setItem('refresh_token', response.data.session.refresh_token)
       }
-    }
 
-    console.log('✅ [UnifiedAuth] Auth Service sign in successful')
+      // Store user data using session persistence utility
+      saveUserSession(unifiedUser, {
+        access_token: response.data.session.access_token,
+        refresh_token: response.data.session.refresh_token
+      })
+    }
 
     // Redirect to dashboard
     const dashboardPath = getDashboardPath(unifiedUser.role as any)
@@ -217,7 +297,6 @@ export function UnifiedAuthProvider({ children }: { children: React.ReactNode })
       setLoading(true)
       setError(null)
 
-      console.log('📝 [UnifiedAuth] Signing up with Auth Service...')
       await signUpWithAuthService(userData)
     } catch (err: any) {
       console.error('❌ [UnifiedAuth] Sign up failed:', err)
@@ -230,18 +309,12 @@ export function UnifiedAuthProvider({ children }: { children: React.ReactNode })
 
   // Sign up with Auth Service
   const signUpWithAuthService = async (userData: RegisterData) => {
-    console.log('🔄 [UnifiedAuth] Attempting Auth Service signup with data:', userData)
-
     const response = await authServiceApi.signUp(userData)
 
-    console.log('📝 [UnifiedAuth] Auth Service signup response:', response)
-
     if (!response.success) {
-      console.error('❌ [UnifiedAuth] Auth Service signup failed:', response.error)
       throw new Error(response.error?.message || 'Registration failed')
     }
 
-    console.log('✅ [UnifiedAuth] Auth Service sign up successful')
     // Note: User might need to verify email before signing in
   }
 
@@ -251,19 +324,14 @@ export function UnifiedAuthProvider({ children }: { children: React.ReactNode })
   const signOut = async () => {
     try {
       setLoading(true)
-      console.log('🚪 [UnifiedAuth] Signing out from Auth Service...')
 
       await authServiceApi.signOut()
-      // Clear tokens
-      localStorage.removeItem('auth_token')
-      localStorage.removeItem('refresh_token')
-      sessionStorage.removeItem('auth_token')
-      sessionStorage.removeItem('refresh_token')
+      // Clear all stored session data using session persistence utility
+      clearUserSession()
       sessionManager.clearSession()
 
       setUser(null)
       setError(null)
-      console.log('✅ [UnifiedAuth] Sign out successful')
       router.replace('/auth/login')
     } catch (err: any) {
       console.error('❌ [UnifiedAuth] Sign out failed:', err)
@@ -285,7 +353,6 @@ export function UnifiedAuthProvider({ children }: { children: React.ReactNode })
 
   // Switch auth type
   const switchAuthType = (type: AuthType) => {
-    console.log(`🔄 [UnifiedAuth] Switching auth type to: ${type}`)
     setAuthType(type)
     setUser(null)
     setError(null)
@@ -326,7 +393,7 @@ export function UnifiedAuthProvider({ children }: { children: React.ReactNode })
 
   // Get Supabase client for advanced operations
   const getSupabaseClient = () => {
-    return supabaseClient
+    return null // Auth service doesn't use Supabase client directly
   }
 
   // Role checking methods

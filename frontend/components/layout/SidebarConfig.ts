@@ -12,6 +12,7 @@ import {
   Pill,
   Receipt,
   LayoutDashboard,
+  Layout,
   Stethoscope,
   Users,
   Clock,
@@ -267,7 +268,24 @@ export const doctorSidebarConfig: SidebarConfig = {
       ],
     },
     {
+      title: 'Profile & Settings',
       items: [
+        {
+          icon: Layout,
+          label: 'Profile',
+          href: '/doctors/profile',
+          page: 'profile',
+          badge: 'Premium',
+          badgeVariant: 'default',
+        },
+        {
+          icon: User,
+          label: 'Profile Compact',
+          href: '/doctors/profile-compact',
+          page: 'profile-compact',
+          badge: 'Mobile',
+          badgeVariant: 'secondary',
+        },
         {
           icon: Settings,
           label: 'Settings',

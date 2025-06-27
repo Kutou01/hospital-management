@@ -560,6 +560,181 @@ class AppointmentController {
             });
         }
     }
+    async getCalendarView(req, res) {
+        try {
+            const { date, doctorId, view = 'month' } = req.query;
+            if (!date) {
+                res.status(400).json({
+                    success: false,
+                    error: 'Date is required',
+                    timestamp: new Date().toISOString()
+                });
+                return;
+            }
+            const calendarData = await this.appointmentRepository.getCalendarView(date, doctorId, view);
+            const response = {
+                success: true,
+                data: calendarData,
+                message: 'Calendar view retrieved successfully',
+                timestamp: new Date().toISOString()
+            };
+            res.json(response);
+        }
+        catch (error) {
+            logger_1.default.error('Error getting calendar view:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to get calendar view',
+                timestamp: new Date().toISOString()
+            });
+        }
+    }
+    async getWeeklySchedule(req, res) {
+        try {
+            const { doctorId } = req.params;
+            const { startDate } = req.query;
+            if (!doctorId) {
+                res.status(400).json({
+                    success: false,
+                    error: 'Doctor ID is required',
+                    timestamp: new Date().toISOString()
+                });
+                return;
+            }
+            const weeklySchedule = await this.appointmentRepository.getWeeklySchedule(doctorId, startDate);
+            const response = {
+                success: true,
+                data: weeklySchedule,
+                message: 'Weekly schedule retrieved successfully',
+                timestamp: new Date().toISOString()
+            };
+            res.json(response);
+        }
+        catch (error) {
+            logger_1.default.error('Error getting weekly schedule:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to get weekly schedule',
+                timestamp: new Date().toISOString()
+            });
+        }
+    }
+    async rescheduleAppointment(req, res) {
+        try {
+            const { id } = req.params;
+            const { newDate, newStartTime, newEndTime, reason } = req.body;
+            if (!id || !newDate || !newStartTime || !newEndTime) {
+                res.status(400).json({
+                    success: false,
+                    error: 'Appointment ID, new date, and new time are required',
+                    timestamp: new Date().toISOString()
+                });
+                return;
+            }
+            const currentAppointment = await this.appointmentRepository.getAppointmentById(id);
+            if (!currentAppointment) {
+                res.status(404).json({
+                    success: false,
+                    error: 'Appointment not found',
+                    timestamp: new Date().toISOString()
+                });
+                return;
+            }
+            const conflictCheck = await this.appointmentRepository.checkConflicts(currentAppointment.doctor_id, newDate, newStartTime, newEndTime, id);
+            if (conflictCheck.has_conflict) {
+                res.status(400).json({
+                    success: false,
+                    error: 'New time slot conflicts with existing appointment',
+                    details: conflictCheck,
+                    timestamp: new Date().toISOString()
+                });
+                return;
+            }
+            const updatedAppointment = await this.appointmentRepository.updateAppointment(id, {
+                appointment_date: newDate,
+                start_time: newStartTime,
+                end_time: newEndTime,
+                notes: reason ? `Rescheduled: ${reason}` : currentAppointment.notes
+            });
+            const response = {
+                success: true,
+                data: updatedAppointment,
+                message: 'Appointment rescheduled successfully',
+                timestamp: new Date().toISOString()
+            };
+            res.json(response);
+        }
+        catch (error) {
+            logger_1.default.error('Error rescheduling appointment:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to reschedule appointment',
+                timestamp: new Date().toISOString()
+            });
+        }
+    }
+    async getDoctorAppointmentStats(req, res) {
+        try {
+            const errors = (0, express_validator_1.validationResult)(req);
+            if (!errors.isEmpty()) {
+                res.status(400).json({
+                    success: false,
+                    error: 'Validation failed',
+                    details: errors.array(),
+                    timestamp: new Date().toISOString()
+                });
+                return;
+            }
+            const { doctorId } = req.params;
+            const stats = await this.appointmentRepository.getDoctorAppointmentStats(doctorId);
+            const response = {
+                success: true,
+                data: stats,
+                message: 'Doctor appointment statistics retrieved successfully',
+                timestamp: new Date().toISOString()
+            };
+            res.json(response);
+        }
+        catch (error) {
+            logger_1.default.error('Error getting doctor appointment stats:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to get doctor appointment statistics',
+                timestamp: new Date().toISOString()
+            });
+        }
+    }
+    async getDoctorPatientCount(req, res) {
+        try {
+            const errors = (0, express_validator_1.validationResult)(req);
+            if (!errors.isEmpty()) {
+                res.status(400).json({
+                    success: false,
+                    error: 'Validation failed',
+                    details: errors.array(),
+                    timestamp: new Date().toISOString()
+                });
+                return;
+            }
+            const { doctorId } = req.params;
+            const patientCount = await this.appointmentRepository.getDoctorPatientCount(doctorId);
+            const response = {
+                success: true,
+                data: { total_patients: patientCount },
+                message: 'Doctor patient count retrieved successfully',
+                timestamp: new Date().toISOString()
+            };
+            res.json(response);
+        }
+        catch (error) {
+            logger_1.default.error('Error getting doctor patient count:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to get doctor patient count',
+                timestamp: new Date().toISOString()
+            });
+        }
+    }
 }
 exports.AppointmentController = AppointmentController;
 //# sourceMappingURL=appointment.controller.js.map

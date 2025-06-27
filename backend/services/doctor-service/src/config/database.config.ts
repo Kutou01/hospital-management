@@ -40,7 +40,8 @@ export const supabaseAdmin: SupabaseClient = createClient(
   }
 );
 
-// Legacy function for backward compatibility
+// Legacy exports for backward compatibility
+export const supabase = supabaseAdmin;
 export function getSupabase(): SupabaseClient {
   return supabaseAdmin;
 }

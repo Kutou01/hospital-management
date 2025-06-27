@@ -1,6 +1,49 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Chat Widget Styles */
+.chat-messages-container {
+  height: calc(500px - 120px); /* Total height minus header and input */
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.chat-messages-content {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+/* Chatbot Color Overrides - Xanh Nước Biển Theme */
+.chat-widget .bg-orange-50,
+.chat-widget [class*="bg-orange"] {
+  background-color: #ecfeff !important; /* cyan-50 */
+}
+
+.chat-widget .border-orange-500,
+.chat-widget [class*="border-orange"] {
+  border-color: #06b6d4 !important; /* cyan-500 */
+}
+
+.chat-widget .border-orange-200 {
+  border-color: #a5f3fc !important; /* cyan-200 */
+}
+
+.chat-widget .text-orange-800,
+.chat-widget [class*="text-orange"] {
+  color: #155e75 !important; /* cyan-800 */
+}
+
+/* Force override for any orange colors in chatbot */
+.chat-widget [style*="orange"],
+.chat-widget [style*="#f97316"],
+.chat-widget [style*="#fb923c"] {
+  background-color: #ecfeff !important;
+  border-color: #06b6d4 !important;
+  color: #155e75 !important;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

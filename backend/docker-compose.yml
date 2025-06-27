@@ -419,23 +419,33 @@ services:
   #   networks:
   #     - hospital-network
 
-  # # AI Chatbot Service
-  # chatbot-service:
-  #   build: ./services/chatbot-service
-  #   ports:
-  #     - "3018:3018"
-  #   environment:
-  #     - NODE_ENV=development
-  #     - SUPABASE_URL=${SUPABASE_URL}
-  #     - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-  #     - REDIS_URL=redis://redis:6379
-  #     - AUTH_SERVICE_URL=http://auth-service:3001
-  #     - OPENAI_API_KEY=your_openai_api_key
-  #     - MEDICAL_RECORDS_SERVICE_URL=http://medical-records-service:3006
-  #   depends_on:
-  #     - redis
-  #   networks:
-  #     - hospital-network
+  # AI Chatbot Service
+  chatbot-service:
+    build:
+      context: .
+      dockerfile: ./services/chatbot-service/Dockerfile
+    ports:
+      - "3018:3018"
+    environment:
+      - NODE_ENV=development
+      - PORT=3018
+      - CHATBOT_SERVICE_PORT=3018
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - REDIS_URL=redis://redis:6379
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - OPENAI_API_KEY=your_openai_api_key
+      - MEDICAL_RECORDS_SERVICE_URL=http://medical-records-service:3006
+      - JWT_SECRET=your-jwt-secret-change-this-in-production
+      - CORS_ORIGIN=http://localhost:3000
+      - LOG_LEVEL=info
+    depends_on:
+      - redis
+    networks:
+      - hospital-network
+    profiles:
+      - core
+      - full
 
   # # Frontend
   # frontend:

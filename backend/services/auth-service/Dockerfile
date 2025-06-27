@@ -6,11 +6,11 @@ WORKDIR /app
 
 # Install system dependencies including Python and build tools for bcrypt
 RUN apk add --no-cache \
-    curl \
-    python3 \
-    make \
-    g++ \
-    && ln -sf python3 /usr/bin/python
+  curl \
+  python3 \
+  make \
+  g++ \
+  && ln -sf python3 /usr/bin/python
 
 # Copy package.json files
 COPY services/auth-service/package*.json ./

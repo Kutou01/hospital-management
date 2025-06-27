@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { ToastProvider } from "@/components/ui/toast-provider";
 import { AuthProvider } from "@/lib/auth/auth-wrapper";
 import { EnumProvider } from "@/lib/contexts/EnumContext";
+import ChatWidget from "@/components/chat/ChatWidget";
 
 // Khởi tạo font Inter với subset Latin
 const inter = Inter({ subsets: ["latin"] });
@@ -46,6 +47,7 @@ export default function RootLayout({
               {/* ToastProvider để hiển thị các thông báo toast */}
               <ToastProvider>
                 {children} {/* Đây là nơi nội dung của các trang và layout con sẽ được render */}
+                <ChatWidget position="bottom-right" primaryColor="#06b6d4" />
               </ToastProvider>
             </EnumProvider>
           </AuthProvider>

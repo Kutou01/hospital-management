@@ -5,6 +5,8 @@ export declare class DoctorController {
     private reviewRepository;
     private shiftRepository;
     private experienceRepository;
+    private appointmentService;
+    private patientService;
     constructor();
     getAllDoctors(req: Request, res: Response): Promise<void>;
     getDoctorById(req: Request, res: Response): Promise<void>;
@@ -15,6 +17,7 @@ export declare class DoctorController {
     updateDoctor(req: Request, res: Response): Promise<void>;
     deleteDoctor(req: Request, res: Response): Promise<void>;
     getDoctorSchedule(req: Request, res: Response): Promise<void>;
+    getTodaySchedule(req: Request, res: Response): Promise<void>;
     getWeeklySchedule(req: Request, res: Response): Promise<void>;
     updateSchedule(req: Request, res: Response): Promise<void>;
     getAvailability(req: Request, res: Response): Promise<void>;
@@ -36,5 +39,13 @@ export declare class DoctorController {
     getDoctorProfile(req: Request, res: Response): Promise<void>;
     getDoctorAppointments(req: Request, res: Response): Promise<void>;
     getDoctorStats(req: Request, res: Response): Promise<void>;
+    getRealtimeStatus(req: Request, res: Response): Promise<void>;
+    getLiveDoctors(req: Request, res: Response): Promise<void>;
+    getCurrentDoctorProfile(req: any, res: Response): Promise<void>;
+    getCurrentDoctorStats(req: any, res: Response): Promise<void>;
+    getDashboardComplete(req: any, res: Response): Promise<void>;
+    getTodayAppointments(req: any, res: Response): Promise<void>;
+    getUpcomingAppointments(req: any, res: Response): Promise<void>;
+    getRecentActivity(req: any, res: Response): Promise<void>;
 }
 //# sourceMappingURL=doctor.controller.d.ts.map

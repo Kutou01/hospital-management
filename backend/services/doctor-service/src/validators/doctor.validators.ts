@@ -1,9 +1,10 @@
 import { body, param } from 'express-validator';
 
-// Format validation patterns
-const DOCTOR_ID_PATTERN = /^DOC\d{6}$/;
-const LICENSE_PATTERN = /^[A-Z]{2,4}\d{6,10}$/;
-const DEPARTMENT_ID_PATTERN = /^DEPT\d+$/;
+// Format validation patterns - STANDARDIZED with shared validators
+// Department-Based ID System - Consistent 4-character department codes
+const DOCTOR_ID_PATTERN = /^[A-Z]{4}-DOC-\d{6}-\d{3}$/;           // CARD-DOC-202506-001
+const LICENSE_PATTERN = /^[A-Z]{2,4}\d{6,10}$/;                   // BS001235 or VN-BS-001235
+const DEPARTMENT_ID_PATTERN = /^DEPT\d{3}$/;                      // DEPT001 (exactly 3 digits)
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_PATTERN = /^[0-9+\-\s()]+$/;
@@ -16,7 +17,7 @@ const VALID_GENDERS = ['male', 'female', 'other'];
 export const validateDoctorId = [
   param('doctorId')
     .matches(DOCTOR_ID_PATTERN)
-    .withMessage('Doctor ID must be in format DOC + 6 digits (e.g., DOC000001)')
+    .withMessage('Doctor ID must be in format DEPT-DOC-YYYYMM-XXX (e.g., CARD-DOC-202506-001)')
 ];
 
 export const validateCreateDoctor = [
@@ -194,7 +195,9 @@ export const validateProfileFields = [
   body('full_name')
     .optional()
     .isLength({ min: 2, max: 100 })
-    .withMessage('Full name must be 2-100 characters'),
+    .withMessage('Full name must be 2-100 characters')
+    .matches(/^[\p{L}\s]+$/u)
+    .withMessage('Full name can only contain letters and spaces'),
 
   body('role')
     .optional()

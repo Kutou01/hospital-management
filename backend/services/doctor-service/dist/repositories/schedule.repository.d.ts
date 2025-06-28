@@ -15,5 +15,7 @@ export declare class ScheduleRepository {
     private timeStringToMinutes;
     private minutesToTimeString;
     private mapSupabaseScheduleToSchedule;
+    getTodaySchedule(doctorId: string): Promise<any[]>;
+    private generateTimeSlotsForSchedule;
 }
 //# sourceMappingURL=schedule.repository.d.ts.map

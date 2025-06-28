@@ -2,31 +2,42 @@ import { BaseEntity } from './common.types';
 
 export interface Doctor extends BaseEntity {
   doctor_id: string;
-  full_name: string;
+  profile_id: string; // Link to profiles table
+  full_name: string; // ✅ Doctor's full name from profiles table
+  email?: string; // ✅ Email from profiles table
+  phone_number?: string; // ✅ Phone from profiles table
   specialty: string;
   qualification: string;
-  working_hours: string;
   department_id: string;
+  department_name?: string; // ✅ Department name from departments table
+  department_description?: string; // ✅ Department description
+  department_location?: string; // ✅ Department location
   license_number: string;
   gender: string;
-  photo_url?: string;
-  phone_number: string;
-  email: string;
-  user_id?: string; // Link to users table
+  bio?: string;
+  experience_years: number;
+  consultation_fee?: number;
+  address?: any;
+  languages_spoken: string[];
+  availability_status: string;
+  rating: number;
+  total_reviews: number;
 }
 
 export interface CreateDoctorRequest {
-  full_name: string;
+  // ✅ UPDATED: Only fields that exist in current database schema
+  full_name: string;  // ✅ ADD: Required for profile creation
   specialty: string;
   qualification: string;
-  working_hours: string;
   department_id: string;
   license_number: string;
   gender: string;
-  photo_url?: string;
-  phone_number: string;
-  email: string;
-  user_id?: string;
+  bio?: string;
+  experience_years?: number;
+  consultation_fee?: number;
+  address?: any;
+  languages_spoken?: string[];
+  profile_id?: string; // Link to profiles table
 }
 
 export interface UpdateDoctorRequest {
@@ -65,7 +76,19 @@ export interface DoctorSearchQuery {
   gender?: string;
   available_date?: string;
   available_time?: string;
-  search?: string; // Search by name
+  search?: string; // Search by name, specialty, bio, qualification, license
+  // Enhanced search filters
+  min_rating?: number; // Minimum rating (0-5)
+  max_consultation_fee?: number; // Maximum consultation fee
+  languages?: string; // Language spoken
+  availability_status?: string; // available, busy, unavailable
+  experience_years?: number; // Minimum experience years
+  // Pagination
+  page?: number;
+  limit?: number;
+  // Sorting
+  sort_by?: string; // rating, experience_years, consultation_fee, total_reviews, created_at
+  sort_order?: 'asc' | 'desc';
 }
 
 export interface DoctorWithDepartment extends Doctor {
@@ -133,6 +156,12 @@ export interface DoctorReview {
   helpful_count: number;
   created_at: Date;
   updated_at: Date;
+  // Include patient information when populated from joins
+  patients?: {
+    patient_id: string;
+    full_name: string;
+    phone_number?: string;
+  };
 }
 
 export interface CreateReviewRequest {
@@ -223,10 +252,7 @@ export interface CreateExperienceRequest {
 
 // Enhanced Doctor Profile
 export interface DoctorProfile extends Doctor {
-  bio?: string;
-  experience_years?: number;
-  consultation_fee?: number;
-  languages_spoken?: string[];
+  // ✅ UPDATED: Remove duplicate fields that are already in Doctor interface
   certifications?: string[];
   awards?: string[];
   research_interests?: string[];

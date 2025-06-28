@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Hospital, Eye, EyeOff, Loader2, Calendar, Stethoscope, ArrowLeft, Mail, Phone } from "lucide-react"
-import { useEnhancedAuth } from "@/lib/auth/enhanced-auth-context"
+import { useAuth } from "@/lib/auth/auth-wrapper"
 import { useToast } from "@/components/ui/toast-provider"
 import { getDashboardPath } from "@/lib/auth/dashboard-routes"
 import OAuthLoginButtons from "@/components/auth/OAuthLoginButtons"
@@ -19,12 +19,13 @@ export default function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { showToast } = useToast()
-  const { user, signIn, loading: authLoading, isAuthenticated, clearError } = useEnhancedAuth()
+  const { user, signIn, loading: authLoading, isAuthenticated, clearError } = useAuth()
 
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [loginMethod, setLoginMethod] = useState<'email' | 'magic' | 'phone' | 'oauth'>('email')
+  const [isRedirecting, setIsRedirecting] = useState(false)
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -45,21 +46,37 @@ export default function LoginPage() {
 
   // Auto-redirect if user is already authenticated
   useEffect(() => {
+    // Add debug logging
+    console.log('🔍 [Login] Auth state:', {
+      user: !!user,
+      authLoading,
+      isAuthenticated,
+      userRole: user?.role,
+      isActive: user?.is_active,
+      isRedirecting
+    })
+
     // Don't auto-redirect if coming from registration or booking
     const fromRegister = searchParams.get('from_register')
     const hasMessage = searchParams.get('message')
 
-    if (fromRegister || hasMessage || isFromBooking || authLoading) {
+    if (fromRegister || hasMessage || isFromBooking || authLoading || isRedirecting) {
       console.log('🔄 [Login] Skipping auth check - special case or loading')
       return
     }
 
-    if (isAuthenticated && user && user.role && user.is_active) {
+    // Only redirect if we have a stable authenticated state
+    if (isAuthenticated && user && user.role && user.is_active && !authLoading) {
       console.log('🔄 [Login] User already logged in, redirecting to dashboard...')
+      setIsRedirecting(true)
       const redirectPath = getDashboardPath(user.role as any)
-      router.replace(redirectPath)
+
+      // Add a small delay to prevent rapid redirects
+      setTimeout(() => {
+        router.replace(redirectPath)
+      }, 100)
     }
-  }, [user, authLoading, isAuthenticated, router, searchParams, isFromBooking])
+  }, [user, authLoading, isAuthenticated, router, searchParams, isFromBooking, isRedirecting])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target

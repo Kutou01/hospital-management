@@ -21,6 +21,8 @@ import {
   MessageCircle
 } from 'lucide-react';
 import { authApi } from "@/lib/auth";
+import { doctorsApi } from "@/lib/api";
+import { toast } from "sonner";
 
 interface Doctor {
   id: number;
@@ -51,96 +53,66 @@ interface Doctor {
 export default function DoctorDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const doctorId = parseInt(params.id as string);
+  const doctorId = params.id as string; // Keep as string for API calls
   const [doctor, setDoctor] = useState<Doctor | null>(null);
   const [loading, setLoading] = useState(true);
   const [checkingAuth, setCheckingAuth] = useState(false);
 
-  // Mock doctors data (in real app, this would come from API)
-  const doctors: Doctor[] = [
-    {
-      id: 1,
-      name: 'Dr. Nguyễn Văn An',
-      specialty: 'Tim mạch',
-      title: 'Trưởng khoa Tim mạch',
-      experience: '15 năm',
-      rating: 4.9,
-      reviews: 285,
-      patients: 1200,
-      description: 'Bác sĩ chuyên khoa Tim mạch với hơn 15 năm kinh nghiệm trong điều trị các bệnh lý tim mạch phức tạp. Thành thạo các kỹ thuật can thiệp tim mạch hiện đại, phẫu thuật bypass và điều trị rối loạn nhịp tim.',
-      aboutMe: 'Tôi là bác sĩ chuyên khoa Tim mạch với niềm đam mê cứu giúp những bệnh nhân mắc các bệnh lý tim mạch. Với hơn 15 năm kinh nghiệm trong lĩnh vực này, tôi đã điều trị thành công cho hàng nghìn bệnh nhân và thực hiện nhiều ca phẫu thuật phức tạp. Tôi luôn cập nhật những kỹ thuật điều trị tiên tiến nhất và áp dụng vào thực tiễn để mang lại hiệu quả tốt nhất cho bệnh nhân.',
-      treatmentApproach: 'Tôi tin rằng việc điều trị hiệu quả không chỉ dựa vào kỹ thuật mà còn cần sự thấu hiểu và quan tâm đến từng bệnh nhân. Phương pháp của tôi tập trung vào việc lắng nghe, thấu hiểu tình trạng của bệnh nhân và đưa ra phương án điều trị phù hợp nhất. Tôi luôn giải thích rõ ràng về bệnh tình và hướng điều trị để bệnh nhân an tâm và hợp tác tốt trong quá trình điều trị.',
-      education: [
-        'Tiến sĩ Y khoa - Đại học Y Hà Nội (2005)',
-        'Chứng chỉ Tim mạch can thiệp - Bệnh viện Bachmai (2008)',
-        'Fellowship Cardiology - Singapore General Hospital (2010)'
-      ],
-      languages: ['Tiếng Việt', 'English', '中文'],
-      schedule: ['Thứ 2: 8:00-12:00', 'Thứ 4: 14:00-17:00', 'Thứ 6: 8:00-12:00'],
-      location: 'Phòng 201 - Tầng 2 - Khoa Tim mạch',
-      phone: '+84-123-456-789',
-      email: 'dr.an@hospital.vn',
-      achievements: ['Giải thưởng Bác sĩ xuất sắc 2023', 'Hơn 500 ca phẫu thuật thành công', 'Chứng nhận ISO 9001:2015'],
-      specialties: ['Phẫu thuật tim', 'Can thiệp mạch vành', 'Điều trị rối loạn nhịp tim', 'Siêu âm tim', 'Điện tâm đồ'],
-      consultationFee: '500.000 VNĐ',
-      nextAvailable: 'Thứ 2, 08:30',
-      certifications: ['Board Certified Cardiologist', 'Advanced Cardiac Life Support (ACLS)', 'Interventional Cardiology Certificate']
-    },
-    {
-      id: 2,
-      name: 'Dr. Trần Thị Bình',
-      specialty: 'Nhi khoa',
-      title: 'Phó Trưởng khoa Nhi',
-      experience: '12 năm',
-      rating: 4.8,
-      reviews: 420,
-      patients: 980,
-      description: 'Chuyên gia Nhi khoa với kinh nghiệm phong phú trong chăm sóc sức khỏe trẻ em từ sơ sinh đến 18 tuổi. Đặc biệt giỏi trong điều trị bệnh lý hô hấp, tiêu hóa và phát triển ở trẻ.',
-      aboutMe: 'Là một bác sĩ nhi khoa, tôi hiểu rằng mỗi đứa trẻ là một thế giới riêng với những nhu cầu đặc biệt. Với 12 năm kinh nghiệm trong lĩnh vực nhi khoa, tôi đã chăm sóc cho hàng nghìn em bé từ sơ sinh đến tuổi thiếu niên. Tôi luôn cố gắng tạo ra môi trường thân thiện và thoải mái để các em không cảm thấy sợ hãi khi đi khám bệnh.',
-      treatmentApproach: 'Triết lý điều trị của tôi là "Chăm sóc toàn diện, yêu thương chân thành". Tôi không chỉ điều trị bệnh mà còn quan tâm đến sự phát triển tổng thể của trẻ. Tôi luôn tư vấn cho phụ huynh về dinh dưỡng, chăm sóc và phòng ngừa bệnh tật để trẻ có thể phát triển khỏe mạnh nhất.',
-      education: [
-        'Thạc sĩ Y khoa - Đại học Y Dược TP.HCM (2008)',
-        'Chuyên khoa Nhi cấp I (2010)',
-        'Chuyên khoa Nhi cấp II (2015)'
-      ],
-      languages: ['Tiếng Việt', 'English', 'Français'],
-      schedule: ['Thứ 2-6: 7:30-11:30', 'Thứ 7: 8:00-12:00'],
-      location: 'Phòng 105 - Tầng 1 - Khoa Nhi',
-      phone: '+84-123-456-790',
-      email: 'dr.binh@hospital.vn',
-      achievements: ['Top 10 Bác sĩ Nhi yêu thích nhất', 'Chứng nhận Lactation Consultant', 'Giải thưởng Chăm sóc trẻ em xuất sắc 2022'],
-      specialties: ['Nhi hô hấp', 'Nhi tiêu hóa', 'Phát triển trẻ em', 'Dinh dưỡng trẻ em', 'Tiêm chủng'],
-      consultationFee: '300.000 VNĐ',
-      nextAvailable: 'Hôm nay, 14:00',
-      certifications: ['Pediatric Advanced Life Support (PALS)', 'Neonatal Resuscitation Program (NRP)', 'Child Development Specialist']
-    }
-    // Add more doctors as needed...
-  ];
-
+  // Load doctor data from API
   useEffect(() => {
-    // Simulate API call to fetch doctor data
     const fetchDoctor = async () => {
-      setLoading(true);
+      if (!doctorId) return;
+
       try {
-        // In real app, you would fetch from API: /api/doctors/${doctorId}
-        const foundDoctor = doctors.find(d => d.id === doctorId);
-        if (!foundDoctor) {
+        setLoading(true);
+        const response = await doctorsApi.getById(doctorId);
+
+        if (response.success && response.data) {
+          // Transform API data to match frontend interface
+          const apiDoctor = response.data;
+          const transformedDoctor: Doctor = {
+            id: parseInt(apiDoctor.doctor_id) || parseInt(doctorId),
+            name: apiDoctor.full_name || apiDoctor.name || 'Doctor',
+            specialty: apiDoctor.departments?.name || apiDoctor.specialization || 'General Medicine',
+            title: apiDoctor.title || 'Doctor',
+            experience: apiDoctor.experience_years ? `${apiDoctor.experience_years} năm` : 'N/A',
+            rating: apiDoctor.average_rating || 4.5,
+            reviews: apiDoctor.total_reviews || 0,
+            patients: apiDoctor.total_patients || 0,
+            description: apiDoctor.bio || apiDoctor.description || 'Experienced medical professional dedicated to providing quality healthcare.',
+            aboutMe: apiDoctor.about_me || apiDoctor.bio || 'Dedicated healthcare professional with extensive experience in medical practice.',
+            treatmentApproach: apiDoctor.treatment_approach || 'Patient-centered care with focus on comprehensive treatment and compassionate service.',
+            education: apiDoctor.education ? (Array.isArray(apiDoctor.education) ? apiDoctor.education : [apiDoctor.education]) : ['Medical Degree'],
+            languages: apiDoctor.languages ? (Array.isArray(apiDoctor.languages) ? apiDoctor.languages : [apiDoctor.languages]) : ['Tiếng Việt'],
+            schedule: apiDoctor.schedule ? (Array.isArray(apiDoctor.schedule) ? apiDoctor.schedule : [apiDoctor.schedule]) : ['Liên hệ để biết lịch khám'],
+            location: apiDoctor.office_location || apiDoctor.location || 'Hospital',
+            phone: apiDoctor.phone_number || apiDoctor.phone || 'N/A',
+            email: apiDoctor.email || 'N/A',
+            achievements: apiDoctor.achievements ? (Array.isArray(apiDoctor.achievements) ? apiDoctor.achievements : [apiDoctor.achievements]) : [],
+            specialties: apiDoctor.specialties ? (Array.isArray(apiDoctor.specialties) ? apiDoctor.specialties : [apiDoctor.specialties]) : [apiDoctor.departments?.name || 'General Medicine'],
+            consultationFee: apiDoctor.consultation_fee || '300.000 VNĐ',
+            nextAvailable: 'Liên hệ để đặt lịch',
+            certifications: apiDoctor.certifications ? (Array.isArray(apiDoctor.certifications) ? apiDoctor.certifications : [apiDoctor.certifications]) : []
+          };
+
+          setDoctor(transformedDoctor);
+        } else {
+          toast.error('Không thể tải thông tin bác sĩ');
           router.push('/doctors');
-          return;
         }
-        setDoctor(foundDoctor);
       } catch (error) {
         console.error('Error fetching doctor:', error);
+        toast.error('Lỗi khi tải thông tin bác sĩ');
         router.push('/doctors');
       } finally {
         setLoading(false);
       }
     };
 
-    if (doctorId) {
-      fetchDoctor();
-    }
+    fetchDoctor();
   }, [doctorId, router]);
+
+  // Mock data removed - now using real API data
 
   const checkAuthAndRedirect = async () => {
     setCheckingAuth(true);
@@ -149,7 +121,7 @@ export default function DoctorDetailPage() {
       const { data } = await authApi.getCurrentUser();
 
       if (data?.user && data?.profile) {
-        localStorage.setItem('selectedDoctorId', doctorId.toString());
+        localStorage.setItem('selectedDoctorId', doctorId);
 
         if (data.profile.role === 'patient') {
           router.push('/patient/profile?action=booking');
@@ -159,11 +131,11 @@ export default function DoctorDetailPage() {
           router.push(`/${data.profile.role}/dashboard`);
         }
       } else {
-        localStorage.setItem('selectedDoctorId', doctorId.toString());
+        localStorage.setItem('selectedDoctorId', doctorId);
         router.push('/auth/login?redirect=booking');
       }
     } catch (error) {
-      localStorage.setItem('selectedDoctorId', doctorId.toString());
+      localStorage.setItem('selectedDoctorId', doctorId);
       router.push('/auth/login?redirect=booking');
     } finally {
       setCheckingAuth(false);

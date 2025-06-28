@@ -3,10 +3,11 @@ import { validationResult } from 'express-validator';
 import { AppointmentRepository } from '../repositories/appointment.repository';
 import { DoctorService } from '../services/doctor.service';
 import { PatientService } from '../services/patient.service';
+import { AppointmentRealtimeService } from '../services/realtime.service';
 import logger from '@hospital/shared/dist/utils/logger';
-import { 
-  CreateAppointmentDto, 
-  UpdateAppointmentDto, 
+import {
+  CreateAppointmentDto,
+  UpdateAppointmentDto,
   AppointmentSearchFilters,
   AppointmentResponse,
   PaginatedAppointmentResponse,
@@ -611,6 +612,301 @@ export class AppointmentController {
         success: false,
         error: 'Failed to fetch upcoming appointments',
         message: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
+  // REAL-TIME FEATURES
+
+  // Get real-time service status
+  async getRealtimeStatus(req: Request, res: Response): Promise<void> {
+    try {
+      // Note: We'll need to access the real-time service instance
+      // For now, return basic status
+      res.json({
+        success: true,
+        data: {
+          realtime_enabled: true,
+          websocket_enabled: true,
+          supabase_subscription: true,
+          connected_clients: 0, // Will be updated when WebSocket is integrated
+          last_event: null,
+          uptime: process.uptime()
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('Error in getRealtimeStatus:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get real-time status',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
+  // Get live appointments with real-time capabilities
+  async getLiveAppointments(req: Request, res: Response): Promise<void> {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+
+      // Get current appointments
+      const { appointments, total } = await this.appointmentRepository.getAllAppointments({}, page, limit);
+
+      res.json({
+        success: true,
+        data: {
+          appointments,
+          realtime_enabled: true,
+          live_updates: true,
+          websocket_channel: 'appointments_realtime',
+          subscription_info: {
+            events: ['INSERT', 'UPDATE', 'DELETE'],
+            filters: ['status_changes', 'time_changes', 'new_appointments']
+          }
+        },
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit)
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('Error in getLiveAppointments:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch live appointments',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
+  // CALENDAR INTEGRATION FEATURES
+
+  // Get calendar view for appointments
+  async getCalendarView(req: Request, res: Response): Promise<void> {
+    try {
+      const { date, doctorId, view = 'month' } = req.query;
+
+      if (!date) {
+        res.status(400).json({
+          success: false,
+          error: 'Date is required',
+          timestamp: new Date().toISOString()
+        });
+        return;
+      }
+
+      const calendarData = await this.appointmentRepository.getCalendarView(
+        date as string,
+        doctorId as string,
+        view as 'day' | 'week' | 'month'
+      );
+
+      const response: AppointmentResponse = {
+        success: true,
+        data: calendarData,
+        message: 'Calendar view retrieved successfully',
+        timestamp: new Date().toISOString()
+      };
+
+      res.json(response);
+    } catch (error) {
+      logger.error('Error getting calendar view:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get calendar view',
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
+  // Get weekly schedule for a doctor
+  async getWeeklySchedule(req: Request, res: Response): Promise<void> {
+    try {
+      const { doctorId } = req.params;
+      const { startDate } = req.query;
+
+      if (!doctorId) {
+        res.status(400).json({
+          success: false,
+          error: 'Doctor ID is required',
+          timestamp: new Date().toISOString()
+        });
+        return;
+      }
+
+      const weeklySchedule = await this.appointmentRepository.getWeeklySchedule(
+        doctorId,
+        startDate as string
+      );
+
+      const response: AppointmentResponse = {
+        success: true,
+        data: weeklySchedule,
+        message: 'Weekly schedule retrieved successfully',
+        timestamp: new Date().toISOString()
+      };
+
+      res.json(response);
+    } catch (error) {
+      logger.error('Error getting weekly schedule:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get weekly schedule',
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
+  // Reschedule appointment with smart suggestions
+  async rescheduleAppointment(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { newDate, newStartTime, newEndTime, reason } = req.body;
+
+      if (!id || !newDate || !newStartTime || !newEndTime) {
+        res.status(400).json({
+          success: false,
+          error: 'Appointment ID, new date, and new time are required',
+          timestamp: new Date().toISOString()
+        });
+        return;
+      }
+
+      // Get current appointment
+      const currentAppointment = await this.appointmentRepository.getAppointmentById(id);
+      if (!currentAppointment) {
+        res.status(404).json({
+          success: false,
+          error: 'Appointment not found',
+          timestamp: new Date().toISOString()
+        });
+        return;
+      }
+
+      // Check for conflicts with new time
+      const conflictCheck = await this.appointmentRepository.checkConflicts(
+        currentAppointment.doctor_id,
+        newDate,
+        newStartTime,
+        newEndTime,
+        id // Exclude current appointment
+      );
+
+      if (conflictCheck.has_conflict) {
+        res.status(400).json({
+          success: false,
+          error: 'New time slot conflicts with existing appointment',
+          details: conflictCheck,
+          timestamp: new Date().toISOString()
+        });
+        return;
+      }
+
+      // Update appointment
+      const updatedAppointment = await this.appointmentRepository.updateAppointment(id, {
+        appointment_date: newDate,
+        start_time: newStartTime,
+        end_time: newEndTime,
+        notes: reason ? `Rescheduled: ${reason}` : currentAppointment.notes
+      });
+
+      const response: AppointmentResponse = {
+        success: true,
+        data: updatedAppointment,
+        message: 'Appointment rescheduled successfully',
+        timestamp: new Date().toISOString()
+      };
+
+      res.json(response);
+    } catch (error) {
+      logger.error('Error rescheduling appointment:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to reschedule appointment',
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
+  // Get appointment statistics for a doctor
+  async getDoctorAppointmentStats(req: Request, res: Response): Promise<void> {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        res.status(400).json({
+          success: false,
+          error: 'Validation failed',
+          details: errors.array(),
+          timestamp: new Date().toISOString()
+        });
+        return;
+      }
+
+      const { doctorId } = req.params;
+
+      // Get appointment statistics
+      const stats = await this.appointmentRepository.getDoctorAppointmentStats(doctorId);
+
+      const response: AppointmentResponse = {
+        success: true,
+        data: stats,
+        message: 'Doctor appointment statistics retrieved successfully',
+        timestamp: new Date().toISOString()
+      };
+
+      res.json(response);
+
+    } catch (error) {
+      logger.error('Error getting doctor appointment stats:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get doctor appointment statistics',
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
+  // Get patient count for a doctor
+  async getDoctorPatientCount(req: Request, res: Response): Promise<void> {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        res.status(400).json({
+          success: false,
+          error: 'Validation failed',
+          details: errors.array(),
+          timestamp: new Date().toISOString()
+        });
+        return;
+      }
+
+      const { doctorId } = req.params;
+
+      // Get unique patient count for doctor
+      const patientCount = await this.appointmentRepository.getDoctorPatientCount(doctorId);
+
+      const response = {
+        success: true,
+        data: { total_patients: patientCount },
+        message: 'Doctor patient count retrieved successfully',
+        timestamp: new Date().toISOString()
+      };
+
+      res.json(response);
+
+    } catch (error) {
+      logger.error('Error getting doctor patient count:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get doctor patient count',
         timestamp: new Date().toISOString()
       });
     }

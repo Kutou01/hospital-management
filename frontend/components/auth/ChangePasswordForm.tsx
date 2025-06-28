@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Eye, EyeOff, Loader2, Lock, CheckCircle } from "lucide-react"
-import { supabaseAuth } from "@/lib/auth/supabase-auth"
+import { useAuth } from "@/lib/auth/auth-wrapper"
 import { useToast } from "@/components/ui/toast-provider"
 import { PasswordStrengthIndicator, validatePasswordStrength } from './PasswordStrengthIndicator'
 
@@ -16,6 +16,7 @@ interface ChangePasswordFormProps {
 
 export default function ChangePasswordForm({ className }: ChangePasswordFormProps) {
   const { showToast } = useToast()
+  const { changePassword } = useAuth()
   
   const [formData, setFormData] = useState({
     currentPassword: "",
@@ -69,8 +70,8 @@ export default function ChangePasswordForm({ className }: ChangePasswordFormProp
     setIsLoading(true)
 
     try {
-      // Use the new changePassword method that includes current password verification
-      const result = await supabaseAuth.changePassword(
+      // Use the unified changePassword method
+      const result = await changePassword(
         formData.currentPassword,
         formData.newPassword
       )

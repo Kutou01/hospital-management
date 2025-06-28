@@ -294,3 +294,73 @@ export interface Toast {
   type: 'success' | 'error' | 'warning' | 'info';
   duration?: number;
 }
+
+// Doctor Profile Page Types
+export interface DoctorProfileData {
+  doctor_id: string;
+  profile_id: string;
+  full_name: string;
+  specialty: string;
+  qualification: string;
+  bio: string;
+  phone_number: string;
+  email: string;
+  address: string;
+  avatar_url?: string;
+  rating: number;
+  total_reviews: number;
+  experience_years: number;
+  consultation_fee: number;
+  total_patients: number;
+  total_appointments: number;
+  availability_status: string;
+  department_id: string;
+  license_number: string;
+  gender: string;
+  languages_spoken?: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AppointmentStats {
+  total: number;
+  new_patients: number;
+  follow_ups: number;
+  weekly_data: number[];
+  today_count: number;
+  this_week_count: number;
+  this_month_count: number;
+}
+
+export interface ScheduleItem {
+  id: string;
+  patient_name: string;
+  patient_id: string;
+  appointment_type: string;
+  time: string;
+  date: string;
+  status: 'confirmed' | 'pending' | 'completed' | 'cancelled';
+  notes?: string;
+}
+
+export interface Review {
+  id: string;
+  patient_name: string;
+  patient_id: string;
+  rating: number;
+  comment: string;
+  date: string;
+  avatar?: string;
+  appointment_id?: string;
+}
+
+export interface WorkExperience {
+  id: string;
+  position: string;
+  organization: string;
+  start_date: string;
+  end_date?: string;
+  description?: string;
+  is_current: boolean;
+  type: 'work' | 'education' | 'certification';
+}

@@ -20,10 +20,10 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { useSupabaseAuth } from "@/lib/hooks/useSupabaseAuth"
+import { useAuth } from "@/lib/auth/auth-wrapper"
 
 export default function PatientHealthTracking() {
-  const { user, loading } = useSupabaseAuth()
+  const { user, loading } = useAuth()
   const [selectedPeriod, setSelectedPeriod] = useState("week")
 
   // Mock health data

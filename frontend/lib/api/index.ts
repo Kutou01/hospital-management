@@ -1,6 +1,9 @@
 // Export API client
 export { apiClient, ApiClient, handleApiError, isApiSuccess, getApiError } from './client';
 
+// Export authentication API
+export * from './auth';
+
 // Export all API services
 export * from './doctors';
 export * from './patients';

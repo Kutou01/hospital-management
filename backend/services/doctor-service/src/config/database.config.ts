@@ -1,38 +1,49 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import logger from '@hospital/shared/dist/utils/logger';
 
-let supabaseClient: SupabaseClient | null = null;
+// Environment variables validation
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-export function getSupabase(): SupabaseClient {
-  if (!supabaseClient) {
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (!supabaseUrl) {
+  throw new Error('SUPABASE_URL environment variable is required');
+}
+if (!supabaseServiceKey) {
+  throw new Error('SUPABASE_SERVICE_ROLE_KEY environment variable is required');
+}
 
-    if (!supabaseUrl || !supabaseServiceKey) {
-      const error = 'Missing Supabase configuration. Please check SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.';
-      logger.error(error);
-      throw new Error(error);
-    }
+logger.info('🔧 Supabase configuration loaded', {
+  service: 'doctor-service',
+  url: supabaseUrl,
+  hasServiceKey: !!supabaseServiceKey
+});
 
-    try {
-      supabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      });
-
-      logger.info('Supabase client initialized successfully', {
-        service: 'doctor-service',
-        url: supabaseUrl
-      });
-    } catch (error) {
-      logger.error('Failed to initialize Supabase client', { error });
-      throw error;
+// Service role client (for admin operations) - unified with auth-service pattern
+export const supabaseAdmin: SupabaseClient = createClient(
+  supabaseUrl,
+  supabaseServiceKey,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    },
+    db: {
+      schema: 'public'
+    },
+    global: {
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+        'X-Client-Info': `doctor-service-${Date.now()}`
+      }
     }
   }
+);
 
-  return supabaseClient;
+// Legacy exports for backward compatibility
+export const supabase = supabaseAdmin;
+export function getSupabase(): SupabaseClient {
+  return supabaseAdmin;
 }
 
 export async function testDatabaseConnection(): Promise<boolean> {

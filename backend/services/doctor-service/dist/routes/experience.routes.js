@@ -34,6 +34,7 @@ const validateUpdateExperience = [
     (0, express_validator_1.body)('experience_type').optional().isIn(['work', 'education', 'certification', 'research'])
 ];
 router.get('/doctor/:doctorId', validateDoctorId, doctorController.getDoctorExperiences.bind(doctorController));
+router.get('/:doctorId/experience', validateDoctorId, doctorController.getDoctorExperiences.bind(doctorController));
 router.get('/doctor/:doctorId/timeline', validateDoctorId, doctorController.getExperienceTimeline.bind(doctorController));
 router.get('/doctor/:doctorId/total', validateDoctorId, doctorController.getTotalExperience.bind(doctorController));
 router.post('/', validateCreateExperience, doctorController.createExperience.bind(doctorController));

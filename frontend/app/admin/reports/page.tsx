@@ -12,6 +12,10 @@ import { Label } from '@/components/ui/label';
 import { medicalRecordsApi } from '@/lib/api/medical-records';
 import { prescriptionsApi } from '@/lib/api/prescriptions';
 import { billingApi } from '@/lib/api/billing';
+import { doctorsApi } from '@/lib/api/doctors';
+import { patientsApi } from '@/lib/api/patients';
+import { appointmentsApi } from '@/lib/api/appointments';
+import { toast } from 'react-hot-toast';
 import {
   FileBarChart,
   Download,
@@ -81,30 +85,70 @@ function ReportsPageContent() {
   const fetchReportData = async () => {
     setLoading(true);
     try {
-      const [medicalRecordsResponse, prescriptionsResponse, billingResponse] = await Promise.all([
+      const [
+        medicalRecordsResponse,
+        prescriptionsResponse,
+        billingResponse,
+        doctorsResponse,
+        patientsResponse,
+        appointmentsResponse
+      ] = await Promise.all([
         medicalRecordsApi.getAllMedicalRecords().catch(() => ({ success: false, data: [] })),
         prescriptionsApi.getAllPrescriptions().catch(() => ({ success: false, data: [] })),
-        billingApi.getAllBills().catch(() => ({ success: false, data: [] }))
+        billingApi.getAllBills().catch(() => ({ success: false, data: [] })),
+        doctorsApi.getAll().catch(() => ({ success: false, data: [] })),
+        patientsApi.getAll().catch(() => ({ success: false, data: [] })),
+        appointmentsApi.getAll().catch(() => ({ success: false, data: [] }))
       ]);
 
       // Process medical records data
       const medicalRecords = medicalRecordsResponse.success ? medicalRecordsResponse.data || [] : [];
+      const doctors = doctorsResponse.success ? doctorsResponse.data || [] : [];
+      const patients = patientsResponse.success ? patientsResponse.data || [] : [];
+      const appointments = appointmentsResponse.success ? appointmentsResponse.data || [] : [];
+
+      // Generate real diagnosis data from medical records
+      const diagnosisCount = medicalRecords.reduce((acc, record) => {
+        if (record.diagnosis) {
+          acc[record.diagnosis] = (acc[record.diagnosis] || 0) + 1;
+        }
+        return acc;
+      }, {} as Record<string, number>);
+
+      const topDiagnoses = Object.entries(diagnosisCount)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 5)
+        .map(([diagnosis, count]) => ({ diagnosis, count }));
+
+      // Generate department data based on doctor specializations
+      const departmentCount = doctors.reduce((acc, doctor) => {
+        if (doctor.specialization) {
+          acc[doctor.specialization] = (acc[doctor.specialization] || 0) + 1;
+        }
+        return acc;
+      }, {} as Record<string, number>);
+
+      const byDepartment = Object.entries(departmentCount)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 5)
+        .map(([department, count]) => ({ department, count }));
+
       const medicalRecordsData = {
         total: medicalRecords.length,
         byMonth: generateMonthlyData(medicalRecords, 'created_at'),
-        byDepartment: [
-          { department: 'Cardiology', count: Math.floor(medicalRecords.length * 0.25) },
-          { department: 'Neurology', count: Math.floor(medicalRecords.length * 0.20) },
-          { department: 'Orthopedics', count: Math.floor(medicalRecords.length * 0.18) },
-          { department: 'Pediatrics', count: Math.floor(medicalRecords.length * 0.15) },
-          { department: 'Emergency', count: Math.floor(medicalRecords.length * 0.22) }
+        byDepartment: byDepartment.length > 0 ? byDepartment : [
+          { department: 'Tim mạch', count: Math.floor(medicalRecords.length * 0.25) },
+          { department: 'Thần kinh', count: Math.floor(medicalRecords.length * 0.20) },
+          { department: 'Chấn thương chỉnh hình', count: Math.floor(medicalRecords.length * 0.18) },
+          { department: 'Nhi khoa', count: Math.floor(medicalRecords.length * 0.15) },
+          { department: 'Cấp cứu', count: Math.floor(medicalRecords.length * 0.22) }
         ],
-        topDiagnoses: [
-          { diagnosis: 'Hypertension', count: Math.floor(medicalRecords.length * 0.15) },
-          { diagnosis: 'Diabetes Type 2', count: Math.floor(medicalRecords.length * 0.12) },
-          { diagnosis: 'Common Cold', count: Math.floor(medicalRecords.length * 0.10) },
-          { diagnosis: 'Anxiety Disorder', count: Math.floor(medicalRecords.length * 0.08) },
-          { diagnosis: 'Back Pain', count: Math.floor(medicalRecords.length * 0.07) }
+        topDiagnoses: topDiagnoses.length > 0 ? topDiagnoses : [
+          { diagnosis: 'Tăng huyết áp', count: Math.floor(medicalRecords.length * 0.15) },
+          { diagnosis: 'Tiểu đường type 2', count: Math.floor(medicalRecords.length * 0.12) },
+          { diagnosis: 'Cảm lạnh thông thường', count: Math.floor(medicalRecords.length * 0.10) },
+          { diagnosis: 'Rối loạn lo âu', count: Math.floor(medicalRecords.length * 0.08) },
+          { diagnosis: 'Đau lưng', count: Math.floor(medicalRecords.length * 0.07) }
         ]
       };
 
@@ -125,18 +169,39 @@ function ReportsPageContent() {
 
       // Process billing data
       const bills = billingResponse.success ? billingResponse.data || [] : [];
-      const totalRevenue = bills.reduce((sum, b) => sum + (b.amount_paid || 0), 0);
+      const totalRevenue = bills.reduce((sum, b) => sum + (b.total_amount || 0), 0);
       const paidBills = bills.filter(b => b.status === 'paid').length;
+
+      // Generate real payment method data from bills
+      const paymentMethodCount = bills.reduce((acc, bill) => {
+        if (bill.payments && bill.payments.length > 0) {
+          bill.payments.forEach(payment => {
+            const method = payment.payment_method || 'Unknown';
+            acc[method] = (acc[method] || 0) + payment.amount;
+          });
+        }
+        return acc;
+      }, {} as Record<string, number>);
+
+      const totalPaymentAmount = Object.values(paymentMethodCount).reduce((sum, amount) => sum + amount, 0);
+      const paymentMethods = Object.entries(paymentMethodCount)
+        .map(([method, amount]) => ({
+          method: method.charAt(0).toUpperCase() + method.slice(1),
+          amount,
+          percentage: totalPaymentAmount > 0 ? (amount / totalPaymentAmount) * 100 : 0
+        }))
+        .sort((a, b) => b.amount - a.amount);
+
       const billingData = {
         totalRevenue,
         totalBills: bills.length,
         collectionRate: bills.length > 0 ? (paidBills / bills.length) * 100 : 0,
-        byMonth: generateMonthlyRevenueData(bills, 'bill_date', 'amount_paid'),
-        paymentMethods: [
-          { method: 'Credit Card', amount: totalRevenue * 0.45, percentage: 45 },
-          { method: 'Cash', amount: totalRevenue * 0.25, percentage: 25 },
-          { method: 'Insurance', amount: totalRevenue * 0.20, percentage: 20 },
-          { method: 'Bank Transfer', amount: totalRevenue * 0.10, percentage: 10 }
+        byMonth: generateMonthlyRevenueData(bills, 'bill_date', 'total_amount'),
+        paymentMethods: paymentMethods.length > 0 ? paymentMethods : [
+          { method: 'Thẻ tín dụng', amount: totalRevenue * 0.45, percentage: 45 },
+          { method: 'Tiền mặt', amount: totalRevenue * 0.25, percentage: 25 },
+          { method: 'Bảo hiểm', amount: totalRevenue * 0.20, percentage: 20 },
+          { method: 'Chuyển khoản', amount: totalRevenue * 0.10, percentage: 10 }
         ]
       };
 
@@ -147,6 +212,7 @@ function ReportsPageContent() {
       });
     } catch (error) {
       console.error('Error fetching report data:', error);
+      toast.error('Lỗi khi tải dữ liệu báo cáo');
     } finally {
       setLoading(false);
     }
@@ -207,9 +273,9 @@ function ReportsPageContent() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Reports & Analytics</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Báo cáo & Phân tích</h1>
           <p className="text-gray-600 mt-2">
-            Comprehensive reports and analytics for hospital management
+            Báo cáo và phân tích toàn diện cho quản lý bệnh viện
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -220,11 +286,11 @@ function ReportsPageContent() {
             className="flex items-center gap-2"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
+            Làm mới
           </Button>
           <Button className="flex items-center gap-2">
             <Download className="h-4 w-4" />
-            Export
+            Xuất báo cáo
           </Button>
         </div>
       </div>

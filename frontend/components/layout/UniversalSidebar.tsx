@@ -20,15 +20,17 @@ export interface UniversalSidebarProps {
   onLogout?: () => void;
   className?: string;
   customConfig?: SidebarConfig;
+  compact?: boolean;
 }
 
 interface SidebarItemProps {
   item: MenuItem;
   active: boolean;
   onClick?: () => void;
+  compact?: boolean;
 }
 
-const SidebarItem: React.FC<SidebarItemProps> = ({ item, active, onClick }) => {
+const SidebarItem: React.FC<SidebarItemProps> = ({ item, active, onClick, compact = false }) => {
   const Icon = item.icon;
 
   return (
@@ -36,21 +38,22 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ item, active, onClick }) => {
       href={item.href}
       onClick={onClick}
       className={cn(
-        'flex items-center justify-between px-4 py-3 mx-2 rounded-lg transition-all duration-200 group',
+        'flex items-center justify-between rounded-lg transition-all duration-200 group',
+        compact ? 'px-2 py-2 mx-1' : 'px-4 py-3 mx-2',
         active
           ? 'bg-blue-50 text-blue-600 border-r-4 border-blue-600 shadow-sm'
           : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
       )}
     >
-      <div className="flex items-center space-x-3">
+      <div className={cn("flex items-center", compact ? "space-x-2" : "space-x-3")}>
         <Icon
-          size={20}
+          size={compact ? 16 : 20}
           className={cn(
             'transition-colors',
             active ? 'text-blue-600' : 'text-gray-500 group-hover:text-gray-700'
           )}
         />
-        <span className="font-medium">{item.label}</span>
+        <span className={cn("font-medium", compact ? "text-sm" : "")}>{item.label}</span>
       </div>
       {item.badge && (
         <Badge
@@ -68,14 +71,15 @@ interface SidebarSectionProps {
   section: MenuSection;
   activePage: string;
   onItemClick?: () => void;
+  compact?: boolean;
 }
 
-const SidebarSection: React.FC<SidebarSectionProps> = ({ section, activePage, onItemClick }) => {
+const SidebarSection: React.FC<SidebarSectionProps> = ({ section, activePage, onItemClick, compact = false }) => {
   return (
     <div className="space-y-1">
       {section.title && (
-        <div className="px-4 py-2">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+        <div className={cn("py-2", compact ? "px-2" : "px-4")}>
+          <h3 className={cn("font-semibold text-gray-500 uppercase tracking-wider", compact ? "text-xs" : "text-xs")}>
             {section.title}
           </h3>
         </div>
@@ -86,6 +90,7 @@ const SidebarSection: React.FC<SidebarSectionProps> = ({ section, activePage, on
           item={item}
           active={activePage === item.page}
           onClick={onItemClick}
+          compact={compact}
         />
       ))}
     </div>
@@ -101,6 +106,7 @@ export const UniversalSidebar: React.FC<UniversalSidebarProps> = ({
   onLogout,
   className,
   customConfig,
+  compact = false,
 }) => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const config = customConfig || getSidebarConfig(role);
@@ -131,19 +137,20 @@ export const UniversalSidebar: React.FC<UniversalSidebarProps> = ({
 
       {/* Sidebar */}
       <div className={cn(
-        'fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transition-transform duration-300 ease-in-out flex flex-col',
+        'fixed lg:static inset-y-0 left-0 z-50 bg-white shadow-lg transition-transform duration-300 ease-in-out flex flex-col',
+        compact ? 'w-52' : 'w-64',
         isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
         className
       )}>
         {/* Header */}
-        <div className={cn('p-6 border-b', config.branding.bgColor)}>
-          <div className="flex items-center gap-3">
+        <div className={cn('border-b', config.branding.bgColor, compact ? 'p-4' : 'p-6')}>
+          <div className={cn("flex items-center", compact ? "gap-2" : "gap-3")}>
             {config.branding.logo}
             <div>
-              <h1 className="text-xl font-bold text-gray-900">
+              <h1 className={cn("font-bold text-gray-900", compact ? "text-lg" : "text-xl")}>
                 {config.branding.title}
               </h1>
-              <p className="text-sm text-gray-600">
+              <p className={cn("text-gray-600", compact ? "text-xs" : "text-sm")}>
                 {config.branding.subtitle}
               </p>
             </div>
@@ -151,13 +158,14 @@ export const UniversalSidebar: React.FC<UniversalSidebarProps> = ({
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-6 overflow-y-auto">
+        <nav className={cn("flex-1 overflow-y-auto", compact ? "p-3 space-y-4" : "p-4 space-y-6")}>
           {config.sections.map((section, index) => (
             <SidebarSection
               key={index}
               section={section}
               activePage={activePage}
               onItemClick={closeMobileSidebar}
+              compact={compact}
             />
           ))}
         </nav>

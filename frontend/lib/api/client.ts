@@ -16,45 +16,100 @@ export interface ApiResponse<T> {
 export class ApiClient {
   private baseUrl: string;
 
-  constructor(baseUrl: string = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:3100') {
+  constructor(baseUrl: string = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:3000') {
     this.baseUrl = baseUrl;
   }
 
-  // Get auth token from Supabase
+  // Get auth token from localStorage (Auth Service) or Supabase
   private async getAuthToken(): Promise<string | null> {
+    // First try to get Auth Service token
+    const authServiceToken = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+    if (authServiceToken) {
+      return authServiceToken;
+    }
+
+    // Fallback to Supabase token
     const { data: { session } } = await supabaseClient.auth.getSession();
     return session?.access_token || null;
   }
 
-  // Make HTTP request
+  // Make HTTP request with timeout
   private async makeRequest<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    requireAuth: boolean = true,
+    timeoutMs: number = 30000 // 30 seconds default timeout
   ): Promise<ApiResponse<T>> {
     try {
-      const token = await this.getAuthToken();
-      
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
         ...options.headers,
       };
 
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+      // Only add auth token if required
+      if (requireAuth) {
+        const token = await this.getAuthToken();
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
       }
 
-      const response = await fetch(`${this.baseUrl}/api${endpoint}`, {
-        ...options,
-        headers,
-      });
+      // Create abort controller for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
+      try {
+        // Properly encode the URL to handle special characters in IDs
+        const fullUrl = `${this.baseUrl}/api${endpoint}`;
+        console.log('🌐 [ApiClient] Making request to:', fullUrl);
+
+        const response = await fetch(fullUrl, {
+          ...options,
+          headers,
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+        return await this.handleResponse<T>(response);
+      } catch (error) {
+        clearTimeout(timeoutId);
+        if (error instanceof Error && error.name === 'AbortError') {
+          throw new Error(`Request timeout after ${timeoutMs}ms`);
+        }
+        throw error;
+      }
+    } catch (error) {
+      console.error('API Request Error:', error);
+      return {
+        success: false,
+        error: {
+          message: error instanceof Error ? error.message : 'Network error',
+        },
+      };
+    }
+  }
+
+  // Handle response parsing
+  private async handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
+    try {
       const data = await response.json();
 
       if (response.ok) {
-        return {
-          success: true,
-          data: data.data || data,
-        };
+        // Handle different response formats
+        if (data.success !== undefined) {
+          // Backend service response format
+          return {
+            success: data.success,
+            data: data.data || data,
+            meta: data.pagination || data.meta,
+          };
+        } else {
+          // Direct data response
+          return {
+            success: true,
+            data: data.data || data,
+          };
+        }
       } else {
         return {
           success: false,
@@ -65,10 +120,11 @@ export class ApiClient {
         };
       }
     } catch (error) {
+      console.error('Response parsing error:', error);
       return {
         success: false,
         error: {
-          message: error instanceof Error ? error.message : 'Network error',
+          message: error instanceof Error ? error.message : 'Response parsing error',
         },
       };
     }
@@ -76,25 +132,31 @@ export class ApiClient {
 
   // HTTP methods
   async get<T>(endpoint: string, params?: Record<string, any>): Promise<ApiResponse<T>> {
-    const url = new URL(`${this.baseUrl}/api${endpoint}`);
+    let finalEndpoint = endpoint;
+
     if (params) {
+      const searchParams = new URLSearchParams();
       Object.keys(params).forEach(key => {
         if (params[key] !== undefined && params[key] !== null) {
-          url.searchParams.append(key, String(params[key]));
+          searchParams.append(key, String(params[key]));
         }
       });
+
+      if (searchParams.toString()) {
+        finalEndpoint += `?${searchParams.toString()}`;
+      }
     }
 
-    return this.makeRequest<T>(endpoint + (url.search ? `?${url.searchParams}` : ''), {
+    return this.makeRequest<T>(finalEndpoint, {
       method: 'GET',
     });
   }
 
-  async post<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
+  async post<T>(endpoint: string, data?: any, requireAuth: boolean = true): Promise<ApiResponse<T>> {
     return this.makeRequest<T>(endpoint, {
       method: 'POST',
       body: data ? JSON.stringify(data) : undefined,
-    });
+    }, requireAuth);
   }
 
   async put<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
@@ -117,11 +179,11 @@ export class ApiClient {
     });
   }
 
-  // File upload method
-  async uploadFile<T>(endpoint: string, file: File): Promise<ApiResponse<T>> {
+  // File upload method with timeout
+  async uploadFile<T>(endpoint: string, file: File, timeoutMs: number = 60000): Promise<ApiResponse<T>> {
     try {
       const token = await this.getAuthToken();
-      
+
       const formData = new FormData();
       formData.append('file', file);
 
@@ -130,11 +192,18 @@ export class ApiClient {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
+      // Create abort controller for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
       const response = await fetch(`${this.baseUrl}/api${endpoint}`, {
         method: 'POST',
         headers,
         body: formData,
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       const data = await response.json();
 

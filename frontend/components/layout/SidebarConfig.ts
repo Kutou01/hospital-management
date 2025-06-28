@@ -12,6 +12,7 @@ import {
   Pill,
   Receipt,
   LayoutDashboard,
+  Layout,
   Stethoscope,
   Users,
   Clock,
@@ -171,18 +172,18 @@ export const adminSidebarConfig: SidebarConfig = {
   ],
 };
 
-// Doctor Sidebar Configuration
+// Doctor Sidebar Configuration - Updated for new structure
 export const doctorSidebarConfig: SidebarConfig = {
   branding: {
     logo: React.createElement('div', {
-      className: 'p-2 bg-green-100 rounded-lg'
+      className: 'p-2 bg-blue-100 rounded-lg'
     }, React.createElement(Stethoscope, {
-      className: 'h-6 w-6 text-green-600'
+      className: 'h-6 w-6 text-blue-600'
     })),
     title: 'Doctor Portal',
     subtitle: 'Hospital Management',
-    bgColor: 'bg-green-50',
-    iconColor: 'text-green-600',
+    bgColor: 'bg-blue-50',
+    iconColor: 'text-blue-600',
   },
   sections: [
     {
@@ -196,81 +197,57 @@ export const doctorSidebarConfig: SidebarConfig = {
       ],
     },
     {
-      title: 'Patient Care',
+      title: 'Core Functions',
       items: [
         {
-          icon: Calendar,
-          label: 'My Schedule',
-          href: '/doctors/schedule',
-          page: 'schedule',
+          icon: User,
+          label: 'Hồ sơ cá nhân',
+          href: '/doctors/profile',
+          page: 'profile',
         },
         {
           icon: Users,
-          label: 'My Patients',
+          label: 'Quản lý bệnh nhân',
           href: '/doctors/patients',
           page: 'patients',
         },
         {
-          icon: Clock,
-          label: 'Appointments',
-          href: '/doctors/appointments',
-          page: 'appointments',
+          icon: Calendar,
+          label: 'Lịch làm việc',
+          href: '/doctors/schedule',
+          page: 'schedule',
         },
-        {
-          icon: FileText,
-          label: 'Medical Records',
-          href: '/doctors/medical-records',
-          page: 'medical-records',
-        },
-      ],
-    },
-    {
-      title: 'Clinical Tools',
-      items: [
         {
           icon: Pill,
-          label: 'Prescriptions',
+          label: 'Kê đơn thuốc',
           href: '/doctors/prescriptions',
           page: 'prescriptions',
         },
-        {
-          icon: Activity,
-          label: 'Lab Results',
-          href: '/doctors/lab-results',
-          page: 'lab-results',
-        },
-        {
-          icon: ClipboardList,
-          label: 'Treatment Plans',
-          href: '/doctors/treatment-plans',
-          page: 'treatment-plans',
-        },
       ],
     },
     {
-      title: 'Communication',
+      title: 'Analytics & Management',
       items: [
         {
-          icon: MessageCircle,
-          label: 'Messages',
-          href: '/doctors/messages',
-          page: 'messages',
-          badge: '3',
-          badgeVariant: 'destructive',
+          icon: BarChart3,
+          label: 'Thống kê',
+          href: '/doctors/analytics',
+          page: 'analytics',
         },
         {
-          icon: Phone,
-          label: 'Consultations',
-          href: '/doctors/consultations',
-          page: 'consultations',
+          icon: FileText,
+          label: 'Chứng chỉ',
+          href: '/doctors/certificates',
+          page: 'certificates',
         },
       ],
     },
     {
+      title: 'System',
       items: [
         {
           icon: Settings,
-          label: 'Settings',
+          label: 'Cài đặt',
           href: '/doctors/settings',
           page: 'settings',
         },

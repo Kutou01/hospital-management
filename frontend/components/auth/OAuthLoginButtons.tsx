@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Loader2 } from 'lucide-react'
 import { useToast } from "@/components/ui/toast-provider"
-import { SupabaseEnhancedAuth } from "@/lib/auth/supabase-enhanced-auth"
+import { authServiceApi } from "@/lib/api/auth"
 
 interface OAuthLoginButtonsProps {
   className?: string
@@ -24,14 +24,18 @@ export function OAuthLoginButtons({
 
   const handleOAuthLogin = async (provider: 'google' | 'github' | 'facebook' | 'apple') => {
     setLoadingProvider(provider)
-    
+
     try {
-      const result = await SupabaseEnhancedAuth.signInWithOAuth(provider)
-      
-      if (result.error) {
-        showToast("❌ Lỗi", result.error, "error")
+      const result = await authServiceApi.initiateOAuth(provider)
+
+      if (!result.success) {
+        showToast("❌ Lỗi", result.error?.message || `Không thể đăng nhập với ${provider}`, "error")
       } else {
         showToast("🔄 Đang chuyển hướng", `Đang đăng nhập với ${provider}...`, "success")
+        // Redirect to OAuth URL
+        if (result.data?.url) {
+          window.location.href = result.data.url
+        }
       }
     } catch (error) {
       console.error(`OAuth login error with ${provider}:`, error)

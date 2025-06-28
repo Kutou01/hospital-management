@@ -30,8 +30,6 @@ export interface MedicationInfo {
 export interface Patient {
     patient_id: string;
     profile_id: string;
-    full_name: string;
-    date_of_birth: string;
     gender: 'male' | 'female' | 'other';
     blood_type?: string;
     address?: Address;
@@ -39,6 +37,7 @@ export interface Patient {
     insurance_info?: InsuranceInfo;
     medical_history?: string;
     allergies?: string[];
+    chronic_conditions?: string[];
     current_medications?: MedicationInfo;
     status: 'active' | 'inactive' | 'suspended';
     notes?: string;
@@ -50,6 +49,8 @@ export interface PatientWithProfile extends Patient {
     profile?: {
         id: string;
         email: string;
+        full_name: string;
+        date_of_birth?: string;
         phone_number?: string;
         role: string;
         is_active: boolean;

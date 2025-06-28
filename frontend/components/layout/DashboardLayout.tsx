@@ -22,8 +22,8 @@ import {
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { SidebarItem } from "@/components/shared-components"
-import { useEnhancedAuth } from "@/lib/auth/enhanced-auth-context"
-import { HospitalUser } from "@/lib/auth/supabase-auth"
+import { useAuth } from "@/lib/auth/auth-wrapper"
+import { UnifiedUser } from "@/lib/auth/unified-auth-context"
 
 type UserRole = 'admin' | 'doctor' | 'patient' | 'nurse' | 'receptionist'
 
@@ -186,7 +186,7 @@ const getMenuItems = (role: UserRole) => {
 }
 
 export function DashboardLayout({ children, title, activePage }: DashboardLayoutProps) {
-  const { user, signOut } = useEnhancedAuth()
+  const { user, signOut } = useAuth()
   const logout = () => signOut()
 
   if (!user) {
@@ -249,7 +249,7 @@ export function DashboardLayout({ children, title, activePage }: DashboardLayout
               <Avatar>
                 <AvatarImage src="/placeholder.svg?height=32&width=32" alt={user.full_name} />
                 <AvatarFallback>
-                  {user.full_name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                  {user.full_name ? user.full_name.split(' ').map(n => n[0]).join('').toUpperCase() : 'U'}
                 </AvatarFallback>
               </Avatar>
               <div className="hidden md:block">

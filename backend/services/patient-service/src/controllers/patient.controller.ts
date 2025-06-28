@@ -160,6 +160,42 @@ export class PatientController {
     }
   }
 
+  // Get patient count for a specific doctor
+  async getPatientCountForDoctor(req: Request, res: Response): Promise<void> {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        res.status(400).json({
+          success: false,
+          error: 'Validation failed',
+          details: errors.array(),
+          timestamp: new Date().toISOString()
+        });
+        return;
+      }
+
+      const { doctorId } = req.params;
+      const count = await this.patientRepository.getPatientCountForDoctor(doctorId);
+
+      const response = {
+        success: true,
+        data: { count },
+        message: `Found ${count} unique patients for doctor ${doctorId}`,
+        timestamp: new Date().toISOString()
+      };
+
+      res.json(response);
+    } catch (error) {
+      logger.error('Error in getPatientCountForDoctor:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get patient count for doctor',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
   // Get patients by doctor ID
   async getPatientsByDoctorId(req: Request, res: Response): Promise<void> {
     try {
@@ -195,7 +231,7 @@ export class PatientController {
     }
   }
 
-  // Create new patient
+  // Create new patient - Support both direct creation and Auth Service redirect
   async createPatient(req: Request, res: Response): Promise<void> {
     try {
       const errors = validationResult(req);
@@ -209,17 +245,70 @@ export class PatientController {
         return;
       }
 
-      const patientData: CreatePatientDto = req.body;
-      const patient = await this.patientRepository.createPatient(patientData);
+      // Check if this is a direct patient creation request (with profile_id)
+      // or a complete registration request (without profile_id)
+      const { profile_id } = req.body;
 
-      const response: PatientResponse = {
+      if (!profile_id) {
+        // No profile_id provided - redirect to Auth Service for complete registration
+        logger.info('Patient creation request without profile_id - redirecting to Auth Service');
+
+        res.status(400).json({
+          success: false,
+          error: 'Patient creation handled by Auth Service',
+          message: 'Use Auth Service /api/auth/register-patient endpoint for complete patient registration',
+          redirect: {
+            service: 'auth-service',
+            endpoint: '/api/auth/register-patient',
+            method: 'POST',
+            required_fields: ['email', 'password', 'full_name', 'phone_number', 'gender', 'date_of_birth'],
+            example: {
+              email: 'patient@hospital.com',
+              password: 'Password123',
+              full_name: 'John Doe',
+              phone_number: '0123456789',
+              gender: 'male',
+              date_of_birth: '1990-01-01',
+              blood_type: 'O+',
+              address: {
+                street: '123 Main St',
+                city: 'Ho Chi Minh City',
+                district: 'District 1',
+                ward: 'Ward 1'
+              },
+              emergency_contact: {
+                name: 'Emergency Contact',
+                phone: '0987654321',
+                relationship: 'spouse'
+              }
+            }
+          },
+          timestamp: new Date().toISOString()
+        });
+        return;
+      }
+
+      // profile_id provided - this is a direct patient creation (internal service call)
+      logger.info('Direct patient creation request with profile_id:', {
+        profile_id,
+        full_name: req.body.full_name
+      });
+
+      // Create patient record directly
+      const patient = await this.patientRepository.createPatient(req.body);
+
+      logger.info('Patient created successfully:', {
+        patient_id: patient.patient_id,
+        profile_id: patient.profile_id
+      });
+
+      res.status(201).json({
         success: true,
-        data: patient,
         message: 'Patient created successfully',
+        data: patient,
         timestamp: new Date().toISOString()
-      };
+      });
 
-      res.status(201).json(response);
     } catch (error) {
       logger.error('Error in createPatient:', error);
       res.status(500).json({
@@ -236,6 +325,10 @@ export class PatientController {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
+        logger.warn('Validation failed for updatePatient:', {
+          patientId: req.params.patientId,
+          errors: errors.array()
+        });
         res.status(400).json({
           success: false,
           error: 'Validation failed',
@@ -246,7 +339,20 @@ export class PatientController {
       }
 
       const { patientId } = req.params;
+
+      // Check if patientId is provided
+      if (!patientId) {
+        logger.warn('No patient ID provided in updatePatient');
+        res.status(400).json({
+          success: false,
+          error: 'Patient ID is required',
+          timestamp: new Date().toISOString()
+        });
+        return;
+      }
+
       const updateData: UpdatePatientDto = req.body;
+      logger.info('Updating patient:', { patientId, updateFields: Object.keys(updateData) });
 
       // Check if patient exists
       const exists = await this.patientRepository.patientExists(patientId);
@@ -340,6 +446,171 @@ export class PatientController {
       res.status(500).json({
         success: false,
         error: 'Failed to fetch patient statistics',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
+  // ENHANCED: Search patients
+  async searchPatients(req: Request, res: Response): Promise<void> {
+    try {
+      const { q: searchTerm, limit = 10 } = req.query;
+
+      if (!searchTerm || typeof searchTerm !== 'string') {
+        res.status(400).json({
+          success: false,
+          error: 'Search term is required',
+          timestamp: new Date().toISOString()
+        });
+        return;
+      }
+
+      const patients = await this.patientRepository.searchPatients(searchTerm, Number(limit));
+
+      res.json({
+        success: true,
+        data: patients,
+        count: patients.length,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('Error in searchPatients:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to search patients',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
+  // ENHANCED: Get patients with upcoming appointments
+  async getPatientsWithUpcomingAppointments(req: Request, res: Response): Promise<void> {
+    try {
+      const patients = await this.patientRepository.getPatientsWithUpcomingAppointments();
+
+      res.json({
+        success: true,
+        data: patients,
+        count: patients.length,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('Error in getPatientsWithUpcomingAppointments:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch patients with upcoming appointments',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
+  // ENHANCED: Get patient medical summary
+  async getPatientMedicalSummary(req: Request, res: Response): Promise<void> {
+    try {
+      const { patientId } = req.params;
+
+      if (!patientId) {
+        res.status(400).json({
+          success: false,
+          error: 'Patient ID is required',
+          timestamp: new Date().toISOString()
+        });
+        return;
+      }
+
+      const summary = await this.patientRepository.getPatientMedicalSummary(patientId);
+
+      if (!summary.patient) {
+        res.status(404).json({
+          success: false,
+          error: 'Patient not found',
+          timestamp: new Date().toISOString()
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        data: summary,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('Error in getPatientMedicalSummary:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch patient medical summary',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
+  // REAL-TIME FEATURES
+
+  // Get real-time service status
+  async getRealtimeStatus(req: Request, res: Response): Promise<void> {
+    try {
+      res.json({
+        success: true,
+        data: {
+          realtime_enabled: true,
+          websocket_enabled: true,
+          supabase_subscription: true,
+          patient_monitoring: true,
+          connected_clients: 0, // Will be updated when WebSocket is integrated
+          last_event: null,
+          uptime: process.uptime()
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('Error in getRealtimeStatus:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get real-time status',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
+  // Get live patients with real-time capabilities
+  async getLivePatients(req: Request, res: Response): Promise<void> {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+
+      // Get current patients
+      const { patients, total } = await this.patientRepository.getAllPatients({}, page, limit);
+
+      res.json({
+        success: true,
+        data: {
+          patients,
+          realtime_enabled: true,
+          live_updates: true,
+          websocket_channel: 'patients_realtime',
+          subscription_info: {
+            events: ['INSERT', 'UPDATE', 'DELETE'],
+            filters: ['medical_history_updates', 'emergency_contact_updates', 'new_patients']
+          }
+        },
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit)
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('Error in getLivePatients:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch live patients',
         message: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString()
       });

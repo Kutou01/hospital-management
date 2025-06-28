@@ -1,6 +1,6 @@
-"use client"
+'use client';
 
-import { useState } from "react"
+import { useState } from 'react';
 import {
   Settings,
   User,
@@ -9,62 +9,67 @@ import {
   Shield,
   Monitor,
   Save,
-  AlertCircle
-} from "lucide-react"
-import { DoctorLayout } from "@/components/layout/UniversalLayout"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { useEnhancedAuth } from "@/lib/auth/enhanced-auth-context"
-import ChangePasswordForm from "@/components/auth/ChangePasswordForm"
+  AlertCircle,
+  Smartphone,
+  Mail,
+  Globe,
+  Palette,
+  Database
+} from 'lucide-react';
+import { RoleBasedLayout } from '@/components/layout/RoleBasedLayout';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useEnhancedAuth } from '@/lib/auth/auth-wrapper';
+import ChangePasswordForm from '@/components/auth/ChangePasswordForm';
 
 export default function DoctorSettings() {
-  const { user, loading } = useEnhancedAuth()
-  const [saveSuccess, setSaveSuccess] = useState<boolean | null>(null)
-  const [activeTab, setActiveTab] = useState("account")
+  const { user, loading } = useEnhancedAuth();
+  const [saveSuccess, setSaveSuccess] = useState<boolean | null>(null);
+  const [activeTab, setActiveTab] = useState('account');
 
   const handleSaveSettings = () => {
-    setSaveSuccess(true)
+    setSaveSuccess(true);
     setTimeout(() => {
-      setSaveSuccess(null)
-    }, 3000)
-  }
+      setSaveSuccess(null);
+    }, 3000);
+  };
 
   if (loading) {
     return (
-      <DoctorLayout title="Settings" activePage="settings">
+      <RoleBasedLayout title="Cài đặt" activePage="settings">
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
-      </DoctorLayout>
-    )
+      </RoleBasedLayout>
+    );
   }
 
   if (!user || user.role !== 'doctor') {
     return (
-      <DoctorLayout title="Settings" activePage="settings">
+      <RoleBasedLayout title="Cài đặt" activePage="settings">
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <p className="text-gray-600">Access denied. Doctor role required.</p>
+            <p className="text-gray-600">Truy cập bị từ chối. Cần quyền bác sĩ.</p>
           </div>
         </div>
-      </DoctorLayout>
-    )
+      </RoleBasedLayout>
+    );
   }
 
   return (
-    <DoctorLayout title="Settings" activePage="settings">
+    <RoleBasedLayout title="Cài đặt" activePage="settings">
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Settings</h2>
-          <p className="text-gray-600">Manage your account and preferences</p>
+          <h2 className="text-2xl font-bold text-gray-900">Cài đặt</h2>
+          <p className="text-gray-600">Quản lý cài đặt tài khoản và tùy chọn cá nhân</p>
         </div>
 
         {/* Success/Error Alert */}
@@ -83,28 +88,28 @@ export default function DoctorSettings() {
         {/* Settings Tabs */}
         <Tabs defaultValue="account" value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <div className="flex justify-between items-center">
-            <TabsList className="grid grid-cols-4 w-[400px]">
+            <TabsList className="grid grid-cols-4 w-[450px]">
               <TabsTrigger value="account" className="flex items-center gap-2">
                 <User size={16} />
-                <span className="hidden sm:inline">Account</span>
+                <span className="hidden sm:inline">Tài khoản</span>
               </TabsTrigger>
               <TabsTrigger value="security" className="flex items-center gap-2">
                 <Lock size={16} />
-                <span className="hidden sm:inline">Security</span>
+                <span className="hidden sm:inline">Bảo mật</span>
               </TabsTrigger>
               <TabsTrigger value="notifications" className="flex items-center gap-2">
                 <Bell size={16} />
-                <span className="hidden sm:inline">Notifications</span>
+                <span className="hidden sm:inline">Thông báo</span>
               </TabsTrigger>
               <TabsTrigger value="preferences" className="flex items-center gap-2">
                 <Monitor size={16} />
-                <span className="hidden sm:inline">Preferences</span>
+                <span className="hidden sm:inline">Tùy chọn</span>
               </TabsTrigger>
             </TabsList>
 
-            <Button onClick={handleSaveSettings} className="bg-green-600 hover:bg-green-700">
+            <Button onClick={handleSaveSettings} className="bg-blue-600 hover:bg-blue-700">
               <Save size={16} className="mr-2" />
-              Save Changes
+              Lưu thay đổi
             </Button>
           </div>
 
@@ -386,6 +391,6 @@ export default function DoctorSettings() {
           </TabsContent>
         </Tabs>
       </div>
-    </DoctorLayout>
-  )
+    </RoleBasedLayout>
+  );
 }

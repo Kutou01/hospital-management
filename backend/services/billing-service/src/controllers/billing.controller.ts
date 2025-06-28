@@ -4,6 +4,15 @@ import { logger } from '@hospital/shared';
 import { validationResult } from 'express-validator';
 import Stripe from 'stripe';
 
+// Extend Request interface to include user
+interface AuthenticatedRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
+
 export class BillingController {
   private billingRepository: BillingRepository;
   private stripe: Stripe;
@@ -88,7 +97,7 @@ export class BillingController {
     }
   }
 
-  async createBill(req: Request, res: Response): Promise<void> {
+  async createBill(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -168,7 +177,7 @@ export class BillingController {
   }
 
   // Payment endpoints
-  async createPayment(req: Request, res: Response): Promise<void> {
+  async createPayment(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -258,7 +267,7 @@ export class BillingController {
     }
   }
 
-  async confirmPayment(req: Request, res: Response): Promise<void> {
+  async confirmPayment(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { paymentIntentId, billId } = req.body;
 

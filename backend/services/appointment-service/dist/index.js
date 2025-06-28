@@ -9,11 +9,15 @@ const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
 const morgan_1 = __importDefault(require("morgan"));
+const http_1 = require("http");
 const logger_1 = __importDefault(require("@hospital/shared/dist/utils/logger"));
 const appointment_routes_1 = __importDefault(require("./routes/appointment.routes"));
+const realtime_service_1 = require("./services/realtime.service");
 const app = (0, express_1.default)();
+const httpServer = (0, http_1.createServer)(app);
 const PORT = process.env.PORT || 3004;
 const SERVICE_NAME = 'appointment-service';
+const realtimeService = new realtime_service_1.AppointmentRealtimeService();
 app.use((0, helmet_1.default)());
 app.use((0, cors_1.default)());
 app.use((0, morgan_1.default)('combined'));
@@ -24,7 +28,12 @@ app.get('/health', (req, res) => {
         service: 'Hospital Appointment Service',
         status: 'healthy',
         timestamp: new Date().toISOString(),
-        version: '1.0.0',
+        version: '2.0.0',
+        features: {
+            realtime: realtimeService.isRealtimeConnected(),
+            websocket: true,
+            supabase_integration: true
+        }
     });
 });
 app.use('/api/appointments', appointment_routes_1.default);
@@ -56,15 +65,37 @@ app.use((err, req, res, next) => {
         message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong',
     });
 });
-app.listen(PORT, () => {
-    logger_1.default.info(`🚀 Appointment Service running on port ${PORT}`, {
-        service: SERVICE_NAME,
-        port: PORT,
-        environment: process.env.NODE_ENV || 'development',
-    });
-});
-const gracefulShutdown = (signal) => {
+async function startServer() {
+    try {
+        httpServer.listen(PORT, () => {
+            logger_1.default.info(`🚀 Appointment Service with Real-time running on port ${PORT}`, {
+                service: SERVICE_NAME,
+                port: PORT,
+                environment: process.env.NODE_ENV || 'development',
+                features: {
+                    realtime: true,
+                    websocket: true,
+                    supabase: true
+                }
+            });
+        });
+        await realtimeService.initialize(httpServer);
+    }
+    catch (error) {
+        logger_1.default.error('❌ Failed to start Appointment Service:', error);
+        process.exit(1);
+    }
+}
+startServer();
+const gracefulShutdown = async (signal) => {
     logger_1.default.info(`Received ${signal}, shutting down gracefully`);
+    try {
+        await realtimeService.disconnect();
+        logger_1.default.info('✅ Real-time service disconnected');
+    }
+    catch (error) {
+        logger_1.default.error('❌ Error during real-time service shutdown:', error);
+    }
     process.exit(0);
 };
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));

@@ -4,17 +4,17 @@
 
 import { body, param, query } from 'express-validator';
 
-// Vietnam-specific format patterns
+// Vietnam-specific format patterns - UPDATED to use Department-Based ID System
 export const VIETNAM_PATTERNS = {
-  // ID Patterns (simplified, no year)
-  DOCTOR_ID: /^DOC\d{6}$/,                    // DOC000001
-  PATIENT_ID: /^BN\d{6}$/,                    // BN000001 (Bệnh nhân)
-  APPOINTMENT_ID: /^LK\d{6}$/,                // LK000001 (Lịch khám)
-  DEPARTMENT_ID: /^KHOA\d{6}$/,               // KHOA000001
-  ROOM_ID: /^PHONG\d{6}$/,                    // PHONG000001
-  MEDICAL_RECORD_ID: /^HSBA\d{6}$/,           // HSBA000001 (Hồ sơ bệnh án)
-  PRESCRIPTION_ID: /^TOA\d{6}$/,              // TOA000001 (Toa thuốc)
-  BILLING_ID: /^HD\d{6}$/,                    // HD000001 (Hóa đơn)
+  // ID Patterns - Consistent with shared validators
+  DOCTOR_ID: /^[A-Z]{4}-DOC-\d{6}-\d{3}$/,           // CARD-DOC-202506-001
+  PATIENT_ID: /^PAT-\d{6}-\d{3}$/,                    // PAT-202506-001
+  APPOINTMENT_ID: /^[A-Z]{4}-APT-\d{6}-\d{3}$/,       // CARD-APT-202506-001
+  DEPARTMENT_ID: /^DEPT\d{3}$/,                       // DEPT001
+  ROOM_ID: /^ROOM\d+$/,                               // ROOM1747555777
+  MEDICAL_RECORD_ID: /^[A-Z]{4}-MR-\d{6}-\d{3}$/,     // CARD-MR-202506-001
+  PRESCRIPTION_ID: /^[A-Z]{4}-RX-\d{6}-\d{3}$/,       // CARD-RX-202506-001
+  BILLING_ID: /^[A-Z]{4}-BILL-\d{6}-\d{3}$/,          // CARD-BILL-202506-001
   
   // Contact Patterns (Vietnam specific)
   PHONE_VN: /^0[0-9]{9}$/,                    // 10 digits starting with 0
@@ -92,7 +92,7 @@ export const VIETNAM_RANGES = {
 export const validateDoctorId = [
   param('doctorId')
     .matches(VIETNAM_PATTERNS.DOCTOR_ID)
-    .withMessage('Mã bác sĩ phải có định dạng DOC + 6 chữ số (VD: DOC000001)')
+    .withMessage('Mã bác sĩ phải có định dạng DEPT-DOC-YYYYMM-XXX (VD: CARD-DOC-202506-001)')
 ];
 
 export const validateCreateDoctor = [
@@ -157,17 +157,10 @@ export const validateCreateDoctor = [
 // PATIENT VALIDATION (Vietnam)
 // ============================================================================
 
-export const validatePatientId = [
-  param('patientId')
-    .matches(VIETNAM_PATTERNS.PATIENT_ID)
-    .withMessage('Mã bệnh nhân phải có định dạng BN + 6 chữ số (VD: BN000001)')
-];
+// validatePatientId removed - using department-based ID system
 
 export const validateCreatePatient = [
-  body('patient_id')
-    .optional()
-    .matches(VIETNAM_PATTERNS.PATIENT_ID)
-    .withMessage('Mã bệnh nhân không hợp lệ'),
+  // patient_id validation removed - using department-based ID system
 
   body('ho_ten')
     .notEmpty()
@@ -236,7 +229,7 @@ export const validateCreatePatient = [
 export const validateAppointmentId = [
   param('appointmentId')
     .matches(VIETNAM_PATTERNS.APPOINTMENT_ID)
-    .withMessage('Mã lịch khám phải có định dạng LK + 6 chữ số (VD: LK000001)')
+    .withMessage('Mã lịch khám phải có định dạng DEPT-APT-YYYYMM-XXX (VD: CARD-APT-202506-001)')
 ];
 
 export const validateCreateAppointment = [
@@ -245,9 +238,7 @@ export const validateCreateAppointment = [
     .matches(VIETNAM_PATTERNS.APPOINTMENT_ID)
     .withMessage('Mã lịch khám không hợp lệ'),
 
-  body('ma_benh_nhan')
-    .matches(VIETNAM_PATTERNS.PATIENT_ID)
-    .withMessage('Mã bệnh nhân không hợp lệ'),
+  // ma_benh_nhan validation removed - using department-based ID system
 
   body('ma_bac_si')
     .matches(VIETNAM_PATTERNS.DOCTOR_ID)
@@ -331,7 +322,7 @@ export const formatVietnamLicense = (license: string): string => {
 
 export const VIETNAM_UNIQUE_CONSTRAINTS = {
   doctors: ['doctor_id', 'email', 'so_bang_cap'],
-  patients: ['patient_id', 'email', 'so_cccd', 'so_cmnd', 'so_the_bhyt'],
+  patients: ['email', 'so_cccd', 'so_cmnd', 'so_the_bhyt'], // patient_id removed - using department-based ID
   appointments: ['appointment_id'],
   departments: ['department_id', 'ten_khoa'],
   rooms: ['room_id', 'so_phong'],
@@ -355,7 +346,7 @@ export default {
   VIETNAM_RANGES,
   validateDoctorId,
   validateCreateDoctor,
-  validatePatientId,
+  // validatePatientId removed - using department-based ID system
   validateCreatePatient,
   validateAppointmentId,
   validateCreateAppointment,

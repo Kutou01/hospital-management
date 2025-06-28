@@ -32,4 +32,32 @@ export const appointmentsApi = {
   updateStatus: async (id: string, status: Appointment['status']): Promise<ApiResponse<Appointment>> => {
     return apiClient.patch<Appointment>(`/appointments/${id}/status`, { status });
   },
+
+  // Get appointments by patient ID
+  getByPatientId: async (patientId: string): Promise<ApiResponse<Appointment[]>> => {
+    return apiClient.get<Appointment[]>(`/appointments/patient/${patientId}`);
+  },
+
+  // Get appointments by doctor ID
+  getByDoctorId: async (doctorId: string): Promise<ApiResponse<Appointment[]>> => {
+    return apiClient.get<Appointment[]>(`/appointments/doctor/${doctorId}`);
+  },
+
+  // Get available time slots for a doctor on a specific date
+  getAvailableSlots: async (doctorId: string, date: string): Promise<ApiResponse<string[]>> => {
+    return apiClient.get<string[]>(`/appointments/available-slots`, { doctorId, date });
+  },
+
+  // Cancel appointment
+  cancel: async (id: string, reason?: string): Promise<ApiResponse<Appointment>> => {
+    return apiClient.patch<Appointment>(`/appointments/${id}/cancel`, { reason });
+  },
+
+  // Reschedule appointment
+  reschedule: async (id: string, newDate: string, newTime: string): Promise<ApiResponse<Appointment>> => {
+    return apiClient.patch<Appointment>(`/appointments/${id}/reschedule`, {
+      appointment_date: newDate,
+      appointment_time: newTime
+    });
+  },
 };

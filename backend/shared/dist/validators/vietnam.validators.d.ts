@@ -87,7 +87,6 @@ export declare const VIETNAM_RANGES: {
 };
 export declare const validateDoctorId: import("express-validator").ValidationChain[];
 export declare const validateCreateDoctor: import("express-validator").ValidationChain[];
-export declare const validatePatientId: import("express-validator").ValidationChain[];
 export declare const validateCreatePatient: import("express-validator").ValidationChain[];
 export declare const validateAppointmentId: import("express-validator").ValidationChain[];
 export declare const validateCreateAppointment: import("express-validator").ValidationChain[];
@@ -201,7 +200,6 @@ declare const _default: {
     };
     validateDoctorId: import("express-validator").ValidationChain[];
     validateCreateDoctor: import("express-validator").ValidationChain[];
-    validatePatientId: import("express-validator").ValidationChain[];
     validateCreatePatient: import("express-validator").ValidationChain[];
     validateAppointmentId: import("express-validator").ValidationChain[];
     validateCreateAppointment: import("express-validator").ValidationChain[];

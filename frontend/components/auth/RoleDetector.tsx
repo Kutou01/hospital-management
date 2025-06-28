@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useEnhancedAuth } from '@/lib/auth/enhanced-auth-context';
+import { useAuth } from '@/lib/auth/auth-wrapper';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

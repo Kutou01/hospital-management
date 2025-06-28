@@ -10,6 +10,8 @@ const schedule_repository_1 = require("../repositories/schedule.repository");
 const review_repository_1 = require("../repositories/review.repository");
 const shift_repository_1 = require("../repositories/shift.repository");
 const experience_repository_1 = require("../repositories/experience.repository");
+const appointment_service_1 = require("../services/appointment.service");
+const patient_service_1 = require("../services/patient.service");
 const logger_1 = __importDefault(require("@hospital/shared/dist/utils/logger"));
 class DoctorController {
     constructor() {
@@ -18,30 +20,44 @@ class DoctorController {
         this.reviewRepository = new review_repository_1.ReviewRepository();
         this.shiftRepository = new shift_repository_1.ShiftRepository();
         this.experienceRepository = new experience_repository_1.ExperienceRepository();
+        this.appointmentService = new appointment_service_1.AppointmentService();
+        this.patientService = new patient_service_1.PatientService();
     }
     async getAllDoctors(req, res) {
         try {
-            const page = parseInt(req.query.page) || 1;
-            const limit = parseInt(req.query.limit) || 50;
+            const page = Math.max(parseInt(req.query.page) || 1, 1);
+            const limit = Math.min(Math.max(parseInt(req.query.limit) || 50, 1), 100);
             const offset = (page - 1) * limit;
-            const doctors = await this.doctorRepository.findAll(limit, offset);
-            const total = await this.doctorRepository.count();
+            const startTime = Date.now();
+            const [doctors, total] = await Promise.all([
+                this.doctorRepository.findAll(limit, offset),
+                this.doctorRepository.count()
+            ]);
+            const queryTime = Date.now() - startTime;
             res.json({
                 success: true,
+                message: 'Doctors retrieved successfully',
                 data: doctors,
                 pagination: {
                     page,
                     limit,
                     total,
-                    pages: Math.ceil(total / limit)
+                    totalPages: Math.ceil(total / limit),
+                    hasNext: page < Math.ceil(total / limit),
+                    hasPrev: page > 1
+                },
+                performance: {
+                    query_time_ms: queryTime,
+                    total_records: total,
+                    returned_records: doctors.length
                 }
             });
         }
         catch (error) {
-            logger_1.default.error('Error fetching doctors', { error });
+            logger_1.default.error('Error fetching doctors', { error, query: req.query });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
+                message: 'Failed to retrieve doctors',
                 error: process.env.NODE_ENV === 'development' ? error : undefined
             });
         }
@@ -100,10 +116,10 @@ class DoctorController {
         try {
             const { departmentId } = req.params;
             const page = parseInt(req.query.page) || 1;
-            const limit = parseInt(req.query.limit) || 50;
+            const limit = parseInt(req.query.limit) || 20;
             const offset = (page - 1) * limit;
-            const doctors = await this.doctorRepository.findByDepartment(departmentId, limit, offset);
-            const total = await this.doctorRepository.countByDepartment(departmentId);
+            const { doctors, total } = await this.doctorRepository.findByDepartmentWithCount(departmentId, limit, offset);
+            const totalPages = Math.ceil(total / limit);
             res.json({
                 success: true,
                 data: doctors,
@@ -111,7 +127,9 @@ class DoctorController {
                     page,
                     limit,
                     total,
-                    pages: Math.ceil(total / limit)
+                    total_pages: totalPages,
+                    has_previous: page > 1,
+                    has_next: page < totalPages
                 }
             });
         }
@@ -127,22 +145,59 @@ class DoctorController {
     async searchDoctors(req, res) {
         try {
             const page = parseInt(req.query.page) || 1;
-            const limit = parseInt(req.query.limit) || 50;
+            const limit = Math.min(parseInt(req.query.limit) || 50, 100);
             const offset = (page - 1) * limit;
             const searchQuery = {
                 specialty: req.query.specialty,
                 department_id: req.query.department_id,
                 gender: req.query.gender,
-                search: req.query.search
+                search: req.query.search,
+                min_rating: req.query.min_rating ? parseFloat(req.query.min_rating) : undefined,
+                max_consultation_fee: req.query.max_consultation_fee ? parseFloat(req.query.max_consultation_fee) : undefined,
+                languages: req.query.languages,
+                availability_status: req.query.availability_status,
+                experience_years: req.query.experience_years ? parseInt(req.query.experience_years) : undefined,
+                sort_by: req.query.sort_by || 'rating',
+                sort_order: req.query.sort_order || 'desc'
             };
-            const doctors = await this.doctorRepository.search(searchQuery, limit, offset);
+            if (searchQuery.min_rating && (searchQuery.min_rating < 0 || searchQuery.min_rating > 5)) {
+                res.status(400).json({
+                    success: false,
+                    message: 'Invalid rating range. Rating must be between 0 and 5.'
+                });
+                return;
+            }
+            if (searchQuery.experience_years && searchQuery.experience_years < 0) {
+                res.status(400).json({
+                    success: false,
+                    message: 'Experience years must be a positive number.'
+                });
+                return;
+            }
+            const startTime = Date.now();
+            const result = await this.doctorRepository.search(searchQuery, limit, offset);
+            const searchTime = Date.now() - startTime;
+            const totalCount = await this.doctorRepository.getSearchCount(searchQuery);
             res.json({
                 success: true,
-                data: doctors,
+                message: 'Doctors retrieved successfully',
+                data: result,
                 pagination: {
                     page,
                     limit,
-                    total: doctors.length
+                    total: totalCount,
+                    totalPages: Math.ceil(totalCount / limit),
+                    hasNext: page < Math.ceil(totalCount / limit),
+                    hasPrev: page > 1
+                },
+                search_metadata: {
+                    query_time_ms: searchTime,
+                    filters_applied: Object.keys(searchQuery).filter(key => searchQuery[key] !== undefined &&
+                        searchQuery[key] !== ''),
+                    total_results: totalCount,
+                    search_term: searchQuery.search || null,
+                    sort_by: searchQuery.sort_by,
+                    sort_order: searchQuery.sort_order
                 }
             });
         }
@@ -150,7 +205,7 @@ class DoctorController {
             logger_1.default.error('Error searching doctors', { error, query: req.query });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
+                message: 'Failed to search doctors',
                 error: process.env.NODE_ENV === 'development' ? error : undefined
             });
         }
@@ -253,6 +308,27 @@ class DoctorController {
         }
         catch (error) {
             logger_1.default.error('Error fetching doctor schedule', { error, doctorId: req.params.doctorId });
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error',
+                error: process.env.NODE_ENV === 'development' ? error : undefined
+            });
+        }
+    }
+    async getTodaySchedule(req, res) {
+        try {
+            const { doctorId } = req.params;
+            const today = new Date();
+            const dayOfWeek = today.getDay();
+            const weeklySchedule = await this.scheduleRepository.getWeeklySchedule(doctorId);
+            const todaySchedule = weeklySchedule.filter((slot) => slot.day_of_week === dayOfWeek);
+            res.json({
+                success: true,
+                data: todaySchedule
+            });
+        }
+        catch (error) {
+            logger_1.default.error('Error fetching today schedule', { error, doctorId: req.params.doctorId });
             res.status(500).json({
                 success: false,
                 message: 'Internal server error',
@@ -762,53 +838,41 @@ class DoctorController {
                 });
                 return;
             }
-            const mockAppointments = [
-                {
-                    appointment_id: 'APT001',
-                    patient_name: 'Nguyễn Văn A',
-                    patient_phone: '0901234567',
-                    patient_email: 'nguyenvana@email.com',
-                    appointment_date: '2024-01-15',
-                    start_time: '09:00',
-                    end_time: '09:30',
-                    appointment_type: 'Khám tổng quát',
-                    status: 'confirmed',
-                    reason: 'Khám sức khỏe định kỳ',
-                    notes: 'Bệnh nhân có tiền sử cao huyết áp'
-                },
-                {
-                    appointment_id: 'APT002',
-                    patient_name: 'Trần Thị B',
-                    patient_phone: '0907654321',
-                    patient_email: 'tranthib@email.com',
-                    appointment_date: '2024-01-15',
-                    start_time: '10:00',
-                    end_time: '10:30',
-                    appointment_type: 'Tái khám',
-                    status: 'pending',
-                    reason: 'Theo dõi điều trị',
-                    notes: 'Cần kiểm tra kết quả xét nghiệm'
+            const appointmentResult = await this.appointmentService.getDoctorAppointments(doctorId, {
+                date: date,
+                status: status,
+                page: Number(page),
+                limit: Number(limit)
+            });
+            const enrichedAppointments = [];
+            for (const appointment of appointmentResult.appointments) {
+                let patientInfo = null;
+                if (appointment.patient_id) {
+                    patientInfo = await this.patientService.getPatientById(appointment.patient_id);
                 }
-            ];
-            let filteredAppointments = mockAppointments;
-            if (date) {
-                filteredAppointments = filteredAppointments.filter(apt => apt.appointment_date === date);
+                enrichedAppointments.push({
+                    appointment_id: appointment.appointment_id,
+                    patient_id: appointment.patient_id,
+                    patient_name: patientInfo?.full_name || appointment.patient_name || 'Unknown Patient',
+                    patient_phone: patientInfo?.phone_number || appointment.patient_phone || 'N/A',
+                    patient_email: patientInfo?.email || appointment.patient_email || 'N/A',
+                    appointment_date: appointment.appointment_date,
+                    appointment_time: appointment.appointment_time,
+                    appointment_type: appointment.appointment_type || 'Khám tổng quát',
+                    status: appointment.status,
+                    notes: appointment.notes || ''
+                });
             }
-            if (status) {
-                filteredAppointments = filteredAppointments.filter(apt => apt.status === status);
-            }
-            const startIndex = (Number(page) - 1) * Number(limit);
-            const endIndex = startIndex + Number(limit);
-            const paginatedAppointments = filteredAppointments.slice(startIndex, endIndex);
             res.json({
                 success: true,
-                data: paginatedAppointments,
-                pagination: {
+                data: enrichedAppointments,
+                pagination: appointmentResult.pagination || {
                     page: Number(page),
                     limit: Number(limit),
-                    total: filteredAppointments.length,
-                    totalPages: Math.ceil(filteredAppointments.length / Number(limit))
-                }
+                    total: enrichedAppointments.length,
+                    totalPages: Math.ceil(enrichedAppointments.length / Number(limit))
+                },
+                source: 'appointment-service'
             });
         }
         catch (error) {
@@ -831,33 +895,43 @@ class DoctorController {
                 });
                 return;
             }
-            const reviewStats = await this.reviewRepository.getReviewStats(doctorId);
+            const [reviewStats, appointmentStats, totalExperience, todayAppointments, monthlyAppointments, patientCount] = await Promise.allSettled([
+                this.reviewRepository.getReviewStats(doctorId),
+                this.appointmentService.getDoctorAppointmentStats(doctorId),
+                this.experienceRepository.calculateTotalExperience(doctorId),
+                this.appointmentService.getTodayAppointments(doctorId),
+                this.appointmentService.getMonthlyAppointments(doctorId),
+                this.patientService.getPatientCountForDoctor(doctorId)
+            ]);
+            const reviews = reviewStats.status === 'fulfilled' ? reviewStats.value : { average_rating: 0, total_reviews: 0 };
+            const appointments = appointmentStats.status === 'fulfilled' ? appointmentStats.value : null;
+            const experience = totalExperience.status === 'fulfilled' ? totalExperience.value : { total_years: 0 };
+            const todayApts = todayAppointments.status === 'fulfilled' ? todayAppointments.value : [];
+            const monthlyApts = monthlyAppointments.status === 'fulfilled' ? monthlyAppointments.value : [];
+            const totalPatients = patientCount.status === 'fulfilled' ? patientCount.value : 0;
+            const completedAppointments = monthlyApts.filter(apt => apt.status === 'completed').length;
+            const totalMonthlyAppointments = monthlyApts.length;
+            const successRate = totalMonthlyAppointments > 0 ? (completedAppointments / totalMonthlyAppointments) * 100 : 0;
             const stats = {
-                total_patients: 150,
-                total_appointments: 1250,
-                appointments_this_month: 45,
-                appointments_today: 8,
-                success_rate: 95.5,
-                average_rating: reviewStats.average_rating || 4.5,
-                total_reviews: reviewStats.total_reviews || 25,
-                years_experience: 5,
+                total_patients: totalPatients,
+                total_appointments: appointments?.total_appointments || 0,
+                appointments_this_month: appointments?.appointments_this_month || monthlyApts.length,
+                appointments_today: todayApts.length,
+                success_rate: Math.round(successRate * 10) / 10,
+                average_rating: reviews.average_rating || 0,
+                total_reviews: reviews.total_reviews || 0,
+                years_experience: Math.round(experience.total_years * 10) / 10,
                 specialization: doctor.specialty,
                 department: doctor.department_id,
-                status: 'active',
-                monthly_stats: [
-                    { month: 'Jan', appointments: 42, patients: 38 },
-                    { month: 'Feb', appointments: 38, patients: 35 },
-                    { month: 'Mar', appointments: 45, patients: 41 },
-                    { month: 'Apr', appointments: 52, patients: 48 },
-                    { month: 'May', appointments: 48, patients: 44 },
-                    { month: 'Jun', appointments: 55, patients: 51 }
-                ],
-                appointment_types: [
-                    { type: 'Khám tổng quát', count: 45, percentage: 40 },
-                    { type: 'Tái khám', count: 35, percentage: 31 },
-                    { type: 'Khám chuyên khoa', count: 25, percentage: 22 },
-                    { type: 'Tư vấn', count: 8, percentage: 7 }
-                ]
+                status: doctor.availability_status || 'active',
+                monthly_stats: appointments?.monthly_stats || [],
+                appointment_types: appointments?.appointment_types || [],
+                data_sources: {
+                    appointments: appointmentStats.status === 'fulfilled' ? 'appointment-service' : 'unavailable',
+                    patients: patientCount.status === 'fulfilled' ? 'patient-service' : 'unavailable',
+                    reviews: reviewStats.status === 'fulfilled' ? 'database' : 'unavailable',
+                    experience: totalExperience.status === 'fulfilled' ? 'database' : 'unavailable'
+                }
             };
             res.json({
                 success: true,
@@ -866,6 +940,351 @@ class DoctorController {
         }
         catch (error) {
             logger_1.default.error('Error fetching doctor stats', { error, doctorId: req.params.doctorId });
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error',
+                error: process.env.NODE_ENV === 'development' ? error : undefined
+            });
+        }
+    }
+    async getRealtimeStatus(req, res) {
+        try {
+            res.json({
+                success: true,
+                data: {
+                    realtime_enabled: true,
+                    websocket_enabled: true,
+                    supabase_subscription: true,
+                    doctor_monitoring: true,
+                    shift_tracking: true,
+                    experience_management: true,
+                    connected_clients: 0,
+                    last_event: null,
+                    uptime: process.uptime(),
+                    subscriptions: {
+                        doctors: true,
+                        profiles: true,
+                        shifts: true,
+                        experiences: true
+                    }
+                },
+                timestamp: new Date().toISOString()
+            });
+        }
+        catch (error) {
+            logger_1.default.error('Error in getRealtimeStatus:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to get real-time status',
+                message: error instanceof Error ? error.message : 'Unknown error',
+                timestamp: new Date().toISOString()
+            });
+        }
+    }
+    async getLiveDoctors(req, res) {
+        try {
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 20;
+            const offset = (page - 1) * limit;
+            const doctors = await this.doctorRepository.search({}, limit, offset);
+            const total = await this.doctorRepository.getSearchCount({});
+            res.json({
+                success: true,
+                data: {
+                    doctors,
+                    realtime_enabled: true,
+                    live_updates: true,
+                    websocket_channel: 'doctors_realtime',
+                    subscription_info: {
+                        events: ['INSERT', 'UPDATE', 'DELETE'],
+                        filters: [
+                            'availability_updates',
+                            'schedule_updates',
+                            'shift_updates',
+                            'experience_updates',
+                            'new_doctors'
+                        ],
+                        rooms: [
+                            'medical_staff',
+                            'admin_dashboard',
+                            'appointment_service',
+                            'doctor_{doctorId}'
+                        ]
+                    }
+                },
+                pagination: {
+                    page,
+                    limit,
+                    total,
+                    totalPages: Math.ceil(total / limit)
+                },
+                timestamp: new Date().toISOString()
+            });
+        }
+        catch (error) {
+            logger_1.default.error('Error in getLiveDoctors:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to fetch live doctors',
+                message: error instanceof Error ? error.message : 'Unknown error',
+                timestamp: new Date().toISOString()
+            });
+        }
+    }
+    async getCurrentDoctorProfile(req, res) {
+        try {
+            const userId = req.user?.id;
+            const userRole = req.user?.role;
+            logger_1.default.info('🔍 DEBUG getCurrentDoctorProfile - req.user:', {
+                userId,
+                userRole,
+                fullUser: req.user
+            });
+            if (!userId || userRole !== 'doctor') {
+                res.status(401).json({
+                    success: false,
+                    message: 'Unauthorized: Doctor access required'
+                });
+                return;
+            }
+            logger_1.default.info('🔍 DEBUG - Looking for doctor with profile_id:', userId);
+            const doctor = await this.doctorRepository.findByProfileId(userId);
+            if (!doctor) {
+                logger_1.default.error('🔍 DEBUG - Doctor not found for profile_id:', userId);
+                res.status(404).json({
+                    success: false,
+                    message: 'Doctor not found'
+                });
+                return;
+            }
+            logger_1.default.info('🔍 DEBUG - Doctor found:', {
+                doctor_id: doctor.doctor_id,
+                full_name: doctor.full_name
+            });
+            res.json({
+                success: true,
+                data: doctor
+            });
+        }
+        catch (error) {
+            logger_1.default.error('Error getting current doctor profile:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error',
+                error: process.env.NODE_ENV === 'development' ? error : undefined
+            });
+        }
+    }
+    async getCurrentDoctorStats(req, res) {
+        try {
+            const userId = req.user?.id;
+            const userRole = req.user?.role;
+            if (!userId || userRole !== 'doctor') {
+                res.status(401).json({
+                    success: false,
+                    message: 'Unauthorized: Doctor access required'
+                });
+                return;
+            }
+            const doctor = await this.doctorRepository.findByProfileId(userId);
+            if (!doctor) {
+                res.status(404).json({
+                    success: false,
+                    message: 'Doctor not found'
+                });
+                return;
+            }
+            const stats = await this.doctorRepository.getDashboardStats(doctor.doctor_id);
+            res.json({
+                success: true,
+                data: stats
+            });
+        }
+        catch (error) {
+            logger_1.default.error('Error getting current doctor stats:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error',
+                error: process.env.NODE_ENV === 'development' ? error : undefined
+            });
+        }
+    }
+    async getDashboardComplete(req, res) {
+        try {
+            const startTime = Date.now();
+            const userId = req.user?.id;
+            const userRole = req.user?.role;
+            if (!userId || userRole !== 'doctor') {
+                res.status(401).json({
+                    success: false,
+                    message: 'Unauthorized: Doctor access required'
+                });
+                return;
+            }
+            const doctor = await this.doctorRepository.findByProfileId(userId);
+            if (!doctor) {
+                res.status(404).json({
+                    success: false,
+                    message: 'Doctor not found'
+                });
+                return;
+            }
+            const doctorId = doctor.doctor_id;
+            const [dashboardStats, todaySchedule, recentAppointments, reviewStats, weeklyStats, monthlyStats] = await Promise.allSettled([
+                this.doctorRepository.getDashboardStats(doctorId),
+                this.scheduleRepository.getTodaySchedule(doctorId),
+                this.doctorRepository.getRecentAppointments(doctorId, 5),
+                this.reviewRepository.getReviewStats(doctorId),
+                this.doctorRepository.getWeeklyStats(doctorId),
+                this.doctorRepository.getMonthlyStats(doctorId)
+            ]);
+            const processResult = (result, fallback = null) => {
+                return result.status === 'fulfilled' ? result.value : fallback;
+            };
+            const stats = processResult(dashboardStats, {
+                todayAppointments: 0,
+                totalAppointments: 0,
+                completedAppointments: 0,
+                totalPatients: 0,
+                totalReviews: 0,
+                averageRating: 0
+            });
+            const schedule = processResult(todaySchedule, []);
+            const appointments = processResult(recentAppointments, []);
+            const reviews = processResult(reviewStats, { average_rating: 0, total_reviews: 0 });
+            const weekly = processResult(weeklyStats, { appointments: 0, revenue: 0 });
+            const monthly = processResult(monthlyStats, { appointments: 0, revenue: 0, success_rate: 0 });
+            const dashboardData = {
+                stats: {
+                    ...stats,
+                    thisWeekAppointments: weekly.appointments || 0,
+                    thisMonthAppointments: monthly.appointments || 0,
+                    successRate: monthly.success_rate || 0,
+                    totalRevenue: monthly.revenue || 0,
+                    averageRating: reviews.average_rating || 0,
+                    totalReviews: reviews.total_reviews || 0
+                },
+                todaySchedule: schedule,
+                recentAppointments: appointments,
+                quickMetrics: {
+                    patientsToday: schedule.filter((s) => s.status === 'booked').length,
+                    completedToday: schedule.filter((s) => s.status === 'completed').length,
+                    upcomingToday: schedule.filter((s) => s.status === 'booked' && new Date(s.start_time) > new Date()).length,
+                    emergencyCount: appointments.filter((a) => a.priority === 'emergency').length
+                },
+                lastUpdated: new Date().toISOString(),
+                responseTime: Date.now() - startTime
+            };
+            res.json({
+                success: true,
+                data: dashboardData,
+                message: 'Dashboard data loaded successfully'
+            });
+        }
+        catch (error) {
+            logger_1.default.error('Error getting complete dashboard data:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error',
+                error: process.env.NODE_ENV === 'development' ? error : undefined
+            });
+        }
+    }
+    async getTodayAppointments(req, res) {
+        try {
+            const userId = req.user?.id;
+            const userRole = req.user?.role;
+            if (!userId || userRole !== 'doctor') {
+                res.status(401).json({
+                    success: false,
+                    message: 'Unauthorized: Doctor access required'
+                });
+                return;
+            }
+            const doctor = await this.doctorRepository.findByProfileId(userId);
+            if (!doctor) {
+                res.status(404).json({
+                    success: false,
+                    message: 'Doctor not found'
+                });
+                return;
+            }
+            const appointments = await this.appointmentService.getTodayAppointments(doctor.doctor_id);
+            res.json({
+                success: true,
+                data: appointments
+            });
+        }
+        catch (error) {
+            logger_1.default.error('Error getting today appointments:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error',
+                error: process.env.NODE_ENV === 'development' ? error : undefined
+            });
+        }
+    }
+    async getUpcomingAppointments(req, res) {
+        try {
+            const userId = req.user?.id;
+            const userRole = req.user?.role;
+            if (!userId || userRole !== 'doctor') {
+                res.status(401).json({
+                    success: false,
+                    message: 'Unauthorized: Doctor access required'
+                });
+                return;
+            }
+            const doctor = await this.doctorRepository.findByProfileId(userId);
+            if (!doctor) {
+                res.status(404).json({
+                    success: false,
+                    message: 'Doctor not found'
+                });
+                return;
+            }
+            const appointments = await this.appointmentService.getUpcomingAppointments(doctor.doctor_id);
+            res.json({
+                success: true,
+                data: appointments
+            });
+        }
+        catch (error) {
+            logger_1.default.error('Error getting upcoming appointments:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error',
+                error: process.env.NODE_ENV === 'development' ? error : undefined
+            });
+        }
+    }
+    async getRecentActivity(req, res) {
+        try {
+            const userId = req.user?.id;
+            const userRole = req.user?.role;
+            if (!userId || userRole !== 'doctor') {
+                res.status(401).json({
+                    success: false,
+                    message: 'Unauthorized: Doctor access required'
+                });
+                return;
+            }
+            const doctor = await this.doctorRepository.findByProfileId(userId);
+            if (!doctor) {
+                res.status(404).json({
+                    success: false,
+                    message: 'Doctor not found'
+                });
+                return;
+            }
+            const activity = await this.appointmentService.getRecentActivity(doctor.doctor_id);
+            res.json({
+                success: true,
+                data: activity
+            });
+        }
+        catch (error) {
+            logger_1.default.error('Error getting recent activity:', error);
             res.status(500).json({
                 success: false,
                 message: 'Internal server error',

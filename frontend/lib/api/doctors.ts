@@ -59,6 +59,42 @@ export const doctorsApi = {
     return apiClient.get<any>(`/doctors/${id}/stats`);
   },
 
+  // Get doctor appointment statistics
+  getAppointmentStats: async (id: string, period?: string): Promise<ApiResponse<any>> => {
+    const params = period ? { period } : undefined;
+    return apiClient.get<any>(`/doctors/${id}/appointments/stats`, params);
+  },
+
+  // Get today's schedule
+  getTodaySchedule: async (id: string): Promise<ApiResponse<any[]>> => {
+    return apiClient.get<any[]>(`/doctors/${id}/schedule/today`);
+  },
+
+  // Get doctor reviews
+  getReviews: async (id: string, page: number = 1, limit: number = 10): Promise<ApiResponse<any[]>> => {
+    return apiClient.get<any[]>(`/doctors/${id}/reviews`, { page, limit });
+  },
+
+  // Get work experiences - Use experiences endpoint from Doctor Service
+  getExperiences: async (id: string): Promise<ApiResponse<any[]>> => {
+    return apiClient.get<any[]>(`/experiences/doctor/${id}`);
+  },
+
+  // Add work experience
+  addExperience: async (id: string, experience: any): Promise<ApiResponse<any>> => {
+    return apiClient.post<any>(`/doctors/${id}/experiences`, experience);
+  },
+
+  // Update work experience
+  updateExperience: async (id: string, experienceId: string, experience: any): Promise<ApiResponse<any>> => {
+    return apiClient.put<any>(`/doctors/${id}/experiences/${experienceId}`, experience);
+  },
+
+  // Delete work experience
+  deleteExperience: async (id: string, experienceId: string): Promise<ApiResponse<void>> => {
+    return apiClient.delete<void>(`/doctors/${id}/experiences/${experienceId}`);
+  },
+
   // =====================================================
   // ENHANCED DOCTOR PROFILE API
   // =====================================================
@@ -149,11 +185,8 @@ export const doctorsApi = {
   // EXPERIENCE MANAGEMENT API
   // =====================================================
 
-  // Get doctor experiences
-  getExperiences: async (id: string, type?: string): Promise<ApiResponse<any[]>> => {
-    const params = type ? { type } : undefined;
-    return apiClient.get<any[]>(`/experiences/doctor/${id}`, params);
-  },
+  // Get doctor experiences (use doctor service endpoint)
+  // REMOVED: Duplicate function - using the one above
 
   // Get experience timeline
   getExperienceTimeline: async (id: string): Promise<ApiResponse<any[]>> => {
@@ -194,6 +227,103 @@ export const doctorsApi = {
   getAvailable: async (date: string, time?: string): Promise<ApiResponse<Doctor[]>> => {
     const params = time ? { date, time } : { date };
     return apiClient.get<Doctor[]>('/doctors/available', params);
+  },
+
+  // =====================================================
+  // ADDITIONAL PROFILE API METHODS
+  // =====================================================
+
+  // Get doctor schedule (general)
+  getSchedule: async (id: string): Promise<ApiResponse<any[]>> => {
+    return apiClient.get<any[]>(`/doctors/${id}/schedule`);
+  },
+
+  // REMOVED: Duplicate functions - using the ones above
+
+  // Get doctor statistics (general)
+  getStats: async (id: string): Promise<ApiResponse<any>> => {
+    return apiClient.get<any>(`/doctors/${id}/stats`);
+  },
+
+  // Get complete dashboard data for current authenticated doctor
+  getDashboardComplete: async (): Promise<ApiResponse<any>> => {
+    return apiClient.get<any>('/doctors/dashboard/complete');
+  },
+
+  // Get current doctor stats (authenticated)
+  getCurrentDoctorStats: async (): Promise<ApiResponse<any>> => {
+    return apiClient.get<any>('/doctors/dashboard/stats');
+  },
+
+  // =====================================================
+  // NEW ENHANCED PROFILE API METHODS
+  // =====================================================
+
+  // Work Schedule Management
+  getWorkSchedule: async (id: string): Promise<ApiResponse<any[]>> => {
+    return apiClient.get<any[]>(`/doctors/${id}/schedule`);
+  },
+
+  updateWorkSchedule: async (id: string, schedules: any[]): Promise<ApiResponse<any>> => {
+    return apiClient.put<any>(`/doctors/${id}/schedule`, { schedules });
+  },
+
+  // Work Experience Management
+  getWorkExperiences: async (id: string): Promise<ApiResponse<any[]>> => {
+    return apiClient.get<any[]>(`/doctors/${id}/experience`);
+  },
+
+  addWorkExperience: async (id: string, experience: any): Promise<ApiResponse<any>> => {
+    return apiClient.post<any>(`/doctors/${id}/experience`, experience);
+  },
+
+  updateWorkExperience: async (id: string, experienceId: string, experience: any): Promise<ApiResponse<any>> => {
+    return apiClient.put<any>(`/doctors/${id}/experience/${experienceId}`, experience);
+  },
+
+  deleteWorkExperience: async (id: string, experienceId: string): Promise<ApiResponse<void>> => {
+    return apiClient.delete<void>(`/doctors/${id}/experience/${experienceId}`);
+  },
+
+  // Reviews Management
+  getDoctorReviews: async (id: string, page: number = 1, limit: number = 10, ratingFilter?: number): Promise<ApiResponse<any>> => {
+    const params: any = { page, limit };
+    if (ratingFilter) params.rating_filter = ratingFilter;
+    return apiClient.get<any>(`/doctors/${id}/reviews`, params);
+  },
+
+  getReviewsSummary: async (id: string): Promise<ApiResponse<any>> => {
+    return apiClient.get<any>(`/doctors/${id}/reviews/summary`);
+  },
+
+  markReviewHelpful: async (id: string, reviewId: string): Promise<ApiResponse<any>> => {
+    return apiClient.post<any>(`/doctors/${id}/reviews/${reviewId}/helpful`);
+  },
+
+  // Settings Management
+  getDoctorSettings: async (id: string): Promise<ApiResponse<any>> => {
+    return apiClient.get<any>(`/doctors/${id}/settings`);
+  },
+
+  updateDoctorSettings: async (id: string, settings: any): Promise<ApiResponse<any>> => {
+    return apiClient.put<any>(`/doctors/${id}/settings`, settings);
+  },
+
+  // Emergency Contacts Management
+  getEmergencyContacts: async (id: string): Promise<ApiResponse<any[]>> => {
+    return apiClient.get<any[]>(`/doctors/${id}/emergency-contacts`);
+  },
+
+  addEmergencyContact: async (id: string, contact: any): Promise<ApiResponse<any>> => {
+    return apiClient.post<any>(`/doctors/${id}/emergency-contacts`, contact);
+  },
+
+  updateEmergencyContact: async (id: string, contactId: string, contact: any): Promise<ApiResponse<any>> => {
+    return apiClient.put<any>(`/doctors/${id}/emergency-contacts/${contactId}`, contact);
+  },
+
+  deleteEmergencyContact: async (id: string, contactId: string): Promise<ApiResponse<void>> => {
+    return apiClient.delete<void>(`/doctors/${id}/emergency-contacts/${contactId}`);
   },
 };
 

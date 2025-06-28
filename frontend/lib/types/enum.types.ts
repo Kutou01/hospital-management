@@ -49,6 +49,9 @@ export interface EnumOption {
   description?: string;
   color?: string;
   icon?: string;
+  // Additional fields for specialty-department mapping
+  department_id?: string;
+  department_name?: string;
 }
 
 // Service response types

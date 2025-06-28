@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import {
   Search,
@@ -38,113 +38,20 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { AdminPageWrapper } from "../page-wrapper"
+import { billingApi, Bill, Payment, PaymentSummary } from "@/lib/api/billing"
+import { patientsApi } from "@/lib/api/patients"
+import { toast } from "react-hot-toast"
 
-// Dữ liệu mẫu cho thanh toán
-const paymentsData = [
-  {
-    id: "INV-001",
-    patientName: "Carol C-Simpson",
-    patientAvatar: "/placeholder.svg?height=40&width=40",
-    date: "19 Jul 2023",
-    amount: 150.0,
-    method: "Credit Card",
-    service: "Routine Check-Up",
-    status: "Paid",
-  },
-  {
-    id: "INV-002",
-    patientName: "Steven Bennett",
-    patientAvatar: "/placeholder.svg?height=40&width=40",
-    date: "19 Jul 2023",
-    amount: 350.0,
-    method: "Insurance",
-    service: "Cardiac Evaluation",
-    status: "Pending",
-  },
-  {
-    id: "INV-003",
-    patientName: "Ocean Jane Lupre",
-    patientAvatar: "/placeholder.svg?height=40&width=40",
-    date: "19 Jul 2023",
-    amount: 120.0,
-    method: "Cash",
-    service: "Pediatric Check-Up",
-    status: "Paid",
-  },
-  {
-    id: "INV-004",
-    patientName: "Shane Riddick",
-    patientAvatar: "/placeholder.svg?height=40&width=40",
-    date: "19 Jul 2023",
-    amount: 200.0,
-    method: "Credit Card",
-    service: "Skin Allergy",
-    status: "Refunded",
-  },
-  {
-    id: "INV-005",
-    patientName: "Queen Lawriston",
-    patientAvatar: "/placeholder.svg?height=40&width=40",
-    date: "19 Jul 2023",
-    amount: 180.0,
-    method: "Bank Transfer",
-    service: "Follow-Up Visit",
-    status: "Paid",
-  },
-  {
-    id: "INV-006",
-    patientName: "Alice Mitchell",
-    patientAvatar: "/placeholder.svg?height=40&width=40",
-    date: "20 Jul 2023",
-    amount: 150.0,
-    method: "Credit Card",
-    service: "Routine Check-Up",
-    status: "Paid",
-  },
-  {
-    id: "INV-007",
-    patientName: "Mikhail Morozov",
-    patientAvatar: "/placeholder.svg?height=40&width=40",
-    date: "20 Jul 2023",
-    amount: 450.0,
-    method: "Insurance",
-    service: "Cardiac Consultation",
-    status: "Pending",
-  },
-  {
-    id: "INV-008",
-    patientName: "Mateus Fernandes",
-    patientAvatar: "/placeholder.svg?height=40&width=40",
-    date: "20 Jul 2023",
-    amount: 120.0,
-    method: "Cash",
-    service: "Pediatric Check-Up",
-    status: "Paid",
-  },
-  {
-    id: "INV-009",
-    patientName: "Pari Desai",
-    patientAvatar: "/placeholder.svg?height=40&width=40",
-    date: "21 Jul 2023",
-    amount: 280.0,
-    method: "Credit Card",
-    service: "Skin Allergy",
-    status: "Paid",
-  },
-  {
-    id: "INV-010",
-    patientName: "Omar Ali",
-    patientAvatar: "/placeholder.svg?height=40&width=40",
-    date: "21 Jul 2023",
-    amount: 320.0,
-    method: "Bank Transfer",
-    service: "Follow-Up Visit",
-    status: "Pending",
-  },
-]
+interface PaymentWithPatient extends Bill {
+  patient_name?: string;
+  patient_avatar?: string | null;
+}
+
+// Mock data removed - now using real billing API data
 
 export default function PaymentPage() {
-  const [payments, setPayments] = useState(paymentsData)
+  const [payments, setPayments] = useState<PaymentWithPatient[]>([])
+  const [paymentSummary, setPaymentSummary] = useState<PaymentSummary | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("All Status")
   const [methodFilter, setMethodFilter] = useState("All Methods")
@@ -153,24 +60,82 @@ export default function PaymentPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [paymentToDelete, setPaymentToDelete] = useState<string | null>(null)
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
-  const [paymentToView, setPaymentToView] = useState<any | null>(null)
+  const [paymentToView, setPaymentToView] = useState<PaymentWithPatient | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  // Load data when component mounts
+  useEffect(() => {
+    loadPayments()
+    loadPaymentSummary()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadPayments = async () => {
+    try {
+      setIsLoading(true)
+      const response = await billingApi.getAllBills({ page: currentPage, limit: 10 })
+
+      if (response.success && response.data) {
+        // Load patient names for each bill
+        const paymentsWithPatients = await Promise.all(
+          response.data.map(async (bill) => {
+            try {
+              const patientResponse = await patientsApi.getById(bill.patient_id)
+              return {
+                ...bill,
+                patient_name: patientResponse.success ? (patientResponse.data as any)?.full_name : 'Unknown Patient',
+                patient_avatar: null
+              }
+            } catch (error) {
+              return {
+                ...bill,
+                patient_name: 'Unknown Patient',
+                patient_avatar: null
+              }
+            }
+          })
+        )
+
+        setPayments(paymentsWithPatients)
+      } else {
+        toast.error('Không thể tải danh sách thanh toán')
+        setPayments([])
+      }
+    } catch (error) {
+      console.error('Error loading payments:', error)
+      toast.error('Lỗi khi tải danh sách thanh toán')
+      setPayments([])
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const loadPaymentSummary = async () => {
+    try {
+      const response = await billingApi.getPaymentSummary()
+      if (response.success && response.data) {
+        setPaymentSummary(response.data)
+      }
+    } catch (error) {
+      console.error('Error loading payment summary:', error)
+    }
+  }
 
   const paymentsPerPage = 10
-  const totalPayments = 156
+  const totalPayments = payments.length
   const totalPages = Math.ceil(totalPayments / paymentsPerPage)
 
-  // Tính tổng doanh thu
-  const totalRevenue = payments.reduce((sum, payment) => {
-    if (payment.status !== "Refunded") {
-      return sum + payment.amount
+  // Use payment summary data if available, otherwise calculate from current data
+  const totalRevenue = paymentSummary?.total_revenue || payments.reduce((sum, payment) => {
+    if (payment.status !== "refunded") {
+      return sum + payment.total_amount
     }
     return sum
   }, 0)
 
-  // Tính số lượng thanh toán theo trạng thái
-  const paidCount = payments.filter((payment) => payment.status === "Paid").length
-  const pendingCount = payments.filter((payment) => payment.status === "Pending").length
-  const refundedCount = payments.filter((payment) => payment.status === "Refunded").length
+  // Calculate counts from current data
+  const paidCount = payments.filter((payment) => payment.status === "paid").length
+  const pendingCount = payments.filter((payment) => payment.status === "pending").length
+  const refundedCount = payments.filter((payment) => payment.status === "refunded").length
 
   // Xử lý tìm kiếm
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -195,6 +160,8 @@ export default function PaymentPage() {
   // Xử lý phân trang
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
+    // Reload data for new page
+    loadPayments()
   }
 
   // Xử lý xóa thanh toán
@@ -203,40 +170,81 @@ export default function PaymentPage() {
     setIsDeleteDialogOpen(true)
   }
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (paymentToDelete) {
-      setPayments(payments.filter((payment) => payment.id !== paymentToDelete))
+      try {
+        const response = await billingApi.deleteBill(paymentToDelete)
+        if (response.success) {
+          toast.success('Xóa hóa đơn thành công')
+          loadPayments() // Reload data
+        } else {
+          toast.error('Không thể xóa hóa đơn')
+        }
+      } catch (error) {
+        console.error('Error deleting bill:', error)
+        toast.error('Lỗi khi xóa hóa đơn')
+      }
       setIsDeleteDialogOpen(false)
       setPaymentToDelete(null)
     }
   }
 
   // Xử lý xem chi tiết thanh toán
-  const handleViewClick = (payment: any) => {
+  const handleViewClick = (payment: PaymentWithPatient) => {
     setPaymentToView(payment)
     setIsViewDialogOpen(true)
   }
 
   // Render status badge
   const renderStatusBadge = (status: string) => {
-    switch (status) {
-      case "Paid":
-        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Paid</Badge>
-      case "Pending":
-        return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pending</Badge>
-      case "Refunded":
-        return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Refunded</Badge>
+    switch (status.toLowerCase()) {
+      case "paid":
+        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Đã thanh toán</Badge>
+      case "pending":
+        return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Chờ thanh toán</Badge>
+      case "overdue":
+        return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Quá hạn</Badge>
+      case "refunded":
+        return <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">Đã hoàn tiền</Badge>
+      case "cancelled":
+        return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Đã hủy</Badge>
       default:
         return <Badge>{status}</Badge>
     }
   }
 
-  // Format currency
+  // Format currency in VND
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("vi-VN", {
       style: "currency",
-      currency: "USD",
+      currency: "VND",
     }).format(amount)
+  }
+
+  // Filter payments based on search and filters
+  const filteredPayments = payments.filter(payment => {
+    const matchesSearch = (payment.patient_name && payment.patient_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                         payment.id.toLowerCase().includes(searchTerm.toLowerCase())
+
+    const matchesStatus = statusFilter === "All Status" ||
+                         (statusFilter === "Paid" && payment.status === "paid") ||
+                         (statusFilter === "Pending" && payment.status === "pending") ||
+                         (statusFilter === "Refunded" && payment.status === "refunded")
+
+    // For now, we'll show all payment methods since we don't have detailed payment method data
+    const matchesMethod = methodFilter === "All Methods" || true
+
+    return matchesSearch && matchesStatus && matchesMethod
+  })
+
+  if (isLoading) {
+    return (
+      <AdminPageWrapper title="Payment" activePage="payment">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      </AdminPageWrapper>
+    )
   }
 
   return (
@@ -248,11 +256,11 @@ export default function PaymentPage() {
             <CardContent className="p-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-sm text-gray-500">Total Revenue</p>
+                  <p className="text-sm text-gray-500">Tổng doanh thu</p>
                   <h3 className="text-2xl font-bold mt-1">{formatCurrency(totalRevenue)}</h3>
                   <p className="text-sm text-green-600 mt-1">
                     <ArrowUpRight size={14} className="inline mr-1" />
-                    +12.5% from last month
+                    Doanh thu tổng
                   </p>
                 </div>
                 <div className="p-2 rounded-full bg-green-100">
@@ -266,11 +274,11 @@ export default function PaymentPage() {
             <CardContent className="p-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-sm text-gray-500">Paid Invoices</p>
+                  <p className="text-sm text-gray-500">Đã thanh toán</p>
                   <h3 className="text-2xl font-bold mt-1">{paidCount}</h3>
                   <p className="text-sm text-green-600 mt-1">
                     <ArrowUpRight size={14} className="inline mr-1" />
-                    +8.2% from last month
+                    Hóa đơn đã thanh toán
                   </p>
                 </div>
                 <div className="p-2 rounded-full bg-blue-100">
@@ -284,11 +292,11 @@ export default function PaymentPage() {
             <CardContent className="p-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-sm text-gray-500">Pending Invoices</p>
+                  <p className="text-sm text-gray-500">Chờ thanh toán</p>
                   <h3 className="text-2xl font-bold mt-1">{pendingCount}</h3>
                   <p className="text-sm text-yellow-600 mt-1">
                     <ArrowUpRight size={14} className="inline mr-1" />
-                    +3.1% from last month
+                    Hóa đơn chờ thanh toán
                   </p>
                 </div>
                 <div className="p-2 rounded-full bg-yellow-100">
@@ -302,11 +310,11 @@ export default function PaymentPage() {
             <CardContent className="p-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-sm text-gray-500">Refunded</p>
+                  <p className="text-sm text-gray-500">Đã hoàn tiền</p>
                   <h3 className="text-2xl font-bold mt-1">{refundedCount}</h3>
                   <p className="text-sm text-red-600 mt-1">
                     <ArrowDownRight size={14} className="inline mr-1" />
-                    -2.3% from last month
+                    Hóa đơn đã hoàn tiền
                   </p>
                 </div>
                 <div className="p-2 rounded-full bg-red-100">
@@ -407,30 +415,32 @@ export default function PaymentPage() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {payments.map((payment) => (
+                    {filteredPayments.map((payment) => (
                       <tr key={payment.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">{payment.id}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             <Avatar className="h-8 w-8 mr-3">
                               <AvatarImage
-                                src={payment.patientAvatar || "/placeholder.svg"}
-                                alt={payment.patientName}
+                                src={payment.patient_avatar || "/placeholder.svg"}
+                                alt={payment.patient_name || 'Unknown'}
                               />
-                              <AvatarFallback>{payment.patientName.charAt(0)}</AvatarFallback>
+                              <AvatarFallback>{(payment.patient_name || 'U').charAt(0)}</AvatarFallback>
                             </Avatar>
-                            <div className="text-sm font-medium text-gray-900">{payment.patientName}</div>
+                            <div className="text-sm font-medium text-gray-900">{payment.patient_name || 'Unknown Patient'}</div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{payment.date}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(payment.bill_date).toLocaleDateString('vi-VN')}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {formatCurrency(payment.amount)}
+                          {formatCurrency(payment.total_amount)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
-                          {payment.method}
+                          {payment.payments && payment.payments.length > 0 ? payment.payments[0].payment_method : 'Chưa thanh toán'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
-                          {payment.service}
+                          {payment.items && payment.items.length > 0 ? payment.items[0].description : 'Dịch vụ y tế'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">{renderStatusBadge(payment.status)}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

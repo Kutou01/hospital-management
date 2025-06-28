@@ -1,479 +1,483 @@
-"use client"
+'use client';
 
-import { useState, useEffect } from "react"
+import React, { useState } from 'react';
+import { RoleBasedLayout } from '@/components/layout/RoleBasedLayout';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  Users,
   Search,
   Filter,
-  Eye,
+  Users,
+  Calendar,
+  FileText,
   Phone,
   Mail,
-  Calendar,
-  Heart,
-  FileText,
-  AlertCircle,
-  User,
   MapPin,
-  Clock
-} from "lucide-react"
-import { DoctorLayout } from "@/components/layout/UniversalLayout"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useEnhancedAuth } from "@/lib/auth/enhanced-auth-context"
-import { patientsApi } from "@/lib/api/patients"
-import { doctorsApi } from "@/lib/api/doctors"
-import { toast } from "sonner"
+  Clock,
+  AlertCircle,
+  Heart,
+  Activity,
+  Plus,
+  Eye,
+  Edit,
+  MoreHorizontal
+} from 'lucide-react';
+
+// Import enhanced components
+import { EnhancedStatCard } from "@/components/dashboard/EnhancedStatCard"
+import { ChartCard, ProgressChart, MetricComparison } from "@/components/dashboard/ChartCard"
+import { ActivityTimeline } from "@/components/dashboard/ActivityTimeline"
+import { StatCardSkeleton, ChartCardSkeleton, PulseWrapper } from "@/components/dashboard/SkeletonLoaders"
+import { useDashboardLoading } from "@/hooks/useProgressiveLoading"
 
 interface Patient {
-  patient_id: string
-  full_name: string
-  email?: string
-  phone_number?: string
-  date_of_birth?: string
-  gender?: string
-  blood_type?: string
-  address?: any
-  status: string
-  created_at: string
-  updated_at: string
-  age?: number
-  lastVisit?: string
-  nextAppointment?: string
-  condition?: string
-  riskLevel?: string
-  totalVisits?: number
+  patient_id: string;
+  full_name: string;
+  age: number;
+  gender: string;
+  phone_number: string;
+  email: string;
+  address: string;
+  last_visit: string;
+  next_appointment: string;
+  status: 'active' | 'inactive' | 'critical';
+  medical_conditions: string[];
+  avatar_url?: string;
 }
 
-export default function DoctorPatients() {
-  const { user, loading } = useEnhancedAuth()
-  const [searchTerm, setSearchTerm] = useState("")
-  const [filterStatus, setFilterStatus] = useState("all")
-  const [patients, setPatients] = useState<Patient[]>([])
-  const [isLoadingPatients, setIsLoadingPatients] = useState(true)
-
-  // Fetch patients when user is available
-  useEffect(() => {
-    if (user && user.role === 'doctor') {
-      fetchPatients()
-    }
-  }, [user])
-
-  const calculateAge = (dateOfBirth: string): number => {
-    const today = new Date()
-    const birthDate = new Date(dateOfBirth)
-    let age = today.getFullYear() - birthDate.getFullYear()
-    const monthDiff = today.getMonth() - birthDate.getMonth()
-
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--
-    }
-
-    return age
+// Mock data - sẽ được thay thế bằng API call thực tế
+const mockPatients: Patient[] = [
+  {
+    patient_id: 'PAT-202401-001',
+    full_name: 'Nguyễn Văn Minh',
+    age: 45,
+    gender: 'Male',
+    phone_number: '0901234567',
+    email: 'nguyenvanminh@email.com',
+    address: '123 Đường Lê Lợi, Q1, TP.HCM',
+    last_visit: '2024-01-15',
+    next_appointment: '2024-02-15',
+    status: 'active',
+    medical_conditions: ['Cao huyết áp', 'Tiểu đường type 2']
+  },
+  {
+    patient_id: 'PAT-202401-002',
+    full_name: 'Trần Thị Lan',
+    age: 32,
+    gender: 'Female',
+    phone_number: '0912345678',
+    email: 'tranthilan@email.com',
+    address: '456 Đường Nguyễn Huệ, Q1, TP.HCM',
+    last_visit: '2024-01-20',
+    next_appointment: '2024-02-10',
+    status: 'active',
+    medical_conditions: ['Hen suyễn']
+  },
+  {
+    patient_id: 'PAT-202401-003',
+    full_name: 'Lê Văn Hùng',
+    age: 58,
+    gender: 'Male',
+    phone_number: '0923456789',
+    email: 'levanhung@email.com',
+    address: '789 Đường Pasteur, Q3, TP.HCM',
+    last_visit: '2024-01-25',
+    next_appointment: '2024-02-05',
+    status: 'critical',
+    medical_conditions: ['Bệnh tim mạch', 'Suy tim']
   }
+];
 
-  const fetchPatients = async () => {
-    try {
-      setIsLoadingPatients(true)
-      const response = await patientsApi.getAll()
+export default function DoctorPatientsPage() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState<string>('all');
 
-      if (response.success && response.data) {
-        // Transform the data to match our interface and add calculated fields
-        const transformedPatients: Patient[] = response.data.map((patient: any) => ({
-          ...patient,
-          age: patient.date_of_birth ? calculateAge(patient.date_of_birth) : undefined,
-          // These would come from appointments/medical records in a real system
-          lastVisit: undefined,
-          nextAppointment: undefined,
-          condition: 'General',
-          riskLevel: 'low',
-          totalVisits: 0
-        }))
+  // Progressive loading
+  const {
+    isStatsLoading,
+    isChartsLoading,
+    isActivitiesLoading,
+    progress
+  } = useDashboardLoading();
 
-        setPatients(transformedPatients)
-      } else {
-        toast.error('Không thể tải danh sách bệnh nhân')
-        setPatients([])
-      }
-    } catch (error) {
-      console.error('Error fetching patients:', error)
-      toast.error('Lỗi khi tải danh sách bệnh nhân')
-      setPatients([])
-    } finally {
-      setIsLoadingPatients(false)
-    }
-  }
-
-  // Mock patients data for reference (remove this when API is working)
-  const mockPatients = [
-    {
-      id: "1",
-      name: "Nguyễn Văn A",
-      email: "nguyenvana@email.com",
-      phone: "0123456789",
-      age: 35,
-      gender: "Male",
-      bloodType: "O+",
-      address: "123 Nguyễn Văn Cừ, Q.5, TP.HCM",
-      lastVisit: "2024-01-10",
-      nextAppointment: "2024-01-20",
-      status: "active",
-      condition: "Hypertension",
-      riskLevel: "medium",
-      totalVisits: 8,
-      avatar: null
-    },
-    {
-      id: "2",
-      name: "Trần Thị B",
-      email: "tranthib@email.com",
-      phone: "0987654321",
-      age: 28,
-      gender: "Female",
-      bloodType: "A+",
-      address: "456 Lê Văn Sỹ, Q.3, TP.HCM",
-      lastVisit: "2024-01-08",
-      nextAppointment: "2024-01-25",
-      status: "active",
-      condition: "Diabetes Type 2",
-      riskLevel: "high",
-      totalVisits: 12,
-      avatar: null
-    },
-    {
-      id: "3",
-      name: "Lê Văn C",
-      email: "levanc@email.com",
-      phone: "0369852147",
-      age: 42,
-      gender: "Male",
-      bloodType: "B+",
-      address: "789 Võ Văn Tần, Q.1, TP.HCM",
-      lastVisit: "2024-01-05",
-      nextAppointment: null,
-      status: "inactive",
-      condition: "Healthy",
-      riskLevel: "low",
-      totalVisits: 3,
-      avatar: null
-    },
-    {
-      id: "4",
-      name: "Phạm Thị D",
-      email: "phamthid@email.com",
-      phone: "0741852963",
-      age: 55,
-      gender: "Female",
-      bloodType: "AB+",
-      address: "321 Điện Biên Phủ, Q.Bình Thạnh, TP.HCM",
-      lastVisit: "2024-01-12",
-      nextAppointment: "2024-01-18",
-      status: "active",
-      condition: "Arthritis",
-      riskLevel: "medium",
-      totalVisits: 15,
-      avatar: null
-    },
-    {
-      id: "5",
-      name: "Hoàng Văn E",
-      email: "hoangvane@email.com",
-      phone: "0852963741",
-      age: 67,
-      gender: "Male",
-      bloodType: "O-",
-      address: "654 Cách Mạng Tháng 8, Q.10, TP.HCM",
-      lastVisit: "2024-01-15",
-      nextAppointment: "2024-01-22",
-      status: "active",
-      condition: "Heart Disease",
-      riskLevel: "high",
-      totalVisits: 25,
-      avatar: null
-    }
-  ]
-
-  const getRiskLevelColor = (riskLevel: string) => {
-    switch (riskLevel) {
-      case 'low':
-        return 'bg-green-100 text-green-800'
-      case 'medium':
-        return 'bg-yellow-100 text-yellow-800'
-      case 'high':
-        return 'bg-red-100 text-red-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
-    }
-  }
+  const filteredPatients = mockPatients.filter(patient => {
+    const matchesSearch = patient.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         patient.patient_id.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = selectedStatus === 'all' || patient.status === selectedStatus;
+    return matchesSearch && matchesStatus;
+  });
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active':
-        return 'bg-green-100 text-green-800'
-      case 'inactive':
-        return 'bg-gray-100 text-gray-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
+      case 'active': return 'bg-green-100 text-green-800';
+      case 'inactive': return 'bg-gray-100 text-gray-800';
+      case 'critical': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
-  }
+  };
 
-  const filteredPatients = patients.filter(patient => {
-    const matchesSearch = patient.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (patient.email && patient.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                         (patient.condition && patient.condition.toLowerCase().includes(searchTerm.toLowerCase()))
-    const matchesFilter = filterStatus === "all" || patient.status === filterStatus
-    return matchesSearch && matchesFilter
-  })
-
-  if (loading || isLoadingPatients) {
-    return (
-      <DoctorLayout title="My Patients" activePage="patients">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-        </div>
-      </DoctorLayout>
-    )
-  }
-
-  if (!user || user.role !== 'doctor') {
-    return (
-      <DoctorLayout title="My Patients" activePage="patients">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <p className="text-gray-600">Access denied. Doctor role required.</p>
-          </div>
-        </div>
-      </DoctorLayout>
-    )
-  }
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'active': return 'Đang điều trị';
+      case 'inactive': return 'Không hoạt động';
+      case 'critical': return 'Nguy hiểm';
+      default: return 'Không xác định';
+    }
+  };
 
   return (
-    <DoctorLayout title="My Patients" activePage="patients">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">My Patients</h2>
-            <p className="text-gray-600">Manage your patient records and information</p>
+    <RoleBasedLayout title="Quản lý bệnh nhân" activePage="patients">
+      <div className="space-y-6">
+        {/* Header Actions */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="relative flex-1 md:w-80">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Tìm kiếm bệnh nhân..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Button variant="outline" size="sm">
+              <Filter className="h-4 w-4 mr-2" />
+              Lọc
+            </Button>
           </div>
+          
+          <Button>
+            <Plus className="h-4 w-4 mr-2" />
+            Thêm bệnh nhân mới
+          </Button>
         </div>
 
-        {/* Search and Filter */}
-        <div className="flex gap-4 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input
-              placeholder="Search patients by name, email, or condition..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+        {/* Enhanced Patient Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+          <PulseWrapper isLoading={isStatsLoading} fallback={<StatCardSkeleton />}>
+            <EnhancedStatCard
+              title="Tổng bệnh nhân"
+              value={mockPatients.length}
+              change={8}
+              changeLabel="bệnh nhân mới tháng này"
+              icon={<Users className="h-6 w-6" />}
+              description="Đang theo dõi"
+              color="blue"
+              variant="gradient"
+              showTrend={true}
+              onViewDetails={() => console.log('View all patients')}
             />
-          </div>
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-            aria-label="Filter patients by status"
-          >
-            <option value="all">All Patients</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
+          </PulseWrapper>
+
+          <PulseWrapper isLoading={isStatsLoading} fallback={<StatCardSkeleton />}>
+            <EnhancedStatCard
+              title="Đang điều trị"
+              value={mockPatients.filter(p => p.status === 'active').length}
+              change={3}
+              changeLabel="ca mới tuần này"
+              icon={<Activity className="h-6 w-6" />}
+              description="Cần theo dõi thường xuyên"
+              color="green"
+              variant="gradient"
+              showTrend={true}
+              status="success"
+            />
+          </PulseWrapper>
+
+          <PulseWrapper isLoading={isStatsLoading} fallback={<StatCardSkeleton />}>
+            <EnhancedStatCard
+              title="Tình trạng nguy hiểm"
+              value={mockPatients.filter(p => p.status === 'critical').length}
+              change={-1}
+              changeLabel="giảm từ tuần trước"
+              icon={<AlertCircle className="h-6 w-6" />}
+              description="Cần chăm sóc đặc biệt"
+              color="red"
+              variant="gradient"
+              showTrend={true}
+              status="critical"
+            />
+          </PulseWrapper>
+
+          <PulseWrapper isLoading={isStatsLoading} fallback={<StatCardSkeleton />}>
+            <EnhancedStatCard
+              title="Lịch hẹn hôm nay"
+              value="12"
+              change={2}
+              changeLabel="so với hôm qua"
+              icon={<Calendar className="h-6 w-6" />}
+              description="Cuộc hẹn đã lên lịch"
+              color="purple"
+              variant="gradient"
+              showTrend={true}
+            />
+          </PulseWrapper>
+        </div>
+
+        {/* Enhanced Analytics */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {/* Patient Demographics Chart */}
+          <PulseWrapper isLoading={isChartsLoading} fallback={<ChartCardSkeleton />}>
+            <ChartCard
+              title="Phân tích bệnh nhân"
+              subtitle="Theo độ tuổi và giới tính"
+              chartType="bar"
+              showExport={false}
+              onRefresh={() => console.log('Refreshing patient analytics...')}
+              trend={{
+                value: 12.5,
+                label: 'tăng',
+                direction: 'up'
+              }}
+            >
+              <ProgressChart data={[
+                { label: 'Nam (18-40)', value: 35, color: 'blue', target: 100 },
+                { label: 'Nam (40-60)', value: 28, color: 'green', target: 100 },
+                { label: 'Nữ (18-40)', value: 42, color: 'purple', target: 100 },
+                { label: 'Nữ (40-60)', value: 31, color: 'orange', target: 100 }
+              ]} />
+            </ChartCard>
+          </PulseWrapper>
+
+          {/* Recent Patient Activities */}
+          <PulseWrapper isLoading={isActivitiesLoading} fallback={<div className="h-96 bg-gray-100 rounded-lg animate-pulse" />}>
+            <ActivityTimeline
+              activities={[
+                {
+                  id: '1',
+                  type: 'appointment' as const,
+                  title: 'Khám bệnh hoàn thành',
+                  description: 'Nguyễn Văn Minh - Khám định kỳ tim mạch',
+                  timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000),
+                  user: { name: 'BS. Nguyễn Văn An', role: 'Doctor', avatar: '' },
+                  patient: { name: 'Nguyễn Văn Minh', id: 'PAT-001' },
+                  status: 'completed' as const,
+                  priority: 'medium' as const
+                },
+                {
+                  id: '2',
+                  type: 'admission' as const,
+                  title: 'Nhập viện khẩn cấp',
+                  description: 'Trần Thị Lan - Đau ngực cấp tính',
+                  timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000),
+                  user: { name: 'BS. Nguyễn Văn An', role: 'Doctor', avatar: '' },
+                  patient: { name: 'Trần Thị Lan', id: 'PAT-003' },
+                  status: 'in-progress' as const,
+                  priority: 'urgent' as const
+                }
+              ]}
+              onActivityClick={(activity) => console.log('Activity clicked:', activity)}
+              showFilters={false}
+              showSearch={false}
+              groupByDate={false}
+              maxItems={5}
+            />
+          </PulseWrapper>
+        </div>
+
+        {/* Status Filter Tabs */}
+        <Tabs value={selectedStatus} onValueChange={setSelectedStatus}>
+          <TabsList>
+            <TabsTrigger value="all">Tất cả ({mockPatients.length})</TabsTrigger>
+            <TabsTrigger value="active">
+              Đang điều trị ({mockPatients.filter(p => p.status === 'active').length})
+            </TabsTrigger>
+            <TabsTrigger value="critical">
+              Nguy hiểm ({mockPatients.filter(p => p.status === 'critical').length})
+            </TabsTrigger>
+            <TabsTrigger value="inactive">
+              Không hoạt động ({mockPatients.filter(p => p.status === 'inactive').length})
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value={selectedStatus} className="mt-6">
+            {/* Patients Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredPatients.map((patient) => (
+                <Card key={patient.patient_id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-12 w-12">
+                          <AvatarImage 
+                            src={patient.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${patient.full_name}`}
+                            alt={patient.full_name}
+                          />
+                          <AvatarFallback className="bg-blue-100 text-blue-600">
+                            {patient.full_name ? patient.full_name.split(' ').map(n => n[0]).join('') : 'PT'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <h3 className="font-semibold text-gray-900">{patient.full_name}</h3>
+                          <p className="text-sm text-gray-500">{patient.patient_id}</p>
+                          <Badge className={`text-xs mt-1 ${getStatusColor(patient.status)}`}>
+                            {getStatusText(patient.status)}
+                          </Badge>
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="sm">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  
+                  <CardContent className="space-y-3">
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-gray-500">Tuổi:</span>
+                        <span className="ml-1 font-medium">{patient.age}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Giới tính:</span>
+                        <span className="ml-1 font-medium">
+                          {patient.gender === 'Male' ? 'Nam' : 'Nữ'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <Phone className="h-4 w-4" />
+                        <span>{patient.phone_number}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <Mail className="h-4 w-4" />
+                        <span className="truncate">{patient.email}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <MapPin className="h-4 w-4" />
+                        <span className="truncate">{patient.address}</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-gray-400" />
+                        <span className="text-gray-600">
+                          Khám cuối: {new Date(patient.last_visit).toLocaleDateString('vi-VN')}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-blue-400" />
+                        <span className="text-gray-600">
+                          Hẹn tiếp: {new Date(patient.next_appointment).toLocaleDateString('vi-VN')}
+                        </span>
+                      </div>
+                    </div>
+
+                    {patient.medical_conditions.length > 0 && (
+                      <div>
+                        <p className="text-sm font-medium text-gray-700 mb-2">Tình trạng bệnh:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {patient.medical_conditions.map((condition, index) => (
+                            <Badge key={index} variant="outline" className="text-xs">
+                              {condition}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2 pt-2">
+                      <Button size="sm" variant="outline" className="flex-1">
+                        <Eye className="h-4 w-4 mr-1" />
+                        Xem
+                      </Button>
+                      <Button size="sm" variant="outline" className="flex-1">
+                        <Edit className="h-4 w-4 mr-1" />
+                        Sửa
+                      </Button>
+                      <Button size="sm" className="flex-1">
+                        <FileText className="h-4 w-4 mr-1" />
+                        Hồ sơ
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {filteredPatients.length === 0 && (
+              <div className="text-center py-12">
+                <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Không tìm thấy bệnh nhân
+                </h3>
+                <p className="text-gray-500">
+                  {searchTerm ? 'Thử thay đổi từ khóa tìm kiếm' : 'Chưa có bệnh nhân nào trong danh sách'}
+                </p>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Users className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Tổng bệnh nhân</p>
+                  <p className="text-2xl font-bold text-gray-900">{mockPatients.length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <Activity className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Đang điều trị</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {mockPatients.filter(p => p.status === 'active').length}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-red-100 rounded-lg">
+                  <AlertCircle className="h-5 w-5 text-red-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Nguy hiểm</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {mockPatients.filter(p => p.status === 'critical').length}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-purple-100 rounded-lg">
+                  <Calendar className="h-5 w-5 text-purple-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Hẹn tuần này</p>
+                  <p className="text-2xl font-bold text-gray-900">5</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Users className="h-5 w-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Total Patients</p>
-                <p className="text-xl font-bold">{patients.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Heart className="h-5 w-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Active Patients</p>
-                <p className="text-xl font-bold">
-                  {patients.filter(p => p.status === 'active').length}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <AlertCircle className="h-5 w-5 text-red-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">High Risk</p>
-                <p className="text-xl font-bold">
-                  {patients.filter(p => p.riskLevel === 'high').length}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Calendar className="h-5 w-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Upcoming Appointments</p>
-                <p className="text-xl font-bold">
-                  {patients.filter(p => p.nextAppointment).length}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Patients List */}
-      <div className="space-y-4">
-        {filteredPatients.map((patient) => (
-          <Card key={patient.patient_id} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex justify-between items-start">
-                <div className="flex items-start gap-4 flex-1">
-                  <Avatar className="h-12 w-12">
-                    <AvatarFallback>
-                      {patient.full_name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-semibold">{patient.full_name}</h3>
-                      <Badge className={getStatusColor(patient.status)}>
-                        {patient.status}
-                      </Badge>
-                      {patient.riskLevel && (
-                        <Badge className={getRiskLevelColor(patient.riskLevel)}>
-                          {patient.riskLevel} risk
-                        </Badge>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-3">
-                      {patient.age && patient.gender && (
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm">{patient.age} years, {patient.gender}</span>
-                        </div>
-                      )}
-                      {patient.phone_number && (
-                        <div className="flex items-center gap-2">
-                          <Phone className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm">{patient.phone_number}</span>
-                        </div>
-                      )}
-                      {patient.email && (
-                        <div className="flex items-center gap-2">
-                          <Mail className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm">{patient.email}</span>
-                        </div>
-                      )}
-                      {patient.blood_type && (
-                        <div className="flex items-center gap-2">
-                          <Heart className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm">Blood Type: {patient.blood_type}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-3">
-                      {patient.address && (
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm">
-                            {typeof patient.address === 'string' ? patient.address : 'Address available'}
-                          </span>
-                        </div>
-                      )}
-                      {patient.lastVisit && (
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm">Last visit: {patient.lastVisit}</span>
-                        </div>
-                      )}
-                      {patient.nextAppointment && (
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm">Next: {patient.nextAppointment}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-4">
-                      {patient.condition && (
-                        <div className="text-sm">
-                          <span className="font-medium text-gray-700">Condition: </span>
-                          <span className="text-gray-900">{patient.condition}</span>
-                        </div>
-                      )}
-                      {patient.totalVisits !== undefined && (
-                        <div className="text-sm">
-                          <span className="font-medium text-gray-700">Total Visits: </span>
-                          <span className="text-gray-900">{patient.totalVisits}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-2 ml-4">
-                  <Button variant="outline" size="sm">
-                    <Eye className="h-4 w-4 mr-1" />
-                    View Profile
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <FileText className="h-4 w-4 mr-1" />
-                    Medical Records
-                  </Button>
-                  <Button size="sm" className="bg-green-600 hover:bg-green-700">
-                    <Calendar className="h-4 w-4 mr-1" />
-                    Schedule
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-
-        {filteredPatients.length === 0 && (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No patients found</h3>
-              <p className="text-gray-600 mb-4">
-                {searchTerm || filterStatus !== "all"
-                  ? "Try adjusting your search or filter criteria"
-                  : "You don't have any patients assigned yet"
-                }
-              </p>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-    </DoctorLayout>
-  )
+    </RoleBasedLayout>
+  );
 }

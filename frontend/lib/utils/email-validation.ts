@@ -44,20 +44,9 @@ export async function checkEmailAvailability(email: string): Promise<EmailCheckR
       }
     }
 
-    // Check if email exists in auth.users (via RPC function)
-    const { data: authCheck, error: authError } = await supabase
-      .rpc('check_email_exists', { email_to_check: email })
-
-    if (authError) {
-      console.error('Error checking email in auth:', authError)
-      // Continue with registration if auth check fails
-    } else if (authCheck) {
-      return {
-        isAvailable: false,
-        message: 'Email này đã được đăng ký. Vui lòng sử dụng email khác hoặc đăng nhập.',
-        suggestion: 'login'
-      }
-    }
+    // Note: Skip auth.users check for now since function doesn't exist
+    // The profiles table check above is sufficient for email validation
+    // TODO: Create check_email_exists RPC function if needed
 
     return {
       isAvailable: true,

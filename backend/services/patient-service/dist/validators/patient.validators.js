@@ -1,15 +1,17 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.validatePatientSearch = exports.validateUpdatePatient = exports.validateCreatePatient = exports.validateDoctorId = exports.validateProfileId = exports.validatePatientId = void 0;
+exports.validatePatientSearch = exports.validateSearchPatients = exports.validateUpdatePatient = exports.validateCreatePatient = exports.validateDoctorId = exports.validateProfileId = exports.validatePatientId = void 0;
 const express_validator_1 = require("express-validator");
-const PATIENT_ID_PATTERN = /^PAT\d{6}$/;
+const PATIENT_ID_PATTERN = /^PAT-\d{6}-\d{3}$/;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const PHONE_PATTERN = /^0\d{9}$/;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 exports.validatePatientId = [
     (0, express_validator_1.param)('patientId')
+        .notEmpty()
+        .withMessage('Patient ID is required')
         .matches(PATIENT_ID_PATTERN)
-        .withMessage('Patient ID must be in format PAT followed by 6 digits')
+        .withMessage('Patient ID must be in format PAT-YYYYMM-XXX (Department-Based ID)')
 ];
 exports.validateProfileId = [
     (0, express_validator_1.param)('profileId')
@@ -18,8 +20,8 @@ exports.validateProfileId = [
 ];
 exports.validateDoctorId = [
     (0, express_validator_1.param)('doctorId')
-        .matches(/^DOC\d{6}$/)
-        .withMessage('Doctor ID must be in format DOC followed by 6 digits')
+        .matches(/^DOC-\d{6}-\d{3}$/)
+        .withMessage('Doctor ID must be in format DOC-YYYYMM-XXX (Department-Based ID)')
 ];
 exports.validateCreatePatient = [
     (0, express_validator_1.body)('profile_id')
@@ -150,6 +152,17 @@ exports.validateUpdatePatient = [
         .optional()
         .isLength({ max: 1000 })
         .withMessage('Notes must not exceed 1000 characters')
+];
+exports.validateSearchPatients = [
+    (0, express_validator_1.query)('q')
+        .notEmpty()
+        .withMessage('Search term (q) is required')
+        .isLength({ min: 1, max: 100 })
+        .withMessage('Search term must be between 1 and 100 characters'),
+    (0, express_validator_1.query)('limit')
+        .optional()
+        .isInt({ min: 1, max: 50 })
+        .withMessage('Limit must be between 1 and 50')
 ];
 exports.validatePatientSearch = [
     (0, express_validator_1.query)('search')

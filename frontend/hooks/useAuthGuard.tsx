@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useEnhancedAuth } from '@/lib/auth/enhanced-auth-context';
-import { HospitalUser } from '@/lib/auth/supabase-auth';
+import { useAuth } from '@/lib/auth/auth-wrapper';
+import { UnifiedUser } from '@/lib/auth/unified-auth-context';
 
 // Types for auth guard hook
 export interface UseAuthGuardOptions {
@@ -18,7 +18,7 @@ export interface AuthGuardState {
   isAuthenticated: boolean;
   isAuthorized: boolean;
   isLoading: boolean;
-  user: HospitalUser | null;
+  user: UnifiedUser | null;
   error: string | null;
 }
 
@@ -32,7 +32,7 @@ export function useAuthGuard(options: UseAuthGuardOptions = {}): AuthGuardState 
     onLoading
   } = options;
 
-  const { user, loading, isAuthenticated } = useEnhancedAuth();
+  const { user, loading, isAuthenticated } = useAuth();
   const router = useRouter();
 
   const [authState, setAuthState] = useState<AuthGuardState>({

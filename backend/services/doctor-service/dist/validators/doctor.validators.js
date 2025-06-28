@@ -2,9 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.validateDepartmentIdFormat = exports.validateLicenseNumberFormat = exports.validateDoctorIdFormat = exports.validateLanguagesArray = exports.validateWorkingHoursFormat = exports.validateProfileFields = exports.validateUpdateDoctor = exports.validateCreateDoctor = exports.validateDoctorId = void 0;
 const express_validator_1 = require("express-validator");
-const DOCTOR_ID_PATTERN = /^DOC\d{6}$/;
+const DOCTOR_ID_PATTERN = /^[A-Z]{4}-DOC-\d{6}-\d{3}$/;
 const LICENSE_PATTERN = /^[A-Z]{2,4}\d{6,10}$/;
-const DEPARTMENT_ID_PATTERN = /^DEPT\d+$/;
+const DEPARTMENT_ID_PATTERN = /^DEPT\d{3}$/;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_PATTERN = /^[0-9+\-\s()]+$/;
@@ -14,7 +14,7 @@ const VALID_GENDERS = ['male', 'female', 'other'];
 exports.validateDoctorId = [
     (0, express_validator_1.param)('doctorId')
         .matches(DOCTOR_ID_PATTERN)
-        .withMessage('Doctor ID must be in format DOC + 6 digits (e.g., DOC000001)')
+        .withMessage('Doctor ID must be in format DEPT-DOC-YYYYMM-XXX (e.g., CARD-DOC-202506-001)')
 ];
 exports.validateCreateDoctor = [
     (0, express_validator_1.body)('profile_id')
@@ -147,7 +147,9 @@ exports.validateProfileFields = [
     (0, express_validator_1.body)('full_name')
         .optional()
         .isLength({ min: 2, max: 100 })
-        .withMessage('Full name must be 2-100 characters'),
+        .withMessage('Full name must be 2-100 characters')
+        .matches(/^[\p{L}\s]+$/u)
+        .withMessage('Full name can only contain letters and spaces'),
     (0, express_validator_1.body)('role')
         .optional()
         .equals('doctor')

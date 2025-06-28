@@ -1,7 +1,7 @@
 import { body, param, query, ValidationChain } from 'express-validator';
 
-// Validation patterns
-const PATIENT_ID_PATTERN = /^PAT\d{6}$/;
+// Validation patterns - Updated to match actual database format
+const PATIENT_ID_PATTERN = /^PAT-\d{6}-\d{3}$/; // Department-Based ID: PAT-YYYYMM-XXX (e.g., PAT-202506-860)
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const PHONE_PATTERN = /^0\d{9}$/;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -9,8 +9,10 @@ const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 // Common validations
 export const validatePatientId: ValidationChain[] = [
   param('patientId')
+    .notEmpty()
+    .withMessage('Patient ID is required')
     .matches(PATIENT_ID_PATTERN)
-    .withMessage('Patient ID must be in format PAT followed by 6 digits')
+    .withMessage('Patient ID must be in format PAT-YYYYMM-XXX (Department-Based ID)')
 ];
 
 export const validateProfileId: ValidationChain[] = [
@@ -21,8 +23,8 @@ export const validateProfileId: ValidationChain[] = [
 
 export const validateDoctorId: ValidationChain[] = [
   param('doctorId')
-    .matches(/^DOC\d{6}$/)
-    .withMessage('Doctor ID must be in format DOC followed by 6 digits')
+    .matches(/^[A-Z]{4}-DOC-\d{6}-\d{3}$/)
+    .withMessage('Doctor ID must be in department-based format (e.g., CARD-DOC-YYYYMM-XXX)')
 ];
 
 // Create patient validation
@@ -187,28 +189,42 @@ export const validateUpdatePatient: ValidationChain[] = [
     .withMessage('Notes must not exceed 1000 characters')
 ];
 
-// Search validation
+// Search validation for /search endpoint
+export const validateSearchPatients: ValidationChain[] = [
+  query('q')
+    .notEmpty()
+    .withMessage('Search term (q) is required')
+    .isLength({ min: 1, max: 100 })
+    .withMessage('Search term must be between 1 and 100 characters'),
+
+  query('limit')
+    .optional()
+    .isInt({ min: 1, max: 50 })
+    .withMessage('Limit must be between 1 and 50')
+];
+
+// Search validation for GET /api/patients (with filters)
 export const validatePatientSearch: ValidationChain[] = [
   query('search')
     .optional()
     .isLength({ min: 1, max: 100 })
     .withMessage('Search term must be between 1 and 100 characters'),
-  
+
   query('gender')
     .optional()
     .isIn(['male', 'female', 'other'])
     .withMessage('Gender must be male, female, or other'),
-  
+
   query('status')
     .optional()
     .isIn(['active', 'inactive', 'suspended'])
     .withMessage('Status must be active, inactive, or suspended'),
-  
+
   query('blood_type')
     .optional()
     .isIn(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'])
     .withMessage('Invalid blood type'),
-  
+
   query('age_min')
     .optional()
     .isInt({ min: 0, max: 150 })

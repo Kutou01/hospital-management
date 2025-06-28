@@ -1,9 +1,9 @@
 import { body, param, query, ValidationChain } from 'express-validator';
 
-// Validation patterns
-const APPOINTMENT_ID_PATTERN = /^APT\d{6}$/;
-const PATIENT_ID_PATTERN = /^PAT\d{6}$/;
-const DOCTOR_ID_PATTERN = /^DOC\d{6}$/;
+// Validation patterns - STANDARDIZED Department-Based ID System
+const APPOINTMENT_ID_PATTERN = /^[A-Z]{4}-APT-\d{6}-\d{3}$/;      // CARD-APT-202506-001 (Department-based)
+const PATIENT_ID_PATTERN = /^PAT-\d{6}-\d{3}$/;                   // PAT-202506-001 (Standard)
+const DOCTOR_ID_PATTERN = /^[A-Z]{4}-DOC-\d{6}-\d{3}$/;          // CARD-DOC-202506-001 (4-char dept code)
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_PATTERN = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
 
@@ -11,30 +11,30 @@ const TIME_PATTERN = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
 export const validateAppointmentId: ValidationChain[] = [
   param('appointmentId')
     .matches(APPOINTMENT_ID_PATTERN)
-    .withMessage('Appointment ID must be in format APT followed by 6 digits')
+    .withMessage('Appointment ID must be in department-based format (e.g., CARD-APT-YYYYMM-XXX)')
 ];
 
 export const validatePatientId: ValidationChain[] = [
   param('patientId')
     .matches(PATIENT_ID_PATTERN)
-    .withMessage('Patient ID must be in format PAT followed by 6 digits')
+    .withMessage('Patient ID must be in format PAT-YYYYMM-XXX')
 ];
 
 export const validateDoctorId: ValidationChain[] = [
   param('doctorId')
     .matches(DOCTOR_ID_PATTERN)
-    .withMessage('Doctor ID must be in format DOC followed by 6 digits')
+    .withMessage('Doctor ID must be in department-based format (e.g., CARD-DOC-YYYYMM-XXX)')
 ];
 
 // Create appointment validation
 export const validateCreateAppointment: ValidationChain[] = [
   body('patient_id')
     .matches(PATIENT_ID_PATTERN)
-    .withMessage('Patient ID must be in format PAT followed by 6 digits'),
-  
+    .withMessage('Patient ID must be in format PAT-YYYYMM-XXX'),
+
   body('doctor_id')
     .matches(DOCTOR_ID_PATTERN)
-    .withMessage('Doctor ID must be in format DOC followed by 6 digits'),
+    .withMessage('Doctor ID must be in department-based format (e.g., CARD-DOC-YYYYMM-XXX)'),
   
   body('appointment_date')
     .matches(DATE_PATTERN)
@@ -158,12 +158,12 @@ export const validateAppointmentSearch: ValidationChain[] = [
   query('doctor_id')
     .optional()
     .matches(DOCTOR_ID_PATTERN)
-    .withMessage('Doctor ID must be in format DOC followed by 6 digits'),
-  
+    .withMessage('Doctor ID must be in department-based format (e.g., CARD-DOC-YYYYMM-XXX)'),
+
   query('patient_id')
     .optional()
     .matches(PATIENT_ID_PATTERN)
-    .withMessage('Patient ID must be in format PAT followed by 6 digits'),
+    .withMessage('Patient ID must be in format PAT-YYYYMM-XXX'),
   
   query('appointment_date')
     .optional()
@@ -217,7 +217,7 @@ export const validateAppointmentSearch: ValidationChain[] = [
 export const validateAvailableSlots: ValidationChain[] = [
   query('doctor_id')
     .matches(DOCTOR_ID_PATTERN)
-    .withMessage('Doctor ID must be in format DOC followed by 6 digits'),
+    .withMessage('Doctor ID must be in department-based format (e.g., CARD-DOC-YYYYMM-XXX)'),
   
   query('date')
     .matches(DATE_PATTERN)

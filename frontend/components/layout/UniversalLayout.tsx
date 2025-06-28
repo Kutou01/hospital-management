@@ -6,8 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UniversalSidebar, type UniversalSidebarProps } from './UniversalSidebar';
+import { DoctorSidebar } from './DoctorSidebar';
 import { UserMenu } from './UserMenu';
-import { useEnhancedAuth } from '@/lib/auth/enhanced-auth-context';
+import { useEnhancedAuth } from '@/lib/auth/auth-wrapper';
 
 export interface UniversalLayoutProps {
   children: React.ReactNode;
@@ -42,14 +43,23 @@ export const UniversalLayout: React.FC<UniversalLayoutProps> = ({
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <UniversalSidebar
-        role={role}
-        activePage={activePage}
-        user={user}
-        onLogout={handleLogout}
-        {...sidebarProps}
-      />
+      {/* Sidebar - Use DoctorSidebar for doctor role */}
+      {role === 'doctor' ? (
+        <DoctorSidebar
+          activePage={activePage}
+          user={user}
+          onLogout={handleLogout}
+          compact={sidebarProps.compact}
+        />
+      ) : (
+        <UniversalSidebar
+          role={role}
+          activePage={activePage}
+          user={user}
+          onLogout={handleLogout}
+          {...sidebarProps}
+        />
+      )}
 
       {/* Main Content */}
       <div className="flex-1 lg:ml-0 flex flex-col min-h-screen">
@@ -110,7 +120,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = (props) => (
 export interface DoctorLayoutProps extends Omit<UniversalLayoutProps, 'role'> {}
 
 export const DoctorLayout: React.FC<DoctorLayoutProps> = (props) => (
-  <UniversalLayout {...props} role="doctor" />
+  <UniversalLayout {...props} role="doctor" sidebarProps={{ compact: true, ...props.sidebarProps }} />
 );
 
 export interface PatientLayoutProps extends Omit<UniversalLayoutProps, 'role'> {}

@@ -1,33 +1,28 @@
-import { getSupabase } from '../config/database.config';
+import { supabaseAdmin } from '../config/database.config';
 import logger from '@hospital/shared/dist/utils/logger';
-import { 
-  Patient, 
-  PatientWithProfile, 
-  CreatePatientDto, 
-  UpdatePatientDto, 
-  PatientSearchFilters 
+import {
+  Patient,
+  PatientWithProfile,
+  CreatePatientDto,
+  UpdatePatientDto,
+  PatientSearchFilters
 } from '../types/patient.types';
 
 export class PatientRepository {
-  private supabase = getSupabase();
+  private supabase = supabaseAdmin;
 
-  // Generate patient ID
-  private generatePatientId(): string {
-    const timestamp = Date.now().toString().slice(-6);
-    return `PAT${timestamp}`;
-  }
-
-  // Calculate age from date of birth
+  // Remove local ID generation - now handled by database functions
+  // Calculate age from date of birth (kept for backward compatibility)
   private calculateAge(dateOfBirth: string): number {
     const today = new Date();
     const birthDate = new Date(dateOfBirth);
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
-    
+
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
       age--;
     }
-    
+
     return age;
   }
 
@@ -38,13 +33,72 @@ export class PatientRepository {
     limit: number = 20
   ): Promise<{ patients: PatientWithProfile[]; total: number }> {
     try {
+      const offset = (page - 1) * limit;
+
+      // CONSISTENT APPROACH: Use database function like getPatientById (working)
+      const { data, error } = await this.supabase
+        .rpc('get_all_patients', {
+          search_filters: {
+            search: filters.search || null,
+            gender: filters.gender || null,
+            status: filters.status || null,
+            blood_type: filters.blood_type || null,
+            age_min: filters.age_min || null,
+            age_max: filters.age_max || null,
+            created_after: filters.created_after || null,
+            created_before: filters.created_before || null
+          },
+          limit_count: limit,
+          offset_count: offset
+        });
+
+      if (error) {
+        logger.error('Database function error in getAllPatients:', error);
+
+        // FALLBACK: Use direct query if database function fails
+        return this.getAllPatientsDirectQuery(filters, page, limit);
+      }
+
+      if (!data || data.length === 0) {
+        return { patients: [], total: 0 };
+      }
+
+      // Database function returns array with single object containing patients and total
+      const result = data[0];
+      if (!result || !result.patients) {
+        return { patients: [], total: 0 };
+      }
+
+      return {
+        patients: result.patients as PatientWithProfile[],
+        total: result.total || 0
+      };
+    } catch (error) {
+      logger.error('Exception in getAllPatients:', error);
+
+      // FALLBACK: Use direct query if database function fails
+      return this.getAllPatientsDirectQuery(filters, page, limit);
+    }
+  }
+
+  // FALLBACK: Direct query method (like Doctor Service)
+  private async getAllPatientsDirectQuery(
+    filters: PatientSearchFilters = {},
+    page: number = 1,
+    limit: number = 20
+  ): Promise<{ patients: PatientWithProfile[]; total: number }> {
+    try {
+      const offset = (page - 1) * limit;
+
       let query = this.supabase
         .from('patients')
         .select(`
           *,
-          profile:profiles!patients_profile_id_fkey (
+          profiles!inner (
             id,
             email,
+            full_name,
+            date_of_birth,
             phone_number,
             role,
             is_active,
@@ -54,61 +108,47 @@ export class PatientRepository {
         `, { count: 'exact' });
 
       // Apply filters
-      if (filters.search) {
-        query = query.or(`full_name.ilike.%${filters.search}%,patient_id.ilike.%${filters.search}%`);
-      }
-
       if (filters.gender) {
         query = query.eq('gender', filters.gender);
       }
-
       if (filters.status) {
         query = query.eq('status', filters.status);
       }
-
       if (filters.blood_type) {
         query = query.eq('blood_type', filters.blood_type);
       }
-
-      if (filters.created_after) {
-        query = query.gte('created_at', filters.created_after);
+      if (filters.search) {
+        query = query.ilike('profiles.full_name', `%${filters.search}%`);
       }
 
-      if (filters.created_before) {
-        query = query.lte('created_at', filters.created_before);
-      }
-
-      // Apply pagination
-      const offset = (page - 1) * limit;
-      query = query.range(offset, offset + limit - 1);
-
-      // Order by full name
-      query = query.order('full_name');
+      // Apply pagination and ordering
+      query = query
+        .range(offset, offset + limit - 1)
+        .order('created_at', { ascending: false });
 
       const { data, error, count } = await query;
 
       if (error) {
-        logger.error('Error fetching patients:', error);
-        throw new Error(`Failed to fetch patients: ${error.message}`);
+        logger.error('Direct query error in getAllPatientsDirectQuery:', error);
+        throw error;
       }
 
-      // Filter by age if specified
-      let filteredData = data || [];
-      if (filters.age_min !== undefined || filters.age_max !== undefined) {
-        filteredData = filteredData.filter(patient => {
-          const age = this.calculateAge(patient.date_of_birth);
-          if (filters.age_min !== undefined && age < filters.age_min) return false;
-          if (filters.age_max !== undefined && age > filters.age_max) return false;
-          return true;
-        });
+      if (!data || data.length === 0) {
+        return { patients: [], total: count || 0 };
       }
+
+      // Transform data to match PatientWithProfile interface
+      const transformedPatients = data.map((patient: any) => ({
+        ...patient,
+        profile: patient.profiles // Direct assignment from inner join
+      }));
 
       return {
-        patients: filteredData as PatientWithProfile[],
+        patients: transformedPatients as PatientWithProfile[],
         total: count || 0
       };
     } catch (error) {
-      logger.error('Exception in getAllPatients:', error);
+      logger.error('Exception in getAllPatientsDirectQuery:', error);
       throw error;
     }
   }
@@ -117,31 +157,18 @@ export class PatientRepository {
   async getPatientById(patientId: string): Promise<PatientWithProfile | null> {
     try {
       const { data, error } = await this.supabase
-        .from('patients')
-        .select(`
-          *,
-          profile:profiles!patients_profile_id_fkey (
-            id,
-            email,
-            phone_number,
-            role,
-            is_active,
-            email_verified,
-            phone_verified
-          )
-        `)
-        .eq('patient_id', patientId)
-        .single();
+        .rpc('get_patient_by_id', { input_patient_id: patientId });
 
       if (error) {
-        if (error.code === 'PGRST116') {
-          return null; // Patient not found
-        }
-        logger.error('Error fetching patient by ID:', error);
-        throw new Error(`Failed to fetch patient: ${error.message}`);
+        logger.error('Database function error in getPatientById:', error);
+        return null;
       }
 
-      return data as PatientWithProfile;
+      if (!data || data.length === 0) {
+        return null;
+      }
+
+      return data[0] as PatientWithProfile;
     } catch (error) {
       logger.error('Exception in getPatientById:', error);
       throw error;
@@ -152,31 +179,18 @@ export class PatientRepository {
   async getPatientByProfileId(profileId: string): Promise<PatientWithProfile | null> {
     try {
       const { data, error } = await this.supabase
-        .from('patients')
-        .select(`
-          *,
-          profile:profiles!patients_profile_id_fkey (
-            id,
-            email,
-            phone_number,
-            role,
-            is_active,
-            email_verified,
-            phone_verified
-          )
-        `)
-        .eq('profile_id', profileId)
-        .single();
+        .rpc('get_patient_by_profile_id', { input_profile_id: profileId });
 
       if (error) {
-        if (error.code === 'PGRST116') {
-          return null; // Patient not found
-        }
-        logger.error('Error fetching patient by profile ID:', error);
-        throw new Error(`Failed to fetch patient: ${error.message}`);
+        logger.error('Database function error in getPatientByProfileId:', error);
+        return null;
       }
 
-      return data as PatientWithProfile;
+      if (!data || data.length === 0) {
+        return null;
+      }
+
+      return data[0] as PatientWithProfile;
     } catch (error) {
       logger.error('Exception in getPatientByProfileId:', error);
       throw error;
@@ -195,6 +209,8 @@ export class PatientRepository {
             profile:profiles!patients_profile_id_fkey (
               id,
               email,
+              full_name,
+              date_of_birth,
               phone_number,
               role,
               is_active,
@@ -225,32 +241,52 @@ export class PatientRepository {
     }
   }
 
+  // Verify if profile exists
+  async verifyProfileExists(profileId: string): Promise<boolean> {
+    try {
+      const { data, error } = await this.supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', profileId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+        logger.error('Error verifying profile existence:', error);
+        throw error;
+      }
+
+      return !!data;
+    } catch (error) {
+      logger.error('Exception in verifyProfileExists:', error);
+      return false;
+    }
+  }
+
   // Create new patient
   async createPatient(patientData: CreatePatientDto): Promise<Patient> {
     try {
-      const patientId = this.generatePatientId();
-      
-      const newPatient = {
-        patient_id: patientId,
-        ...patientData,
-        status: 'active',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-
       const { data, error } = await this.supabase
-        .from('patients')
-        .insert([newPatient])
-        .select()
-        .single();
+        .rpc('create_patient', {
+          patient_data: {
+            ...patientData,
+            status: 'active'
+          }
+        });
 
       if (error) {
-        logger.error('Error creating patient:', error);
-        throw new Error(`Failed to create patient: ${error.message}`);
+        logger.error('Database function error in createPatient:', error);
+        throw error;
       }
 
-      logger.info('Patient created successfully:', { patientId });
-      return data as Patient;
+      if (!data || data.length === 0) {
+        throw new Error('Failed to create patient - no data returned');
+      }
+
+      logger.info('Patient created successfully via database function:', {
+        patientId: data[0].patient_id
+      });
+
+      return data[0] as Patient;
     } catch (error) {
       logger.error('Exception in createPatient:', error);
       throw error;
@@ -260,25 +296,27 @@ export class PatientRepository {
   // Update patient
   async updatePatient(patientId: string, updateData: UpdatePatientDto): Promise<Patient> {
     try {
-      const updatedData = {
-        ...updateData,
-        updated_at: new Date().toISOString()
-      };
-
       const { data, error } = await this.supabase
-        .from('patients')
-        .update(updatedData)
-        .eq('patient_id', patientId)
-        .select()
-        .single();
+        .rpc('update_patient', {
+          input_patient_id: patientId,
+          patient_data: updateData
+        });
 
       if (error) {
-        logger.error('Error updating patient:', error);
-        throw new Error(`Failed to update patient: ${error.message}`);
+        logger.error('Database function error in updatePatient:', error);
+        throw error;
       }
 
-      logger.info('Patient updated successfully:', { patientId });
-      return data as Patient;
+      if (!data || data.length === 0) {
+        throw new Error('Failed to update patient - patient not found');
+      }
+
+      logger.info('Patient updated successfully via database function:', {
+        patientId,
+        updatedFields: Object.keys(updateData)
+      });
+
+      return data[0] as Patient;
     } catch (error) {
       logger.error('Exception in updatePatient:', error);
       throw error;
@@ -288,34 +326,30 @@ export class PatientRepository {
   // Delete patient (soft delete by setting status to inactive)
   async deletePatient(patientId: string): Promise<boolean> {
     try {
-      const { error } = await this.supabase
-        .from('patients')
-        .update({ 
-          status: 'inactive',
-          updated_at: new Date().toISOString()
-        })
-        .eq('patient_id', patientId);
+      const { data, error } = await this.supabase
+        .rpc('delete_patient', { input_patient_id: patientId });
 
       if (error) {
-        logger.error('Error deleting patient:', error);
-        throw new Error(`Failed to delete patient: ${error.message}`);
+        logger.error('Database function error in deletePatient:', error);
+        throw error;
       }
 
-      logger.info('Patient deleted successfully:', { patientId });
-      return true;
+      logger.info('Patient deleted successfully via database function:', { patientId });
+      return data === true;
     } catch (error) {
       logger.error('Exception in deletePatient:', error);
       throw error;
     }
   }
 
-  // Check if patient exists
+  // Check if patient exists (only active patients)
   async patientExists(patientId: string): Promise<boolean> {
     try {
       const { data, error } = await this.supabase
         .from('patients')
         .select('patient_id')
         .eq('patient_id', patientId)
+        .eq('status', 'active')
         .single();
 
       if (error && error.code !== 'PGRST116') {
@@ -375,6 +409,174 @@ export class PatientRepository {
       return stats;
     } catch (error) {
       logger.error('Exception in getPatientStats:', error);
+      throw error;
+    }
+  }
+
+  // ENHANCED: Search patients by multiple criteria
+  async searchPatients(searchTerm: string, limit: number = 10): Promise<PatientWithProfile[]> {
+    try {
+      const { data, error } = await this.supabase
+        .from('patients')
+        .select(`
+          *,
+          profiles!inner (
+            id,
+            email,
+            full_name,
+            date_of_birth,
+            phone_number,
+            role,
+            is_active,
+            email_verified,
+            phone_verified
+          )
+        `)
+        .or(`profiles.full_name.ilike.%${searchTerm}%,profiles.phone_number.ilike.%${searchTerm}%,patient_id.ilike.%${searchTerm}%`)
+        .eq('status', 'active')
+        .limit(limit);
+
+      if (error) {
+        logger.error('Error searching patients:', error);
+        throw new Error(`Failed to search patients: ${error.message}`);
+      }
+
+      return data?.map((patient: any) => ({
+        ...patient,
+        profile: patient.profiles
+      })) as PatientWithProfile[] || [];
+    } catch (error) {
+      logger.error('Exception in searchPatients:', error);
+      throw error;
+    }
+  }
+
+  // ENHANCED: Get patients with upcoming appointments
+  async getPatientsWithUpcomingAppointments(): Promise<PatientWithProfile[]> {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+
+      const { data, error } = await this.supabase
+        .from('appointments')
+        .select(`
+          patient_id,
+          appointment_date,
+          patients!inner (
+            *,
+            profiles!inner (
+              id,
+              email,
+              full_name,
+              date_of_birth,
+              phone_number,
+              role,
+              is_active,
+              email_verified,
+              phone_verified
+            )
+          )
+        `)
+        .gte('appointment_date', today)
+        .eq('status', 'scheduled')
+        .order('appointment_date', { ascending: true });
+
+      if (error) {
+        logger.error('Error fetching patients with upcoming appointments:', error);
+        throw new Error(`Failed to fetch patients with upcoming appointments: ${error.message}`);
+      }
+
+      // Extract unique patients
+      const uniquePatients = new Map();
+      data?.forEach((appointment: any) => {
+        if (appointment.patients && appointment.patients.patient_id) {
+          const patient = {
+            ...appointment.patients,
+            profile: appointment.patients.profiles
+          };
+          uniquePatients.set(appointment.patients.patient_id, patient);
+        }
+      });
+
+      return Array.from(uniquePatients.values()) as PatientWithProfile[];
+    } catch (error) {
+      logger.error('Exception in getPatientsWithUpcomingAppointments:', error);
+      throw error;
+    }
+  }
+
+  // ENHANCED: Get patient medical summary
+  async getPatientMedicalSummary(patientId: string): Promise<{
+    patient: PatientWithProfile | null;
+    appointmentCount: number;
+    lastAppointment: string | null;
+    medicalHistory: string[];
+    allergies: string[];
+    currentMedications: any;
+  }> {
+    try {
+      // Get patient details
+      const patient = await this.getPatientById(patientId);
+
+      if (!patient) {
+        return {
+          patient: null,
+          appointmentCount: 0,
+          lastAppointment: null,
+          medicalHistory: [],
+          allergies: [],
+          currentMedications: {}
+        };
+      }
+
+      // Get appointment count and last appointment
+      const { data: appointments, error: appointmentError } = await this.supabase
+        .from('appointments')
+        .select('appointment_date, status')
+        .eq('patient_id', patientId)
+        .order('appointment_date', { ascending: false });
+
+      if (appointmentError) {
+        logger.error('Error fetching patient appointments:', appointmentError);
+      }
+
+      const appointmentCount = appointments?.length || 0;
+      const lastAppointment = appointments?.[0]?.appointment_date || null;
+
+      return {
+        patient,
+        appointmentCount,
+        lastAppointment,
+        medicalHistory: Array.isArray(patient.medical_history) ? patient.medical_history :
+                       patient.medical_history ? [patient.medical_history] : [],
+        allergies: patient.allergies || [],
+        currentMedications: patient.current_medications || {}
+      };
+    } catch (error) {
+      logger.error('Exception in getPatientMedicalSummary:', error);
+      throw error;
+    }
+  }
+
+  // Get unique patient count for a specific doctor (through appointments)
+  async getPatientCountForDoctor(doctorId: string): Promise<number> {
+    try {
+      const { data, error } = await this.supabase
+        .from('appointments')
+        .select('patient_id')
+        .eq('doctor_id', doctorId);
+
+      if (error) {
+        logger.error('Error fetching patient count for doctor:', error);
+        throw error;
+      }
+
+      // Get unique patient IDs
+      const uniquePatients = [...new Set((data || []).map(a => a.patient_id))];
+
+      return uniquePatients.length;
+
+    } catch (error) {
+      logger.error('Exception in getPatientCountForDoctor:', error);
       throw error;
     }
   }

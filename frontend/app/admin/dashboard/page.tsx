@@ -18,13 +18,19 @@ import {
 } from "lucide-react"
 
 import { StatCard } from "@/components/dashboard/StatCard"
-import { ChartCard, BarChartGroup } from "@/components/dashboard/ChartCard"
-import { RecentActivity } from "@/components/dashboard/RecentActivity"
+import { EnhancedStatCard, AppointmentStatCard, PatientStatCard, DoctorStatCard } from "@/components/dashboard/EnhancedStatCard"
+import { RealTimeStatsEnhanced } from "@/components/dashboard/RealTimeStatsEnhanced"
+import { ChartCard, BarChartGroup, ProgressChart, MetricComparison } from "@/components/dashboard/ChartCard"
+import { ActivityTimeline } from "@/components/dashboard/ActivityTimeline"
+import { NotificationCenter } from "@/components/dashboard/NotificationCenter"
+import { InteractiveCalendar } from "@/components/dashboard/InteractiveCalendar"
+import { StatCardSkeleton, ChartCardSkeleton, RealTimeStatsSkeleton, PulseWrapper } from "@/components/dashboard/SkeletonLoaders"
+import { useDashboardLoading } from "@/hooks/useProgressiveLoading"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { useEnhancedAuth } from "@/lib/auth/enhanced-auth-context"
+import { useEnhancedAuth } from "@/lib/auth/auth-wrapper"
 import { AdminPageWrapper } from "../page-wrapper"
 import { dashboardApi, appointmentsApi } from "@/lib/supabase"
 
@@ -34,6 +40,19 @@ export default function AdminDashboard() {
   const [dashboardStats, setDashboardStats] = useState<any>(null)
   const [recentAppointments, setRecentAppointments] = useState<any[]>([])
   const [isLoadingData, setIsLoadingData] = useState(true)
+  const [notifications, setNotifications] = useState<any[]>([])
+  const [activities, setActivities] = useState<any[]>([])
+  const [calendarEvents, setCalendarEvents] = useState<any[]>([])
+
+  // Progressive loading
+  const {
+    isStatsLoading,
+    isChartsLoading,
+    isSystemStatsLoading,
+    isActivitiesLoading,
+    isNotificationsLoading,
+    progress
+  } = useDashboardLoading()
 
   // Debug logs
   console.log('🏥 [AdminDashboard] Render state:', {
@@ -92,6 +111,78 @@ export default function AdminDashboard() {
           console.error('❌ [AdminDashboard] Failed to load appointments:', appointmentsError)
           setRecentAppointments([])
         }
+
+        // Load mock notifications
+        setNotifications([
+          {
+            id: '1',
+            type: 'system' as const,
+            title: 'System Maintenance Scheduled',
+            message: 'Scheduled maintenance from 11:00 PM to 1:00 AM tonight',
+            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
+            isRead: false,
+            priority: 'medium' as const,
+            sender: { name: 'System Admin', role: 'IT', avatar: '' }
+          },
+          {
+            id: '2',
+            type: 'warning' as const,
+            title: 'High Server Load',
+            message: 'Server load is at 85%. Consider scaling resources.',
+            timestamp: new Date(Date.now() - 30 * 60 * 1000),
+            isRead: false,
+            priority: 'high' as const,
+            sender: { name: 'Monitoring System', role: 'System', avatar: '' }
+          }
+        ])
+
+        // Load mock activities
+        setActivities([
+          {
+            id: '1',
+            type: 'appointment' as const,
+            title: 'New appointment scheduled',
+            description: 'Patient John Doe scheduled for tomorrow',
+            timestamp: new Date(Date.now() - 15 * 60 * 1000),
+            user: { name: 'Reception', role: 'Staff', avatar: '' },
+            patient: { name: 'John Doe', id: 'PAT-001' },
+            status: 'completed' as const,
+            priority: 'medium' as const
+          },
+          {
+            id: '2',
+            type: 'admission' as const,
+            title: 'Patient admitted to ICU',
+            description: 'Emergency admission for cardiac monitoring',
+            timestamp: new Date(Date.now() - 45 * 60 * 1000),
+            user: { name: 'Dr. Smith', role: 'Doctor', avatar: '' },
+            patient: { name: 'Jane Smith', id: 'PAT-002' },
+            status: 'in-progress' as const,
+            priority: 'urgent' as const
+          }
+        ])
+
+        // Load mock calendar events
+        setCalendarEvents([
+          {
+            id: '1',
+            title: 'Board Meeting',
+            date: new Date(),
+            time: '14:00',
+            type: 'meeting' as const,
+            location: 'Conference Room A',
+            status: 'confirmed' as const
+          },
+          {
+            id: '2',
+            title: 'Staff Training',
+            date: new Date(Date.now() + 24 * 60 * 60 * 1000),
+            time: '09:00',
+            type: 'meeting' as const,
+            location: 'Training Center',
+            status: 'pending' as const
+          }
+        ])
 
         console.log('🎉 [AdminDashboard] Dashboard data loading completed')
       } catch (error) {
@@ -177,51 +268,66 @@ export default function AdminDashboard() {
     ? Math.round((Number(systemStats.occupied_rooms) / Number(systemStats.total_rooms)) * 100)
     : 0
 
+  // Generate recent activities from real data
   const recentActivities = [
     {
       id: "1",
       type: "doctor" as const,
-      title: "New doctor registered",
-      description: "Dr. Nguyễn Văn A đã được thêm vào hệ thống",
-      time: "2 hours ago",
+      title: "System Status",
+      description: `${systemStats.total_patients} bệnh nhân, ${systemStats.total_doctors} bác sĩ đang hoạt động`,
+      time: "Real-time",
       status: "completed" as const,
-      initials: "NVA"
+      initials: "SYS"
     },
     {
       id: "2",
       type: "patient" as const,
-      title: "Patient registration spike",
-      description: "15 bệnh nhân mới đăng ký trong 1 giờ qua",
-      time: "3 hours ago",
+      title: "Appointments Today",
+      description: `${systemStats.appointments_today} cuộc hẹn hôm nay`,
+      time: "Today",
       status: "pending" as const,
-      initials: "REG"
+      initials: "APT"
     },
     {
       id: "3",
       type: "appointment" as const,
-      title: "High appointment volume",
-      description: "89 lịch hẹn đang hoạt động",
-      time: "4 hours ago",
+      title: "Room Occupancy",
+      description: `${occupancyRate}% phòng đang được sử dụng`,
+      time: "Current",
       status: "completed" as const,
-      initials: "APT"
+      initials: "ROM"
     },
     {
       id: "4",
       type: "report" as const,
-      title: "System backup completed",
-      description: "Sao lưu dữ liệu hệ thống thành công",
-      time: "6 hours ago",
+      title: "System Health",
+      description: "Tất cả dịch vụ đang hoạt động bình thường",
+      time: "Live",
       status: "completed" as const,
       initials: "SYS"
     }
   ]
 
+  // Generate department stats from real data (simplified version)
   const departmentStats = [
-    { name: "Khoa Nội", patients: 45, doctors: 8, occupancy: 85 },
-    { name: "Khoa Ngoại", patients: 32, doctors: 6, occupancy: 70 },
-    { name: "Khoa Sản", patients: 28, doctors: 5, occupancy: 90 },
-    { name: "Khoa Nhi", patients: 38, doctors: 7, occupancy: 75 },
-    { name: "Khoa Tim mạch", patients: 25, doctors: 4, occupancy: 65 }
+    {
+      name: "Tổng quan",
+      patients: Number(systemStats.total_patients),
+      doctors: Number(systemStats.total_doctors),
+      occupancy: occupancyRate
+    },
+    {
+      name: "Phòng khám",
+      patients: Number(systemStats.appointments_today),
+      doctors: Number(systemStats.total_rooms),
+      occupancy: Math.round((Number(systemStats.occupied_rooms) / Math.max(Number(systemStats.total_rooms), 1)) * 100)
+    },
+    {
+      name: "Hẹn khám",
+      patients: Number(systemStats.appointments_pending),
+      doctors: Number(systemStats.appointments_confirmed),
+      occupancy: Math.round((Number(systemStats.appointments_completed) / Math.max(Number(systemStats.appointments_today), 1)) * 100)
+    }
   ]
 
   const systemHealth = {
@@ -278,50 +384,115 @@ export default function AdminDashboard() {
           </div>
           <p className="text-gray-600">{currentDate}</p>
 
-          {/* System Status Alert */}
+          {/* Enhanced System Status Alert */}
           <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <span className="text-sm font-medium text-green-800">
-                Tất cả hệ thống hoạt động bình thường. Quản lý bệnh viện đang chạy ổn định.
-              </span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                <span className="text-sm font-medium text-green-800">
+                  Tất cả hệ thống hoạt động bình thường. Quản lý bệnh viện đang chạy ổn định.
+                </span>
+              </div>
+              <SystemHealthBadge />
             </div>
           </div>
         </div>
 
-        {/* Key Metrics */}
+        {/* Enhanced Key Metrics with Progressive Loading */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-          <StatCard
-            title="Tổng người dùng"
-            value={totalUsers}
-            change={8}
-            icon={<Users className="text-blue-500" />}
-            description={`${systemStats.total_doctors} bác sĩ, ${systemStats.total_patients} bệnh nhân`}
-          />
-          <StatCard
-            title="Lịch hẹn đang hoạt động"
-            value={Number(systemStats.appointments_confirmed) + Number(systemStats.appointments_pending)}
-            change={12}
-            icon={<Calendar className="text-green-500" />}
-            description={`${systemStats.appointments_completed} hoàn thành`}
-          />
-          <StatCard
-            title="Tổng phòng"
-            value={systemStats.total_rooms}
-            change={0}
-            icon={<BedDouble className="text-purple-500" />}
-            description={`${systemStats.available_rooms} phòng trống`}
-          />
-          <StatCard
-            title="Tỷ lệ lấp đầy"
-            value={`${occupancyRate}%`}
-            change={occupancyRate > 70 ? 5 : -3}
-            icon={<Activity className="text-orange-500" />}
-            description={`${systemStats.total_departments} khoa hoạt động`}
-          />
+          <PulseWrapper isLoading={isStatsLoading} fallback={<StatCardSkeleton />}>
+            <EnhancedStatCard
+              title="Tổng người dùng"
+              value={totalUsers}
+              change={8}
+              changeLabel="tăng trưởng tháng này"
+              icon={<Users className="h-6 w-6" />}
+              description={`${systemStats.total_doctors} bác sĩ, ${systemStats.total_patients} bệnh nhân`}
+              color="blue"
+              variant="gradient"
+              showTrend={true}
+              showActions={true}
+              onRefresh={() => window.location.reload()}
+              onViewDetails={() => window.location.href = '/admin/doctors'}
+            />
+          </PulseWrapper>
+
+          <PulseWrapper isLoading={isStatsLoading} fallback={<StatCardSkeleton />}>
+            <EnhancedStatCard
+              title="Cuộc hẹn hôm nay"
+              value={systemStats.appointments_today}
+              change={12}
+              changeLabel="so với hôm qua"
+              icon={<Calendar className="h-6 w-6" />}
+              description={`${systemStats.appointments_pending} đang chờ xác nhận`}
+              color="green"
+              variant="gradient"
+              showTrend={true}
+              showProgress={true}
+              progressValue={systemStats.appointments_confirmed}
+              progressMax={systemStats.appointments_today}
+              onRefresh={() => window.location.reload()}
+              onViewDetails={() => window.location.href = '/admin/appointments'}
+            />
+          </PulseWrapper>
+
+          <PulseWrapper isLoading={isStatsLoading} fallback={<StatCardSkeleton />}>
+            <EnhancedStatCard
+              title="Tổng phòng"
+              value={systemStats.total_rooms}
+              change={0}
+              changeLabel="không thay đổi"
+              icon={<BedDouble className="h-6 w-6" />}
+              description={`${systemStats.available_rooms} phòng trống`}
+              color="purple"
+              variant="gradient"
+              showTrend={true}
+              showProgress={true}
+              progressValue={systemStats.occupied_rooms}
+              progressMax={systemStats.total_rooms}
+              onViewDetails={() => window.location.href = '/admin/rooms'}
+            />
+          </PulseWrapper>
+
+          <PulseWrapper isLoading={isStatsLoading} fallback={<StatCardSkeleton />}>
+            <EnhancedStatCard
+              title="Tỷ lệ lấp đầy"
+              value={`${occupancyRate}%`}
+              change={occupancyRate > 70 ? 5 : -3}
+              changeLabel="so với tuần trước"
+              icon={<Activity className="h-6 w-6" />}
+              description={`${systemStats.total_departments} khoa hoạt động`}
+              color="orange"
+              variant="gradient"
+              showTrend={true}
+              status={occupancyRate > 90 ? 'critical' : occupancyRate > 70 ? 'warning' : 'normal'}
+              onViewDetails={() => window.location.href = '/admin/departments'}
+            />
+          </PulseWrapper>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        {/* Enhanced Real-time System Monitoring */}
+        <PulseWrapper isLoading={isSystemStatsLoading} fallback={<RealTimeStatsSkeleton />}>
+          <RealTimeStatsEnhanced
+            systemHealth="healthy"
+            metrics={{
+              activeUsers: totalUsers,
+              serverLoad: 45,
+              databaseConnections: 23,
+              responseTime: 120,
+              memoryUsage: 68,
+              diskUsage: 42,
+              networkLatency: 15,
+              uptime: '15d 4h 23m'
+            }}
+            showDetailedMetrics={true}
+            autoRefresh={true}
+            refreshInterval={30000}
+            onRefresh={() => console.log('Refreshing system stats...')}
+          />
+        </PulseWrapper>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 mt-6">
           {/* Department Overview */}
           <Card className="lg:col-span-2">
             <CardContent className="p-6">
@@ -333,7 +504,7 @@ export default function AdminDashboard() {
               </div>
               <div className="space-y-4">
                 {departmentStats.map((dept, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div key={index} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                     <div className="flex items-center space-x-4">
                       <div className="p-2 bg-blue-100 rounded-lg">
                         <Building2 className="h-5 w-5 text-blue-600" />
@@ -355,31 +526,31 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
-          {/* System Health */}
+          {/* Quick Actions Enhanced */}
           <Card>
             <CardContent className="p-6">
-              <h3 className="text-lg font-medium mb-4">Tình trạng hệ thống</h3>
-              <div className="space-y-4">
-                {Object.entries(systemHealth).map(([service, health]) => (
-                  <div key={service} className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Server className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm capitalize">{service.replace(/([A-Z])/g, ' $1')}</span>
-                    </div>
-                    <div className="text-right">
-                      <Badge className={`text-xs ${getHealthColor(health.status)}`}>
-                        {health.status}
-                      </Badge>
-                      <p className="text-xs text-gray-500 mt-1">{health.uptime}</p>
-                    </div>
-                  </div>
-                ))}
-                <div className="pt-4">
-                  <Button className="w-full" variant="outline" size="sm">
-                    <BarChart3 className="h-4 w-4 mr-2" />
-                    Xem phân tích
-                  </Button>
-                </div>
+              <h3 className="text-lg font-medium mb-4">Thao tác nhanh</h3>
+              <div className="space-y-3">
+                <Button className="w-full justify-start bg-gradient-to-r from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 text-blue-700 border-blue-200" variant="outline">
+                  <UserCog className="h-4 w-4 mr-2" />
+                  Quản lý bác sĩ
+                </Button>
+                <Button className="w-full justify-start bg-gradient-to-r from-green-50 to-green-100 hover:from-green-100 hover:to-green-200 text-green-700 border-green-200" variant="outline">
+                  <Users className="h-4 w-4 mr-2" />
+                  Quản lý bệnh nhân
+                </Button>
+                <Button className="w-full justify-start bg-gradient-to-r from-purple-50 to-purple-100 hover:from-purple-100 hover:to-purple-200 text-purple-700 border-purple-200" variant="outline">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Lịch hẹn
+                </Button>
+                <Button className="w-full justify-start bg-gradient-to-r from-orange-50 to-orange-100 hover:from-orange-100 hover:to-orange-200 text-orange-700 border-orange-200" variant="outline">
+                  <Building2 className="h-4 w-4 mr-2" />
+                  Các khoa
+                </Button>
+                <Button className="w-full justify-start bg-gradient-to-r from-red-50 to-red-100 hover:from-red-100 hover:to-red-200 text-red-700 border-red-200" variant="outline">
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  Báo cáo
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -458,84 +629,105 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Today's Summary */}
+        {/* Enhanced Dashboard Sections */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+          {/* Activity Timeline */}
+          <PulseWrapper isLoading={isActivitiesLoading} fallback={<div className="h-96 bg-gray-100 rounded-lg animate-pulse" />}>
+            <ActivityTimeline
+              activities={activities}
+              onActivityClick={(activity) => console.log('Activity clicked:', activity)}
+              onAddActivity={() => console.log('Add new activity')}
+              showFilters={false}
+              showSearch={true}
+              groupByDate={true}
+              maxItems={5}
+            />
+          </PulseWrapper>
+
+          {/* Notification Center */}
+          <PulseWrapper isLoading={isNotificationsLoading} fallback={<div className="h-96 bg-gray-100 rounded-lg animate-pulse" />}>
+            <NotificationCenter
+              notifications={notifications}
+              onNotificationClick={(notification) => console.log('Notification clicked:', notification)}
+              onMarkAsRead={(id) => console.log('Mark as read:', id)}
+              onMarkAllAsRead={() => console.log('Mark all as read')}
+              onDeleteNotification={(id) => console.log('Delete notification:', id)}
+              showFilters={false}
+              showSearch={false}
+              maxItems={5}
+            />
+          </PulseWrapper>
+        </div>
+
+        {/* Enhanced Charts and Calendar */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+          {/* Performance Chart */}
+          <PulseWrapper isLoading={isChartsLoading} fallback={<ChartCardSkeleton />}>
+            <ChartCard
+              title="Hiệu suất hệ thống"
+              subtitle="7 ngày qua"
+              chartType="bar"
+              showExport={true}
+              onExport={() => console.log('Exporting chart...')}
+              onRefresh={() => console.log('Refreshing chart...')}
+              trend={{
+                value: 12.5,
+                label: 'tăng',
+                direction: 'up'
+              }}
+            >
+              <ProgressChart data={[
+                { label: 'Cuộc hẹn hoàn thành', value: 92, color: 'green', target: 100 },
+                { label: 'Tỷ lệ lấp đầy phòng', value: occupancyRate, color: 'blue', target: 100 },
+                { label: 'Hài lòng bệnh nhân', value: 88, color: 'purple', target: 100 },
+                { label: 'Hiệu suất bác sĩ', value: 95, color: 'orange', target: 100 }
+              ]} />
+            </ChartCard>
+          </PulseWrapper>
+
+          {/* Calendar */}
+          <InteractiveCalendar
+            events={calendarEvents}
+            onDateSelect={(date) => console.log('Date selected:', date)}
+            onEventClick={(event) => console.log('Event clicked:', event)}
+            onAddEvent={(date) => console.log('Add event for:', date)}
+            showMiniCalendar={true}
+            showEventList={false}
+          />
+        </div>
+
+        {/* Summary Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
-                Lịch hẹn hôm nay
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Đã hoàn thành</span>
-                  <span className="font-medium text-green-600">{systemStats.appointments_completed}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Đã xác nhận</span>
-                  <span className="font-medium text-blue-600">{systemStats.appointments_confirmed}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Đang chờ</span>
-                  <span className="font-medium text-yellow-600">{systemStats.appointments_pending}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Hôm nay</span>
-                  <span className="font-medium text-purple-600">{systemStats.appointments_today}</span>
-                </div>
-              </div>
+            <CardContent className="p-6">
+              <MetricComparison
+                title="Doanh thu tháng"
+                current={2400000}
+                previous={2100000}
+                format="currency"
+              />
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
-                Tổng quan cuộc hẹn
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Tổng cuộc hẹn</span>
-                  <span className="font-medium">{Number(systemStats.appointments_completed) + Number(systemStats.appointments_confirmed) + Number(systemStats.appointments_pending)}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Hoàn thành</span>
-                  <span className="font-medium text-green-600">{systemStats.appointments_completed}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Tăng trưởng</span>
-                  <span className="font-medium text-green-600">+15%</span>
-                </div>
-              </div>
+            <CardContent className="p-6">
+              <MetricComparison
+                title="Tỷ lệ hài lòng"
+                current={94.5}
+                previous={91.2}
+                format="percentage"
+              />
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="h-5 w-5" />
-                Hiệu suất hệ thống
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Thời gian hoạt động</span>
-                  <span className="font-medium text-green-600">99.9%</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Thời gian phản hồi</span>
-                  <span className="font-medium">120ms</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Người dùng đang hoạt động</span>
-                  <span className="font-medium">234</span>
-                </div>
-              </div>
+            <CardContent className="p-6">
+              <MetricComparison
+                title="Thời gian chờ TB"
+                current={15}
+                previous={18}
+                unit=" phút"
+              />
             </CardContent>
           </Card>
         </div>

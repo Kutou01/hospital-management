@@ -2,33 +2,33 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.validateConfirmAppointment = exports.validateAvailableSlots = exports.validateAppointmentSearch = exports.validateUpdateAppointment = exports.validateCreateAppointment = exports.validateDoctorId = exports.validatePatientId = exports.validateAppointmentId = void 0;
 const express_validator_1 = require("express-validator");
-const APPOINTMENT_ID_PATTERN = /^APT\d{6}$/;
-const PATIENT_ID_PATTERN = /^PAT\d{6}$/;
-const DOCTOR_ID_PATTERN = /^DOC\d{6}$/;
+const APPOINTMENT_ID_PATTERN = /^[A-Z]{4}-APT-\d{6}-\d{3}$/;
+const PATIENT_ID_PATTERN = /^PAT-\d{6}-\d{3}$/;
+const DOCTOR_ID_PATTERN = /^[A-Z]{4}-DOC-\d{6}-\d{3}$/;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_PATTERN = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
 exports.validateAppointmentId = [
     (0, express_validator_1.param)('appointmentId')
         .matches(APPOINTMENT_ID_PATTERN)
-        .withMessage('Appointment ID must be in format APT followed by 6 digits')
+        .withMessage('Appointment ID must be in department-based format (e.g., CARD-APT-YYYYMM-XXX)')
 ];
 exports.validatePatientId = [
     (0, express_validator_1.param)('patientId')
         .matches(PATIENT_ID_PATTERN)
-        .withMessage('Patient ID must be in format PAT followed by 6 digits')
+        .withMessage('Patient ID must be in format PAT-YYYYMM-XXX')
 ];
 exports.validateDoctorId = [
     (0, express_validator_1.param)('doctorId')
         .matches(DOCTOR_ID_PATTERN)
-        .withMessage('Doctor ID must be in format DOC followed by 6 digits')
+        .withMessage('Doctor ID must be in department-based format (e.g., CARD-DOC-YYYYMM-XXX)')
 ];
 exports.validateCreateAppointment = [
     (0, express_validator_1.body)('patient_id')
         .matches(PATIENT_ID_PATTERN)
-        .withMessage('Patient ID must be in format PAT followed by 6 digits'),
+        .withMessage('Patient ID must be in format PAT-YYYYMM-XXX'),
     (0, express_validator_1.body)('doctor_id')
         .matches(DOCTOR_ID_PATTERN)
-        .withMessage('Doctor ID must be in format DOC followed by 6 digits'),
+        .withMessage('Doctor ID must be in department-based format (e.g., CARD-DOC-YYYYMM-XXX)'),
     (0, express_validator_1.body)('appointment_date')
         .matches(DATE_PATTERN)
         .withMessage('Appointment date must be in YYYY-MM-DD format')
@@ -128,11 +128,11 @@ exports.validateAppointmentSearch = [
     (0, express_validator_1.query)('doctor_id')
         .optional()
         .matches(DOCTOR_ID_PATTERN)
-        .withMessage('Doctor ID must be in format DOC followed by 6 digits'),
+        .withMessage('Doctor ID must be in department-based format (e.g., CARD-DOC-YYYYMM-XXX)'),
     (0, express_validator_1.query)('patient_id')
         .optional()
         .matches(PATIENT_ID_PATTERN)
-        .withMessage('Patient ID must be in format PAT followed by 6 digits'),
+        .withMessage('Patient ID must be in format PAT-YYYYMM-XXX'),
     (0, express_validator_1.query)('appointment_date')
         .optional()
         .matches(DATE_PATTERN)
@@ -176,7 +176,7 @@ exports.validateAppointmentSearch = [
 exports.validateAvailableSlots = [
     (0, express_validator_1.query)('doctor_id')
         .matches(DOCTOR_ID_PATTERN)
-        .withMessage('Doctor ID must be in format DOC followed by 6 digits'),
+        .withMessage('Doctor ID must be in department-based format (e.g., CARD-DOC-YYYYMM-XXX)'),
     (0, express_validator_1.query)('date')
         .matches(DATE_PATTERN)
         .withMessage('Date must be in YYYY-MM-DD format')

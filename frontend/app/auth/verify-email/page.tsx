@@ -6,15 +6,15 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Mail, CheckCircle, AlertCircle, Loader2, RefreshCw } from "lucide-react"
-import { supabaseAuth } from "@/lib/auth/supabase-auth"
+
 import { useToast } from "@/components/ui/toast-provider"
-import { useEnhancedAuth } from "@/lib/auth/enhanced-auth-context"
+import { useAuth } from "@/lib/auth/auth-wrapper"
 
 export default function VerifyEmailPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { showToast } = useToast()
-  const { user, refreshUser } = useEnhancedAuth()
+  const { user, refreshUser, getSupabaseClient } = useAuth()
   
   const [isVerifying, setIsVerifying] = useState(true)
   const [isVerified, setIsVerified] = useState(false)
@@ -33,7 +33,7 @@ export default function VerifyEmailPage() {
       if (accessToken && refreshToken && type === 'email') {
         try {
           // Set the session with the tokens
-          const { data, error } = await supabaseAuth.supabaseClient.auth.setSession({
+          const { data, error } = await getSupabaseClient().auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken
           })
@@ -106,7 +106,7 @@ export default function VerifyEmailPage() {
     setError("")
 
     try {
-      const { error } = await supabaseAuth.supabaseClient.auth.resend({
+      const { error } = await getSupabaseClient().auth.resend({
         type: 'signup',
         email: user.email,
         options: {

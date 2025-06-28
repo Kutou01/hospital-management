@@ -301,4 +301,111 @@ export class ScheduleRepository {
       updated_at: new Date(supabaseSchedule.updated_at)
     };
   }
+
+  async getTodaySchedule(doctorId: string): Promise<any[]> {
+    try {
+      const today = new Date();
+      const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      const todayDate = today.toISOString().split('T')[0];
+
+      // Get doctor's schedule for today
+      const schedule = await this.findByDoctorAndDay(doctorId, dayOfWeek);
+
+      if (!schedule || !schedule.is_available) {
+        return []; // Doctor not available today
+      }
+
+      // Get appointments for today
+      const { data: appointments, error: appointmentError } = await this.supabase
+        .from('appointments')
+        .select(`
+          appointment_id,
+          start_time,
+          end_time,
+          status,
+          appointment_type,
+          reason,
+          patients!inner(
+            patient_id,
+            profiles!inner(
+              full_name,
+              phone_number
+            )
+          )
+        `)
+        .eq('doctor_id', doctorId)
+        .eq('appointment_date', todayDate);
+
+      if (appointmentError) {
+        logger.error('Error fetching today appointments:', appointmentError);
+        throw appointmentError;
+      }
+
+      // Generate time slots based on schedule
+      const timeSlots = this.generateTimeSlotsForSchedule(
+        schedule.start_time,
+        schedule.end_time,
+        schedule.break_start,
+        schedule.break_end,
+        schedule.slot_duration || 30
+      );
+
+      // Map appointments to time slots
+      const scheduleWithAppointments = timeSlots.map(slot => {
+        const appointment = appointments?.find(apt =>
+          apt.start_time === slot.time
+        );
+
+        return {
+          time: slot.time,
+          patient_name: (appointment?.patients as any)?.profiles?.full_name || 'Unknown Patient',
+          appointment_type: appointment?.appointment_type,
+          status: appointment ? appointment.status : 'available',
+          duration: schedule.slot_duration || 30,
+          reason: appointment?.reason,
+          appointment_id: appointment?.appointment_id
+        };
+      });
+
+      return scheduleWithAppointments;
+
+    } catch (error) {
+      logger.error('Error getting today schedule', { error, doctorId });
+      throw error;
+    }
+  }
+
+  private generateTimeSlotsForSchedule(
+    startTime: string,
+    endTime: string,
+    breakStart?: string,
+    breakEnd?: string,
+    slotDuration: number = 30
+  ): { time: string }[] {
+    const slots: { time: string }[] = [];
+
+    const start = new Date(`2000-01-01T${startTime}`);
+    const end = new Date(`2000-01-01T${endTime}`);
+    const breakStartTime = breakStart ? new Date(`2000-01-01T${breakStart}`) : null;
+    const breakEndTime = breakEnd ? new Date(`2000-01-01T${breakEnd}`) : null;
+
+    let current = new Date(start);
+
+    while (current < end) {
+      const timeString = current.toTimeString().slice(0, 5);
+
+      // Skip break time
+      if (breakStartTime && breakEndTime) {
+        if (current >= breakStartTime && current < breakEndTime) {
+          current.setMinutes(current.getMinutes() + slotDuration);
+          continue;
+        }
+      }
+
+      slots.push({ time: timeString });
+      current.setMinutes(current.getMinutes() + slotDuration);
+    }
+
+    return slots;
+  }
 }

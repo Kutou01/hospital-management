@@ -47,30 +47,43 @@ class EventBus {
         this.exchangeName = exchangeName;
     }
     async connect(url) {
-        try {
-            this.connection = await amqp.connect(url);
-            this.channel = await this.connection.createChannel();
-            // Create exchange
-            await this.channel.assertExchange(this.exchangeName, 'topic', {
-                durable: true,
-            });
-            // Handle connection errors
-            this.connection.on('error', (err) => {
-                logger_1.default.error('RabbitMQ connection error', { error: err.message });
-            });
-            this.connection.on('close', () => {
-                logger_1.default.warn('RabbitMQ connection closed');
-            });
-            logger_1.default.info('Connected to RabbitMQ', {
-                service: this.serviceName,
-                exchange: this.exchangeName
-            });
-        }
-        catch (error) {
-            logger_1.default.error('Failed to connect to RabbitMQ', {
-                error: error instanceof Error ? error.message : 'Unknown error'
-            });
-            throw error;
+        const maxRetries = 5;
+        const retryDelay = 5000; // 5 seconds
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                logger_1.default.info(`Attempting to connect to RabbitMQ (attempt ${attempt}/${maxRetries})...`);
+                this.connection = await amqp.connect(url);
+                this.channel = await this.connection.createChannel();
+                // Create exchange
+                await this.channel.assertExchange(this.exchangeName, 'topic', {
+                    durable: true,
+                });
+                // Handle connection errors
+                this.connection.on('error', (err) => {
+                    logger_1.default.error('RabbitMQ connection error', { error: err.message });
+                });
+                this.connection.on('close', () => {
+                    logger_1.default.warn('RabbitMQ connection closed');
+                });
+                logger_1.default.info('Connected to RabbitMQ', {
+                    service: this.serviceName,
+                    exchange: this.exchangeName
+                });
+                return; // Success, exit retry loop
+            }
+            catch (error) {
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                logger_1.default.error(`Failed to connect to RabbitMQ (attempt ${attempt}/${maxRetries})`, {
+                    error: errorMessage
+                });
+                if (attempt === maxRetries) {
+                    logger_1.default.error('Max retries reached. Unable to connect to RabbitMQ');
+                    throw error;
+                }
+                // Wait before retrying
+                logger_1.default.info(`Retrying in ${retryDelay / 1000} seconds...`);
+                await new Promise(resolve => setTimeout(resolve, retryDelay));
+            }
         }
     }
     async disconnect() {

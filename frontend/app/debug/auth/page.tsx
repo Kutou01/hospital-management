@@ -1,12 +1,12 @@
 "use client"
 
-import { useEnhancedAuth } from "@/lib/auth/enhanced-auth-context"
+import { useAuth } from "@/lib/auth/auth-wrapper"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 
 export default function AuthDebugPage() {
-  const { user, loading, isAuthenticated, hasRole } = useEnhancedAuth()
+  const { user, loading, isAuthenticated, hasRole } = useAuth()
   const router = useRouter()
 
   return (
@@ -41,7 +41,7 @@ export default function AuthDebugPage() {
                   <p><strong>Email:</strong> {user.email}</p>
                   <p><strong>Full Name:</strong> {user.full_name}</p>
                   <p><strong>Role:</strong> {user.role}</p>
-                  <p><strong>Status:</strong> {user.status}</p>
+                  <p><strong>Active:</strong> {user.is_active ? 'Yes' : 'No'}</p>
                   <p><strong>Phone:</strong> {user.phone_number}</p>
                 </div>
               </CardContent>

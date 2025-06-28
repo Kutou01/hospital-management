@@ -11,6 +11,10 @@ export declare const validateUserId: import("express-validator").ValidationChain
 export declare const validateRole: import("express-validator").ValidationChain[];
 export declare const validateMagicLink: import("express-validator").ValidationChain[];
 export declare const validatePhoneOTP: import("express-validator").ValidationChain[];
+export declare const validateDoctorId: import("express-validator").ValidationChain[];
+export declare const validatePatientId: import("express-validator").ValidationChain[];
+export declare const validateAdminId: import("express-validator").ValidationChain[];
+export declare const validateDepartmentId: import("express-validator").ValidationChain[];
 export declare const validateVerifyOTP: import("express-validator").ValidationChain[];
 export declare const validateOAuthCallback: import("express-validator").ValidationChain[];
 //# sourceMappingURL=auth.validators.d.ts.map

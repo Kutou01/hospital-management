@@ -18,7 +18,13 @@ class DoctorRepository {
           *,
           profiles!inner(
             full_name,
-            phone_number
+            phone_number,
+            email
+          ),
+          departments!inner(
+            name,
+            description,
+            location
           )
         `)
                 .eq('doctor_id', doctorId)
@@ -33,7 +39,18 @@ class DoctorRepository {
             if (!data) {
                 return null;
             }
-            return this.mapSupabaseDoctorToDoctor(data);
+            const doctor = {
+                ...data,
+                full_name: data.profiles.full_name,
+                email: data.profiles.email,
+                phone_number: data.profiles.phone_number,
+                department_name: data.departments.name,
+                department_description: data.departments.description,
+                department_location: data.departments.location
+            };
+            delete doctor.profiles;
+            delete doctor.departments;
+            return this.mapSupabaseDoctorToDoctor(doctor);
         }
         catch (error) {
             logger_1.default.error('Error finding doctor by ID', { error, doctorId });
@@ -46,7 +63,17 @@ class DoctorRepository {
                 .from('doctors')
                 .select(`
           *,
-          profiles!inner(email, phone_number, date_of_birth)
+          profiles!inner(
+            full_name,
+            email,
+            phone_number,
+            date_of_birth
+          ),
+          departments!inner(
+            name,
+            description,
+            location
+          )
         `)
                 .eq('profile_id', profileId)
                 .eq('is_active', true)
@@ -60,11 +87,16 @@ class DoctorRepository {
             }
             const doctor = {
                 ...data,
+                full_name: data.profiles.full_name,
                 email: data.profiles.email,
                 phone_number: data.profiles.phone_number,
-                date_of_birth: data.profiles.date_of_birth
+                date_of_birth: data.profiles.date_of_birth,
+                department_name: data.departments.name,
+                department_description: data.departments.description,
+                department_location: data.departments.location
             };
             delete doctor.profiles;
+            delete doctor.departments;
             return this.mapSupabaseDoctorToDoctor(doctor);
         }
         catch (error) {
@@ -500,11 +532,12 @@ class DoctorRepository {
           status,
           appointment_type,
           reason,
-          priority,
           patients!inner(
             patient_id,
-            full_name,
-            phone_number
+            profiles!inner(
+              full_name,
+              phone_number
+            )
           )
         `)
                 .eq('doctor_id', doctorId)
@@ -517,15 +550,15 @@ class DoctorRepository {
             }
             return data?.map(appointment => ({
                 appointment_id: appointment.appointment_id,
-                patient_name: appointment.patients?.full_name || 'Unknown Patient',
-                patient_phone: appointment.patients?.phone_number,
+                patient_name: appointment.patients?.profiles?.full_name || 'Unknown Patient',
+                patient_phone: appointment.patients?.profiles?.phone_number,
                 appointment_date: appointment.appointment_date,
                 start_time: appointment.start_time,
                 end_time: appointment.end_time,
                 status: appointment.status,
                 appointment_type: appointment.appointment_type,
                 reason: appointment.reason,
-                priority: appointment.priority || 'normal'
+                priority: 'normal'
             })) || [];
         }
         catch (error) {
@@ -540,7 +573,7 @@ class DoctorRepository {
             const weekEnd = new Date(today.setDate(today.getDate() - today.getDay() + 6));
             const { data, error } = await this.supabase
                 .from('appointments')
-                .select('status, consultation_fee')
+                .select('status')
                 .eq('doctor_id', doctorId)
                 .gte('appointment_date', weekStart.toISOString().split('T')[0])
                 .lte('appointment_date', weekEnd.toISOString().split('T')[0]);
@@ -549,7 +582,7 @@ class DoctorRepository {
                 throw error;
             }
             const appointments = data?.length || 0;
-            const revenue = data?.reduce((sum, apt) => sum + (apt.consultation_fee || 0), 0) || 0;
+            const revenue = 0;
             return { appointments, revenue };
         }
         catch (error) {
@@ -564,7 +597,7 @@ class DoctorRepository {
             const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
             const { data, error } = await this.supabase
                 .from('appointments')
-                .select('status, consultation_fee')
+                .select('status')
                 .eq('doctor_id', doctorId)
                 .gte('appointment_date', monthStart.toISOString().split('T')[0])
                 .lte('appointment_date', monthEnd.toISOString().split('T')[0]);
@@ -574,7 +607,7 @@ class DoctorRepository {
             }
             const totalAppointments = data?.length || 0;
             const completedAppointments = data?.filter(a => a.status === 'completed').length || 0;
-            const revenue = data?.reduce((sum, apt) => sum + (apt.consultation_fee || 0), 0) || 0;
+            const revenue = 0;
             const successRate = totalAppointments > 0 ? (completedAppointments / totalAppointments) * 100 : 0;
             return {
                 appointments: totalAppointments,

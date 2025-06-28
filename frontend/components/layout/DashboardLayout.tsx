@@ -249,7 +249,7 @@ export function DashboardLayout({ children, title, activePage }: DashboardLayout
               <Avatar>
                 <AvatarImage src="/placeholder.svg?height=32&width=32" alt={user.full_name} />
                 <AvatarFallback>
-                  {user.full_name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                  {user.full_name ? user.full_name.split(' ').map(n => n[0]).join('').toUpperCase() : 'U'}
                 </AvatarFallback>
               </Avatar>
               <div className="hidden md:block">

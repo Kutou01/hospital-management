@@ -119,6 +119,12 @@ router.get('/search', validateSearchQuery, doctorController.searchDoctors.bind(d
 router.get('/realtime/status', doctorController.getRealtimeStatus.bind(doctorController));
 router.get('/live', doctorController.getLiveDoctors.bind(doctorController));
 router.get('/by-profile/:profileId', doctorController.getDoctorByProfileId.bind(doctorController));
+router.get('/dashboard/stats', auth_middleware_1.authMiddleware, auth_middleware_1.requireDoctor, doctorController.getCurrentDoctorStats.bind(doctorController));
+router.get('/dashboard/profile', auth_middleware_1.authMiddleware, auth_middleware_1.requireDoctor, doctorController.getCurrentDoctorProfile.bind(doctorController));
+router.get('/dashboard/complete', auth_middleware_1.authMiddleware, auth_middleware_1.requireDoctor, doctorController.getDashboardComplete.bind(doctorController));
+router.get('/appointments/today', auth_middleware_1.authMiddleware, auth_middleware_1.requireDoctor, doctorController.getTodayAppointments.bind(doctorController));
+router.get('/appointments/upcoming', auth_middleware_1.authMiddleware, auth_middleware_1.requireDoctor, doctorController.getUpcomingAppointments.bind(doctorController));
+router.get('/activity/recent', auth_middleware_1.authMiddleware, auth_middleware_1.requireDoctor, doctorController.getRecentActivity.bind(doctorController));
 router.get('/:doctorId', validateDoctorId, doctorController.getDoctorById.bind(doctorController));
 router.get('/department/:departmentId', validateDepartmentId, doctorController.getDoctorsByDepartment.bind(doctorController));
 router.post('/', validateCreateDoctor, doctorController.createDoctor.bind(doctorController));
@@ -137,11 +143,6 @@ router.get('/:doctorId/appointments', validateDoctorId, doctorController.getDoct
 router.get('/:doctorId/stats', validateDoctorId, doctorController.getDoctorStats.bind(doctorController));
 router.get('/:doctorId/experiences', validateDoctorId, doctorController.getDoctorExperiences.bind(doctorController));
 router.get('/:doctorId/appointment-stats', validateDoctorId, doctorController.getDoctorStats.bind(doctorController));
-router.get('/dashboard/stats', auth_middleware_1.authMiddleware, auth_middleware_1.requireDoctor, doctorController.getCurrentDoctorStats.bind(doctorController));
-router.get('/dashboard/complete', auth_middleware_1.authMiddleware, auth_middleware_1.requireDoctor, doctorController.getDashboardComplete.bind(doctorController));
-router.get('/appointments/today', auth_middleware_1.authMiddleware, auth_middleware_1.requireDoctor, doctorController.getTodayAppointments.bind(doctorController));
-router.get('/appointments/upcoming', auth_middleware_1.authMiddleware, auth_middleware_1.requireDoctor, doctorController.getUpcomingAppointments.bind(doctorController));
 router.get('/:doctorId/appointments/stats', validateDoctorId, doctorController.getDoctorStats.bind(doctorController));
-router.get('/activity/recent', auth_middleware_1.authMiddleware, auth_middleware_1.requireDoctor, doctorController.getRecentActivity.bind(doctorController));
 exports.default = router;
 //# sourceMappingURL=doctor.routes.js.map

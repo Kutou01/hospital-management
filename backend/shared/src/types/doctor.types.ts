@@ -3,10 +3,15 @@ import { BaseEntity } from './common.types';
 export interface Doctor extends BaseEntity {
   doctor_id: string;
   profile_id: string; // Link to profiles table
-  full_name: string; // ✅ ADD: Doctor's full name from database
+  full_name: string; // ✅ Doctor's full name from profiles table
+  email?: string; // ✅ Email from profiles table
+  phone_number?: string; // ✅ Phone from profiles table
   specialty: string;
   qualification: string;
   department_id: string;
+  department_name?: string; // ✅ Department name from departments table
+  department_description?: string; // ✅ Department description
+  department_location?: string; // ✅ Department location
   license_number: string;
   gender: string;
   bio?: string;

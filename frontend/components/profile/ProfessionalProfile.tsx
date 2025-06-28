@@ -139,7 +139,8 @@ export function ProfessionalProfile({
     setAvatarPreview(null)
   }
 
-  const getInitials = (name: string) => {
+  const getInitials = (name: string | undefined | null) => {
+    if (!name || typeof name !== 'string') return 'DR';
     return name.split(' ').map(n => n[0]).join('').toUpperCase()
   }
 

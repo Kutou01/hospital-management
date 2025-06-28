@@ -3,9 +3,14 @@ export interface Doctor extends BaseEntity {
     doctor_id: string;
     profile_id: string;
     full_name: string;
+    email?: string;
+    phone_number?: string;
     specialty: string;
     qualification: string;
     department_id: string;
+    department_name?: string;
+    department_description?: string;
+    department_location?: string;
     license_number: string;
     gender: string;
     bio?: string;

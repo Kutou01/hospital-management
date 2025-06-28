@@ -45,22 +45,29 @@ Welcome to the comprehensive documentation for the Hospital Management System.
 
 ---
 
-## 🎯 **Key Achievements**
+## 🎯 **Project Status (UPDATED - Realistic Assessment)**
 
-### ✅ **Completed Features (7.5/10)**
-- **Core Hospital Management**: All 5 basic features complete
-- **Microservices Architecture**: 7 services operational
-- **Real-time Features**: WebSocket integration
-- **Dashboard & Analytics**: Comprehensive reporting
-- **Security**: Role-based access control
+### ✅ **Actually Completed Features (7.0/10)**
+- **Core Hospital Management**: Basic CRUD operations complete
+- **Microservices Architecture**: 9 services operational (not 7)
+- **Real-time Infrastructure**: WebSocket setup (not fully integrated)
+- **Basic Dashboard**: Simple admin interface
+- **Basic Security**: Supabase Auth only (no 2FA)
 - **Database**: Complete schema with ID generation
 
-### 🚀 **Next Priorities for 10/10**
-1. **AI Integration** - Chatbot, symptom analysis (+1.0 point)
-2. **Payment Integration** - VNPay, MoMo, ZaloPay (+0.8 points)
-3. **Enhanced Security** - 2FA, audit logging (+0.4 points)
-4. **Mobile/PWA** - Progressive web app (+0.3 points)
-5. **DevOps** - CI/CD, external integrations (+0.2 points)
+### ❌ **Critical Missing Features**
+- **AI Features**: Completely absent (chatbot service only commented out)
+- **Vietnamese Payments**: Only Stripe USD, no VNPay/MoMo/ZaloPay
+- **Automated Testing**: Only manual test scripts
+- **PWA Features**: No service worker, manifest
+- **Advanced Real-time**: Infrastructure exists but not integrated
+
+### 🚀 **Realistic Priorities for 10/10 (6-8 weeks needed)**
+1. **AI Integration** - Create chatbot service from scratch (+1.5 points) - **4-6 weeks**
+2. **Vietnamese Payment Integration** - Replace Stripe with VN methods (+1.0 points) - **3-4 weeks**
+3. **Automated Testing & Security** - Jest, 2FA, audit logging (+0.8 points) - **2-3 weeks**
+4. **PWA & Advanced Features** - Progressive web app (+0.5 points) - **2-3 weeks**
+5. **CI/CD & Polish** - Automated deployment (+0.2 points) - **1-2 weeks**
 
 ---
 

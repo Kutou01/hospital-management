@@ -32,9 +32,9 @@ export type {
   SidebarConfig
 } from './SidebarConfig';
 
-// Legacy Layout Components removed - use Universal Layout instead
+// Legacy Layout Components - use Universal Layout instead
 export { DashboardLayout } from './DashboardLayout';
-export { PublicLayout } from './PublicLayout';
+export { default as PublicLayout } from './PublicLayout';
 export { RoleBasedLayout } from './RoleBasedLayout';
 export { UserMenu } from './UserMenu';
 

@@ -25,6 +25,7 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [loginMethod, setLoginMethod] = useState<'email' | 'magic' | 'phone' | 'oauth'>('email')
+  const [isRedirecting, setIsRedirecting] = useState(false)
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -45,21 +46,37 @@ export default function LoginPage() {
 
   // Auto-redirect if user is already authenticated
   useEffect(() => {
+    // Add debug logging
+    console.log('🔍 [Login] Auth state:', {
+      user: !!user,
+      authLoading,
+      isAuthenticated,
+      userRole: user?.role,
+      isActive: user?.is_active,
+      isRedirecting
+    })
+
     // Don't auto-redirect if coming from registration or booking
     const fromRegister = searchParams.get('from_register')
     const hasMessage = searchParams.get('message')
 
-    if (fromRegister || hasMessage || isFromBooking || authLoading) {
+    if (fromRegister || hasMessage || isFromBooking || authLoading || isRedirecting) {
       console.log('🔄 [Login] Skipping auth check - special case or loading')
       return
     }
 
-    if (isAuthenticated && user && user.role && user.is_active) {
+    // Only redirect if we have a stable authenticated state
+    if (isAuthenticated && user && user.role && user.is_active && !authLoading) {
       console.log('🔄 [Login] User already logged in, redirecting to dashboard...')
+      setIsRedirecting(true)
       const redirectPath = getDashboardPath(user.role as any)
-      router.replace(redirectPath)
+
+      // Add a small delay to prevent rapid redirects
+      setTimeout(() => {
+        router.replace(redirectPath)
+      }, 100)
     }
-  }, [user, authLoading, isAuthenticated, router, searchParams, isFromBooking])
+  }, [user, authLoading, isAuthenticated, router, searchParams, isFromBooking, isRedirecting])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target

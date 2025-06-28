@@ -20,7 +20,7 @@ export class ReviewRepository {
         .from('doctor_reviews')
         .select(`
           *,
-          patients:patient_id (
+          patients!doctor_reviews_patient_id_fkey (
             patient_id,
             profiles:profile_id (
               full_name,
@@ -172,36 +172,59 @@ export class ReviewRepository {
 
   async getReviewStats(doctorId: string): Promise<ReviewStats> {
     try {
-      const { data, error } = await this.supabase
+      // Try RPC function first
+      const { data: rpcData, error: rpcError } = await this.supabase
         .rpc('get_doctor_review_stats', {
           doctor_id_param: doctorId
         });
 
+      if (!rpcError && rpcData && rpcData.length > 0) {
+        const stats = rpcData[0];
+        const recentReviews = await this.findByDoctorId(doctorId, 5, 0);
+
+        return {
+          total_reviews: Number(stats.total_reviews),
+          average_rating: Number(stats.average_rating),
+          rating_distribution: {
+            five_star: Number(stats.five_star),
+            four_star: Number(stats.four_star),
+            three_star: Number(stats.three_star),
+            two_star: Number(stats.two_star),
+            one_star: Number(stats.one_star)
+          },
+          recent_reviews: recentReviews
+        };
+      }
+
+      // Fallback: Calculate stats manually
+      logger.warn('RPC function failed, calculating stats manually', { rpcError, doctorId });
+
+      const { data: reviews, error } = await this.supabase
+        .from('doctor_reviews')
+        .select('rating')
+        .eq('doctor_id', doctorId);
+
       if (error) throw error;
 
-      const stats = data[0] || {
-        total_reviews: 0,
-        average_rating: 0,
-        five_star: 0,
-        four_star: 0,
-        three_star: 0,
-        two_star: 0,
-        one_star: 0
+      const totalReviews = reviews?.length || 0;
+      const averageRating = totalReviews > 0
+        ? reviews.reduce((sum, review) => sum + review.rating, 0) / totalReviews
+        : 0;
+
+      const ratingDistribution = {
+        five_star: reviews?.filter(r => r.rating === 5).length || 0,
+        four_star: reviews?.filter(r => r.rating === 4).length || 0,
+        three_star: reviews?.filter(r => r.rating === 3).length || 0,
+        two_star: reviews?.filter(r => r.rating === 2).length || 0,
+        one_star: reviews?.filter(r => r.rating === 1).length || 0
       };
 
-      // Get recent reviews
       const recentReviews = await this.findByDoctorId(doctorId, 5, 0);
 
       return {
-        total_reviews: Number(stats.total_reviews),
-        average_rating: Number(stats.average_rating),
-        rating_distribution: {
-          five_star: Number(stats.five_star),
-          four_star: Number(stats.four_star),
-          three_star: Number(stats.three_star),
-          two_star: Number(stats.two_star),
-          one_star: Number(stats.one_star)
-        },
+        total_reviews: totalReviews,
+        average_rating: Number(averageRating.toFixed(2)),
+        rating_distribution: ratingDistribution,
         recent_reviews: recentReviews
       };
     } catch (error) {

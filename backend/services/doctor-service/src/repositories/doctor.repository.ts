@@ -12,14 +12,20 @@ export class DoctorRepository {
 
   async findById(doctorId: string): Promise<Doctor | null> {
     try {
-      // HYBRID APPROACH: Use direct query with profiles JOIN
+      // JOIN với profiles và departments để lấy full_name và department name
       const { data, error } = await this.supabase
         .from('doctors')
         .select(`
           *,
           profiles!inner(
             full_name,
-            phone_number
+            phone_number,
+            email
+          ),
+          departments!inner(
+            name,
+            description,
+            location
           )
         `)
         .eq('doctor_id', doctorId)
@@ -38,7 +44,22 @@ export class DoctorRepository {
         return null;
       }
 
-      return this.mapSupabaseDoctorToDoctor(data);
+      // Flatten the joined data
+      const doctor = {
+        ...data,
+        full_name: data.profiles.full_name,
+        email: data.profiles.email,
+        phone_number: data.profiles.phone_number,
+        department_name: data.departments.name,
+        department_description: data.departments.description,
+        department_location: data.departments.location
+      };
+
+      // Remove nested objects
+      delete doctor.profiles;
+      delete doctor.departments;
+
+      return this.mapSupabaseDoctorToDoctor(doctor);
     } catch (error) {
       logger.error('Error finding doctor by ID', { error, doctorId });
       throw error;
@@ -47,12 +68,22 @@ export class DoctorRepository {
 
   async findByProfileId(profileId: string): Promise<Doctor | null> {
     try {
-      // FIXED: Now that profile_id column exists, use JOIN query
+      // JOIN với profiles và departments để lấy full_name và department name
       const { data, error } = await this.supabase
         .from('doctors')
         .select(`
           *,
-          profiles!inner(email, phone_number, date_of_birth)
+          profiles!inner(
+            full_name,
+            email,
+            phone_number,
+            date_of_birth
+          ),
+          departments!inner(
+            name,
+            description,
+            location
+          )
         `)
         .eq('profile_id', profileId)
         .eq('is_active', true)
@@ -67,16 +98,21 @@ export class DoctorRepository {
         return null;
       }
 
-      // Flatten the profile data
+      // Flatten the joined data
       const doctor = {
         ...data,
+        full_name: data.profiles.full_name,
         email: data.profiles.email,
         phone_number: data.profiles.phone_number,
-        date_of_birth: data.profiles.date_of_birth
+        date_of_birth: data.profiles.date_of_birth,
+        department_name: data.departments.name,
+        department_description: data.departments.description,
+        department_location: data.departments.location
       };
 
-      // Remove nested profiles object
+      // Remove nested objects
       delete doctor.profiles;
+      delete doctor.departments;
 
       return this.mapSupabaseDoctorToDoctor(doctor);
     } catch (error) {
@@ -599,11 +635,12 @@ export class DoctorRepository {
           status,
           appointment_type,
           reason,
-          priority,
           patients!inner(
             patient_id,
-            full_name,
-            phone_number
+            profiles!inner(
+              full_name,
+              phone_number
+            )
           )
         `)
         .eq('doctor_id', doctorId)
@@ -618,15 +655,15 @@ export class DoctorRepository {
 
       return data?.map(appointment => ({
         appointment_id: appointment.appointment_id,
-        patient_name: (appointment.patients as any)?.full_name || 'Unknown Patient',
-        patient_phone: (appointment.patients as any)?.phone_number,
+        patient_name: (appointment.patients as any)?.profiles?.full_name || 'Unknown Patient',
+        patient_phone: (appointment.patients as any)?.profiles?.phone_number,
         appointment_date: appointment.appointment_date,
         start_time: appointment.start_time,
         end_time: appointment.end_time,
         status: appointment.status,
         appointment_type: appointment.appointment_type,
         reason: appointment.reason,
-        priority: appointment.priority || 'normal'
+        priority: 'normal' // Default priority since column doesn't exist
       })) || [];
 
     } catch (error) {
@@ -643,7 +680,7 @@ export class DoctorRepository {
 
       const { data, error } = await this.supabase
         .from('appointments')
-        .select('status, consultation_fee')
+        .select('status')
         .eq('doctor_id', doctorId)
         .gte('appointment_date', weekStart.toISOString().split('T')[0])
         .lte('appointment_date', weekEnd.toISOString().split('T')[0]);
@@ -654,7 +691,7 @@ export class DoctorRepository {
       }
 
       const appointments = data?.length || 0;
-      const revenue = data?.reduce((sum, apt) => sum + (apt.consultation_fee || 0), 0) || 0;
+      const revenue = 0; // TODO: Calculate revenue from doctor's consultation_fee * completed appointments
 
       return { appointments, revenue };
 
@@ -672,7 +709,7 @@ export class DoctorRepository {
 
       const { data, error } = await this.supabase
         .from('appointments')
-        .select('status, consultation_fee')
+        .select('status')
         .eq('doctor_id', doctorId)
         .gte('appointment_date', monthStart.toISOString().split('T')[0])
         .lte('appointment_date', monthEnd.toISOString().split('T')[0]);
@@ -684,7 +721,7 @@ export class DoctorRepository {
 
       const totalAppointments = data?.length || 0;
       const completedAppointments = data?.filter(a => a.status === 'completed').length || 0;
-      const revenue = data?.reduce((sum, apt) => sum + (apt.consultation_fee || 0), 0) || 0;
+      const revenue = 0; // TODO: Calculate revenue from doctor's consultation_fee * completed appointments
       const successRate = totalAppointments > 0 ? (completedAppointments / totalAppointments) * 100 : 0;
 
       return {

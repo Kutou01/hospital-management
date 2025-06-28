@@ -289,8 +289,11 @@ class ScheduleRepository {
           appointment_type,
           reason,
           patients!inner(
-            full_name,
-            phone_number
+            patient_id,
+            profiles!inner(
+              full_name,
+              phone_number
+            )
           )
         `)
                 .eq('doctor_id', doctorId)
@@ -304,7 +307,7 @@ class ScheduleRepository {
                 const appointment = appointments?.find(apt => apt.start_time === slot.time);
                 return {
                     time: slot.time,
-                    patient_name: appointment?.patients?.full_name,
+                    patient_name: appointment?.patients?.profiles?.full_name || 'Unknown Patient',
                     appointment_type: appointment?.appointment_type,
                     status: appointment ? appointment.status : 'available',
                     duration: schedule.slot_duration || 30,

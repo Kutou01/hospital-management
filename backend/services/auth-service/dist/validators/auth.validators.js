@@ -1,12 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.validateDepartmentId = exports.validateAdminId = exports.validatePatientId = exports.validateDoctorId = exports.validateOAuthCallback = exports.validateVerifyOTP = exports.validatePhoneOTP = exports.validateMagicLink = exports.validateRole = exports.validateUserId = exports.validateEmail = exports.validateUpdateProfile = exports.validateChangePassword = exports.validateRefreshToken = exports.validateResetPassword = exports.validateSignIn = exports.validateDoctorRegistration = exports.validatePatientRegistration = exports.validateSignUp = void 0;
+exports.validateOAuthCallback = exports.validateVerifyOTP = exports.validateDepartmentId = exports.validateAdminId = exports.validatePatientId = exports.validateDoctorId = exports.validatePhoneOTP = exports.validateMagicLink = exports.validateRole = exports.validateUserId = exports.validateEmail = exports.validateUpdateProfile = exports.validateChangePassword = exports.validateRefreshToken = exports.validateResetPassword = exports.validateSignIn = exports.validateDoctorRegistration = exports.validatePatientRegistration = exports.validateSignUp = void 0;
 const express_validator_1 = require("express-validator");
-// Standardized ID Format Patterns - Consistent with shared validators
-const DOCTOR_ID_PATTERN = /^[A-Z]{4}-DOC-\d{6}-\d{3}$/; // CARD-DOC-202506-001
-const PATIENT_ID_PATTERN = /^PAT-\d{6}-\d{3}$/; // PAT-202506-001
-const ADMIN_ID_PATTERN = /^ADM-\d{6}-\d{3}$/; // ADM-202506-001
-const DEPARTMENT_ID_PATTERN = /^DEPT\d{3}$/; // DEPT001
+const DOCTOR_ID_PATTERN = /^[A-Z]{4}-DOC-\d{6}-\d{3}$/;
+const PATIENT_ID_PATTERN = /^PAT-\d{6}-\d{3}$/;
+const ADMIN_ID_PATTERN = /^ADM-\d{6}-\d{3}$/;
+const DEPARTMENT_ID_PATTERN = /^DEPT\d{3}$/;
 exports.validateSignUp = [
     (0, express_validator_1.body)('email')
         .isEmail()
@@ -137,7 +136,7 @@ exports.validateDoctorRegistration = [
         .withMessage('Qualification must be between 2 and 50 characters'),
     (0, express_validator_1.body)('department_id')
         .notEmpty()
-        .matches(/^DEPT\d{3}$/)
+        .matches(DEPARTMENT_ID_PATTERN)
         .withMessage('Department ID is required and must follow format: DEPT001')
 ];
 exports.validateSignIn = [
@@ -227,27 +226,6 @@ exports.validatePhoneOTP = [
         .matches(/^\+84\d{9}$/)
         .withMessage('Phone number must be in format +84xxxxxxxxx (Vietnamese phone number)')
 ];
-exports.validateVerifyOTP = [
-    (0, express_validator_1.body)('phone_number')
-        .matches(/^\+84\d{9}$/)
-        .withMessage('Phone number must be in format +84xxxxxxxxx (Vietnamese phone number)'),
-    (0, express_validator_1.body)('otp_code')
-        .matches(/^\d{6}$/)
-        .withMessage('OTP code must be exactly 6 digits')
-];
-exports.validateOAuthCallback = [
-    (0, express_validator_1.body)('code')
-        .notEmpty()
-        .withMessage('OAuth authorization code is required'),
-    (0, express_validator_1.body)('state')
-        .notEmpty()
-        .withMessage('OAuth state parameter is required'),
-    (0, express_validator_1.body)('provider')
-        .optional()
-        .isIn(['google', 'github', 'facebook', 'apple'])
-        .withMessage('Provider must be one of: google, github, facebook, apple')
-];
-// ID Format validators - for cross-service validation
 exports.validateDoctorId = [
     (0, express_validator_1.param)('doctorId')
         .matches(DOCTOR_ID_PATTERN)
@@ -267,5 +245,25 @@ exports.validateDepartmentId = [
     (0, express_validator_1.param)('departmentId')
         .matches(DEPARTMENT_ID_PATTERN)
         .withMessage('Department ID must be in format DEPT001')
+];
+exports.validateVerifyOTP = [
+    (0, express_validator_1.body)('phone_number')
+        .matches(/^\+84\d{9}$/)
+        .withMessage('Phone number must be in format +84xxxxxxxxx (Vietnamese phone number)'),
+    (0, express_validator_1.body)('otp_code')
+        .matches(/^\d{6}$/)
+        .withMessage('OTP code must be exactly 6 digits')
+];
+exports.validateOAuthCallback = [
+    (0, express_validator_1.body)('code')
+        .notEmpty()
+        .withMessage('OAuth authorization code is required'),
+    (0, express_validator_1.body)('state')
+        .notEmpty()
+        .withMessage('OAuth state parameter is required'),
+    (0, express_validator_1.body)('provider')
+        .optional()
+        .isIn(['google', 'github', 'facebook', 'apple'])
+        .withMessage('Provider must be one of: google, github, facebook, apple')
 ];
 //# sourceMappingURL=auth.validators.js.map

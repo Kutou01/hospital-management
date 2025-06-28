@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UniversalSidebar, type UniversalSidebarProps } from './UniversalSidebar';
+import { DoctorSidebar } from './DoctorSidebar';
 import { UserMenu } from './UserMenu';
 import { useEnhancedAuth } from '@/lib/auth/auth-wrapper';
 
@@ -42,14 +43,23 @@ export const UniversalLayout: React.FC<UniversalLayoutProps> = ({
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <UniversalSidebar
-        role={role}
-        activePage={activePage}
-        user={user}
-        onLogout={handleLogout}
-        {...sidebarProps}
-      />
+      {/* Sidebar - Use DoctorSidebar for doctor role */}
+      {role === 'doctor' ? (
+        <DoctorSidebar
+          activePage={activePage}
+          user={user}
+          onLogout={handleLogout}
+          compact={sidebarProps.compact}
+        />
+      ) : (
+        <UniversalSidebar
+          role={role}
+          activePage={activePage}
+          user={user}
+          onLogout={handleLogout}
+          {...sidebarProps}
+        />
+      )}
 
       {/* Main Content */}
       <div className="flex-1 lg:ml-0 flex flex-col min-h-screen">

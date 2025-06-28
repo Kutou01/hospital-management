@@ -788,16 +788,16 @@ export class AuthService {
       const doctorId = await this.generateDoctorId(userData.department_id);
       const timestamp = new Date().toISOString();
 
-      // Prepare doctor data with ONLY doctor-specific fields (clean design - no duplication)
+      // Prepare doctor data (full_name is stored in profiles table)
       const doctorData = {
         doctor_id: doctorId,
         profile_id: userId,
-        // ✅ CLEAN DESIGN: NO email, full_name, phone_number - they are in profiles table
+        // ✅ CLEAN DESIGN: full_name is in profiles table, not duplicated here
         specialty: userData.specialty || 'General Medicine',
         license_number: userData.license_number || 'PENDING',
         qualification: userData.qualification || 'MD',
         department_id: userData.department_id,
-        gender: userData.gender || 'other',
+        gender: userData.gender?.toLowerCase() || 'other',
         bio: null,
         experience_years: 0,
         consultation_fee: null,
@@ -860,7 +860,7 @@ export class AuthService {
         patient_id: patientId,
         profile_id: userId,
         // ✅ CLEAN DESIGN: NO email, full_name, phone_number, date_of_birth - they are in profiles table
-        gender: userData.gender || 'other',
+        gender: userData.gender?.toLowerCase() || 'other',
         blood_type: userData.blood_type || null,
         address: userData.address || {},
         emergency_contact: userData.emergency_contact || {},

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Progress } from "@/components/ui/progress"
 import {
   TrendingUp,
   TrendingDown,
@@ -11,7 +12,11 @@ import {
   MoreHorizontal,
   RefreshCw,
   Eye,
-  BarChart3
+  BarChart3,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  Zap
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -23,13 +28,21 @@ interface EnhancedStatCardProps {
   icon: React.ReactNode
   description?: string
   trend?: 'up' | 'down' | 'neutral'
-  color?: 'blue' | 'green' | 'orange' | 'purple' | 'red'
+  color?: 'blue' | 'green' | 'orange' | 'purple' | 'red' | 'gray' | 'yellow' | 'indigo' | 'pink'
   isLoading?: boolean
   showTrend?: boolean
   showActions?: boolean
+  showProgress?: boolean
+  progressValue?: number
+  progressMax?: number
+  status?: 'normal' | 'warning' | 'critical' | 'success'
+  subtitle?: string
   onRefresh?: () => void
   onViewDetails?: () => void
+  onClick?: () => void
   className?: string
+  size?: 'sm' | 'md' | 'lg'
+  variant?: 'default' | 'gradient' | 'minimal' | 'outlined'
 }
 
 export function EnhancedStatCard({
@@ -39,14 +52,22 @@ export function EnhancedStatCard({
   changeLabel,
   icon,
   description,
-  trend,
+  trend = 'neutral',
   color = 'blue',
   isLoading = false,
   showTrend = true,
   showActions = false,
+  showProgress = false,
+  progressValue = 0,
+  progressMax = 100,
+  status = 'normal',
+  subtitle,
   onRefresh,
   onViewDetails,
-  className
+  onClick,
+  className,
+  size = 'md',
+  variant = 'gradient'
 }: EnhancedStatCardProps) {
   const [isHovered, setIsHovered] = useState(false)
   const [animatedValue, setAnimatedValue] = useState(0)
@@ -73,41 +94,168 @@ export function EnhancedStatCard({
     }
   }, [value])
 
-  const colorClasses = {
-    blue: {
-      bg: 'from-blue-50 to-blue-100',
-      border: 'border-blue-200',
-      icon: 'bg-blue-200 text-blue-600',
-      text: 'text-blue-900',
-      accent: 'text-blue-600'
-    },
-    green: {
-      bg: 'from-green-50 to-emerald-100',
-      border: 'border-green-200',
-      icon: 'bg-green-200 text-green-600',
-      text: 'text-green-900',
-      accent: 'text-green-600'
-    },
-    orange: {
-      bg: 'from-orange-50 to-amber-100',
-      border: 'border-orange-200',
-      icon: 'bg-orange-200 text-orange-600',
-      text: 'text-orange-900',
-      accent: 'text-orange-600'
-    },
-    purple: {
-      bg: 'from-purple-50 to-violet-100',
-      border: 'border-purple-200',
-      icon: 'bg-purple-200 text-purple-600',
-      text: 'text-purple-900',
-      accent: 'text-purple-600'
-    },
-    red: {
-      bg: 'from-red-50 to-rose-100',
-      border: 'border-red-200',
-      icon: 'bg-red-200 text-red-600',
-      text: 'text-red-900',
-      accent: 'text-red-600'
+  // Enhanced color system with variants
+  const getColorClasses = () => {
+    const baseColors = {
+      blue: {
+        gradient: 'from-blue-50 to-blue-100',
+        minimal: 'bg-blue-50',
+        outlined: 'bg-white border-blue-200',
+        border: 'border-blue-200',
+        icon: 'bg-blue-200 text-blue-600',
+        text: 'text-blue-900',
+        accent: 'text-blue-600',
+        progress: 'bg-blue-500'
+      },
+      green: {
+        gradient: 'from-green-50 to-emerald-100',
+        minimal: 'bg-green-50',
+        outlined: 'bg-white border-green-200',
+        border: 'border-green-200',
+        icon: 'bg-green-200 text-green-600',
+        text: 'text-green-900',
+        accent: 'text-green-600',
+        progress: 'bg-green-500'
+      },
+      orange: {
+        gradient: 'from-orange-50 to-amber-100',
+        minimal: 'bg-orange-50',
+        outlined: 'bg-white border-orange-200',
+        border: 'border-orange-200',
+        icon: 'bg-orange-200 text-orange-600',
+        text: 'text-orange-900',
+        accent: 'text-orange-600',
+        progress: 'bg-orange-500'
+      },
+      purple: {
+        gradient: 'from-purple-50 to-violet-100',
+        minimal: 'bg-purple-50',
+        outlined: 'bg-white border-purple-200',
+        border: 'border-purple-200',
+        icon: 'bg-purple-200 text-purple-600',
+        text: 'text-purple-900',
+        accent: 'text-purple-600',
+        progress: 'bg-purple-500'
+      },
+      red: {
+        gradient: 'from-red-50 to-rose-100',
+        minimal: 'bg-red-50',
+        outlined: 'bg-white border-red-200',
+        border: 'border-red-200',
+        icon: 'bg-red-200 text-red-600',
+        text: 'text-red-900',
+        accent: 'text-red-600',
+        progress: 'bg-red-500'
+      },
+      gray: {
+        gradient: 'from-gray-50 to-gray-100',
+        minimal: 'bg-gray-50',
+        outlined: 'bg-white border-gray-200',
+        border: 'border-gray-200',
+        icon: 'bg-gray-200 text-gray-600',
+        text: 'text-gray-900',
+        accent: 'text-gray-600',
+        progress: 'bg-gray-500'
+      },
+      // Additional colors that might be used
+      yellow: {
+        gradient: 'from-yellow-50 to-amber-100',
+        minimal: 'bg-yellow-50',
+        outlined: 'bg-white border-yellow-200',
+        border: 'border-yellow-200',
+        icon: 'bg-yellow-200 text-yellow-600',
+        text: 'text-yellow-900',
+        accent: 'text-yellow-600',
+        progress: 'bg-yellow-500'
+      },
+      indigo: {
+        gradient: 'from-indigo-50 to-indigo-100',
+        minimal: 'bg-indigo-50',
+        outlined: 'bg-white border-indigo-200',
+        border: 'border-indigo-200',
+        icon: 'bg-indigo-200 text-indigo-600',
+        text: 'text-indigo-900',
+        accent: 'text-indigo-600',
+        progress: 'bg-indigo-500'
+      },
+      pink: {
+        gradient: 'from-pink-50 to-rose-100',
+        minimal: 'bg-pink-50',
+        outlined: 'bg-white border-pink-200',
+        border: 'border-pink-200',
+        icon: 'bg-pink-200 text-pink-600',
+        text: 'text-pink-900',
+        accent: 'text-pink-600',
+        progress: 'bg-pink-500'
+      }
+    }
+
+    // Ensure we always return a valid color object
+    const selectedColor = baseColors[color as keyof typeof baseColors]
+    if (!selectedColor) {
+      console.warn(`Color "${color}" not found in colorClasses, falling back to blue`)
+      return baseColors.blue
+    }
+    return selectedColor
+  }
+
+  const colorClasses = getColorClasses()
+
+  // Size configurations
+  const getSizeClasses = () => {
+    const sizes = {
+      sm: {
+        padding: 'p-4',
+        iconSize: 'h-5 w-5',
+        iconPadding: 'p-2',
+        valueText: 'text-2xl',
+        titleText: 'text-sm'
+      },
+      md: {
+        padding: 'p-6',
+        iconSize: 'h-6 w-6',
+        iconPadding: 'p-3',
+        valueText: 'text-3xl',
+        titleText: 'text-sm'
+      },
+      lg: {
+        padding: 'p-8',
+        iconSize: 'h-8 w-8',
+        iconPadding: 'p-4',
+        valueText: 'text-4xl',
+        titleText: 'text-base'
+      }
+    }
+    return sizes[size as keyof typeof sizes] || sizes.md
+  }
+
+  const sizeClasses = getSizeClasses()
+
+  // Status indicators
+  const getStatusIcon = () => {
+    switch (status) {
+      case 'warning':
+        return <AlertTriangle className="h-4 w-4 text-yellow-500" />
+      case 'critical':
+        return <AlertTriangle className="h-4 w-4 text-red-500" />
+      case 'success':
+        return <CheckCircle className="h-4 w-4 text-green-500" />
+      default:
+        return null
+    }
+  }
+
+  // Background variant
+  const getBackgroundClass = () => {
+    switch (variant) {
+      case 'gradient':
+        return `bg-gradient-to-br ${colorClasses.gradient}`
+      case 'minimal':
+        return colorClasses.minimal
+      case 'outlined':
+        return colorClasses.outlined
+      default:
+        return `bg-gradient-to-br ${colorClasses.gradient}`
     }
   }
 
@@ -129,24 +277,31 @@ export function EnhancedStatCard({
   const displayValue = typeof value === 'number' ? animatedValue : value
 
   return (
-    <Card 
+    <Card
       className={cn(
-        `bg-gradient-to-br ${colorClasses[color].bg} ${colorClasses[color].border}`,
-        'hover:shadow-lg transition-all duration-300 cursor-pointer',
-        isHovered && 'scale-105',
+        getBackgroundClass(),
+        colorClasses.border,
+        'hover:shadow-lg transition-all duration-300',
+        onClick && 'cursor-pointer',
+        isHovered && 'scale-105 shadow-xl',
+        variant === 'outlined' && 'border-2',
         className
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={onClick}
     >
-      <CardContent className="p-6">
+      <CardContent className={sizeClasses.padding || 'p-6'}>
         <div className="flex items-center justify-between">
           <div className="flex-1">
             {/* Header */}
             <div className="flex items-center justify-between mb-2">
-              <p className={`text-sm font-medium ${colorClasses[color].accent}`}>
-                {title}
-              </p>
+              <div className="flex items-center gap-2">
+                <p className={`${sizeClasses.titleText || 'text-sm'} font-medium ${colorClasses.accent || 'text-gray-600'}`}>
+                  {title}
+                </p>
+                {getStatusIcon()}
+              </div>
               {showActions && (
                 <div className="flex items-center gap-1">
                   {onRefresh && (
@@ -173,13 +328,32 @@ export function EnhancedStatCard({
               )}
             </div>
 
+            {/* Subtitle */}
+            {subtitle && (
+              <p className="text-xs text-gray-600 mb-2">{subtitle}</p>
+            )}
+
             {/* Value */}
             {isLoading ? (
               <div className={`animate-pulse bg-${color}-200 h-8 w-16 rounded mt-1`}></div>
             ) : (
-              <p className={`text-3xl font-bold ${colorClasses[color].text} mb-1`}>
+              <p className={`${sizeClasses.valueText || 'text-3xl'} font-bold ${colorClasses.text || 'text-gray-900'} mb-1`}>
                 {displayValue}
               </p>
+            )}
+
+            {/* Progress Bar */}
+            {showProgress && (
+              <div className="mb-3">
+                <div className="flex justify-between text-xs text-gray-600 mb-1">
+                  <span>{progressValue}</span>
+                  <span>{progressMax}</span>
+                </div>
+                <Progress
+                  value={(progressValue / progressMax) * 100}
+                  className="h-2"
+                />
+              </div>
             )}
 
             {/* Change and Description */}
@@ -202,15 +376,17 @@ export function EnhancedStatCard({
             </div>
 
             {description && (
-              <p className={`text-xs ${colorClasses[color].accent} mt-2 flex items-center gap-1`}>
+              <p className={`text-xs ${colorClasses.accent || 'text-gray-600'} mt-2 flex items-center gap-1`}>
                 {description}
               </p>
             )}
           </div>
 
           {/* Icon */}
-          <div className={`p-3 ${colorClasses[color].icon} rounded-full ml-4`}>
-            {icon}
+          <div className={`${sizeClasses.iconPadding || 'p-3'} ${colorClasses.icon || 'bg-gray-200 text-gray-600'} rounded-full ml-4 flex items-center justify-center`}>
+            <div className={sizeClasses.iconSize || 'h-6 w-6'}>
+              {icon}
+            </div>
           </div>
         </div>
 

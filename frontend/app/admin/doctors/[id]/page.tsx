@@ -147,7 +147,7 @@ export default function DoctorProfilePage() {
             <Avatar className="h-24 w-24">
               <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${doctor.full_name}`} />
               <AvatarFallback className="text-lg">
-                {doctor.full_name.split(' ').map(n => n[0]).join('')}
+                {doctor.full_name ? doctor.full_name.split(' ').map(n => n[0]).join('') : 'DR'}
               </AvatarFallback>
             </Avatar>
             

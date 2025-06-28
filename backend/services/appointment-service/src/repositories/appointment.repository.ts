@@ -82,12 +82,22 @@ export class AppointmentRepository {
         if (appointment.doctor_id) {
           const { data: doctorData } = await this.supabase
             .from('doctors')
-            .select('doctor_id, full_name, specialty')
+            .select(`
+              doctor_id,
+              specialty,
+              profile:profiles!profile_id (
+                full_name
+              )
+            `)
             .eq('doctor_id', appointment.doctor_id)
             .single();
 
           if (doctorData) {
-            doctor = doctorData;
+            doctor = {
+              doctor_id: doctorData.doctor_id,
+              full_name: (doctorData.profile as any)?.full_name,
+              specialty: doctorData.specialty
+            };
           }
         }
 
@@ -131,9 +141,9 @@ export class AppointmentRepository {
           *,
           doctors!doctor_id (
             doctor_id,
-            full_name,
             specialty,
             profile:profiles!profile_id (
+              full_name,
               phone_number,
               email
             )
@@ -166,15 +176,15 @@ export class AppointmentRepository {
         ...data,
         patient: data.patients ? {
           patient_id: data.patients.patient_id,
-          full_name: data.patients.full_name,
-          date_of_birth: data.patients.date_of_birth,
+          full_name: data.patients.profile?.full_name,
+          date_of_birth: data.patients.profile?.date_of_birth,
           gender: data.patients.gender,
           phone_number: data.patients.profile?.phone_number,
           email: data.patients.profile?.email
         } : undefined,
         doctor: data.doctors ? {
           doctor_id: data.doctors.doctor_id,
-          full_name: data.doctors.full_name,
+          full_name: data.doctors.profile?.full_name,
           specialty: data.doctors.specialty,
           phone_number: data.doctors.profile?.phone_number,
           email: data.doctors.profile?.email
@@ -462,10 +472,10 @@ export class AppointmentRepository {
           *,
           patients!patient_id (
             patient_id,
-            full_name,
-            date_of_birth,
             gender,
             profile:profiles!profile_id (
+              full_name,
+              date_of_birth,
               phone_number,
               email
             )
@@ -488,8 +498,8 @@ export class AppointmentRepository {
         ...appointment,
         patient: appointment.patients ? {
           patient_id: appointment.patients.patient_id,
-          full_name: appointment.patients.full_name,
-          date_of_birth: appointment.patients.date_of_birth,
+          full_name: appointment.patients.profile?.full_name,
+          date_of_birth: appointment.patients.profile?.date_of_birth,
           gender: appointment.patients.gender,
           phone_number: appointment.patients.profile?.phone_number,
           email: appointment.patients.profile?.email
@@ -544,8 +554,10 @@ export class AppointmentRepository {
           *,
           doctors!doctor_id (
             doctor_id,
-            full_name,
-            specialty
+            specialty,
+            profile:profiles!profile_id (
+              full_name
+            )
           ),
           patients!patient_id (
             patient_id,
@@ -586,7 +598,7 @@ export class AppointmentRepository {
           appointment_type: appointment.appointment_type,
           doctor: appointment.doctors ? {
             doctor_id: appointment.doctors.doctor_id,
-            full_name: appointment.doctors.full_name,
+            full_name: appointment.doctors.profile?.full_name,
             specialty: appointment.doctors.specialty
           } : null,
           patient: appointment.patients ? {

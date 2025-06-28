@@ -237,6 +237,113 @@ router.get('/live', doctorController.getLiveDoctors.bind(doctorController));
  */
 router.get('/by-profile/:profileId', doctorController.getDoctorByProfileId.bind(doctorController));
 
+// =====================================================
+// AUTHENTICATED DOCTOR DASHBOARD ROUTES (Must be before /:doctorId routes)
+// =====================================================
+
+/**
+ * @swagger
+ * /api/doctors/dashboard/stats:
+ *   get:
+ *     summary: Get current authenticated doctor's dashboard statistics
+ *     tags: [Doctor Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Dashboard statistics
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Doctor not found
+ */
+router.get('/dashboard/stats', authMiddleware, requireDoctor, doctorController.getCurrentDoctorStats.bind(doctorController));
+
+/**
+ * @swagger
+ * /api/doctors/dashboard/profile:
+ *   get:
+ *     summary: Get current authenticated doctor's profile information
+ *     tags: [Doctor Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Doctor profile information
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     doctor_id:
+ *                       type: string
+ *                     full_name:
+ *                       type: string
+ *                     specialty:
+ *                       type: string
+ *                     license_number:
+ *                       type: string
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Doctor not found
+ */
+router.get('/dashboard/profile', authMiddleware, requireDoctor, doctorController.getCurrentDoctorProfile.bind(doctorController));
+router.get('/dashboard/complete', authMiddleware, requireDoctor, doctorController.getDashboardComplete.bind(doctorController));
+
+/**
+ * @swagger
+ * /api/doctors/appointments/today:
+ *   get:
+ *     summary: Get current authenticated doctor's appointments for today
+ *     tags: [Doctor Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Today's appointments
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/appointments/today', authMiddleware, requireDoctor, doctorController.getTodayAppointments.bind(doctorController));
+
+/**
+ * @swagger
+ * /api/doctors/appointments/upcoming:
+ *   get:
+ *     summary: Get current authenticated doctor's upcoming appointments
+ *     tags: [Doctor Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Upcoming appointments
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/appointments/upcoming', authMiddleware, requireDoctor, doctorController.getUpcomingAppointments.bind(doctorController));
+
+/**
+ * @swagger
+ * /api/doctors/activity/recent:
+ *   get:
+ *     summary: Get current authenticated doctor's recent activity
+ *     tags: [Doctor Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Recent activity
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/activity/recent', authMiddleware, requireDoctor, doctorController.getRecentActivity.bind(doctorController));
+
 /**
  * @swagger
  * /api/doctors/{doctorId}:
@@ -667,78 +774,7 @@ router.get('/:doctorId/experiences', validateDoctorId, doctorController.getDocto
  */
 router.get('/:doctorId/appointment-stats', validateDoctorId, doctorController.getDoctorStats.bind(doctorController));
 
-// =====================================================
-// AUTHENTICATED DOCTOR DASHBOARD ROUTES (Must be before /:doctorId routes)
-// =====================================================
-
-/**
- * @swagger
- * /api/doctors/dashboard/stats:
- *   get:
- *     summary: Get current authenticated doctor's dashboard statistics
- *     tags: [Doctor Dashboard]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Dashboard statistics
- *       401:
- *         description: Unauthorized
- *       404:
- *         description: Doctor not found
- */
-router.get('/dashboard/stats', authMiddleware, requireDoctor, doctorController.getCurrentDoctorStats.bind(doctorController));
-router.get('/dashboard/complete', authMiddleware, requireDoctor, doctorController.getDashboardComplete.bind(doctorController));
-
-/**
- * @swagger
- * /api/doctors/appointments/today:
- *   get:
- *     summary: Get current authenticated doctor's appointments for today
- *     tags: [Doctor Dashboard]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Today's appointments
- *       401:
- *         description: Unauthorized
- */
-router.get('/appointments/today', authMiddleware, requireDoctor, doctorController.getTodayAppointments.bind(doctorController));
-
-/**
- * @swagger
- * /api/doctors/appointments/upcoming:
- *   get:
- *     summary: Get current authenticated doctor's upcoming appointments
- *     tags: [Doctor Dashboard]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Upcoming appointments
- *       401:
- *         description: Unauthorized
- */
-router.get('/appointments/upcoming', authMiddleware, requireDoctor, doctorController.getUpcomingAppointments.bind(doctorController));
-
 // Add the missing appointments/stats endpoint that frontend is calling (MUST be after specific routes)
 router.get('/:doctorId/appointments/stats', validateDoctorId, doctorController.getDoctorStats.bind(doctorController));
-
-/**
- * @swagger
- * /api/doctors/activity/recent:
- *   get:
- *     summary: Get current authenticated doctor's recent activity
- *     tags: [Doctor Dashboard]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Recent activity
- *       401:
- *         description: Unauthorized
- */
-router.get('/activity/recent', authMiddleware, requireDoctor, doctorController.getRecentActivity.bind(doctorController));
 
 export default router;

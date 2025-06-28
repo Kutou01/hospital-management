@@ -613,11 +613,12 @@ class AuthService {
             const doctorData = {
                 doctor_id: doctorId,
                 profile_id: userId,
+                full_name: userData.full_name,
                 specialty: userData.specialty || 'General Medicine',
                 license_number: userData.license_number || 'PENDING',
                 qualification: userData.qualification || 'MD',
                 department_id: userData.department_id,
-                gender: userData.gender || 'other',
+                gender: userData.gender?.toLowerCase() || 'other',
                 bio: null,
                 experience_years: 0,
                 consultation_fee: null,
@@ -670,7 +671,7 @@ class AuthService {
             const patientData = {
                 patient_id: patientId,
                 profile_id: userId,
-                gender: userData.gender || 'other',
+                gender: userData.gender?.toLowerCase() || 'other',
                 blood_type: userData.blood_type || null,
                 address: userData.address || {},
                 emergency_contact: userData.emergency_contact || {},

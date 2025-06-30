@@ -131,6 +131,11 @@ export const medicalRecordsApi = {
     return apiClient.post<MedicalRecord>('/medical-records', data);
   },
 
+  // Alias for compatibility
+  create: async (data: CreateMedicalRecordRequest): Promise<ApiResponse<MedicalRecord>> => {
+    return apiClient.post<MedicalRecord>('/medical-records', data);
+  },
+
   updateMedicalRecord: async (recordId: string, data: UpdateMedicalRecordRequest): Promise<ApiResponse<MedicalRecord>> => {
     return apiClient.put<MedicalRecord>(`/medical-records/${recordId}`, data);
   },

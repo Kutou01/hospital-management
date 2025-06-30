@@ -1024,14 +1024,16 @@ export class DoctorController {
         totalExperience,
         todayAppointments,
         monthlyAppointments,
-        patientCount
+        patientCount,
+        patientStats
       ] = await Promise.allSettled([
         this.reviewRepository.getReviewStats(doctorId),
         this.appointmentService.getDoctorAppointmentStats(doctorId),
         this.experienceRepository.calculateTotalExperience(doctorId),
         this.appointmentService.getTodayAppointments(doctorId),
         this.appointmentService.getMonthlyAppointments(doctorId),
-        this.patientService.getPatientCountForDoctor(doctorId)
+        this.patientService.getPatientCountForDoctor(doctorId),
+        this.patientService.getDoctorPatientStats(doctorId)
       ]);
 
       // Extract results safely
@@ -1041,6 +1043,7 @@ export class DoctorController {
       const todayApts = todayAppointments.status === 'fulfilled' ? todayAppointments.value : [];
       const monthlyApts = monthlyAppointments.status === 'fulfilled' ? monthlyAppointments.value : [];
       const totalPatients = patientCount.status === 'fulfilled' ? patientCount.value : 0;
+      const patientStatsData = patientStats.status === 'fulfilled' ? patientStats.value : null;
 
       // Calculate success rate based on completed appointments
       const completedAppointments = monthlyApts.filter(apt => apt.status === 'completed').length;
@@ -1060,11 +1063,17 @@ export class DoctorController {
         specialization: doctor.specialty,
         department: doctor.department_id,
         status: doctor.availability_status || 'active',
+        // Add patient statistics from Patient Service
+        new_patients: patientStatsData?.new_patients_last_30_days || 0,
+        follow_up_patients: patientStatsData?.returning_patients_last_30_days || 0,
+        total_unique_patients: patientStatsData?.total_unique_patients || totalPatients,
+        patient_demographics: patientStatsData?.demographics || null,
         monthly_stats: appointments?.monthly_stats || [],
         appointment_types: appointments?.appointment_types || [],
         data_sources: {
           appointments: appointmentStats.status === 'fulfilled' ? 'appointment-service' : 'unavailable',
           patients: patientCount.status === 'fulfilled' ? 'patient-service' : 'unavailable',
+          patient_stats: patientStats.status === 'fulfilled' ? 'patient-service' : 'unavailable',
           reviews: reviewStats.status === 'fulfilled' ? 'database' : 'unavailable',
           experience: totalExperience.status === 'fulfilled' ? 'database' : 'unavailable'
         }

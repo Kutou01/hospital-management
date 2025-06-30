@@ -354,7 +354,7 @@ export function createApp(): express.Application {
 
   // Billing Service Routes - ENABLED
   app.use('/api/billing', authMiddleware, createProxyMiddleware({
-    target: process.env.BILLING_SERVICE_URL || 'http://billing-service:3008',
+    target: process.env.BILLING_SERVICE_URL || 'http://billing-service:3007',
     changeOrigin: true,
     pathRewrite: {
       '^/api/billing': '/api/billing',
@@ -362,6 +362,38 @@ export function createApp(): express.Application {
     onError: (err: any, req: any, res: any) => {
       console.error('Billing Service Proxy Error:', err);
       res.status(503).json({ error: 'Billing service unavailable' });
+    },
+  }));
+
+  // Payment Service Routes - ENABLED
+  app.use('/api/payments', (req, res, next) => {
+    // Skip auth for health check and webhooks
+    if (req.path === '/health' || req.path.startsWith('/webhooks')) {
+      return next('route');
+    }
+    next();
+  }, authMiddleware, createProxyMiddleware({
+    target: process.env.PAYMENT_SERVICE_URL || 'http://payment-service:3008',
+    changeOrigin: true,
+    pathRewrite: {
+      '^/api/payments': '/api/payments',
+    },
+    onError: (err: any, req: any, res: any) => {
+      console.error('Payment Service Proxy Error:', err);
+      res.status(503).json({ error: 'Payment service unavailable' });
+    },
+  }));
+
+  // Payment Webhooks (no auth required)
+  app.use('/api/webhooks', createProxyMiddleware({
+    target: process.env.PAYMENT_SERVICE_URL || 'http://payment-service:3008',
+    changeOrigin: true,
+    pathRewrite: {
+      '^/api/webhooks': '/api/webhooks',
+    },
+    onError: (err: any, req: any, res: any) => {
+      console.error('Payment Webhook Proxy Error:', err);
+      res.status(503).json({ error: 'Payment webhook service unavailable' });
     },
   }));
 

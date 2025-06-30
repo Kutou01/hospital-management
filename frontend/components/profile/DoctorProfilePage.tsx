@@ -151,18 +151,26 @@ export function DoctorProfilePage({ doctorId, onBack }: DoctorProfilePageProps) 
                   </div>
 
                   <h2 className="text-lg font-bold text-gray-900 mb-1">
-                    {doctor?.full_name || 'Dr. Petra Winsbury'}
+                    {doctor?.full_name || 'Loading...'}
                   </h2>
                   <p className="text-sm text-gray-500 mb-3">
-                    {doctor?.doctor_id || 'WNH-GM-001'}
+                    {doctor?.doctor_id || 'Loading...'}
                   </p>
 
                   <Badge
                     variant="secondary"
-                    className="bg-green-100 text-green-700 text-xs px-2 py-1"
+                    className={`text-xs px-2 py-1 ${
+                      doctor?.availability_status === 'available'
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-red-100 text-red-700'
+                    }`}
                   >
-                    <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                    Available
+                    <div className={`w-2 h-2 rounded-full mr-2 ${
+                      doctor?.availability_status === 'available'
+                        ? 'bg-green-500'
+                        : 'bg-red-500'
+                    }`}></div>
+                    {doctor?.availability_status === 'available' ? 'Available' : 'Unavailable'}
                   </Badge>
                 </div>
 
@@ -170,7 +178,7 @@ export function DoctorProfilePage({ doctorId, onBack }: DoctorProfilePageProps) 
                 <div className="mb-6">
                   <h3 className="font-semibold text-gray-900 mb-2 text-sm">Specialist</h3>
                   <p className="text-sm text-gray-600">
-                    {doctor?.specialty || 'Routine Check-Ups'}
+                    {doctor?.specialty || 'Loading...'}
                   </p>
                 </div>
 
@@ -178,7 +186,7 @@ export function DoctorProfilePage({ doctorId, onBack }: DoctorProfilePageProps) 
                 <div className="mb-6">
                   <h3 className="font-semibold text-gray-900 mb-2 text-sm">About</h3>
                   <p className="text-sm text-gray-600 leading-relaxed">
-                    {doctor?.bio || 'Dr. Petra Winsbury is a seasoned general medicine practitioner with over 15 years of experience in providing comprehensive healthcare services. He is dedicated to ensuring the overall well-being of his patients through routine check-ups and preventive care.'}
+                    {doctor?.bio || 'Loading doctor information...'}
                   </p>
                 </div>
 
@@ -187,19 +195,21 @@ export function DoctorProfilePage({ doctorId, onBack }: DoctorProfilePageProps) 
                   <div className="flex items-center gap-3 text-sm">
                     <Phone className="h-4 w-4 text-teal-500" />
                     <span className="text-gray-600">
-                      {doctor?.phone_number || '+1 555-234-5678'}
+                      {doctor?.phone_number || 'Loading...'}
                     </span>
                   </div>
                   <div className="flex items-center gap-3 text-sm">
                     <Mail className="h-4 w-4 text-teal-500" />
                     <span className="text-gray-600">
-                      {doctor?.email || 'petra.wins@wellnesthospital.com'}
+                      {doctor?.email || 'Loading...'}
                     </span>
                   </div>
                   <div className="flex items-center gap-3 text-sm">
                     <MapPin className="h-4 w-4 text-teal-500" />
                     <span className="text-gray-600">
-                      WellNest Hospital, 456 Elm Street, Springfield, IL, USA
+                      {doctor?.address ?
+                        `${doctor.address.street}, ${doctor.address.district}, ${doctor.address.city}` :
+                        'Loading address...'}
                     </span>
                   </div>
                 </div>
@@ -249,29 +259,9 @@ export function DoctorProfilePage({ doctorId, onBack }: DoctorProfilePageProps) 
                     </div>
                   ))
                 ) : (
-                  // Default work experience data matching reference image
-                  <>
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 bg-teal-100 rounded-lg flex items-center justify-center">
-                        <Stethoscope className="h-4 w-4 text-teal-600" />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-gray-900 text-sm">General Practitioner</h4>
-                        <p className="text-sm text-gray-600">WellNest Hospital</p>
-                        <p className="text-xs text-gray-500">Full Time • 2010-Present</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
-                        <Stethoscope className="h-4 w-4 text-red-600" />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-gray-900 text-sm">Resident Doctor</h4>
-                        <p className="text-sm text-gray-600">City Hospital</p>
-                        <p className="text-xs text-gray-500">Full Time • 2008-2010</p>
-                      </div>
-                    </div>
-                  </>
+                  <div className="text-center py-4">
+                    <p className="text-sm text-gray-500">No work experience data available</p>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -288,7 +278,7 @@ export function DoctorProfilePage({ doctorId, onBack }: DoctorProfilePageProps) 
                     <div>
                       <p className="text-sm text-gray-500 mb-1">Total Patients</p>
                       <p className="text-3xl font-bold text-gray-900">
-                        {doctor?.total_patients || '150'}
+                        {doctor?.total_patients || appointmentStats?.total_unique_patients || '0'}
                       </p>
                     </div>
                     <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center">
@@ -308,7 +298,7 @@ export function DoctorProfilePage({ doctorId, onBack }: DoctorProfilePageProps) 
                     <div>
                       <p className="text-sm text-gray-500 mb-1">Total Appointments</p>
                       <p className="text-3xl font-bold text-gray-900">
-                        {doctor?.total_appointments || '320'}
+                        {doctor?.total_appointments || appointmentStats?.total_appointments || '0'}
                       </p>
                     </div>
                     <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center">
@@ -401,54 +391,51 @@ export function DoctorProfilePage({ doctorId, onBack }: DoctorProfilePageProps) 
                     <div className="flex items-center gap-1">
                       <div className="w-2 h-2 bg-slate-700 rounded-full"></div>
                       <span className="text-gray-600">New Patient</span>
-                      <span className="font-semibold text-gray-900">6</span>
+                      <span className="font-semibold text-gray-900">{appointmentStats?.new_patients || 0}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <div className="w-2 h-2 bg-teal-400 rounded-full"></div>
                       <span className="text-gray-600">Follow-up Patient</span>
-                      <span className="font-semibold text-gray-900">5</span>
+                      <span className="font-semibold text-gray-900">{appointmentStats?.follow_up_patients || 0}</span>
                     </div>
                   </div>
 
-                  {/* Bar Chart */}
+                  {/* Bar Chart - Simple representation */}
                   <div className="flex items-end justify-between gap-2 h-32 mb-4">
-                    {[
-                      { day: 'Monday', newPatient: 20, followUp: 40 },
-                      { day: 'Tuesday', newPatient: 60, followUp: 30 },
-                      { day: 'Wednesday', newPatient: 100, followUp: 80 },
-                      { day: 'Thursday', newPatient: 80, followUp: 60 },
-                      { day: 'Friday', newPatient: 40, followUp: 90 },
-                      { day: 'Saturday', newPatient: 30, followUp: 50 },
-                      { day: 'Sunday', newPatient: 0, followUp: 0 }
-                    ].map((data, index) => (
-                      <div key={data.day} className="flex flex-col items-center gap-2">
-                        <div className="flex flex-col items-center justify-end h-24 gap-1">
-                          <div
-                            className="bg-slate-700 rounded-t-sm w-6"
-                            style={{ height: `${data.newPatient}%` }}
-                          ></div>
-                          <div
-                            className="bg-teal-400 rounded-t-sm w-6"
-                            style={{ height: `${data.followUp}%` }}
-                          ></div>
+                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => {
+                      // Simple calculation based on total stats
+                      const newPatients = Math.floor((appointmentStats?.new_patients || 0) / 7);
+                      const followUpPatients = Math.floor((appointmentStats?.follow_up_patients || 0) / 7);
+                      return (
+                        <div key={day} className="flex flex-col items-center gap-2">
+                          <div className="flex flex-col items-center justify-end h-24 gap-1">
+                            <div
+                              className="bg-slate-700 rounded-t-sm w-6"
+                              style={{ height: `${Math.min(newPatients * 20, 100)}%` }}
+                            ></div>
+                            <div
+                              className="bg-teal-400 rounded-t-sm w-6"
+                              style={{ height: `${Math.min(followUpPatients * 20, 100)}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-xs text-gray-500">{day}</span>
                         </div>
-                        <span className="text-xs text-gray-500">{data.day.slice(0, 3)}</span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
                   {/* Stats Summary */}
                   <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-100">
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-gray-900">50</div>
+                      <div className="text-2xl font-bold text-gray-900">{appointmentStats?.total_appointments || 0}</div>
                       <div className="text-xs text-gray-500">Total Appointments</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-gray-900">22</div>
+                      <div className="text-2xl font-bold text-gray-900">{appointmentStats?.new_patients || 0}</div>
                       <div className="text-xs text-gray-500">New Patients</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-gray-900">28</div>
+                      <div className="text-2xl font-bold text-gray-900">{appointmentStats?.follow_up_patients || 0}</div>
                       <div className="text-xs text-gray-500">Follow-Up Patients</div>
                     </div>
                   </div>

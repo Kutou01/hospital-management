@@ -22,7 +22,8 @@ import {
   Bell,
   ChevronLeft,
   ChevronRight,
-  LayoutDashboard
+  LayoutDashboard,
+  FileText
 } from 'lucide-react';
 
 interface DoctorSidebarProps {
@@ -76,6 +77,13 @@ const sidebarItems: SidebarItem[] = [
     icon: Pill,
     path: '/doctors/prescriptions',
     description: 'Kê đơn và chỉ định xét nghiệm'
+  },
+  {
+    id: 'medical-records',
+    label: 'Hồ sơ bệnh án',
+    icon: FileText,
+    path: '/doctors/medical-records',
+    description: 'Quản lý hồ sơ bệnh án và khám bệnh'
   },
   {
     id: 'analytics',

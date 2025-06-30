@@ -38,7 +38,7 @@ export function useDoctorProfile(doctorId: string): UseDoctorProfileReturn {
       setDoctor(doctorData)
 
       // Extract the actual doctor_id from the response
-      const actualDoctorId = doctorData.doctor?.doctor_id || doctorData.doctor_id || doctorId
+      const actualDoctorId = doctorData.doctor_id || doctorId
       console.log('🔍 [useDoctorProfile] Using doctor ID for API calls:', actualDoctorId)
 
       // Load other data in parallel using the correct doctor_id
@@ -68,6 +68,9 @@ export function useDoctorProfile(doctorId: string): UseDoctorProfileReturn {
       // Handle work experiences
       if (experiencesResponse.status === 'fulfilled' && experiencesResponse.value.success) {
         setExperiences(experiencesResponse.value.data || [])
+      } else if (doctorData.experiences) {
+        // Fallback to experiences from doctor profile response
+        setExperiences(doctorData.experiences || [])
       }
 
     } catch (error: any) {

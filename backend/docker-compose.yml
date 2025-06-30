@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # API Gateway
   api-gateway:
@@ -17,8 +15,9 @@ services:
       - APPOINTMENT_SERVICE_URL=http://appointment-service:3004
       - DEPARTMENT_SERVICE_URL=http://department-service:3005
       - MEDICAL_RECORDS_SERVICE_URL=http://medical-records-service:3006
-      - PRESCRIPTION_SERVICE_URL=http://prescription-service:3007
-      - BILLING_SERVICE_URL=http://billing-service:3008
+      - PRESCRIPTION_SERVICE_URL=http://prescription-service:3009
+      - BILLING_SERVICE_URL=http://billing-service:3007
+      - PAYMENT_SERVICE_URL=http://payment-service:3008
       - NOTIFICATION_SERVICE_URL=http://notification-service:3011
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
@@ -260,12 +259,12 @@ services:
       context: .
       dockerfile: ./services/prescription-service/Dockerfile
     ports:
-      - "3007:3007"
+      - "3009:3009"
     env_file:
       - ./services/prescription-service/.env
     environment:
       - NODE_ENV=development
-      - PORT=3007
+      - PORT=3009
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - REDIS_URL=redis://redis:6379
@@ -293,18 +292,18 @@ services:
       - core
       - full
 
-  # Billing & Payment Service - ENABLED
+  # Billing Service - ENABLED
   billing-service:
     build:
       context: .
       dockerfile: ./services/billing-service/Dockerfile
     ports:
-      - "3008:3008"
+      - "3007:3007"
     env_file:
       - ./services/billing-service/.env
     environment:
       - NODE_ENV=development
-      - PORT=3008
+      - PORT=3007
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - REDIS_URL=redis://redis:6379
@@ -316,6 +315,43 @@ services:
     depends_on:
       - redis
       - rabbitmq
+    networks:
+      - hospital-network
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+    profiles:
+      - core
+      - full
+
+  # Payment Service - ENABLED (PayOS Integration)
+  payment-service:
+    build:
+      context: .
+      dockerfile: ./services/payment-service/Dockerfile
+      args:
+        - NODE_ENV=development
+    ports:
+      - "3008:3008"
+    environment:
+      - NODE_ENV=development
+      - PORT=3008
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - PAYOS_CLIENT_ID=${PAYOS_CLIENT_ID}
+      - PAYOS_API_KEY=${PAYOS_API_KEY}
+      - PAYOS_CHECKSUM_KEY=${PAYOS_CHECKSUM_KEY}
+      - PAYOS_ENVIRONMENT=${PAYOS_ENVIRONMENT:-sandbox}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:3000}
+    # No database dependency - using Supabase
     networks:
       - hospital-network
     # Resource limits

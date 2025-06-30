@@ -177,3 +177,28 @@ export const ExampleUsage: React.FC = () => {
     </AdminLayout>
   );
 };
+
+// Convenience component for Patient Layout (alternative implementation)
+export const PatientLayoutAlt: React.FC<{
+  children: React.ReactNode;
+  title: string;
+  activePage: string;
+  subtitle?: string;
+  headerActions?: React.ReactNode;
+  className?: string;
+}> = ({ children, title, activePage, subtitle, headerActions, className }) => {
+  return (
+    <UniversalLayout
+      role="patient"
+      title={title}
+      activePage={activePage}
+      subtitle={subtitle}
+      headerActions={headerActions}
+      className={className}
+    >
+      {children}
+    </UniversalLayout>
+  );
+};
+
+export default UniversalLayout;

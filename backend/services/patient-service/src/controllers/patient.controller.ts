@@ -196,6 +196,45 @@ export class PatientController {
     }
   }
 
+  // Get patient statistics for a specific doctor
+  async getPatientStatsForDoctor(req: Request, res: Response): Promise<void> {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        res.status(400).json({
+          success: false,
+          error: 'Validation failed',
+          details: errors.array(),
+          timestamp: new Date().toISOString()
+        });
+        return;
+      }
+
+      const { doctorId } = req.params;
+      logger.info(`Getting patient statistics for doctor: ${doctorId}`);
+
+      // Get comprehensive patient statistics for the doctor
+      const stats = await this.patientRepository.getPatientStatsForDoctor(doctorId);
+
+      const response = {
+        success: true,
+        data: stats,
+        message: `Patient statistics retrieved for doctor ${doctorId}`,
+        timestamp: new Date().toISOString()
+      };
+
+      res.json(response);
+    } catch (error) {
+      logger.error('Error in getPatientStatsForDoctor:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get patient statistics for doctor',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
   // Get patients by doctor ID
   async getPatientsByDoctorId(req: Request, res: Response): Promise<void> {
     try {

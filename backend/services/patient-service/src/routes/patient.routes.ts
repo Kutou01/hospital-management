@@ -189,6 +189,14 @@ router.get(
   patientController.getPatientCountForDoctor.bind(patientController)
 );
 
+// GET /api/patients/doctor/:doctorId/stats - Get patient statistics for doctor (MUST be before general doctor route)
+router.get(
+  '/doctor/:doctorId/stats',
+  validateDoctorId,
+  handleValidationErrors,
+  patientController.getPatientStatsForDoctor.bind(patientController)
+);
+
 // GET /api/patients/doctor/:doctorId - Get patients by doctor ID
 router.get(
   '/doctor/:doctorId',

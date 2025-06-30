@@ -23,6 +23,7 @@ import {
   MessageCircle,
   FileBarChart,
   Server,
+  Shield,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -350,12 +351,18 @@ export const patientSidebarConfig: SidebarConfig = {
       items: [
         {
           icon: CreditCard,
+          label: 'Payment History',
+          href: '/patient/payment/history',
+          page: 'payment',
+        },
+        {
+          icon: Receipt,
           label: 'Billing',
           href: '/patient/billing',
           page: 'billing',
         },
         {
-          icon: Receipt,
+          icon: Shield,
           label: 'Insurance',
           href: '/patient/insurance',
           page: 'insurance',

@@ -580,4 +580,163 @@ export class PatientRepository {
       throw error;
     }
   }
+
+  // Get comprehensive patient statistics for a specific doctor
+  async getPatientStatsForDoctor(doctorId: string): Promise<any> {
+    try {
+      logger.info(`Getting patient statistics for doctor: ${doctorId}`);
+
+      // Get all appointments for this doctor with patient details
+      const { data: appointments, error: appointmentsError } = await this.supabase
+        .from('appointments')
+        .select(`
+          appointment_id,
+          patient_id,
+          appointment_date,
+          status,
+          created_at,
+          patients!inner (
+            patient_id,
+            gender,
+            created_at,
+            profile:profiles!patients_profile_id_fkey (
+              full_name,
+              date_of_birth
+            )
+          )
+        `)
+        .eq('doctor_id', doctorId);
+
+      if (appointmentsError) {
+        logger.error('Error fetching appointments for patient stats:', appointmentsError);
+        throw appointmentsError;
+      }
+
+      const appointmentList = appointments || [];
+
+      // Calculate unique patients
+      const uniquePatientIds = [...new Set(appointmentList.map(a => a.patient_id))];
+      const totalUniquePatients = uniquePatientIds.length;
+
+      // Calculate new vs returning patients
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+      const recentAppointments = appointmentList.filter(a =>
+        new Date(a.appointment_date) >= thirtyDaysAgo
+      );
+
+      const recentPatientIds = [...new Set(recentAppointments.map(a => a.patient_id))];
+
+      // Determine new vs returning patients (patients with first appointment in last 30 days)
+      const newPatients = [];
+      const returningPatients = [];
+
+      for (const patientId of recentPatientIds) {
+        const patientAppointments = appointmentList
+          .filter(a => a.patient_id === patientId)
+          .sort((a, b) => new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime());
+
+        if (patientAppointments.length > 0) {
+          const firstAppointment = patientAppointments[0];
+          if (new Date(firstAppointment.appointment_date) >= thirtyDaysAgo) {
+            newPatients.push(patientId);
+          } else {
+            returningPatients.push(patientId);
+          }
+        }
+      }
+
+      // Calculate demographics
+      const demographics = {
+        gender: { male: 0, female: 0, other: 0 },
+        age_groups: {
+          '0-18': 0,
+          '19-35': 0,
+          '36-50': 0,
+          '51-65': 0,
+          '65+': 0
+        }
+      };
+
+      // Process unique patients for demographics
+      const uniquePatients = appointmentList
+        .filter((appointment, index, self) =>
+          index === self.findIndex(a => a.patient_id === appointment.patient_id)
+        )
+        .map(a => a.patients);
+
+      uniquePatients.forEach((patient: any) => {
+        // Gender demographics (from patients table)
+        const gender = patient.gender?.toLowerCase();
+        if (gender === 'male' || gender === 'nam') {
+          demographics.gender.male++;
+        } else if (gender === 'female' || gender === 'nữ') {
+          demographics.gender.female++;
+        } else {
+          demographics.gender.other++;
+        }
+
+        // Age demographics (from profiles table)
+        if (patient.profile && patient.profile.date_of_birth) {
+          const birthDate = new Date(patient.profile.date_of_birth);
+          const age = Math.floor((now.getTime() - birthDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+
+          if (age <= 18) {
+            demographics.age_groups['0-18']++;
+          } else if (age <= 35) {
+            demographics.age_groups['19-35']++;
+          } else if (age <= 50) {
+            demographics.age_groups['36-50']++;
+          } else if (age <= 65) {
+            demographics.age_groups['51-65']++;
+          } else {
+            demographics.age_groups['65+']++;
+          }
+        }
+      });
+
+      // Calculate appointment statistics
+      const completedAppointments = appointmentList.filter(a => a.status === 'completed').length;
+      const totalAppointments = appointmentList.length;
+      const averageAppointmentsPerPatient = totalUniquePatients > 0 ?
+        Math.round((totalAppointments / totalUniquePatients) * 10) / 10 : 0;
+
+      const stats = {
+        total_unique_patients: totalUniquePatients,
+        new_patients_last_30_days: newPatients.length,
+        returning_patients_last_30_days: returningPatients.length,
+        new_vs_returning_ratio: {
+          new_percentage: recentPatientIds.length > 0 ?
+            Math.round((newPatients.length / recentPatientIds.length) * 100) : 0,
+          returning_percentage: recentPatientIds.length > 0 ?
+            Math.round((returningPatients.length / recentPatientIds.length) * 100) : 0
+        },
+        demographics,
+        appointment_statistics: {
+          total_appointments: totalAppointments,
+          completed_appointments: completedAppointments,
+          average_appointments_per_patient: averageAppointmentsPerPatient,
+          completion_rate: totalAppointments > 0 ?
+            Math.round((completedAppointments / totalAppointments) * 100) : 0
+        },
+        period: {
+          from: thirtyDaysAgo.toISOString().split('T')[0],
+          to: now.toISOString().split('T')[0]
+        }
+      };
+
+      logger.info(`Patient statistics calculated for doctor ${doctorId}:`, {
+        totalPatients: totalUniquePatients,
+        newPatients: newPatients.length,
+        returningPatients: returningPatients.length
+      });
+
+      return stats;
+
+    } catch (error) {
+      logger.error('Exception in getPatientStatsForDoctor:', error);
+      throw error;
+    }
+  }
 }

@@ -105,6 +105,13 @@ export default function DoctorProfilePage() {
 
       if (doctorResponse.success && doctorResponse.data) {
         const doctorData = doctorResponse.data;
+        console.log('🔍 [DoctorProfile] Doctor data loaded:', {
+          name: doctorData.full_name,
+          id: doctorData.doctor_id,
+          phone: doctorData.phone_number,
+          email: doctorData.email,
+          address: doctorData.address
+        });
         setDoctor(doctorData);
 
         // Load additional data using doctor_id
@@ -139,6 +146,7 @@ export default function DoctorProfilePage() {
       console.error('Error loading doctor profile:', error);
       toast.error('Lỗi khi tải thông tin bác sĩ');
     } finally {
+      console.log('🔍 [DoctorProfile] Setting loading to false');
       setLoading(false);
     }
   };
@@ -169,6 +177,17 @@ export default function DoctorProfilePage() {
       year: '2-digit'
     });
   };
+
+  // Debug logging
+  console.log('🔍 [DoctorProfile] Render state:', {
+    authLoading,
+    loading,
+    hasDoctor: !!doctor,
+    doctorName: doctor?.full_name,
+    doctorId: doctor?.doctor_id,
+    userExists: !!user,
+    userId: user?.id
+  });
 
   if (authLoading || loading) {
     return (
@@ -213,29 +232,37 @@ export default function DoctorProfilePage() {
                       <div className="w-24 h-24 bg-gradient-to-br from-teal-400 to-teal-500 rounded-2xl flex items-center justify-center mx-auto">
                         <Avatar className="h-20 w-20 bg-transparent">
                           <AvatarImage
-                            src={doctor?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=petra-winsbury`}
+                            src={doctor?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${doctor?.full_name || 'doctor'}`}
                             alt={doctor?.full_name || 'Doctor'}
                           />
                           <AvatarFallback className="text-lg bg-transparent text-white font-semibold">
-                            PW
+                            {doctor?.full_name ? doctor.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'DR'}
                           </AvatarFallback>
                         </Avatar>
                       </div>
                     </div>
 
                     <h2 className="text-base font-bold text-gray-900 mb-1">
-                      Dr. Petra Winsbury
+                      {doctor?.full_name || 'Loading...'}
                     </h2>
                     <p className="text-xs text-gray-500 mb-3">
-                      WNH-GM-001
+                      {doctor?.doctor_id || 'Loading...'}
                     </p>
 
                     <Badge
                       variant="secondary"
-                      className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full"
+                      className={`text-xs px-2 py-1 rounded-full ${
+                        doctor?.availability_status === 'available'
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-red-100 text-red-700'
+                      }`}
                     >
-                      <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
-                      Available
+                      <div className={`w-2 h-2 rounded-full mr-1 ${
+                        doctor?.availability_status === 'available'
+                          ? 'bg-green-500'
+                          : 'bg-red-500'
+                      }`}></div>
+                      {doctor?.availability_status === 'available' ? 'Available' : 'Unavailable'}
                     </Badge>
                   </div>
 
@@ -243,7 +270,7 @@ export default function DoctorProfilePage() {
                   <div className="mb-4">
                     <h3 className="font-medium text-gray-900 mb-1 text-xs text-gray-500">Specialist</h3>
                     <p className="text-sm text-gray-800 font-medium">
-                      Routine Check-Ups
+                      {doctor?.specialty || 'Loading...'}
                     </p>
                   </div>
 
@@ -251,7 +278,7 @@ export default function DoctorProfilePage() {
                   <div className="mb-4">
                     <h3 className="font-medium text-gray-900 mb-2 text-xs text-gray-500">About</h3>
                     <p className="text-xs text-gray-600 leading-relaxed">
-                      Dr. Petra Winsbury is a seasoned general medicine practitioner with over 15 years of experience in providing comprehensive healthcare services. He is dedicated to ensuring the overall well-being of his patients through routine check-ups and preventive care.
+                      {doctor?.bio || 'Loading doctor information...'}
                     </p>
                   </div>
 
@@ -260,19 +287,21 @@ export default function DoctorProfilePage() {
                     <div className="flex items-center gap-2 text-xs">
                       <Phone className="h-3 w-3 text-teal-500" />
                       <span className="text-gray-600">
-                        +1 555-234-5678
+                        {doctor?.phone_number || 'Chưa cập nhật'}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-xs">
                       <Mail className="h-3 w-3 text-teal-500" />
                       <span className="text-gray-600">
-                        petra.wins@wellnesthospital.com
+                        {doctor?.email || 'Chưa cập nhật'}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-xs">
                       <MapPin className="h-3 w-3 text-teal-500" />
                       <span className="text-gray-600">
-                        WellNest Hospital, 456 Elm Street, Springfield, IL, USA
+                        {doctor?.address ?
+                          `${doctor.address.street}, ${doctor.address.district}, ${doctor.address.city}` :
+                          'Bệnh viện Đa khoa, TP.HCM'}
                       </span>
                     </div>
                   </div>
@@ -290,26 +319,33 @@ export default function DoctorProfilePage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 pt-0">
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-teal-500 rounded-lg flex items-center justify-center">
-                      <Stethoscope className="h-3 w-3 text-white" />
+                  {doctor?.experiences && doctor.experiences.length > 0 ? (
+                    doctor.experiences.map((exp, index) => (
+                      <div key={exp.experience_id || index} className="flex items-start gap-3">
+                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center ${
+                          exp.experience_type === 'work' ? 'bg-teal-500' :
+                          exp.experience_type === 'education' ? 'bg-blue-500' : 'bg-purple-500'
+                        }`}>
+                          <Stethoscope className="h-3 w-3 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-medium text-gray-900 text-xs">{exp.position}</h4>
+                          <p className="text-xs text-gray-600">{exp.institution_name}</p>
+                          <p className="text-xs text-gray-500">
+                            {exp.is_current ? 'Full Time' : 'Part Time'} • {
+                              new Date(exp.start_date).getFullYear()
+                            } - {
+                              exp.is_current ? 'Present' : new Date(exp.end_date!).getFullYear()
+                            }
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-4">
+                      <p className="text-xs text-gray-500">No work experience data available</p>
                     </div>
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900 text-xs">General Practitioner</h4>
-                      <p className="text-xs text-gray-600">WellNest Hospital</p>
-                      <p className="text-xs text-gray-500">Full Time • 2010-Present</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-red-500 rounded-lg flex items-center justify-center">
-                      <Stethoscope className="h-3 w-3 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900 text-xs">Resident Doctor</h4>
-                      <p className="text-xs text-gray-600">City Hospital</p>
-                      <p className="text-xs text-gray-500">Full Time • 2008-2010</p>
-                    </div>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
             </div>

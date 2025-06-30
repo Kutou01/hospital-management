@@ -18,6 +18,8 @@ export class ApiClient {
 
   constructor(baseUrl: string = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:3000') {
     this.baseUrl = baseUrl;
+    console.log('🔧 [ApiClient] Initialized with baseUrl:', this.baseUrl);
+    console.log('🔧 [ApiClient] NEXT_PUBLIC_API_GATEWAY_URL:', process.env.NEXT_PUBLIC_API_GATEWAY_URL);
   }
 
   // Get auth token from localStorage (Auth Service) or Supabase

@@ -157,6 +157,7 @@ export class DoctorRepository {
           *,
           profiles!inner(
             full_name,
+            email,
             phone_number
           )
         `)
@@ -188,6 +189,7 @@ export class DoctorRepository {
           *,
           profiles!inner(
             full_name,
+            email,
             phone_number
           )
         `)
@@ -225,6 +227,7 @@ export class DoctorRepository {
           *,
           profiles!inner(
             full_name,
+            email,
             phone_number
           )
         `, { count: 'exact' })
@@ -292,6 +295,7 @@ export class DoctorRepository {
           *,
           profiles!inner(
             full_name,
+            email,
             phone_number
           )
         `)

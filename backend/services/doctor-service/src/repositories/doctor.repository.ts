@@ -68,53 +68,59 @@ export class DoctorRepository {
 
   async findByProfileId(profileId: string): Promise<Doctor | null> {
     try {
-      // JOIN với profiles và departments để lấy full_name và department name
+      // Use RPC function or raw SQL to get joined data
       const { data, error } = await this.supabase
-        .from('doctors')
-        .select(`
-          *,
-          profiles!inner(
-            full_name,
-            email,
-            phone_number,
-            date_of_birth
-          ),
-          departments!inner(
-            name,
-            description,
-            location
-          )
-        `)
-        .eq('profile_id', profileId)
-        .eq('is_active', true)
-        .single();
+        .rpc('get_doctor_with_profile_by_profile_id', {
+          profile_id_param: profileId
+        });
 
       if (error) {
-        logger.error('Database error in findByProfileId:', error);
+        logger.error('Database RPC error in findByProfileId:', error);
+
+        // Fallback: Use separate queries
+        const { data: doctorData, error: doctorError } = await this.supabase
+          .from('doctors')
+          .select('*')
+          .eq('profile_id', profileId)
+          .eq('is_active', true)
+          .single();
+
+        if (doctorError || !doctorData) {
+          logger.error('Doctor not found:', doctorError);
+          return null;
+        }
+
+        // Get profile data separately
+        const { data: profileData, error: profileError } = await this.supabase
+          .from('profiles')
+          .select('full_name, email, phone_number, date_of_birth')
+          .eq('id', profileId)
+          .single();
+
+        if (profileError) {
+          logger.error('Profile not found:', profileError);
+          return null;
+        }
+
+        // Combine data
+        const combinedData = {
+          ...doctorData,
+          full_name: profileData.full_name,
+          email: profileData.email,
+          phone_number: profileData.phone_number,
+          date_of_birth: profileData.date_of_birth
+        };
+
+        return this.mapSupabaseDoctorToDoctor(combinedData);
+      }
+
+      if (!data || (Array.isArray(data) && data.length === 0)) {
         return null;
       }
 
-      if (!data) {
-        return null;
-      }
-
-      // Flatten the joined data
-      const doctor = {
-        ...data,
-        full_name: data.profiles.full_name,
-        email: data.profiles.email,
-        phone_number: data.profiles.phone_number,
-        date_of_birth: data.profiles.date_of_birth,
-        department_name: data.departments.name,
-        department_description: data.departments.description,
-        department_location: data.departments.location
-      };
-
-      // Remove nested objects
-      delete doctor.profiles;
-      delete doctor.departments;
-
-      return this.mapSupabaseDoctorToDoctor(doctor);
+      // Handle both single object and array returns
+      const doctorData = Array.isArray(data) ? data[0] : data;
+      return this.mapSupabaseDoctorToDoctor(doctorData);
     } catch (error) {
       logger.error('Error finding doctor by profile ID', { error, profileId });
       throw error;
@@ -764,15 +770,27 @@ export class DoctorRepository {
     // ✅ DEBUG: Log the raw data to see structure
     console.log('🔍 DEBUG - Raw supabaseDoctor:', JSON.stringify(supabaseDoctor, null, 2));
 
-    // ✅ Extract full_name from profiles JOIN or fallback
+    // ✅ Extract data from profiles JOIN or fallback to direct fields
     const fullName = supabaseDoctor.profiles?.full_name || supabaseDoctor.full_name || '';
-    console.log('🔍 DEBUG - Extracted full_name:', fullName);
+    const email = supabaseDoctor.profiles?.email || supabaseDoctor.email || '';
+    const phoneNumber = supabaseDoctor.profiles?.phone_number || supabaseDoctor.phone_number || '';
+
+    console.log('🔍 DEBUG - Extracted data:', {
+      fullName,
+      email,
+      phoneNumber,
+      hasProfiles: !!supabaseDoctor.profiles,
+      directEmail: supabaseDoctor.email,
+      directPhone: supabaseDoctor.phone_number
+    });
 
     return {
       id: String(supabaseDoctor.doctor_id || ''),
       doctor_id: String(supabaseDoctor.doctor_id || ''),
       profile_id: String(supabaseDoctor.profile_id || ''),
       full_name: String(fullName), // ✅ Use extracted full_name
+      email: String(email), // ✅ Add email mapping
+      phone_number: String(phoneNumber), // ✅ Add phone_number mapping
       specialty: String(supabaseDoctor.specialty || ''),
       qualification: String(supabaseDoctor.qualification || ''),
       department_id: String(supabaseDoctor.department_id || ''),

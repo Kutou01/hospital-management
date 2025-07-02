@@ -28,6 +28,7 @@ import {
 import { useEnhancedAuth } from '@/lib/auth/auth-wrapper';
 import { doctorsApi } from '@/lib/api/doctors';
 import { toast } from 'react-hot-toast';
+import { useDoctorDashboard } from '@/hooks/useDoctorDashboard';
 
 interface DoctorProfile {
   doctor_id: string;
@@ -84,69 +85,79 @@ interface Review {
 
 export default function DoctorProfilePage() {
   const { user, loading: authLoading } = useEnhancedAuth();
+  const [doctorId, setDoctorId] = useState<string | null>(null);
+
+  // Use the new unified dashboard hook
+  const {
+    dashboardData,
+    loading: dashboardLoading,
+    error: dashboardError,
+    refetch,
+    loadTime
+  } = useDoctorDashboard(doctorId || '');
+
+  // Legacy state for backward compatibility
   const [doctor, setDoctor] = useState<DoctorProfile | null>(null);
   const [appointmentStats, setAppointmentStats] = useState<AppointmentStats | null>(null);
   const [todaySchedule, setTodaySchedule] = useState<ScheduleItem[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Get doctor ID first, then load dashboard data
   useEffect(() => {
     if (user && !authLoading) {
-      loadDoctorProfile();
+      loadDoctorId();
     }
   }, [user, authLoading]);
 
-  const loadDoctorProfile = async () => {
+  // Update legacy state when dashboard data changes
+  useEffect(() => {
+    if (dashboardData) {
+      setDoctor({
+        ...dashboardData.doctor,
+        total_patients: dashboardData.stats.total_patients,
+        total_appointments: dashboardData.stats.total_appointments,
+        avatar_url: dashboardData.doctor.avatar_url
+      } as DoctorProfile);
+
+      setAppointmentStats(dashboardData.stats);
+      setReviews(dashboardData.recent_reviews.reviews.map(review => ({
+        id: review.review_id,
+        rating: review.rating,
+        comment: review.review_text,
+        date: review.review_date,
+        patient_name: review.patient_name,
+        patient_avatar: undefined
+      })));
+
+      setLoading(false);
+    }
+  }, [dashboardData]);
+
+  const loadDoctorId = async () => {
     try {
       setLoading(true);
 
-      // Load doctor basic info
+      // Load doctor basic info to get doctor_id
       const doctorResponse = await doctorsApi.getByProfileId(user?.id || '');
 
       if (doctorResponse.success && doctorResponse.data) {
         const doctorData = doctorResponse.data;
-        console.log('🔍 [DoctorProfile] Doctor data loaded:', {
+        console.log('🔍 [DoctorProfile] Doctor ID loaded:', {
           name: doctorData.full_name,
-          id: doctorData.doctor_id,
-          phone: doctorData.phone_number,
-          email: doctorData.email,
-          address: doctorData.address
+          id: doctorData.doctor_id
         });
-        setDoctor(doctorData);
 
-        // Load additional data using doctor_id
-        const doctorId = doctorData.doctor_id;
-
-        // Load appointment stats, schedule, and reviews in parallel
-        const [statsResponse, scheduleResponse, reviewsResponse] = await Promise.allSettled([
-          doctorsApi.getAppointmentStats(doctorId, 'week'),
-          doctorsApi.getTodaySchedule(doctorId),
-          doctorsApi.getReviews(doctorId, 1, 4)
-        ]);
-
-        // Handle appointment stats
-        if (statsResponse.status === 'fulfilled' && statsResponse.value.success) {
-          setAppointmentStats(statsResponse.value.data);
-        }
-
-        // Handle today's schedule
-        if (scheduleResponse.status === 'fulfilled' && scheduleResponse.value.success) {
-          setTodaySchedule(scheduleResponse.value.data || []);
-        }
-
-        // Handle reviews
-        if (reviewsResponse.status === 'fulfilled' && reviewsResponse.value.success) {
-          setReviews(reviewsResponse.value.data || []);
-        }
+        // Set doctor ID to trigger dashboard data loading
+        setDoctorId(doctorData.doctor_id);
 
       } else {
         toast.error('Không thể tải thông tin bác sĩ');
+        setLoading(false);
       }
     } catch (error) {
-      console.error('Error loading doctor profile:', error);
+      console.error('Error loading doctor ID:', error);
       toast.error('Lỗi khi tải thông tin bác sĩ');
-    } finally {
-      console.log('🔍 [DoctorProfile] Setting loading to false');
       setLoading(false);
     }
   };
@@ -189,7 +200,7 @@ export default function DoctorProfilePage() {
     userId: user?.id
   });
 
-  if (authLoading || loading) {
+  if (authLoading || loading || dashboardLoading) {
     return (
       <RoleBasedLayout title="Hồ sơ bác sĩ" activePage="profile">
         <div className="flex items-center justify-center min-h-screen">
@@ -197,6 +208,24 @@ export default function DoctorProfilePage() {
             <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-teal-600 mx-auto mb-4"></div>
             <h2 className="text-xl font-semibold text-gray-900">Đang tải hồ sơ bác sĩ</h2>
             <p className="text-gray-600 mt-2">Vui lòng đợi trong giây lát...</p>
+          </div>
+        </div>
+      </RoleBasedLayout>
+    );
+  }
+
+  // Show error if dashboard failed to load
+  if (dashboardError) {
+    return (
+      <RoleBasedLayout title="Hồ sơ bác sĩ" activePage="profile">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Lỗi tải dữ liệu</h2>
+            <p className="text-gray-600 mb-4">{dashboardError}</p>
+            <Button onClick={refetch} className="bg-teal-600 hover:bg-teal-700">
+              Thử lại
+            </Button>
           </div>
         </div>
       </RoleBasedLayout>
@@ -211,8 +240,17 @@ export default function DoctorProfilePage() {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
               <h1 className="text-2xl font-bold text-gray-900">Hồ sơ bác sĩ</h1>
+              {dashboardData && (
+                <Badge variant="outline" className="text-xs">
+                  Tải trong {loadTime}ms
+                </Badge>
+              )}
             </div>
             <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={refetch}>
+                <Activity className="h-4 w-4 mr-1" />
+                Làm mới
+              </Button>
               <Button variant="outline" size="sm">
                 <MoreHorizontal className="h-4 w-4" />
               </Button>

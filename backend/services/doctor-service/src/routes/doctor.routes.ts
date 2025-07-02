@@ -1,13 +1,22 @@
 import express from 'express';
 import { body, param, query } from 'express-validator';
 import { DoctorController } from '../controllers/doctor.controller';
+import { AppointmentStatsController } from '../controllers/appointment-stats.controller';
+import { WeeklyScheduleController } from '../controllers/weekly-schedule.controller';
+import { EnhancedReviewsController } from '../controllers/enhanced-reviews.controller';
+import { DashboardController } from '../controllers/dashboard.controller';
 import { authMiddleware, requireDoctor, authenticateToken } from '../middleware/auth.middleware';
 import logger from '@hospital/shared/dist/utils/logger';
+import { validateRequest, CommonValidationSchemas } from '@hospital/shared/dist/middleware/validation.middleware';
 
 // Force rebuild timestamp: 2025-06-23 01:15
 
 const router = express.Router();
 const doctorController = new DoctorController();
+const appointmentStatsController = new AppointmentStatsController();
+const weeklyScheduleController = new WeeklyScheduleController();
+const enhancedReviewsController = new EnhancedReviewsController();
+const dashboardController = new DashboardController();
 
 // Validation middleware
 const validateCreateDoctor = [
@@ -419,7 +428,10 @@ router.get('/department/:departmentId', validateDepartmentId, doctorController.g
  *       201:
  *         description: Doctor created successfully
  */
-router.post('/', validateCreateDoctor, doctorController.createDoctor.bind(doctorController));
+router.post('/',
+  validateRequest(CommonValidationSchemas.createDoctor),
+  doctorController.createDoctor.bind(doctorController)
+);
 
 /**
  * @swagger
@@ -487,6 +499,29 @@ router.delete('/:doctorId', validateDoctorId, doctorController.deleteDoctor.bind
  */
 router.get('/:doctorId/profile', validateDoctorId, doctorController.getDoctorProfile.bind(doctorController));
 
+/**
+ * @swagger
+ * /api/doctors/{doctorId}/profile-dashboard:
+ *   get:
+ *     summary: Get complete doctor profile dashboard with all data
+ *     tags: [Doctor Profile]
+ *     parameters:
+ *       - in: path
+ *         name: doctorId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Complete dashboard data including stats, schedule, reviews, and metrics
+ *       404:
+ *         description: Doctor not found
+ */
+router.get('/:doctorId/profile-dashboard',
+  validateDoctorId,
+  dashboardController.getDoctorProfileDashboard.bind(dashboardController)
+);
+
 // =====================================================
 // SCHEDULE MANAGEMENT ROUTES
 // =====================================================
@@ -526,7 +561,13 @@ router.get('/:doctorId/schedule', validateDoctorId, doctorController.getDoctorSc
  *         description: Doctor's weekly schedule
  */
 router.get('/:doctorId/schedule/today', validateDoctorId, doctorController.getTodaySchedule.bind(doctorController));
-router.get('/:doctorId/schedule/weekly', validateDoctorId, doctorController.getWeeklySchedule.bind(doctorController));
+
+// Enhanced weekly schedule with real-time availability
+router.get('/:doctorId/schedule/weekly',
+  validateDoctorId,
+  query('date').optional().isISO8601().withMessage('Date must be valid ISO date'),
+  weeklyScheduleController.getWeeklySchedule.bind(weeklyScheduleController)
+);
 
 /**
  * @swagger
@@ -633,7 +674,16 @@ router.get('/:doctorId/time-slots', validateDoctorId, doctorController.getAvaila
  *       200:
  *         description: Doctor's reviews
  */
-router.get('/:doctorId/reviews', validateDoctorId, doctorController.getDoctorReviews.bind(doctorController));
+// Enhanced reviews endpoint with Vietnamese support
+router.get('/:doctorId/reviews',
+  validateDoctorId,
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be positive integer'),
+  query('limit').optional().isInt({ min: 1, max: 50 }).withMessage('Limit must be between 1 and 50'),
+  query('sort').optional().isIn(['newest', 'oldest', 'rating_high', 'rating_low', 'helpful']).withMessage('Invalid sort option'),
+  query('rating_filter').optional().isInt({ min: 1, max: 5 }).withMessage('Rating filter must be between 1 and 5'),
+  query('verified_only').optional().isBoolean().withMessage('Verified only must be boolean'),
+  enhancedReviewsController.getDoctorReviews.bind(enhancedReviewsController)
+);
 
 /**
  * @swagger
@@ -772,9 +822,19 @@ router.get('/:doctorId/experiences', validateDoctorId, doctorController.getDocto
  *       404:
  *         description: Doctor not found
  */
-router.get('/:doctorId/appointment-stats', validateDoctorId, doctorController.getDoctorStats.bind(doctorController));
+// Enhanced appointment statistics endpoint
+router.get('/:doctorId/appointment-stats',
+  validateDoctorId,
+  query('period').optional().isIn(['week', 'month', 'year']).withMessage('Period must be week, month, or year'),
+  query('start_date').optional().isISO8601().withMessage('Start date must be valid ISO date'),
+  query('include_trends').optional().isBoolean().withMessage('Include trends must be boolean'),
+  appointmentStatsController.getDoctorAppointmentStats.bind(appointmentStatsController)
+);
 
-// Add the missing appointments/stats endpoint that frontend is calling (MUST be after specific routes)
-router.get('/:doctorId/appointments/stats', validateDoctorId, doctorController.getDoctorStats.bind(doctorController));
+// Legacy endpoint for backward compatibility
+router.get('/:doctorId/appointments/stats',
+  validateDoctorId,
+  appointmentStatsController.getDoctorAppointmentStats.bind(appointmentStatsController)
+);
 
 export default router;

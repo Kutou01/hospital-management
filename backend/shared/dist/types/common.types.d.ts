@@ -10,6 +10,29 @@ export interface ApiResponse<T = any> {
     message?: string;
     pagination?: PaginationInfo;
 }
+export interface StandardApiResponse<T = any> {
+    success: boolean;
+    data?: T;
+    error?: {
+        message: string;
+        code?: string;
+        details?: any;
+    };
+    pagination?: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+        hasNext: boolean;
+        hasPrev: boolean;
+    };
+    meta?: {
+        timestamp: string;
+        requestId?: string;
+        version: string;
+        service: string;
+    };
+}
 export interface PaginationInfo {
     page: number;
     limit: number;
@@ -142,6 +165,29 @@ export interface HealthCheck {
             responseTime?: number;
             error?: string;
         };
+    };
+}
+export interface StandardHealthCheck {
+    service: string;
+    status: 'healthy' | 'unhealthy' | 'degraded';
+    version: string;
+    timestamp: string;
+    uptime: number;
+    environment: string;
+    dependencies?: {
+        [key: string]: {
+            status: 'healthy' | 'unhealthy';
+            responseTime?: number;
+            error?: string;
+        };
+    };
+    features?: {
+        [key: string]: boolean | string;
+    };
+    memory?: {
+        used: number;
+        total: number;
+        percentage: number;
     };
 }
 export interface ServiceError extends Error {

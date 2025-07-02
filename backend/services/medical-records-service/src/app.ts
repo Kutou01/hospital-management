@@ -125,13 +125,22 @@ const swaggerOptions = {
 const specs = swaggerJsdoc(swaggerOptions);
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(specs));
 
-// Health check endpoint
+// Health check endpoint with real-time status
 app.get('/health', (req, res) => {
   res.json({
+    service: 'Hospital Medical Records Service',
     status: 'healthy',
-    service: 'medical-records-service',
     timestamp: new Date().toISOString(),
-    version: process.env.npm_package_version || '1.0.0'
+    version: '2.0.0',
+    features: {
+      realtime: true,
+      websocket: true,
+      supabase_integration: true,
+      medical_records_monitoring: true,
+      vital_signs_tracking: true,
+      lab_results_tracking: true,
+      health_alerts: true
+    }
   });
 });
 

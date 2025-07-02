@@ -3,8 +3,8 @@
  * Provides Prometheus metrics collection for all microservices
  */
 import { register, Counter, Histogram, Gauge } from 'prom-client';
-export declare const httpRequestsTotal: Counter<"method" | "route" | "status_code" | "service">;
-export declare const httpRequestDuration: Histogram<"method" | "route" | "status_code" | "service">;
+export declare const httpRequestsTotal: Counter<"route" | "method" | "status_code" | "service">;
+export declare const httpRequestDuration: Histogram<"route" | "method" | "status_code" | "service">;
 export declare const databaseConnectionsActive: Gauge<"service" | "database">;
 export declare const databaseQueryDuration: Histogram<"service" | "operation" | "table">;
 export declare const databaseQueriesTotal: Counter<"service" | "operation" | "table" | "status">;

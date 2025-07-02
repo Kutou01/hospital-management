@@ -18,11 +18,12 @@ import {
   Clock,
   Activity,
   Heart,
+  Briefcase,
+  Server,
   ClipboardList,
   Phone,
   MessageCircle,
   FileBarChart,
-  Server,
   Shield,
   type LucideIcon,
 } from 'lucide-react';
@@ -81,6 +82,18 @@ export const adminSidebarConfig: SidebarConfig = {
     {
       title: 'Core Management',
       items: [
+        {
+          icon: Users,
+          label: 'Users',
+          href: '/admin/users',
+          page: 'users',
+        },
+        {
+          icon: Briefcase,
+          label: 'Staff',
+          href: '/admin/staff',
+          page: 'staff',
+        },
         {
           icon: Calendar,
           label: 'Appointments',
@@ -156,6 +169,18 @@ export const adminSidebarConfig: SidebarConfig = {
     {
       title: 'System',
       items: [
+        {
+          icon: BarChart3,
+          label: 'Analytics',
+          href: '/admin/analytics',
+          page: 'analytics',
+        },
+        {
+          icon: FileText,
+          label: 'System Logs',
+          href: '/admin/system-logs',
+          page: 'system-logs',
+        },
         {
           icon: Settings,
           label: 'Settings',

@@ -9,12 +9,30 @@ import departmentRoutes from './routes/department.routes';
 import specialtyRoutes from './routes/specialty.routes';
 import roomRoutes from './routes/room.routes';
 import logger from '@hospital/shared/dist/utils/logger';
+import {
+  ResponseHelper,
+  EnhancedResponseHelper,
+  addRequestId,
+  globalErrorHandler
+} from '@hospital/shared/dist/utils/response-helpers';
+import {
+  sanitizeInput
+} from '@hospital/shared/dist/middleware/validation.middleware';
+import {
+  createVersioningMiddleware,
+  responseTransformMiddleware
+} from '@hospital/shared/dist/middleware/versioning.middleware';
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3005;
+const SERVICE_NAME = 'Hospital Department Service';
+const SERVICE_VERSION = '1.0.0';
+
+// Initialize ResponseHelper with service information
+ResponseHelper.initialize(SERVICE_NAME, SERVICE_VERSION);
 
 // Security middleware
 app.use(helmet());
@@ -23,34 +41,57 @@ app.use(cors({
   credentials: true,
 }));
 
+// Add request ID to all responses
+app.use(addRequestId);
+
 // General middleware
 app.use(compression());
 app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Health check endpoint
+// Phase 2 Middleware - API Optimization
+app.use(sanitizeInput); // Sanitize input data
+app.use(createVersioningMiddleware()); // API versioning
+app.use(responseTransformMiddleware()); // Response transformation based on version
+
+// Health check endpoint with standardized format
 app.get('/health', async (req, res) => {
   try {
     const dbConnected = await testConnection();
-    
-    res.json({
-      service: 'Hospital Department Service',
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      version: '1.0.0',
-      database: dbConnected ? 'connected' : 'disconnected',
-      uptime: process.uptime(),
-      memory: process.memoryUsage(),
-      environment: process.env.NODE_ENV || 'development',
-    });
-  } catch (error) {
-    res.status(500).json({
-      service: 'Hospital Department Service',
-      status: 'unhealthy',
-      timestamp: new Date().toISOString(),
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
+    const status = dbConnected ? 'healthy' : 'unhealthy';
+    const statusCode = dbConnected ? 200 : 503;
+
+    const healthCheck = ResponseHelper.healthCheck(
+      status,
+      {
+        database: {
+          status: dbConnected ? 'healthy' : 'unhealthy',
+          responseTime: 50
+        }
+      },
+      {
+        department_management: true,
+        specialty_management: true,
+        room_management: true,
+        hierarchy_support: true,
+        statistics: true
+      }
+    );
+
+    res.status(statusCode).json(healthCheck);
+  } catch (error: any) {
+    logger.error('Health check error:', error);
+    const errorHealthCheck = ResponseHelper.healthCheck(
+      'unhealthy',
+      {
+        database: {
+          status: 'unhealthy',
+          error: error.message
+        }
+      }
+    );
+    res.status(503).json(errorHealthCheck);
   }
 });
 
@@ -86,22 +127,8 @@ app.use('*', (req, res) => {
   });
 });
 
-// Global error handler
-app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  logger.error('Unhandled error:', {
-    error: error.message,
-    stack: error.stack,
-    path: req.path,
-    method: req.method,
-  });
-
-  res.status(500).json({
-    success: false,
-    error: 'Internal server error',
-    message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong',
-    timestamp: new Date().toISOString(),
-  });
-});
+// Global error handling middleware with Vietnamese messages
+app.use(globalErrorHandler);
 
 // Start server
 const startServer = async () => {

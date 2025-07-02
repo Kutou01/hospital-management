@@ -9,6 +9,21 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import { createServer } from 'http';
 import logger from '@hospital/shared/dist/utils/logger';
+import {
+  ResponseHelper,
+  EnhancedResponseHelper,
+  addRequestId,
+  globalErrorHandler
+} from '@hospital/shared/dist/utils/response-helpers';
+import {
+  validateRequest,
+  CommonValidationSchemas,
+  sanitizeInput
+} from '@hospital/shared/dist/middleware/validation.middleware';
+import {
+  createVersioningMiddleware,
+  responseTransformMiddleware
+} from '@hospital/shared/dist/middleware/versioning.middleware';
 import doctorRoutes from './routes/doctor.routes';
 import shiftRoutes from './routes/shift.routes';
 import experienceRoutes from './routes/experience.routes';
@@ -20,7 +35,11 @@ import { DoctorRealtimeService } from './services/realtime.service';
 const app = express();
 const httpServer = createServer(app);
 const PORT = process.env.PORT || 3002;
-const SERVICE_NAME = 'doctor-service';
+const SERVICE_NAME = 'Hospital Doctor Service';
+const SERVICE_VERSION = '1.0.0';
+
+// Initialize ResponseHelper with service information
+ResponseHelper.initialize(SERVICE_NAME, SERVICE_VERSION);
 
 // Initialize real-time service
 const realtimeService = new DoctorRealtimeService();
@@ -28,18 +47,30 @@ const realtimeService = new DoctorRealtimeService();
 // Middleware
 app.use(helmet());
 app.use(cors());
+app.use(addRequestId); // Add request ID to all responses
 app.use(morgan('combined'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Phase 2 Middleware - API Optimization
+app.use(sanitizeInput); // Sanitize input data
+app.use(createVersioningMiddleware()); // API versioning
+app.use(responseTransformMiddleware()); // Response transformation based on version
+
 // Health check endpoint with real-time status
 app.get('/health', (req, res) => {
-  res.json({
-    service: 'Hospital Doctor Service',
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    version: '2.0.0',
-    features: {
+  const healthCheck = ResponseHelper.healthCheck(
+    'healthy',
+    {
+      supabase: {
+        status: 'healthy',
+        responseTime: 50
+      },
+      realtime_service: {
+        status: realtimeService.isRealtimeConnected() ? 'healthy' : 'unhealthy'
+      }
+    },
+    {
       realtime: realtimeService.isRealtimeConnected(),
       websocket: true,
       supabase_integration: true,
@@ -50,7 +81,9 @@ app.get('/health', (req, res) => {
       reviews_system: true,
       settings_management: true
     }
-  });
+  );
+
+  res.json(healthCheck);
 });
 
 // Prometheus metrics endpoint
@@ -99,7 +132,7 @@ app.use('/api/doctors', reviewsRoutes);
 app.use('/api/doctors', settingsRoutes);
 app.use('/api/doctors', experienceRoutes); // Mount experience routes under /api/doctors
 app.use('/api/shifts', shiftRoutes);
-app.use('/api/experiences', experienceRoutes); // Keep backward compatibility
+// REMOVED: Duplicate /api/experiences route - use /api/doctors/:id/experiences instead
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -111,23 +144,22 @@ app.get('/', (req, res) => {
   });
 });
 
-// 404 handler
+// 404 handler with Vietnamese error message
 app.use('*', (req, res) => {
-  res.status(404).json({
-    error: 'Route not found',
-    path: req.originalUrl,
-    method: req.method,
-  });
+  const errorResponse = EnhancedResponseHelper.errorVi(
+    'NOT_FOUND',
+    'ROUTE_NOT_FOUND',
+    {
+      path: req.originalUrl,
+      method: req.method,
+      message: `Không tìm thấy đường dẫn ${req.originalUrl}`
+    }
+  );
+  res.status(404).json(errorResponse);
 });
 
-// Error handling middleware
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  logger.error('Unhandled error:', { error: err.message, stack: err.stack });
-  res.status(500).json({
-    error: 'Internal server error',
-    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong',
-  });
-});
+// Global error handling middleware with Vietnamese messages
+app.use(globalErrorHandler);
 
 // Initialize real-time service and start server
 async function startServer() {

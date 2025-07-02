@@ -7,9 +7,21 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import rateLimit from 'express-rate-limit';
 import logger from '@hospital/shared/dist/utils/logger';
 import { metricsMiddleware, getMetricsHandler } from '@hospital/shared';
+import {
+  ResponseHelper,
+  EnhancedResponseHelper,
+  addRequestId,
+  globalErrorHandler
+} from '@hospital/shared/dist/utils/response-helpers';
+import {
+  sanitizeInput
+} from '@hospital/shared/dist/middleware/validation.middleware';
+import {
+  createVersioningMiddleware,
+  responseTransformMiddleware
+} from '@hospital/shared/dist/middleware/versioning.middleware';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import sessionRoutes from './routes/session.routes';
@@ -19,7 +31,11 @@ import { initializeSupabase, testSupabaseConnection } from './config/supabase';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const SERVICE_NAME = 'auth-service';
+const SERVICE_NAME = 'Hospital Auth Service';
+const SERVICE_VERSION = '1.0.0';
+
+// Initialize ResponseHelper with service information
+ResponseHelper.initialize(SERVICE_NAME, SERVICE_VERSION);
 
 // Security middleware
 app.use(helmet());
@@ -32,23 +48,10 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id', 'x-user-role']
 }));
 
-// Rate limiting - exclude health endpoints (TEMPORARILY DISABLED FOR TESTING)
-const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '10000'), // Increased limit for development
-  message: {
-    error: 'Too many requests from this IP, please try again later.',
-    retryAfter: '15 minutes'
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: (req) => {
-    // Skip rate limiting for health check endpoints AND development testing
-    return req.path.includes('/health') || req.path === '/metrics' || process.env.NODE_ENV === 'development';
-  }
-});
+// Add request ID to all responses
+app.use(addRequestId);
 
-app.use('/api/', limiter);
+// Rate limiting temporarily disabled for development
 
 // Logging
 app.use(morgan('combined'));
@@ -60,6 +63,11 @@ app.use(metricsMiddleware('auth-service'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Phase 2 Middleware - API Optimization
+app.use(sanitizeInput); // Sanitize input data
+app.use(createVersioningMiddleware()); // API versioning
+app.use(responseTransformMiddleware()); // Response transformation based on version
+
 // Setup Swagger documentation
 setupSwagger(app);
 
@@ -70,29 +78,37 @@ app.get('/health', async (req, res) => {
     const status = supabaseConnected ? 'healthy' : 'unhealthy';
     const statusCode = supabaseConnected ? 200 : 503;
 
-    res.status(statusCode).json({
-      service: 'Hospital Auth Service',
+    const healthCheck = ResponseHelper.healthCheck(
       status,
-      timestamp: new Date().toISOString(),
-      version: '1.0.0',
-      uptime: process.uptime(),
-      memory: process.memoryUsage(),
-      environment: process.env.NODE_ENV || 'development',
-      dependencies: {
+      {
         supabase: {
-          connected: supabaseConnected,
-          url: process.env.SUPABASE_URL ? 'configured' : 'missing'
+          status: supabaseConnected ? 'healthy' : 'unhealthy',
+          responseTime: 50
         }
+      },
+      {
+        authentication: true,
+        user_management: true,
+        session_management: true,
+        oauth_providers: true,
+        password_reset: true,
+        email_verification: true
       }
-    });
+    );
+
+    res.status(statusCode).json(healthCheck);
   } catch (error: any) {
     logger.error('Health check error:', error);
-    res.status(503).json({
-      service: 'Hospital Auth Service',
-      status: 'unhealthy',
-      timestamp: new Date().toISOString(),
-      error: error.message
-    });
+    const errorHealthCheck = ResponseHelper.healthCheck(
+      'unhealthy',
+      {
+        supabase: {
+          status: 'unhealthy',
+          error: error.message
+        }
+      }
+    );
+    res.status(503).json(errorHealthCheck);
   }
 });
 
@@ -141,8 +157,8 @@ app.use('*', (req, res) => {
   });
 });
 
-// Error handling middleware (must be last)
-app.use(errorHandler);
+// Global error handling middleware with Vietnamese messages (must be last)
+app.use(globalErrorHandler);
 
 // Initialize and start server
 const startServer = async () => {

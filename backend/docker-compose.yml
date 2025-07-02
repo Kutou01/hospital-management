@@ -1,4 +1,52 @@
 services:
+  # GraphQL Gateway - Unified GraphQL API over REST microservices
+  graphql-gateway:
+    build:
+      context: .
+      dockerfile: ./services/graphql-gateway/Dockerfile
+    ports:
+      - "3200:3200"
+    environment:
+      - NODE_ENV=development
+      - PORT=3200
+      - API_GATEWAY_URL=http://api-gateway:3100
+      - AUTH_SERVICE_URL=http://api-gateway:3100/api/auth
+      - DOCTOR_SERVICE_URL=http://api-gateway:3100/api/doctors
+      - PATIENT_SERVICE_URL=http://api-gateway:3100/api/patients
+      - APPOINTMENT_SERVICE_URL=http://api-gateway:3100/api/appointments
+      - DEPARTMENT_SERVICE_URL=http://api-gateway:3100/api/departments
+      - MEDICAL_RECORDS_SERVICE_URL=http://api-gateway:3100/api/medical-records
+      - PRESCRIPTION_SERVICE_URL=http://api-gateway:3100/api/prescriptions
+      - BILLING_SERVICE_URL=http://api-gateway:3100/api/billing
+      - PAYMENT_SERVICE_URL=http://api-gateway:3100/api/payments
+      - NOTIFICATION_SERVICE_URL=http://api-gateway:3100/api/notifications
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - CORS_ORIGIN=http://localhost:3000,http://localhost:3100
+      - DEFAULT_LANGUAGE=vi
+      - TIMEZONE=Asia/Ho_Chi_Minh
+    depends_on:
+      - api-gateway
+      - redis
+      - rabbitmq
+    networks:
+      - hospital-network
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    profiles:
+      - core
+      - full
+
   # API Gateway
   api-gateway:
     build:
@@ -19,11 +67,13 @@ services:
       - BILLING_SERVICE_URL=http://billing-service:3007
       - PAYMENT_SERVICE_URL=http://payment-service:3008
       - NOTIFICATION_SERVICE_URL=http://notification-service:3011
+      - GRAPHQL_GATEWAY_URL=http://graphql-gateway:3200
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
     depends_on:
+      - graphql-gateway
       - redis
       - rabbitmq
     networks:

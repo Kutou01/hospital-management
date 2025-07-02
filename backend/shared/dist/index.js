@@ -24,6 +24,13 @@ __exportStar(require("./types/user.types"), exports);
 // Utils
 var logger_1 = require("./utils/logger");
 Object.defineProperty(exports, "logger", { enumerable: true, get: function () { return __importDefault(logger_1).default; } });
+__exportStar(require("./utils/response-helpers"), exports);
+// Middleware
+__exportStar(require("./middleware/validation.middleware"), exports);
+__exportStar(require("./middleware/versioning.middleware"), exports);
+// OpenAPI Configuration
+__exportStar(require("./config/openapi.config"), exports);
+__exportStar(require("./schemas/doctor.schemas"), exports);
 // Events
 var event_bus_1 = require("./events/event-bus");
 Object.defineProperty(exports, "EventBus", { enumerable: true, get: function () { return event_bus_1.EventBus; } });

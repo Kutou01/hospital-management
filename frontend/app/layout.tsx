@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { ToastProvider } from "@/components/ui/toast-provider";
 import { AuthProvider } from "@/lib/auth/auth-wrapper";
 import { EnumProvider } from "@/lib/contexts/EnumContext";
+import { ApolloProviderWrapper } from "@/lib/apollo/provider";
 
 // Khởi tạo font Inter với subset Latin
 const inter = Inter({ subsets: ["latin"] });
@@ -39,16 +40,19 @@ export default function RootLayout({
       <body className={inter.className} suppressHydrationWarning={true}>
         {/* ThemeProvider để quản lý chủ đề sáng/tối của ứng dụng */}
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          {/* Unified AuthProvider để cung cấp context xác thực thống nhất */}
-          <AuthProvider>
-            {/* EnumProvider để cung cấp context enum động cho toàn bộ ứng dụng */}
-            <EnumProvider>
-              {/* ToastProvider để hiển thị các thông báo toast */}
-              <ToastProvider>
-                {children} {/* Đây là nơi nội dung của các trang và layout con sẽ được render */}
-              </ToastProvider>
-            </EnumProvider>
-          </AuthProvider>
+          {/* Apollo Provider để cung cấp GraphQL client cho toàn bộ ứng dụng */}
+          <ApolloProviderWrapper>
+            {/* Unified AuthProvider để cung cấp context xác thực thống nhất */}
+            <AuthProvider>
+              {/* EnumProvider để cung cấp context enum động cho toàn bộ ứng dụng */}
+              <EnumProvider>
+                {/* ToastProvider để hiển thị các thông báo toast */}
+                <ToastProvider>
+                  {children} {/* Đây là nơi nội dung của các trang và layout con sẽ được render */}
+                </ToastProvider>
+              </EnumProvider>
+            </AuthProvider>
+          </ApolloProviderWrapper>
         </ThemeProvider>
       </body>
     </html>

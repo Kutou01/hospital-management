@@ -4,11 +4,23 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import { createProxyMiddleware } from 'http-proxy-middleware';
-import swaggerJsdoc from 'swagger-jsdoc';
-import swaggerUi from 'swagger-ui-express';
+import { setupSwagger, validateOpenAPISpec } from './config/swagger.config';
 
 // import { stream } from '@hospital/shared/src/utils/logger';
 import { metricsMiddleware, getMetricsHandler } from '@hospital/shared';
+import {
+  ResponseHelper,
+  EnhancedResponseHelper,
+  addRequestId,
+  globalErrorHandler
+} from '@hospital/shared/dist/utils/response-helpers';
+import {
+  sanitizeInput
+} from '@hospital/shared/dist/middleware/validation.middleware';
+import {
+  createVersioningMiddleware,
+  responseTransformMiddleware
+} from '@hospital/shared/dist/middleware/versioning.middleware';
 import { authMiddleware } from './middleware/auth.middleware';
 import { errorHandler } from './middleware/error.middleware';
 import { ServiceRegistry } from './services/service-registry';
@@ -19,15 +31,18 @@ export function createApp(): express.Application {
   const serviceRegistry = ServiceRegistry.getInstance();
   const DOCTOR_ONLY_MODE = process.env.DOCTOR_ONLY_MODE === 'true';
 
+  // Initialize ResponseHelper
+  ResponseHelper.initialize('Hospital Management API Gateway', '1.0.0');
+
   // Helper function for disabled services
   const createDisabledServiceHandler = (serviceName: string) => {
     return (req: express.Request, res: express.Response) => {
-      res.status(503).json({
-        error: 'Service temporarily unavailable',
-        message: `${serviceName} service is disabled in doctor-only mode`,
+      const errorResponse = ResponseHelper.serviceUnavailable(serviceName);
+      errorResponse.error!.details = {
         mode: 'doctor-only-development',
         availableServices: ['doctors']
-      });
+      };
+      res.status(503).json(errorResponse);
     };
   };
 
@@ -38,12 +53,15 @@ export function createApp(): express.Application {
     credentials: true,
   }));
 
+  // Add request ID to all responses
+  app.use(addRequestId);
+
   // Rate limiting - exclude health endpoints
   const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 1000, // limit each IP to 1000 requests per windowMs
     message: 'Too many requests from this IP, please try again later.',
-    skip: (req) => {
+    skip: (req: express.Request) => {
       // Skip rate limiting for health check endpoints
       return req.path.includes('/health') || req.path === '/metrics';
     }
@@ -54,42 +72,22 @@ export function createApp(): express.Application {
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true }));
 
+  // Phase 2 Middleware - API Optimization
+  app.use(sanitizeInput); // Sanitize input data
+  app.use(createVersioningMiddleware()); // API versioning
+  app.use(responseTransformMiddleware()); // Response transformation based on version
+
   // Logging middleware
   app.use(morgan('combined'));
 
   // Metrics middleware
   app.use(metricsMiddleware('api-gateway'));
 
-  // Swagger documentation
-  const swaggerOptions = {
-    definition: {
-      openapi: '3.0.0',
-      info: {
-        title: 'Hospital Management API Gateway',
-        version: '1.0.0',
-        description: 'API Gateway for Hospital Management Microservices',
-      },
-      servers: [
-        {
-          url: process.env.API_URL || 'http://localhost:3100',
-          description: 'API Gateway',
-        },
-      ],
-      components: {
-        securitySchemes: {
-          bearerAuth: {
-            type: 'http',
-            scheme: 'bearer',
-            bearerFormat: 'JWT',
-          },
-        },
-      },
-    },
-    apis: ['./src/routes/*.ts'],
-  };
+  // Setup comprehensive OpenAPI 3.0 documentation
+  setupSwagger(app);
 
-  const specs = swaggerJsdoc(swaggerOptions);
-  app.use('/docs', swaggerUi.serve, swaggerUi.setup(specs));
+  // Validate OpenAPI specification
+  validateOpenAPISpec();
 
   // Health check endpoint
   app.use('/health', healthRoutes);
@@ -157,6 +155,59 @@ export function createApp(): express.Application {
 
   // Metrics endpoint for Prometheus
   app.get('/metrics', getMetricsHandler);
+
+  // GraphQL Gateway Routes - Unified GraphQL API (Optional authentication)
+  app.use('/graphql', createProxyMiddleware({
+    target: process.env.GRAPHQL_GATEWAY_URL || 'http://graphql-gateway:3200',
+    changeOrigin: true,
+    pathRewrite: {
+      '^/graphql': '/graphql',
+    },
+    timeout: 30000,
+    proxyTimeout: 30000,
+    ws: true, // Enable WebSocket proxying for subscriptions
+    onError: (err: any, req: any, res: any) => {
+      console.error('🚨 GraphQL Gateway Proxy Error:', err);
+      if (!res.headersSent) {
+        res.status(503).json({
+          error: 'GraphQL Gateway unavailable',
+          details: err.message,
+          timestamp: new Date().toISOString()
+        });
+      }
+    },
+    onProxyReq: (proxyReq: any, req: any, res: any) => {
+      console.log('🔄 Proxying GraphQL request:', req.method, req.originalUrl, '→', proxyReq.path);
+
+      // Forward authentication headers if present
+      if (req.headers.authorization) {
+        proxyReq.setHeader('Authorization', req.headers.authorization);
+      }
+
+      // Forward user info if available (from auth middleware)
+      if (req.user) {
+        proxyReq.setHeader('X-User-ID', req.user.userId);
+        proxyReq.setHeader('X-User-Role', req.user.role);
+        proxyReq.setHeader('X-User-Email', req.user.email);
+      }
+
+      // Forward request ID for tracing
+      if (req.headers['x-request-id']) {
+        proxyReq.setHeader('X-Request-ID', req.headers['x-request-id']);
+      }
+
+      // Fix content-length for POST requests (GraphQL mutations)
+      if (req.body && req.method === 'POST') {
+        const bodyData = JSON.stringify(req.body);
+        proxyReq.setHeader('Content-Type', 'application/json');
+        proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+        proxyReq.write(bodyData);
+      }
+    },
+    onProxyRes: (proxyRes: any, req: any, res: any) => {
+      console.log('GraphQL Gateway response:', proxyRes.statusCode, req.method, req.url);
+    }
+  }));
 
   // Auth Service Routes (Public - no auth middleware)
   const authServiceUrl = process.env.AUTH_SERVICE_URL || 'http://auth-service:3001';
@@ -254,39 +305,7 @@ export function createApp(): express.Application {
     }
   }));
 
-  // Doctor Experience Routes (also route to Doctor Service)
-  app.use('/api/experiences', authMiddleware, createProxyMiddleware({
-    target: process.env.DOCTOR_SERVICE_URL || 'http://doctor-service:3002',
-    changeOrigin: true,
-    pathRewrite: {
-      '^/api/experiences': '/api/experiences',
-    },
-    timeout: 30000,
-    proxyTimeout: 30000,
-    onError: (err: any, req: any, res: any) => {
-      console.error('🚨 Doctor Experience Service Proxy Error:', err);
-      if (!res.headersSent) {
-        res.status(503).json({
-          error: 'Doctor experience service unavailable',
-          details: err.message,
-          timestamp: new Date().toISOString()
-        });
-      }
-    },
-    onProxyReq: (proxyReq: any, req: any, res: any) => {
-      console.log('🔄 Proxying experience request:', req.method, req.originalUrl, '→', proxyReq.path);
-      // Fix content-length for POST/PUT/PATCH requests
-      if (req.body && (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH')) {
-        const bodyData = JSON.stringify(req.body);
-        proxyReq.setHeader('Content-Type', 'application/json');
-        proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
-        proxyReq.write(bodyData);
-      }
-    },
-    onProxyRes: (proxyRes: any, req: any, res: any) => {
-      console.log('✅ Experience service response:', proxyRes.statusCode, req.method, req.originalUrl);
-    }
-  }));
+  // REMOVED: Duplicate /api/experiences route - use /api/doctors/:id/experiences instead
 
   // Patient Service Routes - ENABLED
   app.use('/api/patients', (req, res, next) => {
@@ -601,6 +620,12 @@ export function createApp(): express.Application {
     res.json({
       mode: DOCTOR_ONLY_MODE ? 'doctor-only-development' : 'full-system',
       availableServices: {
+        'graphql-gateway': {
+          url: process.env.GRAPHQL_GATEWAY_URL || 'http://graphql-gateway:3200',
+          status: 'active',
+          type: 'graphql',
+          description: 'Unified GraphQL API over REST microservices'
+        },
         auth: {
           url: process.env.AUTH_SERVICE_URL || 'http://auth-service:3001',
           status: 'active'
@@ -665,12 +690,12 @@ export function createApp(): express.Application {
       path: req.originalUrl,
       method: req.method,
       mode: DOCTOR_ONLY_MODE ? 'doctor-only-development' : 'full-system',
-      availableRoutes: ['/api/auth', '/api/doctors', '/api/patients', '/api/appointments', '/api/departments', '/api/specialties', '/api/rooms', '/api/medical-records', '/api/prescriptions', '/api/billing', '/api/notifications', '/health', '/docs', '/services', '/internal/appointments', '/internal/doctors', '/internal/patients', '/internal/departments']
+      availableRoutes: ['/graphql', '/api/auth', '/api/doctors', '/api/patients', '/api/appointments', '/api/departments', '/api/specialties', '/api/rooms', '/api/medical-records', '/api/prescriptions', '/api/billing', '/api/notifications', '/health', '/docs', '/services', '/internal/appointments', '/internal/doctors', '/internal/patients', '/internal/departments']
     });
   });
 
-  // Error handling middleware (must be last)
-  app.use(errorHandler);
+  // Global error handling middleware with Vietnamese messages (must be last)
+  app.use(globalErrorHandler);
 
   return app;
 }

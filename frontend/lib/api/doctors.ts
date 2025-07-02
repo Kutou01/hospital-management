@@ -59,10 +59,25 @@ export const doctorsApi = {
     return apiClient.get<any>(`/doctors/${id}/stats`);
   },
 
-  // Get doctor appointment statistics
-  getAppointmentStats: async (id: string, period?: string): Promise<ApiResponse<any>> => {
-    const params = period ? { period } : undefined;
-    return apiClient.get<any>(`/doctors/${id}/appointments/stats`, params);
+  // Enhanced appointment statistics with trends
+  getAppointmentStats: async (
+    id: string,
+    period: string = 'week',
+    options?: {
+      start_date?: string;
+      include_trends?: boolean;
+    }
+  ): Promise<ApiResponse<any>> => {
+    const params = {
+      period,
+      ...options
+    };
+    return apiClient.get<any>(`/doctors/${id}/appointment-stats`, params);
+  },
+
+  // Get unified dashboard data
+  getProfileDashboard: async (id: string): Promise<ApiResponse<any>> => {
+    return apiClient.get<any>(`/doctors/${id}/profile-dashboard`);
   },
 
   // Get today's schedule
@@ -70,9 +85,23 @@ export const doctorsApi = {
     return apiClient.get<any[]>(`/doctors/${id}/schedule/today`);
   },
 
-  // Get doctor reviews
-  getReviews: async (id: string, page: number = 1, limit: number = 10): Promise<ApiResponse<any[]>> => {
-    return apiClient.get<any[]>(`/doctors/${id}/reviews`, { page, limit });
+  // Enhanced doctor reviews with Vietnamese support
+  getReviews: async (
+    id: string,
+    options?: {
+      page?: number;
+      limit?: number;
+      sort?: 'newest' | 'oldest' | 'rating_high' | 'rating_low' | 'helpful';
+      rating_filter?: number;
+      verified_only?: boolean;
+    }
+  ): Promise<ApiResponse<any>> => {
+    const params = {
+      page: 1,
+      limit: 10,
+      ...options
+    };
+    return apiClient.get<any>(`/doctors/${id}/reviews`, params);
   },
 
   // Get work experiences - Use experiences endpoint from Doctor Service
@@ -113,9 +142,10 @@ export const doctorsApi = {
   // SCHEDULE MANAGEMENT API
   // =====================================================
 
-  // Get weekly schedule
-  getWeeklySchedule: async (id: string): Promise<ApiResponse<any[]>> => {
-    return apiClient.get<any[]>(`/doctors/${id}/schedule/weekly`);
+  // Enhanced weekly schedule with real-time availability
+  getWeeklySchedule: async (id: string, date?: string): Promise<ApiResponse<any>> => {
+    const params = date ? { date } : undefined;
+    return apiClient.get<any>(`/doctors/${id}/schedule/weekly`, params);
   },
 
   // Update schedule

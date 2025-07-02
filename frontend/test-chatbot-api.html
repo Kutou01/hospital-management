@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Chatbot API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .section h3 {
+            color: #2563eb;
+            margin-top: 0;
+        }
+        .result {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #1d4ed8; }
+        input, select {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 Chatbot API Test Dashboard</h1>
+        
+        <div class="section">
+            <h3>🏥 Test Specialties API</h3>
+            <button onclick="testSpecialties()">Get Specialties</button>
+            <div id="specialties-result" class="result"></div>
+        </div>
+
+        <div class="section">
+            <h3>👨‍⚕️ Test Doctors API</h3>
+            <input type="text" id="specialty-id" placeholder="Specialty ID (optional)" />
+            <button onclick="testDoctors()">Get Doctors</button>
+            <div id="doctors-result" class="result"></div>
+        </div>
+
+        <div class="section">
+            <h3>⏰ Test Time Slots API</h3>
+            <input type="text" id="doctor-id" placeholder="Doctor ID" value="DOC001" />
+            <input type="date" id="slot-date" />
+            <button onclick="testTimeSlots()">Get Time Slots</button>
+            <div id="slots-result" class="result"></div>
+        </div>
+
+        <div class="section">
+            <h3>📝 Test Session Management</h3>
+            <button onclick="testCreateSession()">Create Session</button>
+            <button onclick="testUpdateSession()">Update Session</button>
+            <div id="session-result" class="result"></div>
+        </div>
+
+        <div class="section">
+            <h3>🎯 Test Complete Booking Flow</h3>
+            <button onclick="testCompleteFlow()">Test Full Flow</button>
+            <div id="flow-result" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentSession = null;
+
+        // Set default date to tomorrow
+        document.getElementById('slot-date').value = new Date(Date.now() + 24*60*60*1000).toISOString().split('T')[0];
+
+        async function testSpecialties() {
+            const resultDiv = document.getElementById('specialties-result');
+            resultDiv.className = 'result info';
+            resultDiv.textContent = 'Testing specialties API...';
+
+            try {
+                const response = await fetch('/api/chatbot?endpoint=specialties');
+                const data = await response.json();
+
+                resultDiv.className = 'result success';
+                resultDiv.textContent = `✅ Success!\n\n${JSON.stringify(data, null, 2)}`;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ Error: ${error.message}`;
+            }
+        }
+
+        async function testDoctors() {
+            const resultDiv = document.getElementById('doctors-result');
+            const specialtyId = document.getElementById('specialty-id').value;
+            
+            resultDiv.className = 'result info';
+            resultDiv.textContent = 'Testing doctors API...';
+
+            try {
+                const url = specialtyId 
+                    ? `/api/chatbot?endpoint=doctors&specialty_id=${specialtyId}`
+                    : '/api/chatbot?endpoint=doctors';
+                
+                const response = await fetch(url);
+                const data = await response.json();
+
+                resultDiv.className = 'result success';
+                resultDiv.textContent = `✅ Success!\n\n${JSON.stringify(data, null, 2)}`;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ Error: ${error.message}`;
+            }
+        }
+
+        async function testTimeSlots() {
+            const resultDiv = document.getElementById('slots-result');
+            const doctorId = document.getElementById('doctor-id').value;
+            const date = document.getElementById('slot-date').value;
+            
+            if (!doctorId || !date) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '❌ Please provide both Doctor ID and Date';
+                return;
+            }
+
+            resultDiv.className = 'result info';
+            resultDiv.textContent = 'Testing time slots API...';
+
+            try {
+                const response = await fetch(`/api/chatbot?endpoint=slots&doctor_id=${doctorId}&date=${date}`);
+                const data = await response.json();
+
+                resultDiv.className = 'result success';
+                resultDiv.textContent = `✅ Success!\n\n${JSON.stringify(data, null, 2)}`;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ Error: ${error.message}`;
+            }
+        }
+
+        async function testCreateSession() {
+            const resultDiv = document.getElementById('session-result');
+            resultDiv.className = 'result info';
+            resultDiv.textContent = 'Creating session...';
+
+            try {
+                const response = await fetch('/api/chatbot?endpoint=session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ patient_id: 'TEST-PATIENT' })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    currentSession = data.data;
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `✅ Session Created!\n\nSession ID: ${currentSession.session_id}\n\n${JSON.stringify(data, null, 2)}`;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ Failed: ${data.error}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ Error: ${error.message}`;
+            }
+        }
+
+        async function testUpdateSession() {
+            const resultDiv = document.getElementById('session-result');
+            
+            if (!currentSession) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '❌ No session found. Create a session first.';
+                return;
+            }
+
+            resultDiv.className = 'result info';
+            resultDiv.textContent = 'Updating session...';
+
+            try {
+                const response = await fetch(`/api/chatbot?endpoint=update-session&session_id=${currentSession.session_id}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        current_step: 'test_update',
+                        patient_name: 'Test Patient',
+                        symptoms: 'Test symptoms'
+                    })
+                });
+                const data = await response.json();
+
+                resultDiv.className = 'result success';
+                resultDiv.textContent = `✅ Session Updated!\n\n${JSON.stringify(data, null, 2)}`;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ Error: ${error.message}`;
+            }
+        }
+
+        async function testCompleteFlow() {
+            const resultDiv = document.getElementById('flow-result');
+            resultDiv.className = 'result info';
+            resultDiv.textContent = 'Testing complete booking flow...\n\n';
+
+            try {
+                // Step 1: Create session
+                resultDiv.textContent += '1. Creating session...\n';
+                const sessionResponse = await fetch('/api/chatbot?endpoint=session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ patient_id: 'FLOW-TEST' })
+                });
+                const sessionData = await sessionResponse.json();
+                
+                if (!sessionData.success) throw new Error('Session creation failed');
+                resultDiv.textContent += `✅ Session created: ${sessionData.data.session_id}\n\n`;
+
+                // Step 2: Get specialties
+                resultDiv.textContent += '2. Getting specialties...\n';
+                const specialtiesResponse = await fetch('/api/chatbot?endpoint=specialties');
+                const specialtiesData = await specialtiesResponse.json();
+                
+                if (!specialtiesData.success) throw new Error('Specialties fetch failed');
+                resultDiv.textContent += `✅ Found ${specialtiesData.data.length} specialties\n\n`;
+
+                // Step 3: Get doctors
+                resultDiv.textContent += '3. Getting doctors...\n';
+                const doctorsResponse = await fetch('/api/chatbot?endpoint=doctors');
+                const doctorsData = await doctorsResponse.json();
+                
+                if (!doctorsData.success) throw new Error('Doctors fetch failed');
+                resultDiv.textContent += `✅ Found ${doctorsData.data.length} doctors\n\n`;
+
+                // Step 4: Get time slots
+                resultDiv.textContent += '4. Getting time slots...\n';
+                const tomorrow = new Date(Date.now() + 24*60*60*1000).toISOString().split('T')[0];
+                const slotsResponse = await fetch(`/api/chatbot?endpoint=slots&doctor_id=DOC001&date=${tomorrow}`);
+                const slotsData = await slotsResponse.json();
+                
+                resultDiv.textContent += `✅ Time slots: ${slotsData.success ? 'Available' : 'Error'}\n\n`;
+
+                resultDiv.className = 'result success';
+                resultDiv.textContent += '🎉 Complete flow test successful!';
+
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent += `\n❌ Flow test failed: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

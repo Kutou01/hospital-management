@@ -320,6 +320,32 @@ export function createApp(): express.Application {
     },
   }));
 
+  // Chatbot Booking Service Routes - ENABLED (Public access for AI booking)
+  app.use('/api/chatbot-booking', createProxyMiddleware({
+    target: process.env.CHATBOT_BOOKING_SERVICE_URL || 'http://chatbot-booking-service:3015',
+    changeOrigin: true,
+    pathRewrite: {
+      '^/api/chatbot-booking': '/api',
+    },
+    onError: (err: any, req: any, res: any) => {
+      console.error('Chatbot Booking Service Proxy Error:', err);
+      res.status(503).json({ error: 'Chatbot booking service unavailable' });
+    },
+  }));
+
+  // Chatbot Consultation Service Routes - ENABLED (Public access for AI consultation)
+  app.use('/api/chatbot', createProxyMiddleware({
+    target: process.env.CHATBOT_SERVICE_URL || 'http://chatbot-service:3018',
+    changeOrigin: true,
+    pathRewrite: {
+      '^/api/chatbot': '/api/health',
+    },
+    onError: (err: any, req: any, res: any) => {
+      console.error('Chatbot Service Proxy Error:', err);
+      res.status(503).json({ error: 'Chatbot service unavailable' });
+    },
+  }));
+
   // Root endpoint
   app.get('/', (req, res) => {
     res.json({
@@ -383,6 +409,14 @@ export function createApp(): express.Application {
         notifications: {
           url: process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:3011',
           status: 'active'
+        },
+        'chatbot-booking': {
+          url: process.env.CHATBOT_BOOKING_SERVICE_URL || 'http://chatbot-booking-service:3015',
+          status: 'active'
+        },
+        'chatbot': {
+          url: process.env.CHATBOT_SERVICE_URL || 'http://chatbot-service:3018',
+          status: 'active'
         }
       },
       disabledServices: [],
@@ -396,7 +430,7 @@ export function createApp(): express.Application {
       path: req.originalUrl,
       method: req.method,
       mode: DOCTOR_ONLY_MODE ? 'doctor-only-development' : 'full-system',
-      availableRoutes: ['/api/auth', '/api/doctors', '/api/patients', '/api/appointments', '/api/departments', '/api/specialties', '/api/rooms', '/api/medical-records', '/api/prescriptions', '/api/billing', '/api/notifications', '/health', '/docs', '/services']
+      availableRoutes: ['/api/auth', '/api/doctors', '/api/patients', '/api/appointments', '/api/departments', '/api/specialties', '/api/rooms', '/api/medical-records', '/api/prescriptions', '/api/billing', '/api/notifications', '/api/chatbot-booking', '/api/chatbot', '/health', '/docs', '/services']
     });
   });
 

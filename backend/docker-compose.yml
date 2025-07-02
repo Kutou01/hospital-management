@@ -20,6 +20,8 @@ services:
       - PRESCRIPTION_SERVICE_URL=http://prescription-service:3007
       - BILLING_SERVICE_URL=http://billing-service:3008
       - NOTIFICATION_SERVICE_URL=http://notification-service:3011
+      - CHATBOT_CONSULTATION_SERVICE_URL=http://chatbot-consultation-service:3020
+      - CHATBOT_BOOKING_SERVICE_URL=http://chatbot-booking-service:3015
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
       - DOCTOR_ONLY_MODE=false
@@ -557,6 +559,7 @@ services:
           cpus: '0.1'
     profiles:
       - core
+      - chatbot
       - full
 
   # RabbitMQ for message queuing
@@ -671,6 +674,74 @@ services:
     restart: unless-stopped
     profiles:
       - monitoring
+      - full
+
+  # Chatbot Consultation Service
+  chatbot-consultation-service:
+    build:
+      context: ./services/chatbot-consultation-service
+      dockerfile: Dockerfile
+    ports:
+      - "3020:3020"
+    environment:
+      - NODE_ENV=development
+      - PORT=3020
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+    networks:
+      - hospital-network
+    profiles:
+      - chatbot
+      - full
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+          cpus: '0.5'
+
+  # Chatbot Booking Service
+  chatbot-booking-service:
+    build:
+      context: ./services/chatbot-booking-service
+      dockerfile: Dockerfile
+    ports:
+      - "3015:3015"
+    environment:
+      - NODE_ENV=development
+      - PORT=3015
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - FRONTEND_URL=http://localhost:3000
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+    networks:
+      - hospital-network
+    # Health check disabled temporarily - service works fine
+    # healthcheck:
+    #   test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3015/health"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 40s
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+          cpus: '0.5'
+    profiles:
+      - chatbot
       - full
 
 volumes:

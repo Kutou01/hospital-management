@@ -52,14 +52,22 @@ const apiClient = {
       const queryString = params ? new URLSearchParams(params).toString() : '';
       const fullUrl = `/api${url}${queryString ? `?${queryString}` : ''}`;
 
+      console.log('Making API call to:', fullUrl);
       const response = await fetch(fullUrl);
-      const data = await response.json();
+      const result = await response.json();
+
+      console.log('API response:', result);
 
       if (!response.ok) {
-        throw new Error(data.message || 'API Error');
+        throw new Error(result.message || 'API Error');
       }
 
-      return { success: true, data };
+      // Handle our API format: { success: true, data: [...] }
+      if (result.success && result.data) {
+        return { success: true, data: result.data };
+      } else {
+        return { success: true, data: result };
+      }
     } catch (error: any) {
       console.error('API Error:', error);
       return { success: false, error: error.message };

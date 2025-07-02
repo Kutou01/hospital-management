@@ -9,7 +9,7 @@ import PatientLayout from '@/components/layout/PatientLayout';
 import MedicalRecordForm from '@/components/features/medical-records/MedicalRecordForm';
 import { useToast } from '@/components/ui/toast-provider';
 import { medicalRecordsApi as medicalRecordApi } from '@/lib/api/medical-records';
-import { useEnhancedAuth } from '@/lib/auth/enhanced-auth-context';
+import { useUnifiedAuth } from '@/lib/auth/unified-auth-context';
 
 interface DoctorInfo {
     id: string;
@@ -22,7 +22,7 @@ export default function CreateMedicalRecordPage() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const { toast } = useToast();
-    const { user, loading: authLoading } = useEnhancedAuth();
+    const { user, loading: authLoading } = useUnifiedAuth();
 
     const [loading, setLoading] = useState<boolean>(false);
     const [submitting, setSubmitting] = useState<boolean>(false);

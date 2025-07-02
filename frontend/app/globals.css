@@ -44,6 +44,96 @@
   color: #155e75 !important;
 }
 
+/* Chatbot Message Styling */
+.chat-widget .bot-message {
+  background: linear-gradient(135deg, #ecfeff 0%, #cffafe 100%);
+  border-left: 4px solid #06b6d4;
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin: 8px 0;
+  box-shadow: 0 2px 8px rgba(6, 182, 212, 0.1);
+}
+
+.chat-widget .user-message {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-right: 4px solid #0284c7;
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin: 8px 0;
+  margin-left: auto;
+  max-width: 80%;
+}
+
+/* Chatbot Option Buttons */
+.chat-widget .option-button {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border: 2px solid #06b6d4;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin: 4px 0;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.chat-widget .option-button:hover {
+  background: linear-gradient(135deg, #ecfeff 0%, #cffafe 100%);
+  border-color: #0891b2;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2);
+}
+
+/* Specialty and Doctor Info Styling */
+.chat-widget .doctor-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chat-widget .doctor-name {
+  font-weight: 600;
+  color: #0f172a;
+  font-size: 15px;
+}
+
+.chat-widget .doctor-details {
+  font-size: 13px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Confirmation Summary Styling */
+.chat-widget .booking-summary {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border: 2px solid #22c55e;
+  border-radius: 12px;
+  padding: 16px;
+  margin: 8px 0;
+}
+
+.chat-widget .booking-summary h3 {
+  color: #15803d;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.chat-widget .booking-detail {
+  display: flex;
+  align-items: center;
+  margin: 6px 0;
+  font-size: 14px;
+}
+
+.chat-widget .booking-detail strong {
+  color: #166534;
+  min-width: 100px;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

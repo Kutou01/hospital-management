@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useEnhancedAuth } from '@/lib/auth/auth-wrapper';
+import { useUnifiedAuth } from '@/lib/auth/unified-auth-context';
 import { getDashboardPath } from '@/lib/auth/dashboard-routes';
 
 interface AuthRedirectProps {
@@ -20,7 +20,7 @@ export function AuthRedirect({
   redirectTo,
   fallbackPath = '/auth/login'
 }: AuthRedirectProps) {
-  const { user, loading } = useEnhancedAuth();
+  const { user, loading } = useUnifiedAuth();
   const router = useRouter();
 
   useEffect(() => {

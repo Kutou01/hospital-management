@@ -7,7 +7,7 @@ import { Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UniversalSidebar, type UniversalSidebarProps } from './UniversalSidebar';
 import { UserMenu } from './UserMenu';
-import { useEnhancedAuth } from '@/lib/auth/auth-wrapper';
+import { useUnifiedAuth } from '@/lib/auth/unified-auth-context';
 
 export interface UniversalLayoutProps {
   children: React.ReactNode;
@@ -30,7 +30,7 @@ export const UniversalLayout: React.FC<UniversalLayoutProps> = ({
   className,
   sidebarProps = {},
 }) => {
-  const { user, signOut } = useEnhancedAuth();
+  const { user, signOut } = useUnifiedAuth();
 
   const handleLogout = async () => {
     try {

@@ -10,11 +10,10 @@ import {
     CheckCircle, Globe, BookOpen, Trophy, FileText, CreditCard, ArrowRight
 } from 'lucide-react';
 import PublicLayout from '@/components/layout/PublicLayout';
-import { supabaseAuth } from "@/lib/auth/supabase-auth";
 import Swal from 'sweetalert2';
 import { doctorsApi } from "@/lib/api/doctors";
 import { paymentApi } from "@/lib/api/payment";
-import { useEnhancedAuth } from '@/lib/auth/enhanced-auth-context';
+import { useUnifiedAuth } from '@/lib/auth/unified-auth-context';
 
 interface DoctorDisplay {
     id: number;
@@ -244,7 +243,7 @@ const mapApiResponseToDisplay = (apiData: any, doctorId: string): DoctorDisplay 
 export default function DoctorDetailPage() {
     const params = useParams();
     const router = useRouter();
-    const { user, loading: authLoading } = useEnhancedAuth();
+    const { user, loading: authLoading } = useUnifiedAuth();
 
     const [doctor, setDoctor] = useState<DoctorDisplay | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
@@ -313,13 +312,6 @@ export default function DoctorDetailPage() {
         setCheckingAuth(true);
 
         try {
-            const { user, error: authError } = await supabaseAuth.getCurrentUser();
-
-            if (authError) {
-                console.error('Auth error:', authError);
-                throw new Error('Authentication error');
-            }
-
             // Save doctor ID before redirecting
             localStorage.setItem('selectedDoctorId', params?.id as string);
 

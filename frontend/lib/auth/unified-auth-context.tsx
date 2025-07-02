@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { authServiceApi, AuthUser, RegisterData } from '../api/auth'
 import { sessionManager } from './session-manager'
 import { getDashboardPath } from './dashboard-routes'
+import { createClient } from '../supabase/client'
 
 // Auth types - now only using Auth Service
 export type AuthType = 'service'
@@ -171,8 +172,54 @@ export function UnifiedAuthProvider({ children }: { children: React.ReactNode })
       setLoading(true)
       setError(null)
 
-      console.log('🔐 [UnifiedAuth] Signing in with Auth Service...')
-      await signInWithAuthService(email, password)
+      console.log('🔐 [UnifiedAuth] Signing in with Supabase Auth...')
+
+      // Create Supabase client
+      const supabase = createClient()
+
+      // Use Supabase Auth directly
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (error) {
+        console.error('❌ [UnifiedAuth] Supabase sign in error:', error)
+        throw new Error(error.message)
+      }
+
+      if (data.user) {
+        console.log('✅ [UnifiedAuth] Sign in successful, fetching profile...')
+
+        // Fetch user profile
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', data.user.id)
+          .single()
+
+        if (profileError) {
+          console.error('❌ [UnifiedAuth] Profile fetch error:', profileError)
+          throw new Error('Failed to fetch user profile')
+        }
+
+        const userWithProfile = {
+          id: data.user.id,
+          email: data.user.email!,
+          role: profile.role,
+          full_name: profile.full_name,
+          phone_number: profile.phone_number,
+          is_active: profile.is_active,
+          email_verified: profile.email_verified,
+          phone_verified: profile.phone_verified,
+        }
+
+        setUser(userWithProfile)
+
+        console.log('✅ [UnifiedAuth] User set successfully')
+      } else {
+        throw new Error('No user data received')
+      }
     } catch (err: any) {
       console.error('❌ [UnifiedAuth] Sign in failed:', err)
       setError(err.message || 'Sign in failed')

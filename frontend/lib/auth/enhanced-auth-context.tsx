@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { User } from '@supabase/supabase-js'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 
 // Enhanced Auth Types
@@ -87,6 +87,9 @@ export const EnhancedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const initializeAuth = async () => {
     try {
+      // Create Supabase client
+      const supabase = createClient()
+
       // Get current session
       const { data: { session }, error } = await supabase.auth.getSession()
       

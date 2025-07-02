@@ -22,7 +22,7 @@ import {
   RefreshCw
 } from "lucide-react"
 import { useToast } from "@/components/ui/toast-provider"
-import { useEnhancedAuth } from "@/lib/auth/auth-wrapper"
+import { useUnifiedAuth } from "@/lib/auth/unified-auth-context"
 import { TwoFactorService, TwoFactorSettings } from "@/lib/auth/two-factor-service"
 
 interface TwoFactorAuthProps {
@@ -31,7 +31,7 @@ interface TwoFactorAuthProps {
 
 export default function TwoFactorAuth({ className }: TwoFactorAuthProps) {
   const { showToast } = useToast()
-  const { user } = useEnhancedAuth()
+  const { user } = useUnifiedAuth()
   
   const [twoFactorSettings, setTwoFactorSettings] = useState<TwoFactorSettings | null>(null)
   const [selectedMethod, setSelectedMethod] = useState<'2fa_app' | 'sms' | 'email'>('2fa_app')

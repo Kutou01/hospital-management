@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useEnhancedAuth } from '@/lib/auth/enhanced-auth-context'
+import { useUnifiedAuth } from '@/lib/auth/unified-auth-context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -21,13 +21,9 @@ export const MultiMethodLogin = () => {
   const [phoneForm, setPhoneForm] = useState({ phone: '', otp: '', step: 'phone' })
   
   const {
-    signInWithEmail,
-    signInWithMagicLink,
-    signInWithPhone,
-    verifyOTP,
-    signInWithOAuth,
+    signIn,
     loading: authLoading
-  } = useEnhancedAuth()
+  } = useUnifiedAuth()
 
   // Email/Password Login
   const handleEmailLogin = async (e: React.FormEvent) => {
@@ -39,10 +35,8 @@ export const MultiMethodLogin = () => {
 
     setLoading(true)
     try {
-      const result = await signInWithEmail(emailForm.email, emailForm.password)
-      if (!result.success) {
-        toast.error(result.error || 'Đăng nhập thất bại')
-      }
+      await signIn(emailForm.email, emailForm.password)
+      toast.success('Đăng nhập thành công!')
     } catch (error: any) {
       toast.error('Lỗi đăng nhập: ' + error.message)
     } finally {
@@ -53,80 +47,18 @@ export const MultiMethodLogin = () => {
   // Magic Link Login
   const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!magicLinkForm.email) {
-      toast.error('Vui lòng nhập email')
-      return
-    }
-
-    setLoading(true)
-    try {
-      const result = await signInWithMagicLink(magicLinkForm.email)
-      if (!result.success) {
-        toast.error(result.error || 'Gửi magic link thất bại')
-      }
-    } catch (error: any) {
-      toast.error('Lỗi: ' + error.message)
-    } finally {
-      setLoading(false)
-    }
+    toast.error('Magic Link chưa được hỗ trợ. Vui lòng sử dụng email/password.')
   }
 
   // Phone/SMS OTP Login
   const handlePhoneLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (phoneForm.step === 'phone') {
-      if (!phoneForm.phone) {
-        toast.error('Vui lòng nhập số điện thoại')
-        return
-      }
-
-      setLoading(true)
-      try {
-        const result = await signInWithPhone(phoneForm.phone)
-        if (result.success) {
-          setPhoneForm(prev => ({ ...prev, step: 'otp' }))
-        } else {
-          toast.error(result.error || 'Gửi OTP thất bại')
-        }
-      } catch (error: any) {
-        toast.error('Lỗi: ' + error.message)
-      } finally {
-        setLoading(false)
-      }
-    } else {
-      if (!phoneForm.otp) {
-        toast.error('Vui lòng nhập mã OTP')
-        return
-      }
-
-      setLoading(true)
-      try {
-        const result = await verifyOTP(phoneForm.phone, phoneForm.otp)
-        if (!result.success) {
-          toast.error(result.error || 'Xác thực OTP thất bại')
-        }
-      } catch (error: any) {
-        toast.error('Lỗi: ' + error.message)
-      } finally {
-        setLoading(false)
-      }
-    }
+    toast.error('Đăng nhập bằng số điện thoại chưa được hỗ trợ. Vui lòng sử dụng email/password.')
   }
 
   // OAuth Login
   const handleOAuthLogin = async (provider: 'google' | 'facebook' | 'github') => {
-    setLoading(true)
-    try {
-      const result = await signInWithOAuth(provider)
-      if (!result.success) {
-        toast.error(result.error || `Đăng nhập ${provider} thất bại`)
-      }
-    } catch (error: any) {
-      toast.error(`Lỗi đăng nhập ${provider}: ` + error.message)
-    } finally {
-      setLoading(false)
-    }
+    toast.error(`Đăng nhập bằng ${provider} chưa được hỗ trợ. Vui lòng sử dụng email/password.`)
   }
 
   const isLoading = loading || authLoading

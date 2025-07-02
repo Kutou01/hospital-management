@@ -6,9 +6,9 @@
 import { createClient } from '@supabase/supabase-js'
 
 // Sử dụng cùng project nhưng với schema khác
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://cjnmppmblfcibhkahljh.supabase.co'
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqbm1wcG1ibGZjaWJoa2FobGpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEyMDY0ODEsImV4cCI6MjA2Njc4MjQ4MX0.ebh7rEa8ys4IzlHRJmsVrlXrDC7e3BZjVD2bbiq3C2Q'
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqbm1wcG1ibGZjaWJoa2FobGpoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MTIwNjQ4MSwiZXhwIjoyMDY2NzgyNDgxfQ.M9iJcC6Qdb4GjJ8y-79VC-7vB4I20Ad0C-GMEh-98ow'
 
 // Client cho development với schema hospital_dev
 export const supabaseDev = createClient(supabaseUrl, supabaseAnonKey, {

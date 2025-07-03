@@ -1,0 +1,64 @@
+#-------------------------------------------------------------------------------#
+#               Qodana analysis is configured by qodana.yaml file               #
+#             https://www.jetbrains.com/help/qodana/qodana-yaml.html            #
+#-------------------------------------------------------------------------------#
+version: "1.0"
+
+# Specify inspection profile for analysis
+profile:
+  name: qodana.starter
+
+# Specify which linter to run (JavaScript/Node.js for hospital-management)
+linter: jetbrains/qodana-js:latest
+
+# Include/exclude files from analysis
+include:
+  - name: All
+    paths:
+      - frontend/
+      - api-gateway/
+      - user-service/
+      - appointment-service/
+      - prescription-service/
+      - department-service/
+      - notification-service/
+      - graphql-service/
+
+exclude:
+  - name: All
+    paths:
+      - node_modules/
+      - dist/
+      - build/
+      - coverage/
+      - .git/
+      - "**/*.min.js"
+      - "**/*.bundle.js"
+      - "**/*.test.js"
+      - "**/*.spec.js"
+
+# Configure specific inspections
+inspections:
+  # Enable important JavaScript inspections
+  - name: JSUnresolvedReference
+    enabled: true
+  - name: JSUnusedLocalSymbols
+    enabled: true
+  - name: JSValidateTypes
+    enabled: true
+  - name: ES6UnusedImports
+    enabled: true
+
+# Set fail threshold (number of problems that will make the analysis fail)
+failThreshold: 10
+
+# Bootstrap command to install dependencies
+bootstrap: |
+  cd frontend && npm install --silent
+  cd ../api-gateway && npm install --silent
+  cd ../user-service && npm install --silent
+  cd ../appointment-service && npm install --silent
+  cd ../prescription-service && npm install --silent
+  cd ../department-service && npm install --silent
+  cd ../notification-service && npm install --silent
+  cd ../graphql-service && npm install --silent

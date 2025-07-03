@@ -225,7 +225,9 @@ async function startServer() {
               'doctor-service': await checkServiceHealth('http://localhost:3002/health'),
               'patient-service': await checkServiceHealth('http://localhost:3003/health'),
               'appointment-service': await checkServiceHealth('http://localhost:3004/health'),
-              'department-service': await checkServiceHealth('http://localhost:3005/health')
+              'department-service': await checkServiceHealth('http://localhost:3005/health'),
+              'medical-records-service': await checkServiceHealth('http://localhost:3006/health'),
+              'prescription-service': await checkServiceHealth('http://localhost:3007/health')
             }
           },
           {

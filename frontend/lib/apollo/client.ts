@@ -11,9 +11,9 @@ import { GraphQLWsLink } from "@apollo/client/link/subscriptions";
 import { getMainDefinition } from "@apollo/client/utilities";
 import { createClient } from "graphql-ws";
 
-// GraphQL endpoint URLs
-const GRAPHQL_HTTP_URL = process.env.NEXT_PUBLIC_GRAPHQL_URL || "http://localhost:3200/graphql";
-const GRAPHQL_WS_URL = process.env.NEXT_PUBLIC_GRAPHQL_WS_URL || "ws://localhost:3200/graphql";
+// GraphQL endpoint URLs - Route through API Gateway
+const GRAPHQL_HTTP_URL = process.env.NEXT_PUBLIC_GRAPHQL_URL || "http://localhost:3100/graphql";
+const GRAPHQL_WS_URL = process.env.NEXT_PUBLIC_GRAPHQL_WS_URL || "ws://localhost:3100/graphql";
 
 // HTTP Link for queries and mutations
 const httpLink = createHttpLink({

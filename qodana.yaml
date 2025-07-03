@@ -16,13 +16,7 @@ include:
   - name: All
     paths:
       - frontend/
-      - api-gateway/
-      - user-service/
-      - appointment-service/
-      - prescription-service/
-      - department-service/
-      - notification-service/
-      - graphql-service/
+      - backend/services/
 
 exclude:
   - name: All
@@ -54,11 +48,7 @@ failThreshold: 10
 
 # Bootstrap command to install dependencies
 bootstrap: |
+  echo "Installing frontend dependencies..."
   cd frontend && npm install --silent
-  cd ../api-gateway && npm install --silent
-  cd ../user-service && npm install --silent
-  cd ../appointment-service && npm install --silent
-  cd ../prescription-service && npm install --silent
-  cd ../department-service && npm install --silent
-  cd ../notification-service && npm install --silent
-  cd ../graphql-service && npm install --silent
+  echo "Installing backend service dependencies..."
+  find backend/services -name "package.json" -execdir npm install --silent \;

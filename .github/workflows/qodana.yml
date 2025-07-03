@@ -24,15 +24,14 @@ jobs:
     
     - name: Install dependencies
       run: |
-        # Install dependencies for all services
+        # Install frontend dependencies
+        echo "Installing frontend dependencies..."
         cd frontend && npm install
-        cd ../api-gateway && npm install
-        cd ../user-service && npm install
-        cd ../appointment-service && npm install
-        cd ../prescription-service && npm install
-        cd ../department-service && npm install
-        cd ../notification-service && npm install
-        cd ../graphql-service && npm install
+
+        # Install backend service dependencies
+        echo "Installing backend service dependencies..."
+        cd ../backend
+        find services -name "package.json" -execdir npm install \;
     
     - name: Qodana Scan
       uses: JetBrains/qodana-action@v2023.3

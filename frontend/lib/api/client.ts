@@ -16,7 +16,7 @@ export interface ApiResponse<T> {
 export class ApiClient {
   private baseUrl: string;
 
-  constructor(baseUrl: string = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:3000') {
+  constructor(baseUrl: string = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:3100') {
     this.baseUrl = baseUrl;
     console.log('🔧 [ApiClient] Initialized with baseUrl:', this.baseUrl);
     console.log('🔧 [ApiClient] NEXT_PUBLIC_API_GATEWAY_URL:', process.env.NEXT_PUBLIC_API_GATEWAY_URL);

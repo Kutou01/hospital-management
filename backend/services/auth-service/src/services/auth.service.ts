@@ -176,14 +176,15 @@ export class AuthService {
     let authData: any = null;
 
     try {
-      // Create user in Supabase Auth
+      // Create user in Supabase Auth using admin API (bypasses email confirmation)
       const { data: authDataResult, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email: userData.email,
         password: userData.password,
-        email_confirm: true, // Auto-confirm email in development
+        email_confirm: true, // Auto-confirm email
         user_metadata: {
           full_name: userData.full_name,
-          role: userData.role
+          role: userData.role,
+          phone_number: userData.phone_number
         }
       });
 

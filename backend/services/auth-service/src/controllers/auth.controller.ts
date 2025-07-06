@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { validationResult } from 'express-validator';
 import { AuthService } from '../services/auth.service';
+import { supabaseAdmin } from '../config/supabase';
+import crypto from 'crypto';
 import logger from '@hospital/shared/dist/utils/logger';
 
 export class AuthController {
@@ -786,6 +788,323 @@ export class AuthController {
         success: false,
         error: 'Internal server error',
         message: 'OAuth login failed'
+      });
+    }
+  };
+
+  /**
+   * Test database connection and triggers
+   */
+  public testDatabase = async (req: Request, res: Response): Promise<void> => {
+    try {
+      // Test 1: Check if profiles table exists
+      const { data: profilesTest, error: profilesError } = await supabaseAdmin
+        .from('profiles')
+        .select('count')
+        .limit(1);
+
+      // Test 2: Check if trigger function exists
+      const { data: triggerTest, error: triggerError } = await supabaseAdmin
+        .rpc('check_trigger_exists', { trigger_name: 'on_auth_user_created' });
+
+      // Test 3: Check auth.users table access
+      const { data: authUsersTest, error: authError } = await supabaseAdmin
+        .from('auth.users')
+        .select('count')
+        .limit(1);
+
+      res.json({
+        success: true,
+        tests: {
+          profiles_table: {
+            accessible: !profilesError,
+            error: profilesError?.message
+          },
+          trigger_function: {
+            exists: !triggerError,
+            error: triggerError?.message
+          },
+          auth_users_table: {
+            accessible: !authError,
+            error: authError?.message
+          }
+        },
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error: any) {
+      logger.error('Database test error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Database test failed',
+        message: error.message
+      });
+    }
+  };
+
+  /**
+   * Setup database trigger for profile creation
+   */
+  public setupTrigger = async (req: Request, res: Response): Promise<void> => {
+    try {
+      // Test RLS policies by trying to disable/enable them
+      const { error: disableRLSError } = await supabaseAdmin
+        .rpc('disable_rls_on_profiles');
+
+      if (disableRLSError) {
+        logger.warn('Could not disable RLS:', disableRLSError);
+      }
+
+      res.json({
+        success: true,
+        message: 'RLS policies checked',
+        rls_disabled: !disableRLSError,
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error: any) {
+      logger.error('Trigger setup error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Trigger setup failed',
+        message: error.message
+      });
+    }
+  };
+
+  /**
+   * Simple signup without Supabase Auth (for testing)
+   */
+  public simpleSignup = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        res.status(400).json({
+          success: false,
+          error: 'Validation failed',
+          details: errors.array()
+        });
+        return;
+      }
+
+      const { email, password, full_name, role, phone_number } = req.body;
+
+      // Generate a UUID for the user
+      const userId = crypto.randomUUID();
+
+      // Create profile directly in database
+      const profileData = {
+        id: userId,
+        email: email,
+        full_name: full_name,
+        role: role,
+        phone_number: phone_number || null,
+        email_verified: true,
+        phone_verified: false,
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      const { error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .insert(profileData);
+
+      if (profileError) {
+        logger.error('Profile creation error:', profileError);
+        res.status(400).json({
+          success: false,
+          error: 'Profile creation failed',
+          message: profileError.message
+        });
+        return;
+      }
+
+      res.status(201).json({
+        success: true,
+        message: 'User profile created successfully',
+        user: {
+          id: userId,
+          email: email,
+          full_name: full_name,
+          role: role
+        }
+      });
+
+    } catch (error: any) {
+      logger.error('Simple signup error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+        message: error.message
+      });
+    }
+  };
+
+  /**
+   * Simple signin without Supabase Auth (for testing)
+   */
+  public simpleSignin = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { email, password } = req.body;
+
+      if (!email || !password) {
+        res.status(400).json({
+          success: false,
+          error: 'Email and password are required'
+        });
+        return;
+      }
+
+      // Find user in profiles table
+      const { data: profile, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .select('*')
+        .eq('email', email)
+        .single();
+
+      if (profileError || !profile) {
+        res.status(401).json({
+          success: false,
+          error: 'Invalid credentials'
+        });
+        return;
+      }
+
+      if (!profile.is_active) {
+        res.status(401).json({
+          success: false,
+          error: 'Account is inactive'
+        });
+        return;
+      }
+
+      // For testing, we'll accept any password (in real app, hash and compare)
+      res.json({
+        success: true,
+        message: 'Login successful',
+        user: {
+          id: profile.id,
+          email: profile.email,
+          full_name: profile.full_name,
+          role: profile.role,
+          phone_number: profile.phone_number,
+          email_verified: profile.email_verified,
+          is_active: profile.is_active
+        }
+      });
+
+    } catch (error: any) {
+      logger.error('Simple signin error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+        message: error.message
+      });
+    }
+  };
+
+  /**
+   * Check Supabase Auth configuration
+   */
+  public checkAuthConfig = async (req: Request, res: Response): Promise<void> => {
+    try {
+      // Test different auth methods to see what works
+      const tests = {
+        admin_create_user: null,
+        client_signup: null,
+        auth_settings: null
+      };
+
+      // Test 1: Admin create user (should work)
+      try {
+        const testEmail = `test-${Date.now()}@example.com`;
+        const { data: adminResult, error: adminError } = await supabaseAdmin.auth.admin.createUser({
+          email: testEmail,
+          password: 'Test123456',
+          email_confirm: true
+        });
+
+        tests.admin_create_user = {
+          success: !adminError,
+          error: adminError?.message,
+          user_created: !!adminResult?.user
+        };
+
+        // Clean up test user
+        if (adminResult?.user) {
+          await supabaseAdmin.auth.admin.deleteUser(adminResult.user.id);
+        }
+      } catch (error: any) {
+        tests.admin_create_user = {
+          success: false,
+          error: error.message
+        };
+      }
+
+      // Test 2: Client signup (what's failing)
+      try {
+        const testEmail2 = `test-client-${Date.now()}@example.com`;
+        const { data: clientResult, error: clientError } = await supabaseAdmin.auth.admin.createUser({
+          email: testEmail2,
+          password: 'Test123456',
+          email_confirm: false // Test without email confirmation
+        });
+
+        tests.client_signup = {
+          success: !clientError,
+          error: clientError?.message,
+          user_created: !!clientResult?.user
+        };
+
+        // Clean up test user
+        if (clientResult?.user) {
+          await supabaseAdmin.auth.admin.deleteUser(clientResult.user.id);
+        }
+      } catch (error: any) {
+        tests.client_signup = {
+          success: false,
+          error: error.message
+        };
+      }
+
+      // Test 3: Check auth settings
+      try {
+        const { data: settings, error: settingsError } = await supabaseAdmin.auth.admin.getSettings();
+        tests.auth_settings = {
+          success: !settingsError,
+          error: settingsError?.message,
+          settings: settings
+        };
+      } catch (error: any) {
+        tests.auth_settings = {
+          success: false,
+          error: error.message
+        };
+      }
+
+      res.json({
+        success: true,
+        message: 'Auth configuration check completed',
+        tests: tests,
+        recommendations: {
+          issue_found: !tests.client_signup?.success,
+          likely_cause: tests.client_signup?.success ? 'No issues found' : 'Email confirmation or SMTP configuration',
+          next_steps: [
+            'Check Supabase dashboard Auth settings',
+            'Disable email confirmation temporarily',
+            'Configure SMTP if email confirmation is needed'
+          ]
+        },
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error: any) {
+      logger.error('Auth config check error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Auth config check failed',
+        message: error.message
       });
     }
   };

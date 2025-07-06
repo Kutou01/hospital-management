@@ -48,10 +48,31 @@ export class EmailService {
             // Kiểm tra môi trường - EmailJS chỉ hoạt động trong browser
             if (typeof window === 'undefined') {
                 console.warn('⚠️ EmailJS chỉ hoạt động trong browser, không thể gửi từ server-side');
+                
+            // Fallback: Gửi email từ server-side bằng cách gọi API route
+            try {
+                const response = await fetch('/api/email/send-payment-notification', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    return {
+                        success: true,
+                        message: 'Email đã được gửi thành công từ server'
+                    };
+                }
+            } catch (serverError) {
+                console.error('Server-side email fallback failed:', serverError);
+            }
+
                 return {
                     success: false,
-                    message: 'EmailJS chỉ hoạt động trong browser',
-                    error: 'SERVER_SIDE_NOT_SUPPORTED'
+                    message: 'Không thể gửi email',
+                    error: 'EMAIL_SEND_FAILED'
                 };
             }
 

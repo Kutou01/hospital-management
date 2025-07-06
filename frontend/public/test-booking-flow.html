@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Booking Flow - Hospital Chatbot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .step {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            background: #f9f9f9;
+        }
+        .step.success {
+            border-color: #4CAF50;
+            background: #e8f5e8;
+        }
+        .step.error {
+            border-color: #f44336;
+            background: #ffeaea;
+        }
+        .step.testing {
+            border-color: #2196F3;
+            background: #e3f2fd;
+        }
+        button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #1976D2;
+        }
+        .response {
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 3px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .log {
+            background: #333;
+            color: #0f0;
+            padding: 10px;
+            border-radius: 3px;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🏥 Test Booking Flow - Hospital Chatbot</h1>
+    
+    <div class="test-container">
+        <h2>📋 Test Sequence</h2>
+        <button onclick="runFullTest()">🚀 Run Full Booking Flow Test</button>
+        <button onclick="clearLogs()">🗑️ Clear Logs</button>
+        <button onclick="testIndividualSteps()">🔍 Test Individual Steps</button>
+    </div>
+
+    <div id="testResults"></div>
+    <div id="logs" class="log"></div>
+
+    <script>
+        let sessionId = `TEST-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
+        let userId = `USER-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
+        let testData = {
+            patientName: 'Nguyễn Văn Test',
+            patientPhone: '0901234567',
+            patientEmail: 'test@example.com',
+            symptoms: 'tôi bị đau bụng'
+        };
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('logs');
+            const color = type === 'error' ? '#f44336' : type === 'success' ? '#4CAF50' : '#0f0';
+            logElement.innerHTML += `<span style="color: ${color}">[${timestamp}] ${message}</span>\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+            document.getElementById('testResults').innerHTML = '';
+        }
+
+        async function testAPI(endpoint, data, stepName) {
+            log(`Testing ${stepName}...`, 'info');
+            
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    log(`✅ ${stepName} - SUCCESS`, 'success');
+                    return { success: true, data: result };
+                } else {
+                    log(`❌ ${stepName} - FAILED: ${result.error || result.message}`, 'error');
+                    return { success: false, error: result.error || result.message, data: result };
+                }
+            } catch (error) {
+                log(`❌ ${stepName} - ERROR: ${error.message}`, 'error');
+                return { success: false, error: error.message };
+            }
+        }
+
+        async function runFullTest() {
+            clearLogs();
+            log('🚀 Starting Full Booking Flow Test', 'info');
+            
+            const resultsContainer = document.getElementById('testResults');
+            resultsContainer.innerHTML = '';
+
+            // Step 1: Test Symptom Analysis
+            const step1 = await testSymptomAnalysis();
+            addStepResult('Step 1: Symptom Analysis', step1);
+
+            if (!step1.success) {
+                log('❌ Test stopped due to Step 1 failure', 'error');
+                return;
+            }
+
+            // Step 2: Test Get Doctors
+            const step2 = await testGetDoctors(step1.data.data.recommended_specialties[0].specialty_code);
+            addStepResult('Step 2: Get Doctors', step2);
+
+            if (!step2.success) {
+                log('❌ Test stopped due to Step 2 failure', 'error');
+                return;
+            }
+
+            // Step 3: Test Get Time Slots
+            const step3 = await testGetTimeSlots(step2.data.data.doctors[0].doctor_id);
+            addStepResult('Step 3: Get Time Slots', step3);
+
+            if (!step3.success) {
+                log('❌ Test stopped due to Step 3 failure', 'error');
+                return;
+            }
+
+            // Step 4: Test Generate Booking Summary
+            const step4 = await testGenerateBookingSummary();
+            addStepResult('Step 4: Generate Booking Summary', step4);
+
+            if (step4.success) {
+                log('🎉 Full Booking Flow Test COMPLETED SUCCESSFULLY!', 'success');
+            } else {
+                log('❌ Full Booking Flow Test FAILED at Step 4', 'error');
+            }
+        }
+
+        async function testSymptomAnalysis() {
+            return await testAPI('/api/chatbot/simple-booking', {
+                step: 'symptom_analysis',
+                message: testData.symptoms,
+                session_id: sessionId,
+                user_id: userId,
+                metadata: {
+                    booking_data: {},
+                    patient_info: {
+                        name: testData.patientName,
+                        phone: testData.patientPhone,
+                        email: testData.patientEmail
+                    }
+                }
+            }, 'Symptom Analysis');
+        }
+
+        async function testGetDoctors(specialtyCode) {
+            return await testAPI('/api/chatbot/simple-booking', {
+                step: 'get_doctors',
+                message: `Tìm bác sĩ chuyên khoa ${specialtyCode}`,
+                session_id: sessionId,
+                user_id: userId,
+                metadata: {
+                    specialty_code: specialtyCode,
+                    booking_data: {}
+                }
+            }, 'Get Doctors');
+        }
+
+        async function testGetTimeSlots(doctorId) {
+            const dates = [];
+            for (let i = 1; i <= 7; i++) {
+                const date = new Date();
+                date.setDate(date.getDate() + i);
+                dates.push(date.toISOString().split('T')[0]);
+            }
+
+            return await testAPI('/api/chatbot/simple-booking', {
+                step: 'get_time_slots',
+                message: `Lấy lịch khám có sẵn`,
+                session_id: sessionId,
+                user_id: userId,
+                metadata: {
+                    doctor_id: doctorId,
+                    dates: dates,
+                    booking_data: {}
+                }
+            }, 'Get Time Slots');
+        }
+
+        async function testGenerateBookingSummary() {
+            return await testAPI('/api/chatbot/simple-booking', {
+                step: 'generate_booking_summary',
+                message: 'Tạo tóm tắt đặt lịch',
+                session_id: sessionId,
+                user_id: userId,
+                metadata: {
+                    booking_data: {
+                        selectedDoctor: {
+                            doctor_id: 'GENE-DOC-202506-001',
+                            doctor_name: 'BS. Nguyễn Văn A'
+                        },
+                        selectedSpecialty: 'Nội Tổng Hợp',
+                        reservationId: 'test-reservation-123'
+                    },
+                    patient_info: {
+                        name: testData.patientName,
+                        phone: testData.patientPhone,
+                        email: testData.patientEmail
+                    },
+                    appointment_details: {
+                        date: '2025-01-15',
+                        time: '09:00',
+                        symptoms: testData.symptoms,
+                        specialty_code: 'INTERNAL'
+                    }
+                }
+            }, 'Generate Booking Summary');
+        }
+
+        function addStepResult(stepName, result) {
+            const resultsContainer = document.getElementById('testResults');
+            const stepDiv = document.createElement('div');
+            stepDiv.className = `step ${result.success ? 'success' : 'error'}`;
+            
+            stepDiv.innerHTML = `
+                <h3>${result.success ? '✅' : '❌'} ${stepName}</h3>
+                <div class="response">${JSON.stringify(result, null, 2)}</div>
+            `;
+            
+            resultsContainer.appendChild(stepDiv);
+        }
+
+        async function testIndividualSteps() {
+            clearLogs();
+            log('🔍 Testing Individual Steps', 'info');
+            
+            // Test each step individually
+            const tests = [
+                { name: 'Symptom Analysis', fn: testSymptomAnalysis },
+                { name: 'Get Doctors (INTERNAL)', fn: () => testGetDoctors('INTERNAL') },
+                { name: 'Get Time Slots (real-doctor)', fn: () => testGetTimeSlots('GENE-DOC-202506-001') },
+                { name: 'Generate Booking Summary', fn: testGenerateBookingSummary }
+            ];
+
+            for (const test of tests) {
+                const result = await test.fn();
+                addStepResult(test.name, result);
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second between tests
+            }
+        }
+
+        // Auto-run test on page load
+        window.onload = function() {
+            log('🏥 Hospital Chatbot Booking Flow Tester Ready', 'info');
+            log(`Session ID: ${sessionId}`, 'info');
+            log(`User ID: ${userId}`, 'info');
+        };
+    </script>
+</body>
+</html>

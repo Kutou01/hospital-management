@@ -90,17 +90,21 @@ export function useChat(): UseChatReturn {
     try {
       console.log('Sending message to chatbot:', content);
 
-      const CHATBOT_API_URL = process.env.NEXT_PUBLIC_CHATBOT_API_URL || 'http://localhost:3020';
-      const response = await fetch(`${CHATBOT_API_URL}/api/health/chat`, {
+      // Use enhanced chatbot API with fixed Vietnamese NLP (port 3021)
+      const CHATBOT_API_URL = process.env.NEXT_PUBLIC_ENHANCED_CHATBOT_API_URL || 'http://localhost:3021';
+      const response = await fetch(`${CHATBOT_API_URL}/api/chat`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json; charset=utf-8',
+          'Accept': 'application/json; charset=utf-8',
         },
         body: JSON.stringify({
           message: content,
           conversation_history: chatState.messages.slice(-6).map(msg =>
             `${msg.type === 'user' ? 'User' : 'AI'}: ${msg.content}`
-          )
+          ),
+          user_id: `user_${Date.now()}`,
+          session_id: `session_${Date.now()}`
         }),
       });
 
@@ -120,10 +124,10 @@ export function useChat(): UseChatReturn {
         isLoading: false
       }));
 
-      if (data.success && data.data) {
+      if (data.success) {
         // Determine severity based on response - CHỈ emergency khi thực sự nghiêm trọng
         let severity: Message['severity'] = 'low';
-        const responseText = (data.data.ai_response || data.data.response || '').toLowerCase();
+        const responseText = (data.data?.botResponse || data.response || data.data?.response || data.data?.ai_response || '').toLowerCase();
 
         // CHỈ đánh dấu emergency khi có cảnh báo thực sự
         if (responseText.includes('🚨') || responseText.includes('gọi 115') || responseText.includes('đến cấp cứu ngay')) {
@@ -137,7 +141,7 @@ export function useChat(): UseChatReturn {
         const botMessage: Message = {
           id: (Date.now() + 1).toString(),
           type: 'bot',
-          content: data.data.ai_response || data.data.response || 'Xin lỗi, tôi không thể trả lời câu hỏi này.',
+          content: data.data?.botResponse || data.response || data.data?.response || data.data?.ai_response || 'Xin lỗi, tôi không thể trả lời câu hỏi này.',
           timestamp: new Date(),
           severity
         };
@@ -148,7 +152,7 @@ export function useChat(): UseChatReturn {
         }));
 
         // CHỈ hiển thị cảnh báo cấp cứu khi thực sự nghiêm trọng
-        if (severity === 'emergency' && (data.data.ai_response || data.data.response || '').includes('🚨')) {
+        if (severity === 'emergency' && (data.data?.botResponse || data.response || data.data?.response || data.data?.ai_response || '').includes('🚨')) {
           const emergencyMessage: Message = {
             id: (Date.now() + 2).toString(),
             type: 'bot',

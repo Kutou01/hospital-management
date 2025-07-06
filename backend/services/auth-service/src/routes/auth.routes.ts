@@ -413,6 +413,94 @@ router.post('/register-doctor', validateDoctorRegistration, authController.regis
 
 /**
  * @swagger
+ * /api/auth/test-db:
+ *   get:
+ *     summary: Test database connection and triggers
+ *     tags: [Testing]
+ *     responses:
+ *       200:
+ *         description: Database test results
+ */
+router.get('/test-db', authController.testDatabase);
+
+/**
+ * @swagger
+ * /api/auth/setup-trigger:
+ *   post:
+ *     summary: Setup database trigger for profile creation
+ *     tags: [Testing]
+ *     responses:
+ *       200:
+ *         description: Trigger setup results
+ */
+router.post('/setup-trigger', authController.setupTrigger);
+
+/**
+ * @swagger
+ * /api/auth/simple-signup:
+ *   post:
+ *     summary: Simple signup without Supabase Auth (for testing)
+ *     tags: [Testing]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               full_name:
+ *                 type: string
+ *               phone_number:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: User created successfully
+ */
+router.post('/simple-signup', validateSignUp, authController.simpleSignup);
+
+/**
+ * @swagger
+ * /api/auth/simple-signin:
+ *   post:
+ *     summary: Simple signin without Supabase Auth (for testing)
+ *     tags: [Testing]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful
+ */
+router.post('/simple-signin', authController.simpleSignin);
+
+/**
+ * @swagger
+ * /api/auth/check-auth-config:
+ *   get:
+ *     summary: Check Supabase Auth configuration
+ *     tags: [Testing]
+ *     responses:
+ *       200:
+ *         description: Auth configuration details
+ */
+router.get('/check-auth-config', authController.checkAuthConfig);
+
+/**
+ * @swagger
  * /api/auth/magic-link:
  *   post:
  *     summary: Send magic link for passwordless login

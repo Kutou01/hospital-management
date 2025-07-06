@@ -724,7 +724,7 @@ export const dashboardApi = {
       console.log('📊 [dashboardApi] Fetching enhanced dashboard stats...')
 
       // API Gateway URL
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:3100/api'
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:3100'
 
       // Try microservices first, fallback to direct Supabase
       try {
@@ -849,7 +849,7 @@ export const dashboardApi = {
     try {
       console.log('🏥 [dashboardApi] Checking system health...')
 
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:3100/api'
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:3100'
       const services = ['auth', 'patients', 'doctors', 'appointments', 'departments']
 
       const healthChecks = await Promise.allSettled(

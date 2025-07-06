@@ -163,7 +163,7 @@ export function createApp(): express.Application {
     target: authServiceUrl,
     changeOrigin: true,
     pathRewrite: {
-      '^/api/auth': '',
+      '^/api/auth': '/api/auth',
     },
     timeout: 10000, // 10 second timeout
     proxyTimeout: 10000,
@@ -335,14 +335,14 @@ export function createApp(): express.Application {
 
   // Chatbot Consultation Service Routes - ENABLED (Public access for AI consultation)
   app.use('/api/chatbot', createProxyMiddleware({
-    target: process.env.CHATBOT_SERVICE_URL || 'http://chatbot-service:3018',
+    target: process.env.CHATBOT_CONSULTATION_SERVICE_URL || 'http://chatbot-consultation-service:3020',
     changeOrigin: true,
     pathRewrite: {
-      '^/api/chatbot': '/api/health',
+      '^/api/chatbot': '/api',
     },
     onError: (err: any, req: any, res: any) => {
-      console.error('Chatbot Service Proxy Error:', err);
-      res.status(503).json({ error: 'Chatbot service unavailable' });
+      console.error('Chatbot Consultation Service Proxy Error:', err);
+      res.status(503).json({ error: 'Chatbot consultation service unavailable' });
     },
   }));
 
@@ -414,8 +414,8 @@ export function createApp(): express.Application {
           url: process.env.CHATBOT_BOOKING_SERVICE_URL || 'http://chatbot-booking-service:3015',
           status: 'active'
         },
-        'chatbot': {
-          url: process.env.CHATBOT_SERVICE_URL || 'http://chatbot-service:3018',
+        'chatbot-consultation': {
+          url: process.env.CHATBOT_CONSULTATION_SERVICE_URL || 'http://chatbot-consultation-service:3020',
           status: 'active'
         }
       },

@@ -1,14 +1,16 @@
 // Chatbot API utility functions
-const CHATBOT_API_URL = process.env.NEXT_PUBLIC_CHATBOT_API_URL || 'http://localhost:3020';
+// Use enhanced chatbot API with fixed Vietnamese NLP (port 3021)
+const CHATBOT_API_URL = process.env.NEXT_PUBLIC_ENHANCED_CHATBOT_API_URL || 'http://localhost:3021';
 
 export const chatbotAPI = {
   // Send message to Gemini AI chatbot
   async sendMessage(message, conversationHistory = []) {
     try {
-      const response = await fetch(`${CHATBOT_API_URL}/api/health/chat`, {
+      const response = await fetch(`${CHATBOT_API_URL}/api/chat`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json; charset=utf-8',
+          'Accept': 'application/json; charset=utf-8',
         },
         body: JSON.stringify({
           message: message,

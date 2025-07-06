@@ -37,6 +37,10 @@ const nextConfig: NextConfig = {
   transpilePackages: ['@supabase/supabase-js'],
   // Disable source maps in development to reduce bundle size
   productionBrowserSourceMaps: false,
+    experimental: {
+    serverComponentsExternalPackages: ['@supabase/ssr'],
+    esmExternals: 'loose'
+  },
   eslint: {
     // Warning: This allows production builds to successfully complete even if
     // your project has ESLint errors.

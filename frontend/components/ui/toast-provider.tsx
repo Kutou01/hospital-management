@@ -1,6 +1,7 @@
 "use client"
 
-import React, { createContext, useContext, useState, useCallback } from "react"
+import * as React from "react"
+import { createContext, useContext, useState, useCallback } from "react"
 import { Toast, ToastClose, ToastTitle, ToastDescription } from "./toast"
 import { AlertCircle, CheckCircle } from "lucide-react"
 

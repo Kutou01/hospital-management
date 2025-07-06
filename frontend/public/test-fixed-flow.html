@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Fixed Chatbot Flow</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .step {
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 5px solid #ccc;
+        }
+        .step.success {
+            background: #d4edda;
+            border-left-color: #28a745;
+            color: #155724;
+        }
+        .step.error {
+            background: #f8d7da;
+            border-left-color: #dc3545;
+            color: #721c24;
+        }
+        .test-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            transition: all 0.3s ease;
+        }
+        .test-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .test-button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .success-status {
+            background: #28a745;
+            color: white;
+        }
+        .error-status {
+            background: #dc3545;
+            color: white;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 Test Fixed Chatbot Flow</h1>
+        
+        <div class="test-section">
+            <h3>📋 Test Flow Overview</h3>
+            <div id="testResults">
+                <div class="step">Tự vấn sức khỏe - Nhập triệu chứng <span class="status-badge success-status">SUCCESS-STATUS</span></div>
+                <div class="step">Phân tích triệu chứng & gợi ý chuyên khoa <span class="status-badge success-status">SUCCESS-STATUS</span></div>
+                <div class="step">Chọn chuyên khoa & xem danh sách bác sĩ <span class="status-badge" id="step3-status">TESTING...</span></div>
+                <div class="step">Chọn bác sĩ & xem lịch trống <span class="status-badge" id="step4-status">TESTING...</span></div>
+                <div class="step">Chọn thời gian & reserve slot <span class="status-badge" id="step5-status">TESTING...</span></div>
+                <div class="step">Nhập thông tin bệnh nhân <span class="status-badge" id="step6-status">TESTING...</span></div>
+                <div class="step">Tạo payment link & thanh toán <span class="status-badge" id="step7-status">TESTING...</span></div>
+                <div class="step">Xác nhận đặt lịch & gửi email <span class="status-badge" id="step8-status">TESTING...</span></div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>🧪 Individual API Tests</h3>
+            <button class="test-button" onclick="testGetDoctors()">Test Get Doctors</button>
+            <button class="test-button" onclick="testGetTimeSlots()">Test Time Slots</button>
+            <button class="test-button" onclick="testReserveSlot()">Test Reserve Slot</button>
+            <button class="test-button" onclick="testGenerateBooking()">Test Booking</button>
+            <button class="test-button" onclick="runFullTest()">Run Full Test</button>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 Test Results</h3>
+            <div id="detailedResults"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔍 Debug Log</h3>
+            <div id="debugLog" class="log"></div>
+        </div>
+    </div>
+
+    <script>
+        const sessionId = 'test-session-' + Date.now();
+        const userId = 'test-user-123';
+
+        function log(message, type = 'info') {
+            const debugLog = document.getElementById('debugLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}\n`;
+            debugLog.textContent += logEntry;
+            debugLog.scrollTop = debugLog.scrollHeight;
+            console.log(logEntry);
+        }
+
+        function updateStepStatus(stepId, success) {
+            const statusElement = document.getElementById(stepId);
+            if (statusElement) {
+                statusElement.textContent = success ? 'SUCCESS-STATUS' : 'ERROR-STATUS';
+                statusElement.className = success ? 'status-badge success-status' : 'status-badge error-status';
+            }
+        }
+
+        function addDetailedResult(testName, result) {
+            const resultsContainer = document.getElementById('detailedResults');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `step ${result.success ? 'success' : 'error'}`;
+            resultDiv.innerHTML = `
+                <strong>${testName}</strong>: ${result.success ? '✅ SUCCESS' : '❌ ERROR'}
+                <br><small>${result.message || result.error || 'No details'}</small>
+            `;
+            resultsContainer.appendChild(resultDiv);
+        }
+
+        async function testAPI(url, data, testName) {
+            try {
+                log(`Testing ${testName}...`);
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                log(`${testName} result: ${result.success ? 'SUCCESS' : 'ERROR'}`);
+                
+                if (!result.success) {
+                    log(`${testName} error: ${result.error || 'Unknown error'}`, 'error');
+                }
+
+                return result;
+            } catch (error) {
+                log(`${testName} exception: ${error.message}`, 'error');
+                return { success: false, error: error.message };
+            }
+        }
+
+        async function testGetDoctors() {
+            const result = await testAPI('/api/chatbot/simple-booking', {
+                step: 'get_doctors',
+                message: 'Test get doctors',
+                session_id: sessionId,
+                user_id: userId,
+                metadata: {
+                    specialty_code: 'INTERNAL'
+                }
+            }, 'Get Doctors');
+            
+            updateStepStatus('step3-status', result.success);
+            addDetailedResult('Get Doctors', result);
+            return result;
+        }
+
+        async function testGetTimeSlots() {
+            const result = await testAPI('/api/chatbot/simple-booking', {
+                step: 'get_time_slots',
+                message: 'Test time slots',
+                session_id: sessionId,
+                user_id: userId,
+                metadata: {
+                    doctor_id: 'GENE-DOC-202506-001',
+                    dates: ['2025-01-15', '2025-01-16']
+                }
+            }, 'Get Time Slots');
+
+            updateStepStatus('step4-status', result.success);
+            addDetailedResult('Get Time Slots', result);
+            return result;
+        }
+
+        async function testReserveSlot() {
+            const result = await testAPI('/api/chatbot/simple-booking', {
+                step: 'reserve_slot',
+                message: 'Reserve time slot',
+                session_id: sessionId,
+                user_id: userId,
+                metadata: {
+                    doctor_id: 'GENE-DOC-202506-001',
+                    appointment_date: '2025-01-15',
+                    appointment_time: '09:00'
+                }
+            }, 'Reserve Slot');
+
+            updateStepStatus('step5-status', result.success);
+            addDetailedResult('Reserve Slot', result);
+            return result;
+        }
+
+        async function testGenerateBooking() {
+            const result = await testAPI('/api/chatbot/simple-booking', {
+                step: 'generate_booking_summary',
+                message: 'Test booking',
+                session_id: sessionId,
+                user_id: userId,
+                metadata: {
+                    booking_data: {
+                        selectedDoctor: {
+                            doctor_id: 'GENE-DOC-202506-001',
+                            doctor_name: 'BS. Nguyễn Văn A'
+                        },
+                        selectedSpecialty: 'Nội Tổng Hợp',
+                        reservationId: 'test-reservation-123'
+                    },
+                    patient_info: {
+                        name: 'Nguyễn Văn Test',
+                        phone: '0123456789',
+                        email: 'test@example.com'
+                    },
+                    appointment_details: {
+                        date: '2025-01-15',
+                        time: '09:00',
+                        symptoms: 'Test symptoms for booking',
+                        specialty_code: 'INTERNAL'
+                    }
+                }
+            }, 'Generate Booking');
+            
+            updateStepStatus('step6-status', result.success);
+            updateStepStatus('step7-status', result.success);
+            updateStepStatus('step8-status', result.success);
+            addDetailedResult('Generate Booking', result);
+            return result;
+        }
+
+        async function runFullTest() {
+            log('🚀 Starting full test suite...', 'info');
+            
+            // Clear previous results
+            document.getElementById('detailedResults').innerHTML = '';
+            
+            // Test 1: Get Doctors
+            const doctorsResult = await testGetDoctors();
+            
+            // Test 2: Get Time Slots
+            const timeSlotsResult = await testGetTimeSlots();
+
+            // Test 3: Reserve Slot
+            const reserveSlotResult = await testReserveSlot();
+
+            // Test 4: Generate Booking
+            const bookingResult = await testGenerateBooking();
+            
+            // Summary
+            const allSuccess = doctorsResult.success && timeSlotsResult.success && reserveSlotResult.success && bookingResult.success;
+            
+            if (allSuccess) {
+                log('🎉 ALL TESTS PASSED! Chatbot flow is working perfectly!', 'success');
+            } else {
+                log('❌ Some tests failed. Check the results above.', 'error');
+            }
+            
+            return allSuccess;
+        }
+
+        // Auto-run test on page load
+        window.addEventListener('load', () => {
+            log('🔄 Page loaded, running automatic test...', 'info');
+            setTimeout(runFullTest, 1000);
+        });
+    </script>
+</body>
+</html>

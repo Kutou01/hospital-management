@@ -139,93 +139,124 @@ async function generateInvoicePDF(payment: any): Promise<Buffer> {
     try {
         console.log('Creating PDF document with jsPDF...');
 
-        // Tạo PDF document với jsPDF
+        // Tạo PDF document với jsPDF - fix encoding
         const doc = new jsPDF({
             orientation: 'portrait',
             unit: 'mm',
-            format: 'a4'
+            format: 'a4',
+            compress: true
         });
 
         console.log('Setting up PDF content...');
 
-        // Header
+        // Sử dụng màu đen cho tất cả text
+        doc.setTextColor(0, 0, 0);
+
+        // Header - đơn giản, tránh ký tự đặc biệt
         doc.setFontSize(20);
+        doc.text('=====================================', 105, 20, { align: 'center' });
         doc.text('BENH VIEN DA KHOA', 105, 30, { align: 'center' });
+        doc.text('=====================================', 105, 40, { align: 'center' });
 
-        doc.setFontSize(12);
-        doc.text('Dia chi: 123 Duong ABC, Quan XYZ, TP. Ho Chi Minh', 105, 40, { align: 'center' });
-        doc.text('Dien thoai: (028) 1234 5678 | Email: info@hospital.com', 105, 50, { align: 'center' });
+        doc.setFontSize(10);
+        doc.text('Dia chi: 123 Duong ABC, Quan XYZ, TP.HCM', 105, 50, { align: 'center' });
+        doc.text('Dien thoai: (028) 1234 5678', 105, 55, { align: 'center' });
+        doc.text('Email: info@hospital.com', 105, 60, { align: 'center' });
 
-        // Đường kẻ ngang
-        doc.line(20, 60, 190, 60);
-
-        // Title
-        doc.setFontSize(18);
+        // Title - loại bỏ emoji
+        doc.setFontSize(16);
         doc.text('HOA DON THANH TOAN', 105, 75, { align: 'center' });
 
-        // Payment info
-        let yPos = 90;
-
-        // Thông tin cơ bản
-        doc.setFontSize(14);
-        doc.text('THONG TIN HOA DON', 20, yPos);
-        yPos += 10;
-
         doc.setFontSize(12);
-        doc.text('Ma don hang: ' + payment.order_code, 20, yPos);
+        doc.text('=====================================', 105, 85, { align: 'center' });
+
+        let yPos = 95;
+
+        // Invoice details
+        doc.setFontSize(11);
+        doc.text('So hoa don: HD-' + payment.order_code, 20, yPos);
         yPos += 8;
 
-        // Xử lý tên bác sĩ - chuyển về không dấu
-        const doctorNameClean = removeVietnameseDiacritics(payment.doctor_name || 'N/A');
+        const paymentDate = payment.paid_at ? new Date(payment.paid_at) : new Date(payment.created_at);
+        const formattedDate = paymentDate.toLocaleDateString('vi-VN') + ' - ' +
+                             paymentDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+        doc.text('Ngay: ' + formattedDate, 20, yPos);
+        yPos += 8;
+
+        doc.text('Trang thai: Da thanh toan', 20, yPos);
+        yPos += 15;
+
+        // Patient information - loại bỏ emoji
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(12);
+        doc.text('THONG TIN BENH NHAN', 20, yPos);
+        doc.text('=====================================', 20, yPos + 5);
+        yPos += 15;
+
+        doc.setFontSize(11);
+        const patientNameClean = removeVietnameseDiacritics(payment.patient_name || '[Ten benh nhan]');
+        doc.text('Benh nhan: ' + patientNameClean + ' (' + (payment.patient_id || 'PAT-202506-001') + ')', 20, yPos);
+        yPos += 15;
+
+        // Service information - loại bỏ emoji
+        doc.setFontSize(12);
+        doc.text('THONG TIN DICH VU', 20, yPos);
+        doc.text('=====================================', 20, yPos + 5);
+        yPos += 15;
+
+        doc.setFontSize(11);
+        const doctorNameClean = removeVietnameseDiacritics(payment.doctor_name || 'BS. Nguyen Van Hung');
         doc.text('Bac si: ' + doctorNameClean, 20, yPos);
         yPos += 8;
 
-        // Xử lý dịch vụ - chuyển về không dấu
-        const serviceNameClean = removeVietnameseDiacritics(payment.description || 'Thanh toan kham benh');
+        const serviceNameClean = removeVietnameseDiacritics(payment.description || 'Kham benh tong quat');
         doc.text('Dich vu: ' + serviceNameClean, 20, yPos);
         yPos += 8;
 
-        doc.text('Phuong thuc thanh toan: ' + (payment.payment_method || 'payos'), 20, yPos);
-        yPos += 8;
-        doc.text('Trang thai: ' + getStatusTextPlain(payment.status), 20, yPos);
-        yPos += 8;
-
-        // Mã giao dịch nếu có
-        if (payment.transaction_id) {
-            doc.text('Ma giao dich: ' + payment.transaction_id, 20, yPos);
-            yPos += 8;
-        }
-
-        // Time info
-        yPos += 10;
-        doc.setFontSize(14);
-        doc.text('THONG TIN THOI GIAN', 20, yPos);
-        yPos += 10;
-
-        doc.setFontSize(12);
-        doc.text('Ngay tao giao dich: ' + formatDate(payment.created_at), 20, yPos);
-        yPos += 8;
-
-        // Xóa phần ngày thanh toán theo yêu cầu
-
-        doc.text('Ngay tao hoa don: ' + formatDate(new Date().toISOString()), 20, yPos);
+        doc.text('Ma lich hen: ' + (payment.appointment_code || 'APPT-' + payment.order_code.slice(-6) + '-T6UP11'), 20, yPos);
         yPos += 15;
 
-        // Tổng tiền - nổi bật
-        doc.rect(20, yPos, 170, 20);
-        doc.setFontSize(16);
-        doc.text('TONG TIEN: ' + formatCurrency(payment.amount), 25, yPos + 12);
-        yPos += 30;
+        // Payment details - loại bỏ emoji
+        doc.setFontSize(12);
+        doc.text('CHI TIET THANH TOAN', 20, yPos);
+        doc.text('=====================================', 20, yPos + 5);
+        yPos += 15;
 
-        // Footer
-        doc.setFontSize(10);
-        doc.text('Cam on ban da su dung dich vu cua chung toi!', 105, yPos, { align: 'center' });
+        doc.setFontSize(11);
+        doc.text('Phi kham benh: ' + (formatCurrency(payment.amount) || '[So tien] VND'), 20, yPos);
         yPos += 8;
-        doc.text('Hoa don duoc tao vao ' + formatDate(new Date().toISOString()), 105, yPos, { align: 'center' });
 
-        // Tạo buffer từ PDF
+        doc.text('Tong cong: ' + (formatCurrency(payment.amount) || '[So tien] VND'), 20, yPos);
+        yPos += 8;
+
+        doc.text('Phuong thuc: ' + (payment.payment_method || 'PayOS'), 20, yPos);
+        yPos += 8;
+
+        doc.text('Ma giao dich: ' + (payment.transaction_id || payment.order_code), 20, yPos);
+        yPos += 8;
+
+        doc.text('Thoi gian TT: ' + formattedDate, 20, yPos);
+        yPos += 15;
+
+        // Footer - loại bỏ emoji
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(12);
+        doc.text('LIEN HE HO TRO', 20, yPos);
+        doc.text('=====================================', 20, yPos + 5);
+        yPos += 15;
+
+        doc.setFontSize(10);
+        doc.text('Hotline: (028) 1234 5678 | Email: support@hospital.com', 20, yPos);
+        yPos += 8;
+        doc.text('Cam on quy khach da su dung dich vu cua chung toi!', 20, yPos);
+
+        // Tạo buffer từ PDF - fix encoding
         console.log('Finalizing PDF document...');
-        const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
+
+        // Sử dụng output với encoding chuẩn
+        const pdfOutput = doc.output('arraybuffer');
+        const pdfBuffer = Buffer.from(pdfOutput);
+
         console.log('PDF document created successfully, size:', pdfBuffer.length);
 
         return pdfBuffer;

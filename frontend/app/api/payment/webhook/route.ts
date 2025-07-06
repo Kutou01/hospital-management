@@ -219,21 +219,11 @@ async function sendPaymentSuccessNotification(paymentData: {
             return;
         }
 
-        // Gửi email thông báo thanh toán thành công
-        console.log('📧 [Webhook] Sending email to:', patientInfo.email);
+        // ❌ TẮT EMAIL TỪ WEBHOOK - Email sẽ được gửi từ payment success page
+        console.log('📧 [Webhook] Email notification disabled - will be sent from payment success page');
 
-        // Import EmailService dynamically để tránh lỗi server-side
-        const { EmailService } = await import('@/lib/services/email.service');
-
-        const emailResult = await EmailService.sendPaymentSuccessEmail({
-            patientName: patientInfo.full_name,
-            patientEmail: patientInfo.email,
-            orderCode: paymentData.orderCode,
-            amount: paymentData.amount,
-            doctorName: paymentData.doctorName || 'Bác sĩ',
-            paymentDate: new Date().toISOString(),
-            recordId: paymentData.recordId
-        });
+        // const { EmailService } = await import('@/lib/services/email.service');
+        // const emailResult = await EmailService.sendPaymentSuccessEmail({...});
 
         if (emailResult.success) {
             console.log('✅ [Webhook] Email notification sent successfully');

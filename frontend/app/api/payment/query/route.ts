@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
                     'x-client-id': PAYOS_CLIENT_ID,
                     'x-api-key': PAYOS_API_KEY
                 },
-                timeout: 10000 // 10 seconds timeout
+                timeout: 30000 // 10 seconds timeout
             });
 
             const payosResponse = response.data;

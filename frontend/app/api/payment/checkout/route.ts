@@ -222,7 +222,7 @@ async function processPaymentRequest(body: any, request?: NextRequest) {
 
         // Tạo URLs với thông tin đầy đủ cho email
         const cancelUrl = `${APP_DOMAIN}/payment/cancel`;
-        const returnUrl = `${APP_DOMAIN}${redirectUrl}?orderCode=${orderCode}&amount=${amount}&doctorId=${doctorId || ''}&doctorName=${encodeURIComponent(doctorName || '')}&patientId=${finalPatientId || ''}&recordId=${recordId || ''}`;
+        const returnUrl = `${APP_DOMAIN}${redirectUrl}&orderCode=${orderCode}&amount=${amount}&doctorId=${doctorId || ''}&doctorName=${encodeURIComponent(doctorName || '')}&patientId=${finalPatientId || ''}&recordId=${recordId || ''}`;
 
         // Tạo mô tả mới đảm bảo có patient_id
         let enhancedDescription = description || 'Thanh toán khám bệnh';
@@ -284,7 +284,7 @@ async function processPaymentRequest(body: any, request?: NextRequest) {
                         'x-api-key': PAYOS_API_KEY,
                         'Content-Type': 'application/json'
                     },
-                    timeout: 10000 // Timeout sau 10 giây
+                    timeout: 30000 // Timeout sau 10 giây
                 }
             );
 

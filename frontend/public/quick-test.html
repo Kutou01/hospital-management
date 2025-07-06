@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Chatbot Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+            background: #f8f9fa;
+        }
+        .success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        .error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Quick Chatbot API Test</h1>
+        
+        <div>
+            <button class="test-button" onclick="testSymptomAnalysis()">Test Symptom Analysis</button>
+            <button class="test-button" onclick="testGetDoctors()">Test Get Doctors</button>
+            <button class="test-button" onclick="testGetTimeSlots()">Test Time Slots</button>
+            <button class="test-button" onclick="testReserveSlot()">Test Reserve Slot</button>
+            <button class="test-button" onclick="testBooking()">Test Booking</button>
+            <button class="test-button" onclick="runAllTests()">Run All Tests</button>
+        </div>
+        
+        <div id="results"></div>
+        <div id="log" class="log"></div>
+    </div>
+
+    <script>
+        const sessionId = 'test-' + Date.now();
+        const userId = 'user-123';
+
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function addResult(testName, success, message) {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `result ${success ? 'success' : 'error'}`;
+            resultDiv.innerHTML = `
+                <strong>${testName}</strong>: ${success ? '✅ SUCCESS' : '❌ FAILED'}
+                <br><small>${message}</small>
+            `;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        async function testAPI(endpoint, data, testName) {
+            log(`Testing ${testName}...`);
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                const success = result.success;
+                const message = success ? (result.message || 'OK') : (result.error || 'Unknown error');
+                
+                log(`${testName}: ${success ? 'SUCCESS' : 'FAILED'} - ${message}`);
+                addResult(testName, success, message);
+                
+                return result;
+            } catch (error) {
+                log(`${testName}: ERROR - ${error.message}`);
+                addResult(testName, false, error.message);
+                return { success: false, error: error.message };
+            }
+        }
+
+        async function testSymptomAnalysis() {
+            return await testAPI('/api/chatbot/simple-booking', {
+                step: 'symptom_analysis',
+                message: 'tôi bị đau bụng và buồn nôn',
+                session_id: sessionId,
+                user_id: userId,
+                metadata: {}
+            }, 'Symptom Analysis');
+        }
+
+        async function testGetDoctors() {
+            return await testAPI('/api/chatbot/simple-booking', {
+                step: 'get_doctors',
+                message: 'get doctors',
+                session_id: sessionId,
+                user_id: userId,
+                metadata: { specialty_code: 'SPEC042' }
+            }, 'Get Doctors');
+        }
+
+        async function testGetTimeSlots() {
+            return await testAPI('/api/chatbot/simple-booking', {
+                step: 'get_time_slots',
+                message: 'get time slots',
+                session_id: sessionId,
+                user_id: userId,
+                metadata: {
+                    doctor_id: 'GENE-DOC-202506-001',
+                    dates: ['2025-01-15']
+                }
+            }, 'Get Time Slots');
+        }
+
+        async function testReserveSlot() {
+            return await testAPI('/api/chatbot/simple-booking', {
+                step: 'reserve_slot',
+                message: 'reserve slot',
+                session_id: sessionId,
+                user_id: userId,
+                metadata: {
+                    doctor_id: 'GENE-DOC-202506-001',
+                    appointment_date: '2025-01-15',
+                    appointment_time: '09:00'
+                }
+            }, 'Reserve Slot');
+        }
+
+        async function testBooking() {
+            return await testAPI('/api/chatbot/simple-booking', {
+                step: 'generate_booking_summary',
+                message: 'generate booking',
+                session_id: sessionId,
+                user_id: userId,
+                metadata: {
+                    booking_data: {
+                        selectedDoctor: {
+                            doctor_id: 'GENE-DOC-202506-001',
+                            doctor_name: 'BS. Test Doctor'
+                        },
+                        selectedSpecialty: 'Nội Tổng Hợp'
+                    },
+                    patient_info: {
+                        name: 'Nguyễn Văn Test',
+                        phone: '0123456789',
+                        email: 'test@example.com'
+                    },
+                    appointment_details: {
+                        date: '2025-01-15',
+                        time: '09:00',
+                        symptoms: 'Test symptoms',
+                        specialty_code: 'SPEC042'
+                    }
+                }
+            }, 'Generate Booking');
+        }
+
+        async function runAllTests() {
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('log').innerHTML = '';
+            
+            log('🚀 Starting all tests...');
+            
+            await testSymptomAnalysis();
+            await testGetDoctors();
+            await testGetTimeSlots();
+            await testReserveSlot();
+            await testBooking();
+            
+            log('✅ All tests completed!');
+        }
+
+        // Auto-run on page load
+        window.addEventListener('load', () => {
+            log('Page loaded. Ready to test!');
+        });
+    </script>
+</body>
+</html>

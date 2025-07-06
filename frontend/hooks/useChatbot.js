@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
 
 // Configuration
-const CHATBOT_API_URL = process.env.NEXT_PUBLIC_CHATBOT_API_URL || 'http://localhost:3020';
+// Use enhanced chatbot API with fixed Vietnamese NLP (port 3021)
+const CHATBOT_API_URL = process.env.NEXT_PUBLIC_ENHANCED_CHATBOT_API_URL || 'http://localhost:3021';
 
 export const useChatbot = () => {
   const [messages, setMessages] = useState([]);
@@ -31,11 +32,12 @@ export const useChatbot = () => {
         `${msg.sender === 'user' ? 'User' : 'AI'}: ${msg.text}`
       );
 
-      // Call chatbot API
-      const response = await fetch(`${CHATBOT_API_URL}/api/health/chat`, {
+      // Call unified chatbot API
+      const response = await fetch(`${CHATBOT_API_URL}/api/chat`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json; charset=utf-8',
+          'Accept': 'application/json; charset=utf-8',
         },
         body: JSON.stringify({
           message: message,

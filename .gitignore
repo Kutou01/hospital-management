@@ -1,5 +1,3 @@
-# Hospital Management System - Gitignore
-
 # Dependencies
 node_modules/
 */node_modules/
@@ -35,8 +33,11 @@ backend/build/
 
 # Environment files
 .env*
+!.env.example
 frontend/.env*
+!frontend/.env.example
 backend/.env*
+!backend/.env.example
 
 # Logs
 logs
@@ -74,30 +75,13 @@ next-env.d.ts
 # Vercel
 .vercel
 
-# Monitoring
-monitoring/logs/
-monitoring/data/
-
-# Deployment secrets
-deployment/secrets/
-deployment/configs/*.local.*
-
 # Temporary files
 tmp/
 temp/
 
-# Added by Task Master AI
-dev-debug.log
-# Dependency directories
-# Environment variables
-.env
 # Editor directories and files
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-# OS specific
-# Task files
-tasks.json
-tasks/ 

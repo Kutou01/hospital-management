@@ -328,6 +328,111 @@ class SessionManager {
     // This would require restarting the session manager to take effect
     console.log(`🔄 [SessionManager] Auto-clear on tab close: ${enabled ? 'enabled' : 'disabled'}`)
   }
+
+  // Enhanced session cleanup and optimization
+  private cleanupExpiredSessions(): void {
+    try {
+      const now = Date.now()
+
+      // Clear expired session from storage
+      const session = this.getStoredSession()
+      if (session && session.expiresAt <= now) {
+        this.clearSession()
+        console.log('🧹 [SessionManager] Expired session cleaned up')
+        this.notifyListeners()
+      }
+
+      // Clear old state data
+      const stateData = this.getStoredState()
+      if (stateData && (now - stateData.lastChecked) > this.CLEANUP_INTERVAL) {
+        sessionStorage.removeItem(this.STATE_KEY)
+        console.log('🧹 [SessionManager] Old state data cleaned up')
+      }
+
+      // Clean up orphaned chatbot sessions
+      this.cleanupChatbotSessions()
+
+    } catch (error) {
+      console.error('❌ [SessionManager] Error during cleanup:', error)
+    }
+  }
+
+  // Clean up orphaned chatbot sessions
+  private cleanupChatbotSessions(): void {
+    try {
+      const chatbotSessionKeys = Object.keys(localStorage).filter(key =>
+        key.startsWith('chatbot_session_') || key.startsWith('chat_history_')
+      )
+
+      chatbotSessionKeys.forEach(key => {
+        try {
+          const sessionData = JSON.parse(localStorage.getItem(key) || '{}')
+          const sessionAge = Date.now() - (sessionData.created_at || 0)
+
+          // Remove sessions older than 24 hours
+          if (sessionAge > 24 * 60 * 60 * 1000) {
+            localStorage.removeItem(key)
+            console.log(`🧹 [SessionManager] Cleaned up old chatbot session: ${key}`)
+          }
+        } catch (e) {
+          // Remove corrupted session data
+          localStorage.removeItem(key)
+          console.log(`🧹 [SessionManager] Removed corrupted session: ${key}`)
+        }
+      })
+    } catch (error) {
+      console.error('❌ [SessionManager] Error cleaning chatbot sessions:', error)
+    }
+  }
+
+  // Optimize session storage
+  optimizeStorage(): void {
+    try {
+      this.cleanupExpiredSessions()
+
+      const session = this.getStoredSession()
+      if (session) {
+        // Compress session data
+        const optimizedSession = {
+          user: {
+            id: session.user.id,
+            email: session.user.email,
+            role: session.user.role,
+            full_name: session.user.full_name
+          },
+          accessToken: session.accessToken,
+          refreshToken: session.refreshToken,
+          expiresAt: session.expiresAt,
+          createdAt: session.createdAt
+        }
+
+        const storage = this.CLEAR_ON_TAB_CLOSE ? sessionStorage : localStorage
+        storage.setItem(this.SESSION_KEY, JSON.stringify(optimizedSession))
+        console.log('🔧 [SessionManager] Session storage optimized')
+      }
+
+      sessionStorage.setItem('last_optimization', Date.now().toString())
+    } catch (error) {
+      console.error('❌ [SessionManager] Error optimizing storage:', error)
+    }
+  }
+
+  // Run periodic maintenance
+  runMaintenance(): void {
+    try {
+      const lastOptimization = parseInt(sessionStorage.getItem('last_optimization') || '0')
+      const now = Date.now()
+
+      // Run optimization every 30 minutes
+      if (now - lastOptimization > 30 * 60 * 1000) {
+        this.optimizeStorage()
+      } else {
+        this.cleanupExpiredSessions()
+      }
+    } catch (error) {
+      console.error('❌ [SessionManager] Error during maintenance:', error)
+    }
+  }
 }
 
 export const sessionManager = SessionManager.getInstance()

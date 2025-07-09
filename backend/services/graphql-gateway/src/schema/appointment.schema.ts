@@ -1,4 +1,4 @@
-import { gql } from 'apollo-server-express';
+import { gql } from 'graphql-tag';
 
 /**
  * GraphQL Schema for Appointment entities
@@ -6,10 +6,7 @@ import { gql } from 'apollo-server-express';
  * Supports Vietnamese language and hospital management requirements
  */
 export const appointmentTypeDefs = gql`
-  # Appointment-specific scalars
-  scalar AppointmentID
-  scalar Time
-
+  # Appointment-specific enums only (common scalars defined in base schema)
   # Enums
   enum AppointmentType {
     CONSULTATION
@@ -138,7 +135,7 @@ export const appointmentTypeDefs = gql`
     availableSlots: [AppointmentSlot!]!
     totalSlots: Int!
     bookedSlots: Int!
-    availableSlots: Int!
+    availableSlotsCount: Int!
     workingHours: WorkingHours!
   }
 
@@ -327,7 +324,7 @@ export const appointmentTypeDefs = gql`
     cancelAppointment(input: CancelAppointmentInput!): Appointment!
     
     # Check-in process
-    checkInPatient(input: CheckInInput!): Appointment!
+    checkInAppointment(id: UUID!): Appointment!
     startAppointment(id: UUID!): Appointment!
     completeAppointment(id: UUID!, notes: String): Appointment!
     markNoShow(id: UUID!, reason: String): Appointment!

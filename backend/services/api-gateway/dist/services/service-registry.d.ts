@@ -1,7 +1,7 @@
 interface ServiceInfo {
     name: string;
     url: string;
-    status: 'healthy' | 'unhealthy' | 'unknown';
+    status: "healthy" | "unhealthy" | "unknown";
     lastCheck: Date;
 }
 export declare class ServiceRegistry {

@@ -235,8 +235,7 @@ export class DashboardController {
           profiles!inner(
             full_name,
             email,
-            phone_number,
-            avatar_url
+            phone_number
           ),
           departments!inner(
             department_name
@@ -267,7 +266,7 @@ export class DashboardController {
         availability_status: doctor.availability_status,
         rating: doctor.rating,
         total_reviews: doctor.total_reviews,
-        avatar_url: (doctor.profiles as any).avatar_url
+        avatar_url: null // Avatar URL not available in current schema
       };
 
     } catch (error) {

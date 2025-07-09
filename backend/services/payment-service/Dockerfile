@@ -13,7 +13,7 @@ COPY shared/ ./shared/
 # Build shared package
 WORKDIR /app/shared
 COPY shared/package*.json ./
-RUN npm ci && npm run build
+RUN npm install && npm run build
 
 # Switch to service directory
 WORKDIR /app/services/payment-service

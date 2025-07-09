@@ -1,5 +1,5 @@
-import { ApolloServerPlugin } from 'apollo-server-core';
-import { GraphQLRequestContext } from 'apollo-server-types';
+import { ApolloServerPlugin } from '@apollo/server';
+import { GraphQLRequestContext } from '@apollo/server';
 import { GraphQLContext, UserRole } from '../context';
 import logger from '@hospital/shared/dist/utils/logger';
 
@@ -113,10 +113,11 @@ const rateLimitStore = new MemoryRateLimitStore();
  * Rate limiting middleware for GraphQL
  */
 export const rateLimitMiddleware: ApolloServerPlugin<GraphQLContext> = {
-  requestDidStart() {
+  async requestDidStart() {
     return {
-      async didResolveOperation(requestContext: GraphQLRequestContext<GraphQLContext>) {
-        const { context, request } = requestContext;
+      async didResolveOperation(requestContext) {
+        const context = requestContext.contextValue;
+        const { request } = requestContext;
 
         // Skip rate limiting for introspection queries
         if (request.operationName === 'IntrospectionQuery') {
@@ -217,11 +218,12 @@ export const rateLimitMiddleware: ApolloServerPlugin<GraphQLContext> = {
         }
       },
 
-      willSendResponse(requestContext: GraphQLRequestContext<GraphQLContext>) {
-        const { context, response } = requestContext;
+      async willSendResponse(requestContext) {
+        const context = requestContext.contextValue;
+        const { response } = requestContext;
 
         // Add rate limit headers to response
-        if (context.rateLimitInfo && response.http) {
+        if (context.rateLimitInfo && response?.http) {
           response.http.headers.set('X-RateLimit-Limit', context.rateLimitInfo.limit.toString());
           response.http.headers.set('X-RateLimit-Remaining', context.rateLimitInfo.remaining.toString());
           response.http.headers.set('X-RateLimit-Reset', context.rateLimitInfo.resetTime.toISOString());

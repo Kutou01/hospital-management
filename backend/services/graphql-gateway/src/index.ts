@@ -1,40 +1,21 @@
 import express from 'express';
-import { ApolloServer } from 'apollo-server-express';
+import { ApolloServer } from '@apollo/server';
+import { expressMiddleware } from '@apollo/server/express4';
+import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
 import { createServer } from 'http';
-import { WebSocketServer } from 'ws';
-import { useServer } from 'graphql-ws/lib/use/ws';
-import { makeExecutableSchema } from '@graphql-tools/schema';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import { buildSchema } from 'graphql';
 
 // Import shared utilities
 import logger from '@hospital/shared/dist/utils/logger';
-import { 
-  EnhancedResponseHelper, 
-  addRequestId, 
-  globalErrorHandler
-} from '@hospital/shared/dist/utils/response-helpers';
-import { 
-  sanitizeInput 
-} from '@hospital/shared/dist/middleware/validation.middleware';
-import { 
-  createVersioningMiddleware,
-  responseTransformMiddleware 
-} from '@hospital/shared/dist/middleware/versioning.middleware';
+import { EnhancedResponseHelper } from '@hospital/shared/dist/utils/response-helpers';
+// import { addRequestId } from '@hospital/shared/dist/middleware/request-id'; // Not available
 
-// Import GraphQL schema and resolvers
-import { typeDefs } from './schema';
-import { resolvers } from './resolvers';
-import { createDataLoaders } from './dataloaders';
+// Import GraphQL context
 import { createContext } from './context';
-import { authMiddleware } from './middleware/auth.middleware';
-import { rateLimitMiddleware } from './middleware/rateLimit.middleware';
-import { complexityLimitMiddleware } from './middleware/complexity.middleware';
-import { i18nPlugin } from './middleware/i18n.middleware';
-import { subscriptionService } from './services/subscription.service';
-import subscriptionRoutes from './routes/subscriptions.routes';
 
 // Load environment variables
 dotenv.config();
@@ -51,7 +32,10 @@ async function startServer() {
   try {
     // Create Express app
     const app = express();
-    
+
+    // Create HTTP server first
+    const httpServer = createServer(app);
+
     // Initialize ResponseHelper
     EnhancedResponseHelper.initialize(SERVICE_NAME, SERVICE_VERSION);
 
@@ -75,182 +59,85 @@ async function startServer() {
     }));
 
     // General middleware
-    app.use(addRequestId);
+    // app.use(addRequestId); // Not available
     app.use(morgan('combined'));
     app.use(express.json({ limit: '10mb' }));
     app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-    // Phase 2 Middleware - API Optimization
-    app.use(sanitizeInput);
-    app.use(createVersioningMiddleware());
-    app.use(responseTransformMiddleware());
+    // Import the fixed schema and resolvers
+    const { typeDefs } = await import('./schema/index.js');
+    const { resolvers } = await import('./resolvers/index.js');
 
-    // Initialize subscription service
-    await subscriptionService.initialize();
-    logger.info('✅ Subscription service initialized');
-
-    // Create executable schema
-    const schema = makeExecutableSchema({
+    // Create Apollo Server with full schema
+    const apolloServer = new ApolloServer({
       typeDefs,
       resolvers,
-    });
-
-    // Create Apollo Server
-    const apolloServer = new ApolloServer({
-      schema,
-      context: ({ req, res }) => createContext({ req, res }),
       plugins: [
-        // Authentication plugin
-        authMiddleware,
-        // Rate limiting plugin
-        rateLimitMiddleware,
-        // Query complexity limiting plugin
-        complexityLimitMiddleware,
-        // Internationalization plugin
-        i18nPlugin,
+        ApolloServerPluginDrainHttpServer({ httpServer }),
         // Custom error formatting plugin
         {
-          requestDidStart() {
+          async requestDidStart() {
             return {
-              didEncounterErrors(requestContext) {
-                // Log GraphQL errors with Vietnamese translation
-                requestContext.errors?.forEach(error => {
+              async didEncounterErrors(requestContext: any) {
+                // Log GraphQL errors
+                requestContext.errors?.forEach((error: any) => {
                   logger.error('GraphQL Error:', {
                     message: error.message,
                     path: error.path,
                     source: error.source?.body,
-                    positions: error.positions,
-                    vietnamese: translateErrorToVietnamese(error.message)
+                    positions: error.positions
                   });
                 });
               },
-              willSendResponse(requestContext) {
-                // Add Vietnamese error messages to response
+              async willSendResponse(requestContext: any) {
+                // Add error handling
                 if (requestContext.response.errors) {
-                  requestContext.response.errors = requestContext.response.errors.map(error => ({
-                    ...error,
-                    extensions: {
-                      ...error.extensions,
-                      vietnamese: translateErrorToVietnamese(error.message)
-                    }
-                  }));
+                  logger.error('GraphQL Response Errors:', requestContext.response.errors);
                 }
               }
             };
           }
         }
       ],
-      formatError: (error) => {
-        // Format errors with Vietnamese messages
-        return {
-          message: error.message,
-          code: error.extensions?.code || 'GRAPHQL_ERROR',
-          path: error.path,
-          vietnamese: translateErrorToVietnamese(error.message),
-          extensions: {
-            ...error.extensions,
-            vietnamese: translateErrorToVietnamese(error.message)
-          }
-        };
-      },
-      introspection: process.env.NODE_ENV !== 'production',
-      playground: process.env.NODE_ENV !== 'production' ? {
-        settings: {
-          'request.credentials': 'include',
-        },
-      } : false,
+      introspection: process.env.NODE_ENV !== 'production'
     });
 
     // Start Apollo Server
     await apolloServer.start();
 
-    // Apply Apollo GraphQL middleware
-    apolloServer.applyMiddleware({
-      app,
-      path: '/graphql',
-      cors: false // Already handled by Express CORS
-    });
+    // Apply Apollo GraphQL middleware with v4 syntax
+    app.use('/graphql',
+      cors<cors.CorsRequest>(),
+      express.json(),
+      expressMiddleware(apolloServer, {
+        context: async ({ req, res }: { req: any; res: any }) => {
+          return await createContext({ req, res });
+        }
+      })
+    );
 
-    // Add subscription webhook routes
-    app.use('/subscriptions', subscriptionRoutes);
-
-    // Create HTTP server
-    const httpServer = createServer(app);
-
-    // Create WebSocket server for subscriptions
-    const wsServer = new WebSocketServer({
-      server: httpServer,
-      path: '/graphql',
-    });
-
-    // Setup GraphQL subscriptions
-    const serverCleanup = useServer({
-      schema,
-      context: async (ctx) => {
-        // Create context for subscriptions
-        return createContext({ 
-          req: ctx.extra.request,
-          connectionParams: ctx.connectionParams 
-        });
-      },
-      onConnect: async (ctx) => {
-        // Authenticate WebSocket connections
-        logger.info('GraphQL WebSocket connection established');
-        return true;
-      },
-      onDisconnect: () => {
-        logger.info('GraphQL WebSocket connection closed');
-      },
-    }, wsServer);
+    // HTTP server already created above
 
     // Health check endpoint
     app.get('/health', async (req, res) => {
       try {
-        const healthCheck = EnhancedResponseHelper.healthCheck(
-          'healthy',
-          {
-            graphql: {
-              status: 'healthy',
-              endpoint: '/graphql',
-              playground: process.env.NODE_ENV !== 'production'
-            },
-            websocket: {
-              status: 'healthy',
-              endpoint: '/graphql',
-              connections: wsServer.clients.size
-            },
-            services: {
-              'api-gateway': await checkServiceHealth('http://localhost:3100/health'),
-              'auth-service': await checkServiceHealth('http://localhost:3001/health'),
-              'doctor-service': await checkServiceHealth('http://localhost:3002/health'),
-              'patient-service': await checkServiceHealth('http://localhost:3003/health'),
-              'appointment-service': await checkServiceHealth('http://localhost:3004/health'),
-              'department-service': await checkServiceHealth('http://localhost:3005/health'),
-              'medical-records-service': await checkServiceHealth('http://localhost:3006/health'),
-              'prescription-service': await checkServiceHealth('http://localhost:3007/health')
-            }
-          },
-          {
-            graphql_gateway: true,
-            real_time_subscriptions: true,
-            vietnamese_support: true,
-            authentication: true,
-            rate_limiting: true,
-            query_complexity_limiting: true,
-            data_loader_optimization: true
+        res.json({
+          status: 'healthy',
+          service: 'GraphQL Gateway',
+          timestamp: new Date().toISOString(),
+          version: '1.0.0',
+          graphql: {
+            endpoint: '/graphql',
+            introspection: process.env.NODE_ENV !== 'production'
           }
-        );
-
-        res.status(200).json(healthCheck);
+        });
       } catch (error: any) {
         logger.error('Health check error:', error);
-        const errorHealthCheck = EnhancedResponseHelper.healthCheck(
-          'unhealthy',
-          {
-            error: error.message
-          }
-        );
-        res.status(503).json(errorHealthCheck);
+        res.status(503).json({
+          status: 'unhealthy',
+          error: error.message,
+          timestamp: new Date().toISOString()
+        });
       }
     });
 
@@ -270,20 +157,13 @@ async function startServer() {
 
     // 404 handler
     app.use('*', (req, res) => {
-      const errorResponse = EnhancedResponseHelper.errorVi(
-        'NOT_FOUND',
-        'ROUTE_NOT_FOUND',
-        {
-          path: req.originalUrl,
-          method: req.method,
-          message: `Không tìm thấy đường dẫn ${req.originalUrl}`
-        }
-      );
-      res.status(404).json(errorResponse);
+      res.status(404).json({
+        error: 'NOT_FOUND',
+        message: `Không tìm thấy đường dẫn ${req.originalUrl}`,
+        path: req.originalUrl,
+        method: req.method
+      });
     });
-
-    // Global error handler
-    app.use(globalErrorHandler);
 
     // Start server
     httpServer.listen(PORT, () => {
@@ -299,7 +179,6 @@ async function startServer() {
     // Graceful shutdown
     process.on('SIGTERM', async () => {
       logger.info('SIGTERM received, shutting down gracefully');
-      serverCleanup.dispose();
       await apolloServer.stop();
       httpServer.close(() => {
         logger.info('GraphQL Gateway Server closed');

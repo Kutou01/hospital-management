@@ -1,5 +1,6 @@
 services:
   # GraphQL Gateway - Unified GraphQL API over REST microservices
+  # PERFORMANCE OPTIMIZED: Direct microservice access to eliminate double hop
   graphql-gateway:
     build:
       context: .
@@ -9,42 +10,68 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3200
+      # OPTIMIZATION: Direct microservice URLs for better performance
       - API_GATEWAY_URL=http://api-gateway:3100
-      - AUTH_SERVICE_URL=http://api-gateway:3100/api/auth
-      - DOCTOR_SERVICE_URL=http://api-gateway:3100/api/doctors
-      - PATIENT_SERVICE_URL=http://api-gateway:3100/api/patients
-      - APPOINTMENT_SERVICE_URL=http://api-gateway:3100/api/appointments
-      - DEPARTMENT_SERVICE_URL=http://api-gateway:3100/api/departments
-      - MEDICAL_RECORDS_SERVICE_URL=http://api-gateway:3100/api/medical-records
-      - PRESCRIPTION_SERVICE_URL=http://api-gateway:3100/api/prescriptions
-      - BILLING_SERVICE_URL=http://api-gateway:3100/api/billing
-      - PAYMENT_SERVICE_URL=http://api-gateway:3100/api/payments
-      - NOTIFICATION_SERVICE_URL=http://api-gateway:3100/api/notifications
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - DOCTOR_SERVICE_URL=http://doctor-service:3002
+      - PATIENT_SERVICE_URL=http://patient-service:3003
+      - APPOINTMENT_SERVICE_URL=http://appointment-service:3004
+      - DEPARTMENT_SERVICE_URL=http://department-service:3005
+      - RECEPTIONIST_SERVICE_URL=http://receptionist-service:3006
+      - MEDICAL_RECORDS_SERVICE_URL=http://medical-records-service:3007
+      - PRESCRIPTION_SERVICE_URL=http://prescription-service:3008
+      - BILLING_SERVICE_URL=http://billing-service:3008
+      - PAYMENT_SERVICE_URL=http://payment-service:3009
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3011
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
       - JWT_SECRET=${JWT_SECRET}
       - CORS_ORIGIN=http://localhost:3000,http://localhost:3100
       - DEFAULT_LANGUAGE=vi
       - TIMEZONE=Asia/Ho_Chi_Minh
+      # PERFORMANCE: Enable optimizations
+      - ENABLE_CACHING=true
+      - ENABLE_COMPRESSION=true
+      - ENABLE_HTTP2=true
+      - MAX_QUERY_COMPLEXITY=1000
+      - DATALOADER_BATCH_SIZE=100
     depends_on:
       - redis
       - rabbitmq
     networks:
       - hospital-network
-    # Resource limits
+    # OPTIMIZED: Resource limits for better performance
     deploy:
       resources:
         limits:
-          memory: 512M
-          cpus: '0.5'
+          memory: 1G
+          cpus: "1.0"
         reservations:
-          memory: 256M
-          cpus: '0.25'
+          memory: 512M
+          cpus: "0.5"
+      # AUTO-SCALING: Replicas for load balancing
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+    restart: unless-stopped
     profiles:
       - core
       - full
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3200/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   # API Gateway
   api-gateway:
@@ -61,9 +88,9 @@ services:
       - PATIENT_SERVICE_URL=http://patient-service:3003
       - APPOINTMENT_SERVICE_URL=http://appointment-service:3004
       - DEPARTMENT_SERVICE_URL=http://department-service:3005
-      - MEDICAL_RECORDS_SERVICE_URL=http://medical-records-service:3006
-      - PRESCRIPTION_SERVICE_URL=http://prescription-service:3009
-      - BILLING_SERVICE_URL=http://billing-service:3008
+      - RECEPTIONIST_SERVICE_URL=http://receptionist-service:3006
+      - MEDICAL_RECORDS_SERVICE_URL=http://medical-records-service:3007
+      - PRESCRIPTION_SERVICE_URL=http://prescription-service:3008
       - PAYMENT_SERVICE_URL=http://payment-service:3009
       - NOTIFICATION_SERVICE_URL=http://notification-service:3011
       - GRAPHQL_GATEWAY_URL=http://graphql-gateway:3200
@@ -81,10 +108,10 @@ services:
       resources:
         limits:
           memory: 256M
-          cpus: '0.5'
+          cpus: "0.5"
         reservations:
           memory: 128M
-          cpus: '0.25'
+          cpus: "0.25"
     profiles:
       - core
       - full
@@ -103,6 +130,7 @@ services:
       - PORT=3001
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
     depends_on:
@@ -115,10 +143,10 @@ services:
       resources:
         limits:
           memory: 256M
-          cpus: '0.5'
+          cpus: "0.5"
         reservations:
           memory: 128M
-          cpus: '0.25'
+          cpus: "0.25"
     profiles:
       - core
       - full
@@ -151,10 +179,10 @@ services:
       resources:
         limits:
           memory: 256M
-          cpus: '0.5'
+          cpus: "0.5"
         reservations:
           memory: 128M
-          cpus: '0.25'
+          cpus: "0.25"
     profiles:
       - core
       - full
@@ -185,10 +213,10 @@ services:
       resources:
         limits:
           memory: 256M
-          cpus: '0.5'
+          cpus: "0.5"
         reservations:
           memory: 128M
-          cpus: '0.25'
+          cpus: "0.25"
     profiles:
       - core
       - full
@@ -221,10 +249,10 @@ services:
       resources:
         limits:
           memory: 256M
-          cpus: '0.5'
+          cpus: "0.5"
         reservations:
           memory: 128M
-          cpus: '0.25'
+          cpus: "0.25"
     profiles:
       - core
       - full
@@ -253,10 +281,47 @@ services:
       resources:
         limits:
           memory: 256M
-          cpus: '0.5'
+          cpus: "0.5"
         reservations:
           memory: 128M
-          cpus: '0.25'
+          cpus: "0.25"
+    profiles:
+      - core
+      - full
+
+  # Receptionist Service - ENABLED
+  receptionist-service:
+    build:
+      context: .
+      dockerfile: ./services/receptionist-service/Dockerfile
+    ports:
+      - "3006:3006"
+    env_file:
+      - ./services/receptionist-service/.env
+    environment:
+      - NODE_ENV=development
+      - PORT=3006
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - DOCTOR_SERVICE_URL=http://doctor-service:3002
+      - PATIENT_SERVICE_URL=http://patient-service:3003
+      - APPOINTMENT_SERVICE_URL=http://appointment-service:3004
+      - DEPARTMENT_SERVICE_URL=http://department-service:3005
+      # Pure API Gateway Communication - All service calls go through API Gateway
+      - API_GATEWAY_URL=http://api-gateway:3100
+    depends_on:
+      - redis
+      - rabbitmq
+    networks:
+      - hospital-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.25"
     profiles:
       - core
       - full
@@ -267,12 +332,12 @@ services:
       context: .
       dockerfile: ./services/medical-records-service/Dockerfile
     ports:
-      - "3006:3006"
+      - "3007:3007"
     env_file:
       - ./services/medical-records-service/.env
     environment:
       - NODE_ENV=development
-      - PORT=3006
+      - PORT=3007
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - REDIS_URL=redis://redis:6379
@@ -290,10 +355,10 @@ services:
       resources:
         limits:
           memory: 256M
-          cpus: '0.5'
+          cpus: "0.5"
         reservations:
           memory: 128M
-          cpus: '0.25'
+          cpus: "0.25"
     profiles:
       - core
       - full
@@ -332,48 +397,10 @@ services:
       resources:
         limits:
           memory: 256M
-          cpus: '0.5'
+          cpus: "0.5"
         reservations:
           memory: 128M
-          cpus: '0.25'
-    profiles:
-      - core
-      - full
-
-  # Billing Service - ENABLED
-  billing-service:
-    build:
-      context: .
-      dockerfile: ./services/billing-service/Dockerfile
-    ports:
-      - "3008:3008"
-    env_file:
-      - ./services/billing-service/.env
-    environment:
-      - NODE_ENV=development
-      - PORT=3008
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-      - REDIS_URL=redis://redis:6379
-      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
-      - AUTH_SERVICE_URL=http://auth-service:3001
-      - APPOINTMENT_SERVICE_URL=http://appointment-service:3004
-      - NOTIFICATION_SERVICE_URL=http://notification-service:3011
-      - STRIPE_SECRET_KEY=sk_test_your_stripe_key
-    depends_on:
-      - redis
-      - rabbitmq
-    networks:
-      - hospital-network
-    # Resource limits
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-          cpus: '0.5'
-        reservations:
-          memory: 128M
-          cpus: '0.25'
+          cpus: "0.25"
     profiles:
       - core
       - full
@@ -407,15 +434,13 @@ services:
       resources:
         limits:
           memory: 256M
-          cpus: '0.5'
+          cpus: "0.5"
         reservations:
           memory: 128M
-          cpus: '0.25'
+          cpus: "0.25"
     profiles:
       - core
       - full
-
-
 
   # Notification Service - ENABLED
   notification-service:
@@ -448,10 +473,10 @@ services:
       resources:
         limits:
           memory: 256M
-          cpus: '0.5'
+          cpus: "0.5"
         reservations:
           memory: 128M
-          cpus: '0.25'
+          cpus: "0.25"
     profiles:
       - core
       - full
@@ -547,7 +572,7 @@ services:
       - doctor_data:/var/lib/postgresql/data
       - ./services/doctor-service/database/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
-      - "5432:5432"  # Expose for direct access
+      - "5432:5432" # Expose for direct access
     networks:
       - hospital-network
     # Resource limits
@@ -555,10 +580,10 @@ services:
       resources:
         limits:
           memory: 512M
-          cpus: '0.5'
+          cpus: "0.5"
         reservations:
           memory: 256M
-          cpus: '0.25'
+          cpus: "0.25"
     profiles:
       - core
       - full
@@ -599,8 +624,6 @@ services:
   #   networks:
   #     - hospital-network
 
-
-
   # Redis for caching and sessions
   redis:
     image: redis:7-alpine
@@ -621,10 +644,10 @@ services:
       resources:
         limits:
           memory: 128M
-          cpus: '0.25'
+          cpus: "0.25"
         reservations:
           memory: 64M
-          cpus: '0.1'
+          cpus: "0.1"
     profiles:
       - core
       - full
@@ -653,10 +676,10 @@ services:
       resources:
         limits:
           memory: 256M
-          cpus: '0.5'
+          cpus: "0.5"
         reservations:
           memory: 128M
-          cpus: '0.25'
+          cpus: "0.25"
     profiles:
       - core
       - full
@@ -672,13 +695,13 @@ services:
       - ./monitoring/prometheus/rules:/etc/prometheus/rules
       - prometheus_data:/prometheus
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--web.enable-lifecycle'
-      - '--web.enable-admin-api'
-      - '--storage.tsdb.retention.time=30d'
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--web.enable-lifecycle"
+      - "--web.enable-admin-api"
+      - "--storage.tsdb.retention.time=30d"
     networks:
       - hospital-network
     restart: unless-stopped
@@ -687,10 +710,10 @@ services:
       resources:
         limits:
           memory: 512M
-          cpus: '0.5'
+          cpus: "0.5"
         reservations:
           memory: 256M
-          cpus: '0.25'
+          cpus: "0.25"
     profiles:
       - monitoring
       - full
@@ -719,10 +742,10 @@ services:
       resources:
         limits:
           memory: 256M
-          cpus: '0.5'
+          cpus: "0.5"
         reservations:
           memory: 128M
-          cpus: '0.25'
+          cpus: "0.25"
     profiles:
       - monitoring
       - full
@@ -738,10 +761,10 @@ services:
       - /sys:/host/sys:ro
       - /:/rootfs:ro
     command:
-      - '--path.procfs=/host/proc'
-      - '--path.rootfs=/rootfs'
-      - '--path.sysfs=/host/sys'
-      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+      - "--path.procfs=/host/proc"
+      - "--path.rootfs=/rootfs"
+      - "--path.sysfs=/host/sys"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
     networks:
       - hospital-network
     restart: unless-stopped

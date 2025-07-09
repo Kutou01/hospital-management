@@ -50,7 +50,7 @@ export interface PaginationQuery {
   page?: number;
   limit?: number;
   sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
   search?: string;
 }
 
@@ -59,7 +59,7 @@ export interface ServiceConfig {
   port: number;
   host: string;
   version: string;
-  environment: 'development' | 'staging' | 'production';
+  environment: "development" | "staging" | "production";
 }
 
 export interface DatabaseConfig {
@@ -94,7 +94,7 @@ export interface JWTConfig {
 }
 
 export interface EmailConfig {
-  provider: 'sendgrid' | 'ses' | 'smtp';
+  provider: "sendgrid" | "ses" | "smtp";
   apiKey?: string;
   from: string;
   templates: {
@@ -103,69 +103,68 @@ export interface EmailConfig {
 }
 
 export interface SMSConfig {
-  provider: 'twilio' | 'aws-sns';
+  provider: "twilio" | "aws-sns";
   accountSid?: string;
   authToken?: string;
   from: string;
 }
 
 export enum UserRole {
-  ADMIN = 'admin',
-  DOCTOR = 'doctor',
-  PATIENT = 'patient',
-  NURSE = 'nurse',
-  RECEPTIONIST = 'receptionist'
+  ADMIN = "admin",
+  DOCTOR = "doctor",
+  PATIENT = "patient",
+  RECEPTIONIST = "receptionist",
 }
 
 export enum AppointmentStatus {
-  SCHEDULED = 'scheduled',
-  CONFIRMED = 'confirmed',
-  IN_PROGRESS = 'in_progress',
-  COMPLETED = 'completed',
-  CANCELLED = 'cancelled',
-  NO_SHOW = 'no_show'
+  SCHEDULED = "scheduled",
+  CONFIRMED = "confirmed",
+  IN_PROGRESS = "in_progress",
+  COMPLETED = "completed",
+  CANCELLED = "cancelled",
+  NO_SHOW = "no_show",
 }
 
 export enum PaymentStatus {
-  PENDING = 'pending',
-  PAID = 'paid',
-  FAILED = 'failed',
-  REFUNDED = 'refunded',
-  CANCELLED = 'cancelled'
+  PENDING = "pending",
+  PAID = "paid",
+  FAILED = "failed",
+  REFUNDED = "refunded",
+  CANCELLED = "cancelled",
 }
 
 export enum NotificationType {
-  EMAIL = 'email',
-  SMS = 'sms',
-  PUSH = 'push',
-  IN_APP = 'in_app'
+  EMAIL = "email",
+  SMS = "sms",
+  PUSH = "push",
+  IN_APP = "in_app",
 }
 
 export enum EventType {
-  USER_CREATED = 'user.created',
-  USER_UPDATED = 'user.updated',
-  USER_DELETED = 'user.deleted',
-  USER_LOGIN = 'user.login',
-  USER_LOGOUT = 'user.logout',
-  
-  DOCTOR_CREATED = 'doctor.created',
-  DOCTOR_UPDATED = 'doctor.updated',
-  DOCTOR_SCHEDULE_UPDATED = 'doctor.schedule_updated',
-  
-  PATIENT_CREATED = 'patient.created',
-  PATIENT_UPDATED = 'patient.updated',
-  
-  APPOINTMENT_CREATED = 'appointment.created',
-  APPOINTMENT_UPDATED = 'appointment.updated',
-  APPOINTMENT_CANCELLED = 'appointment.cancelled',
-  APPOINTMENT_COMPLETED = 'appointment.completed',
-  
-  PAYMENT_CREATED = 'payment.created',
-  PAYMENT_COMPLETED = 'payment.completed',
-  PAYMENT_FAILED = 'payment.failed',
-  
-  NOTIFICATION_SENT = 'notification.sent',
-  NOTIFICATION_FAILED = 'notification.failed'
+  USER_CREATED = "user.created",
+  USER_UPDATED = "user.updated",
+  USER_DELETED = "user.deleted",
+  USER_LOGIN = "user.login",
+  USER_LOGOUT = "user.logout",
+
+  DOCTOR_CREATED = "doctor.created",
+  DOCTOR_UPDATED = "doctor.updated",
+  DOCTOR_SCHEDULE_UPDATED = "doctor.schedule_updated",
+
+  PATIENT_CREATED = "patient.created",
+  PATIENT_UPDATED = "patient.updated",
+
+  APPOINTMENT_CREATED = "appointment.created",
+  APPOINTMENT_UPDATED = "appointment.updated",
+  APPOINTMENT_CANCELLED = "appointment.cancelled",
+  APPOINTMENT_COMPLETED = "appointment.completed",
+
+  PAYMENT_CREATED = "payment.created",
+  PAYMENT_COMPLETED = "payment.completed",
+  PAYMENT_FAILED = "payment.failed",
+
+  NOTIFICATION_SENT = "notification.sent",
+  NOTIFICATION_FAILED = "notification.failed",
 }
 
 export interface Event {
@@ -179,13 +178,13 @@ export interface Event {
 
 export interface HealthCheck {
   service: string;
-  status: 'healthy' | 'unhealthy' | 'degraded';
+  status: "healthy" | "unhealthy" | "degraded";
   timestamp: Date;
   uptime: number;
   version: string;
   dependencies: {
     [key: string]: {
-      status: 'healthy' | 'unhealthy';
+      status: "healthy" | "unhealthy";
       responseTime?: number;
       error?: string;
     };
@@ -195,14 +194,14 @@ export interface HealthCheck {
 // Standardized Health Check format for all microservices
 export interface StandardHealthCheck {
   service: string;
-  status: 'healthy' | 'unhealthy' | 'degraded';
+  status: "healthy" | "unhealthy" | "degraded";
   version: string;
   timestamp: string;
   uptime: number;
   environment: string;
   dependencies?: {
     [key: string]: {
-      status: 'healthy' | 'unhealthy';
+      status: "healthy" | "unhealthy";
       responseTime?: number;
       error?: string;
     };
@@ -230,34 +229,34 @@ export class ValidationError extends Error {
     public value: any
   ) {
     super(message);
-    this.name = 'ValidationError';
+    this.name = "ValidationError";
   }
 }
 
 export class NotFoundError extends Error {
   constructor(resource: string, id: string) {
     super(`${resource} with id ${id} not found`);
-    this.name = 'NotFoundError';
+    this.name = "NotFoundError";
   }
 }
 
 export class UnauthorizedError extends Error {
-  constructor(message: string = 'Unauthorized') {
+  constructor(message: string = "Unauthorized") {
     super(message);
-    this.name = 'UnauthorizedError';
+    this.name = "UnauthorizedError";
   }
 }
 
 export class ForbiddenError extends Error {
-  constructor(message: string = 'Forbidden') {
+  constructor(message: string = "Forbidden") {
     super(message);
-    this.name = 'ForbiddenError';
+    this.name = "ForbiddenError";
   }
 }
 
 export class ConflictError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'ConflictError';
+    this.name = "ConflictError";
   }
 }

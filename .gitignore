@@ -37,6 +37,11 @@ backend/build/
 .env*
 frontend/.env*
 backend/.env*
+**/.env*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # Logs
 logs
@@ -82,6 +87,25 @@ monitoring/data/
 deployment/secrets/
 deployment/configs/*.local.*
 
+# Security files
+*.key
+*.crt
+*.p12
+*.pfx
+*.keystore
+*.jks
+security-audit-report.txt
+*.backup.*
+
+# API Keys and Secrets (additional patterns)
+**/secrets/
+**/keys/
+**/.secrets/
+**/config/secrets.json
+**/config/keys.json
+secrets.json
+keys.json
+
 # Temporary files
 tmp/
 temp/
@@ -100,4 +124,24 @@ dev-debug.log
 # OS specific
 # Task files
 tasks.json
-tasks/ 
+tasks/
+
+# Development and Testing
+.vscode/settings.json
+.vscode/launch.json
+.idea/workspace.xml
+.idea/tasks.xml
+test-results/
+coverage-reports/
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig
+*.tmp
+
+# Local configuration
+local.json
+local.config.js
+local.config.ts

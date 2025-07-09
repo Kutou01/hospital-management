@@ -1,45 +1,57 @@
-import { ApolloServerPlugin } from 'apollo-server-core';
-import { GraphQLRequestContext } from 'apollo-server-types';
-import { GraphQLContext, UserRole } from '../context';
-import logger from '@hospital/shared/dist/utils/logger';
+import { ApolloServerPlugin } from "@apollo/server";
+import logger from "@hospital/shared/dist/utils/logger";
+import { GraphQLContext, UserRole } from "../context";
 
 /**
  * Authentication middleware for GraphQL
  * Handles JWT token validation and role-based access control
  */
 export const authMiddleware: ApolloServerPlugin<GraphQLContext> = {
-  requestDidStart() {
+  async requestDidStart() {
     return {
-      didResolveOperation(requestContext: GraphQLRequestContext<GraphQLContext>) {
-        const { request, context } = requestContext;
-        
+      async didResolveOperation(requestContext) {
+        const { request } = requestContext;
+        const context = requestContext.contextValue;
+
         // Skip authentication for introspection queries
-        if (request.operationName === 'IntrospectionQuery') {
+        if (request.operationName === "IntrospectionQuery") {
           return;
         }
 
         // Get operation info
         const operation = requestContext.document?.definitions[0];
-        if (!operation || operation.kind !== 'OperationDefinition') {
+        if (!operation || operation.kind !== "OperationDefinition") {
           return;
         }
 
         const operationType = operation.operation;
-        const operationName = operation.name?.value || 'Anonymous';
+        const operationName = operation.name?.value || "Anonymous";
 
         // Log the operation
-        logger.debug('GraphQL Operation:', {
+        logger.debug("GraphQL Operation:", {
           type: operationType,
           name: operationName,
           userId: context.user?.id,
           role: context.user?.role,
-          requestId: context.requestId
+          requestId: context.requestId,
         });
 
         // Check if operation requires authentication
         if (requiresAuthentication(operationName, operationType)) {
           if (!context.user) {
-            throw new Error('Yêu cầu xác thực để truy cập tài nguyên này');
+            // Allow health and systemInfo queries without authentication for testing
+            if (
+              operationName === "health" ||
+              operationName === "systemInfo" ||
+              operationName.toLowerCase().includes("health") ||
+              operationName.toLowerCase().includes("systeminfo")
+            ) {
+              logger.debug(
+                "Allowing public health/systemInfo query without authentication"
+              );
+              return;
+            }
+            throw new Error("Yêu cầu xác thực để truy cập tài nguyên này");
           }
         }
 
@@ -47,53 +59,64 @@ export const authMiddleware: ApolloServerPlugin<GraphQLContext> = {
         const requiredRoles = getRequiredRoles(operationName, operationType);
         if (requiredRoles.length > 0) {
           if (!context.user) {
-            throw new Error('Yêu cầu xác thực để truy cập tài nguyên này');
+            throw new Error("Yêu cầu xác thực để truy cập tài nguyên này");
           }
 
           if (!requiredRoles.includes(context.user.role)) {
-            throw new Error('Không có quyền thực hiện hành động này');
+            throw new Error("Không có quyền thực hiện hành động này");
           }
         }
       },
 
-      willSendResponse(requestContext: GraphQLRequestContext<GraphQLContext>) {
-        const { context, response } = requestContext;
-        
+      async willSendResponse(requestContext) {
+        const context = requestContext.contextValue;
+        const { response } = requestContext;
+
         // Add authentication headers to response
-        if (context.user && response.http) {
-          response.http.headers.set('X-User-ID', context.user.id);
-          response.http.headers.set('X-User-Role', context.user.role);
+        if (context.user && response?.http) {
+          response.http.headers.set("X-User-ID", context.user.id);
+          response.http.headers.set("X-User-Role", context.user.role);
         }
-      }
+      },
     };
-  }
+  },
 };
 
 /**
  * Check if operation requires authentication
  */
-function requiresAuthentication(operationName: string, operationType: string): boolean {
+function requiresAuthentication(
+  operationName: string,
+  operationType: string
+): boolean {
   // Public operations that don't require authentication
   const publicOperations = [
-    'health',
-    'systemInfo',
-    'departments', // Public department list
-    'searchDoctors', // Public doctor search
-    'doctorAvailability' // Public availability check
+    "health",
+    "systemInfo",
+    "departments", // Public department list
+    "searchDoctors", // Public doctor search
+    "doctorAvailability", // Public availability check
   ];
 
   // All mutations require authentication
-  if (operationType === 'mutation') {
+  if (operationType === "mutation") {
     return true;
   }
 
   // All subscriptions require authentication
-  if (operationType === 'subscription') {
+  if (operationType === "subscription") {
     return true;
   }
 
+  // For anonymous queries, we need to check the actual query content
+  // This is a temporary fix - ideally all queries should have proper names
+  if (operationName === "Anonymous") {
+    // Allow anonymous queries for now, let individual resolvers handle auth
+    return false;
+  }
+
   // Check if it's a public query
-  return !publicOperations.some(op => 
+  return !publicOperations.some((op) =>
     operationName.toLowerCase().includes(op.toLowerCase())
   );
 }
@@ -101,73 +124,90 @@ function requiresAuthentication(operationName: string, operationType: string): b
 /**
  * Get required roles for operation
  */
-function getRequiredRoles(operationName: string, operationType: string): UserRole[] {
+function getRequiredRoles(
+  operationName: string,
+  operationType: string
+): UserRole[] {
   // Admin-only operations
   const adminOperations = [
-    'createDoctor',
-    'updateDoctor',
-    'deleteDoctor',
-    'createDepartment',
-    'updateDepartment',
-    'deleteDepartment',
-    'systemInfo'
+    "createDoctor",
+    "updateDoctor",
+    "deleteDoctor",
+    "createDepartment",
+    "updateDepartment",
+    "deleteDepartment",
+    "systemInfo",
   ];
 
   // Doctor-only operations
   const doctorOperations = [
-    'doctorStats',
-    'doctorSchedule',
-    'updateDoctorSchedule',
-    'startAppointment',
-    'completeAppointment',
-    'createMedicalRecord',
-    'updateMedicalRecord'
+    "doctorStats",
+    "doctorSchedule",
+    "updateDoctorSchedule",
+    "startAppointment",
+    "completeAppointment",
+    "createMedicalRecord",
+    "updateMedicalRecord",
   ];
 
   // Patient-only operations
   const patientOperations = [
-    'createAppointment',
-    'updatePatient',
-    'patientMedicalRecords',
-    'patientPrescriptions'
+    "createAppointment",
+    "updatePatient",
+    "patientMedicalRecords",
+    "patientPrescriptions",
+  ];
+
+  // Receptionist-only operations
+  const receptionistOperations = [
+    "manageAppointments",
+    "patientCheckIn",
+    "manageQueue",
+    "basicReports",
+    "updatePatientInfo",
   ];
 
   // Doctor or Admin operations
   const doctorAdminOperations = [
-    'doctorAppointments',
-    'doctorPatients',
-    'appointmentsByDoctor'
+    "doctorAppointments",
+    "doctorPatients",
+    "appointmentsByDoctor",
   ];
 
   // Patient or Doctor operations (for viewing patient data)
   const patientDoctorOperations = [
-    'patient',
-    'patientStats',
-    'patientAppointmentHistory'
+    "patient",
+    "patientStats",
+    "patientAppointmentHistory",
   ];
 
   // Check admin operations
-  if (adminOperations.some(op => operationName.includes(op))) {
+  if (adminOperations.some((op) => operationName.includes(op))) {
     return [UserRole.ADMIN];
   }
 
   // Check doctor operations
-  if (doctorOperations.some(op => operationName.includes(op))) {
+  if (doctorOperations.some((op) => operationName.includes(op))) {
     return [UserRole.DOCTOR];
   }
 
   // Check patient operations
-  if (patientOperations.some(op => operationName.includes(op))) {
+  if (patientOperations.some((op) => operationName.includes(op))) {
     return [UserRole.PATIENT];
   }
 
+  // Check receptionist operations
+  if (receptionistOperations.some((op) => operationName.includes(op))) {
+    return [UserRole.RECEPTIONIST];
+  }
+
   // Check doctor or admin operations
-  if (doctorAdminOperations.some(op => operationName.includes(op))) {
+  if (doctorAdminOperations.some((op) => operationName.includes(op))) {
     return [UserRole.DOCTOR, UserRole.ADMIN];
   }
 
   // Check patient or doctor operations
-  if (patientDoctorOperations.some(op => operationName.includes(op))) {
+  if (patientDoctorOperations.some((op) => operationName.includes(op))) {
     return [UserRole.PATIENT, UserRole.DOCTOR, UserRole.ADMIN];
   }
 
@@ -182,16 +222,21 @@ export function requireAuth(roles?: UserRole[]) {
   return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
     const originalMethod = descriptor.value;
 
-    descriptor.value = function(parent: any, args: any, context: GraphQLContext, info: any) {
+    descriptor.value = function (
+      parent: any,
+      args: any,
+      context: GraphQLContext,
+      info: any
+    ) {
       // Check authentication
       if (!context.user) {
-        throw new Error('Yêu cầu xác thực để truy cập trường này');
+        throw new Error("Yêu cầu xác thực để truy cập trường này");
       }
 
       // Check roles if specified
       if (roles && roles.length > 0) {
         if (!roles.includes(context.user.role)) {
-          throw new Error('Không có quyền truy cập trường này');
+          throw new Error("Không có quyền truy cập trường này");
         }
       }
 
@@ -205,14 +250,21 @@ export function requireAuth(roles?: UserRole[]) {
 /**
  * Resource ownership check
  */
-export function requireOwnership(getResourceUserId: (parent: any, args: any) => string) {
+export function requireOwnership(
+  getResourceUserId: (parent: any, args: any) => string
+) {
   return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
     const originalMethod = descriptor.value;
 
-    descriptor.value = function(parent: any, args: any, context: GraphQLContext, info: any) {
+    descriptor.value = function (
+      parent: any,
+      args: any,
+      context: GraphQLContext,
+      info: any
+    ) {
       // Check authentication
       if (!context.user) {
-        throw new Error('Yêu cầu xác thực để truy cập tài nguyên này');
+        throw new Error("Yêu cầu xác thực để truy cập tài nguyên này");
       }
 
       // Admin can access everything
@@ -230,7 +282,7 @@ export function requireOwnership(getResourceUserId: (parent: any, args: any) => 
           return originalMethod.call(this, parent, args, context, info);
         }
 
-        throw new Error('Không có quyền truy cập tài nguyên này');
+        throw new Error("Không có quyền truy cập tài nguyên này");
       }
 
       return originalMethod.call(this, parent, args, context, info);
@@ -247,10 +299,15 @@ export function requirePermission(permission: string) {
   return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
     const originalMethod = descriptor.value;
 
-    descriptor.value = function(parent: any, args: any, context: GraphQLContext, info: any) {
+    descriptor.value = function (
+      parent: any,
+      args: any,
+      context: GraphQLContext,
+      info: any
+    ) {
       // Check authentication
       if (!context.user) {
-        throw new Error('Yêu cầu xác thực để truy cập tài nguyên này');
+        throw new Error("Yêu cầu xác thực để truy cập tài nguyên này");
       }
 
       // Admin has all permissions

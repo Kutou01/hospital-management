@@ -1,4 +1,4 @@
-import { gql } from 'apollo-server-express';
+import { gql } from 'graphql-tag';
 
 /**
  * GraphQL Schema for Patient entities
@@ -6,12 +6,7 @@ import { gql } from 'apollo-server-express';
  * Supports Vietnamese language and hospital management requirements
  */
 export const patientTypeDefs = gql`
-  # Patient-specific scalars
-  scalar PatientID
-  scalar BloodType
-  scalar Height
-  scalar Weight
-
+  # Patient-specific enums only (common scalars defined in base schema)
   # Enums
   enum PatientStatus {
     ACTIVE
@@ -196,16 +191,8 @@ export const patientTypeDefs = gql`
     cursor: String!
   }
 
-  type MedicalRecordConnection {
-    edges: [MedicalRecordEdge!]!
-    pageInfo: PageInfo!
-    totalCount: Int!
-  }
-
-  type MedicalRecordEdge {
-    node: MedicalRecord!
-    cursor: String!
-  }
+  # Note: MedicalRecordConnection and MedicalRecordEdge are defined in medical-record.schema.ts
+  # to avoid duplication
 
   type PrescriptionConnection {
     edges: [PrescriptionEdge!]!
@@ -321,10 +308,19 @@ export const patientTypeDefs = gql`
     
     # Patient medical summary
     patientMedicalSummary(patientId: PatientID!): PatientMedicalSummary!
-    
+
     # Patient statistics
     patientStats(patientId: PatientID!): PatientStats!
-    
+
+    # Patient medical records (specific to patient context)
+    patientMedicalRecords(
+      patientId: PatientID!
+      limit: Int = 20
+      offset: Int = 0
+      dateFrom: Date
+      dateTo: Date
+    ): MedicalRecordConnection!
+
     # Patient appointments with doctor
     patientDoctorHistory(
       patientId: PatientID!
@@ -387,13 +383,10 @@ export const patientTypeDefs = gql`
     # Patient status changes
     patientStatusChanged(patientId: PatientID): Patient!
     patientUpdated(patientId: PatientID): Patient!
-    
-    # Patient appointments
-    patientAppointmentUpdated(patientId: PatientID!): Appointment!
-    
+
     # New medical records
     patientMedicalRecordAdded(patientId: PatientID!): MedicalRecord!
-    
+
     # New prescriptions
     patientPrescriptionAdded(patientId: PatientID!): Prescription!
   }

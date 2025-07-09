@@ -4,8 +4,9 @@
 # Use Node.js 18 Alpine for smaller image size
 FROM node:18-alpine
 
-# Set working directory
-WORKDIR /app
+# Create non-root user early to avoid ownership issues
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S graphql -u 1001
 
 # Install system dependencies for better performance
 RUN apk add --no-cache \
@@ -13,28 +14,31 @@ RUN apk add --no-cache \
     curl \
     && rm -rf /var/cache/apk/*
 
-# Copy package files
-COPY package*.json ./
-COPY tsconfig.json ./
+# Set working directory and change ownership
+WORKDIR /app
+RUN chown graphql:nodejs /app
 
-# Copy shared dependencies
-COPY ../../shared ./shared
+# Copy package files
+COPY services/graphql-gateway/package*.json ./
+COPY services/graphql-gateway/tsconfig.json ./
 
 # Install dependencies
-RUN npm ci --only=production && npm cache clean --force
+RUN npm install
 
 # Copy source code
-COPY src ./src
+COPY services/graphql-gateway/src ./src/
+COPY services/graphql-gateway/.env ./
 
-# Build TypeScript
+# Copy shared module and install its dependencies
+COPY shared ./node_modules/@hospital/shared/
+WORKDIR /app/node_modules/@hospital/shared
+RUN npm install && npm run build
+
+# Go back to app directory and build
+WORKDIR /app
 RUN npm run build
 
-# Create non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S graphql -u 1001
-
-# Change ownership of the app directory
-RUN chown -R graphql:nodejs /app
+# Switch to non-root user
 USER graphql
 
 # Expose port

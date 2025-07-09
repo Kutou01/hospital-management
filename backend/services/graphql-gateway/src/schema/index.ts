@@ -1,8 +1,9 @@
-import { gql } from 'apollo-server-express';
-import doctorTypeDefs from './doctor.schema';
-import patientTypeDefs from './patient.schema';
-import appointmentTypeDefs from './appointment.schema';
-import departmentTypeDefs from './department.schema';
+import { gql } from "graphql-tag";
+import appointmentTypeDefs from "./appointment.schema";
+import departmentTypeDefs from "./department.schema";
+import doctorTypeDefs from "./doctor.schema";
+import medicalRecordTypeDefs from "./medical-record.schema";
+import patientTypeDefs from "./patient.schema";
 
 /**
  * Base GraphQL Schema with root types and common scalars
@@ -36,14 +37,23 @@ const baseTypeDefs = gql`
     DESC
   }
 
+  enum AppointmentStatus {
+    SCHEDULED
+    CONFIRMED
+    IN_PROGRESS
+    COMPLETED
+    CANCELLED
+    NO_SHOW
+  }
+
   # Base Query Type
   type Query {
     # Health check
     health: HealthCheck!
-    
+
     # System information
     systemInfo: SystemInfo!
-    
+
     # Search across all entities
     globalSearch(
       query: String!
@@ -62,7 +72,7 @@ const baseTypeDefs = gql`
   type Subscription {
     # System notifications
     systemNotification: SystemNotification!
-    
+
     # Global updates
     globalUpdate: GlobalUpdate!
   }
@@ -278,9 +288,7 @@ const baseTypeDefs = gql`
     ADMIN
     DOCTOR
     PATIENT
-    NURSE
     RECEPTIONIST
-    MANAGER
   }
 `;
 
@@ -293,91 +301,92 @@ export const typeDefs = [
   doctorTypeDefs,
   patientTypeDefs,
   appointmentTypeDefs,
-  departmentTypeDefs
+  departmentTypeDefs,
+  medicalRecordTypeDefs, // ✅ Schema conflicts resolved
 ];
 
 /**
  * Schema validation and documentation
  */
 export const schemaInfo = {
-  version: '1.0.0',
-  description: 'Hospital Management System GraphQL Schema',
+  version: "1.0.0",
+  description: "Hospital Management System GraphQL Schema",
   entities: [
     {
-      name: 'Doctor',
-      description: 'Bác sĩ - Medical doctors in the hospital system',
+      name: "Doctor",
+      description: "Bác sĩ - Medical doctors in the hospital system",
       fields: 25,
       queries: 8,
       mutations: 12,
-      subscriptions: 5
+      subscriptions: 5,
     },
     {
-      name: 'Patient',
-      description: 'Bệnh nhân - Patients in the hospital system',
+      name: "Patient",
+      description: "Bệnh nhân - Patients in the hospital system",
       fields: 22,
       queries: 7,
       mutations: 8,
-      subscriptions: 4
+      subscriptions: 4,
     },
     {
-      name: 'Appointment',
-      description: 'Lịch hẹn - Medical appointments',
+      name: "Appointment",
+      description: "Lịch hẹn - Medical appointments",
       fields: 20,
       queries: 12,
       mutations: 15,
-      subscriptions: 8
+      subscriptions: 8,
     },
     {
-      name: 'Department',
-      description: 'Khoa - Hospital departments',
+      name: "Department",
+      description: "Khoa - Hospital departments",
       fields: 18,
       queries: 6,
       mutations: 5,
-      subscriptions: 3
+      subscriptions: 3,
     },
     {
-      name: 'MedicalRecord',
-      description: 'Hồ sơ y tế - Patient medical records',
+      name: "MedicalRecord",
+      description: "Hồ sơ y tế - Patient medical records",
       fields: 15,
       queries: 2,
       mutations: 0,
-      subscriptions: 1
+      subscriptions: 1,
     },
     {
-      name: 'Prescription',
-      description: 'Đơn thuốc - Medical prescriptions',
+      name: "Prescription",
+      description: "Đơn thuốc - Medical prescriptions",
       fields: 12,
       queries: 2,
       mutations: 0,
-      subscriptions: 1
+      subscriptions: 1,
     },
     {
-      name: 'Payment',
-      description: 'Thanh toán - Payment records',
+      name: "Payment",
+      description: "Thanh toán - Payment records",
       fields: 18,
       queries: 2,
       mutations: 0,
-      subscriptions: 0
-    }
+      subscriptions: 0,
+    },
   ],
   features: [
-    'Vietnamese language support',
-    'Real-time subscriptions',
-    'Comprehensive pagination',
-    'Type-safe scalars',
-    'Role-based authentication',
-    'Rate limiting',
-    'Audit logging',
-    'File uploads',
-    'Global search',
-    'Error handling with Vietnamese messages'
+    "Vietnamese language support",
+    "Real-time subscriptions",
+    "Comprehensive pagination",
+    "Type-safe scalars",
+    "Role-based authentication",
+    "Rate limiting",
+    "Audit logging",
+    "File uploads",
+    "Global search",
+    "Error handling with Vietnamese messages",
   ],
   totalQueries: 39,
   totalMutations: 40,
   totalSubscriptions: 21,
   totalTypes: 45,
   totalEnums: 15,
-  totalScalars: 12
+  totalScalars: 12,
 };
 
 export default typeDefs;

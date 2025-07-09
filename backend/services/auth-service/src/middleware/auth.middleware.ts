@@ -1,6 +1,6 @@
-import { Request, Response, NextFunction } from 'express';
-import { supabaseAdmin } from '../config/supabase';
-import logger from '@hospital/shared/dist/utils/logger';
+import logger from "@hospital/shared/dist/utils/logger";
+import { NextFunction, Request, Response } from "express";
+import { supabaseAdmin } from "../config/supabase";
 
 // Extend Request interface to include user
 declare global {
@@ -11,15 +11,19 @@ declare global {
   }
 }
 
-export const authMiddleware = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const authMiddleware = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       res.status(401).json({
         success: false,
-        error: 'No token provided',
-        message: 'Authorization header with Bearer token is required'
+        error: "No token provided",
+        message: "Authorization header with Bearer token is required",
       });
       return;
     }
@@ -29,38 +33,41 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
     if (!token) {
       res.status(401).json({
         success: false,
-        error: 'No token provided',
-        message: 'Token is required'
+        error: "No token provided",
+        message: "Token is required",
       });
       return;
     }
 
     // Verify Supabase JWT token
-    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+    const {
+      data: { user },
+      error,
+    } = await supabaseAdmin.auth.getUser(token);
 
     if (error || !user) {
-      logger.warn('Invalid token attempt', { error: error?.message });
+      logger.warn("Invalid token attempt", { error: error?.message });
       res.status(401).json({
         success: false,
-        error: 'Invalid or expired token',
-        message: 'Please sign in again'
+        error: "Invalid or expired token",
+        message: "Please sign in again",
       });
       return;
     }
 
     // Get user profile from profiles table
     const { data: profile, error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
       .single();
 
     if (profileError || !profile) {
-      logger.error('Profile fetch error:', profileError);
+      logger.error("Profile fetch error:", profileError);
       res.status(401).json({
         success: false,
-        error: 'User profile not found',
-        message: 'User profile is missing or invalid'
+        error: "User profile not found",
+        message: "User profile is missing or invalid",
       });
       return;
     }
@@ -68,8 +75,8 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
     if (!profile.is_active) {
       res.status(401).json({
         success: false,
-        error: 'Account is inactive',
-        message: 'Your account has been deactivated'
+        error: "Account is inactive",
+        message: "Your account has been deactivated",
       });
       return;
     }
@@ -83,30 +90,30 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
       phone_number: profile.phone_number,
       is_active: profile.is_active,
       created_at: profile.created_at,
-      updated_at: profile.updated_at
+      updated_at: profile.updated_at,
     };
 
     // Add user info to request headers for downstream services
-    req.headers['x-user-id'] = user.id;
-    req.headers['x-user-email'] = user.email || '';
-    req.headers['x-user-role'] = profile.role;
-    req.headers['x-user-name'] = profile.full_name || '';
+    req.headers["x-user-id"] = user.id;
+    req.headers["x-user-email"] = user.email || "";
+    req.headers["x-user-role"] = profile.role;
+    req.headers["x-user-name"] = profile.full_name || "";
 
-    logger.debug('Request authenticated', {
+    logger.debug("Request authenticated", {
       userId: user.id,
       email: user.email,
       role: profile.role,
       path: req.path,
-      method: req.method
+      method: req.method,
     });
 
     next();
   } catch (error) {
-    logger.error('Auth middleware error:', error);
+    logger.error("Auth middleware error:", error);
     res.status(500).json({
       success: false,
-      error: 'Authentication failed',
-      message: 'Internal server error during authentication'
+      error: "Authentication failed",
+      message: "Internal server error during authentication",
     });
   }
 };
@@ -119,26 +126,26 @@ export const requireRole = (roles: string | string[]) => {
     if (!req.user) {
       res.status(401).json({
         success: false,
-        error: 'Authentication required',
-        message: 'Please sign in to access this resource'
+        error: "Authentication required",
+        message: "Please sign in to access this resource",
       });
       return;
     }
 
     const allowedRoles = Array.isArray(roles) ? roles : [roles];
-    
+
     if (!allowedRoles.includes(req.user.role)) {
-      logger.warn('Access denied - insufficient role', {
+      logger.warn("Access denied - insufficient role", {
         userId: req.user.id,
         userRole: req.user.role,
         requiredRoles: allowedRoles,
-        path: req.path
+        path: req.path,
       });
 
       res.status(403).json({
         success: false,
-        error: 'Insufficient permissions',
-        message: `Access denied. Required role(s): ${allowedRoles.join(', ')}`
+        error: "Insufficient permissions",
+        message: `Access denied. Required role(s): ${allowedRoles.join(", ")}`,
       });
       return;
     }
@@ -150,19 +157,32 @@ export const requireRole = (roles: string | string[]) => {
 /**
  * Admin only middleware
  */
-export const requireAdmin = requireRole('admin');
+export const requireAdmin = requireRole("admin");
 
 /**
  * Doctor only middleware
  */
-export const requireDoctor = requireRole('doctor');
+export const requireDoctor = requireRole("doctor");
 
 /**
  * Patient only middleware
  */
-export const requirePatient = requireRole('patient');
+export const requirePatient = requireRole("patient");
 
 /**
  * Doctor or Admin middleware
  */
-export const requireDoctorOrAdmin = requireRole(['doctor', 'admin']);
+export const requireDoctorOrAdmin = requireRole(["doctor", "admin"]);
+
+/**
+ * Receptionist only middleware
+ */
+export const requireReceptionist = requireRole("receptionist");
+
+/**
+ * Receptionist or Admin middleware
+ */
+export const requireReceptionistOrAdmin = requireRole([
+  "receptionist",
+  "admin",
+]);

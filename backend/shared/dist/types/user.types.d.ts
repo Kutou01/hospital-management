@@ -1,4 +1,4 @@
-import { BaseEntity, UserRole } from './common.types';
+import { BaseEntity, UserRole } from "./common.types";
 export interface User extends BaseEntity {
     email: string;
     password_hash: string;
@@ -33,7 +33,7 @@ export interface DoctorProfileData {
 }
 export interface PatientProfileData {
     date_of_birth: string;
-    gender: 'male' | 'female' | 'other';
+    gender: "male" | "female" | "other";
     address?: Address;
     emergency_contact?: EmergencyContact;
     insurance_info?: InsuranceInfo;
@@ -63,7 +63,7 @@ export interface LoginRequest {
     password: string;
 }
 export interface LoginResponse {
-    user: Omit<User, 'password_hash'>;
+    user: Omit<User, "password_hash">;
     access_token: string;
     refresh_token: string;
     expires_in: number;
@@ -109,7 +109,7 @@ export interface JWTPayload {
     exp: number;
 }
 export interface AuthContext {
-    user: Omit<User, 'password_hash'>;
+    user: Omit<User, "password_hash">;
     session: Session;
 }
 export interface Permission {
@@ -130,7 +130,7 @@ export interface UserProfile {
     avatar_url?: string;
     bio?: string;
     date_of_birth?: Date;
-    gender?: 'male' | 'female' | 'other';
+    gender?: "male" | "female" | "other";
     address?: Address;
     emergency_contact?: EmergencyContact;
     preferences?: UserPreferences;
@@ -156,13 +156,12 @@ export interface UserPreferences {
         sms: boolean;
         push: boolean;
     };
-    theme: 'light' | 'dark' | 'auto';
+    theme: "light" | "dark" | "auto";
 }
 export interface RolePermissions {
     [UserRole.ADMIN]: string[];
     [UserRole.DOCTOR]: string[];
     [UserRole.PATIENT]: string[];
-    [UserRole.NURSE]: string[];
     [UserRole.RECEPTIONIST]: string[];
 }
 export declare const DEFAULT_PERMISSIONS: RolePermissions;

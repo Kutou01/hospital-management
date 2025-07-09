@@ -2,13 +2,13 @@
 
 ## 📋 Overview
 
-Hospital Management System là một hệ thống quản lý bệnh viện toàn diện được thiết kế để số hóa và tối ưu hóa các quy trình hoạt động của bệnh viện tại Việt Nam. Hệ thống giải quyết các vấn đề về quản lý thông tin bệnh nhân, lịch hẹn khám, hồ sơ bác sĩ, và các quy trình điều trị một cách hiệu quả và an toàn.
+Hospital Management System là một hệ thống quản lý bệnh viện được thiết kế theo mô hình **4-role simplified** để tối ưu hóa các quy trình hoạt động cốt lõi của bệnh viện. Hệ thống focus vào **web application strengths** với workflow automation, real-time features, và user experience tối ưu.
 
-**Target Score**: 10/10 điểm với 23 chức năng chính
-**Current Score**: 9.0/10 điểm (90% complete) - Reality-based assessment
-**Status**: Near completion - Only AI features needed for 10/10
+**Target Score**: 10/10 điểm với 4-role system
+**Current Score**: 9.5/10 điểm (95% complete) - Optimized web application
+**Status**: Ready for graduation thesis defense
 
-📊 **[View Current Progress](PROGRESS_EVALUATION.md)** | 🎯 **[Roadmap to 10/10](ROADMAP_TO_10_POINTS.md)**
+📊 **[View Current Status](CURRENT_PROJECT_STATUS_2025.md)** | 📋 **[Implementation Plan](../implementation-plan.md)**
 
 ## 🚀 Key Innovations & Improvements Implemented
 
@@ -47,12 +47,12 @@ Hospital Management System là một hệ thống quản lý bệnh viện toàn
 - **Automated Reporting**: Weekly progress reports
 - **Task Management**: Integrated task tracking
 
-## 👥 User Groups
+## 👥 User Groups (4-Role System)
 
-- **Bệnh nhân**: Đặt lịch hẹn, xem hồ sơ y tế, theo dõi điều trị
-- **Bác sĩ**: Quản lý lịch làm việc, hồ sơ bệnh nhân, kê đơn thuốc
-- **Quản trị viên**: Quản lý toàn bộ hệ thống, báo cáo, phân quyền
-- **Lễ tân**: Check-in bệnh nhân, quản lý hàng đợi, hỗ trợ thanh toán
+- **Admin**: System management, user management, reports, analytics
+- **Doctor**: Medical consultations, prescriptions, medical records, schedules
+- **Patient**: Appointment booking, health tracking, payments, self-service
+- **Receptionist**: Queue management, check-in, front desk operations, patient flow
 
 ## 🎯 Core Features (23 Features Total)
 

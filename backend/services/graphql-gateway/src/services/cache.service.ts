@@ -162,7 +162,7 @@ class CacheService {
       const cacheType = this.determineCacheType(key);
       const cache = this.getCacheByType(cacheType);
       
-      const success = cache.set(key, value, ttl);
+      const success = cache.set(key, value, ttl || 300);
       
       if (success) {
         logger.debug(`✅ Cached [${cacheType}]: ${key}`);

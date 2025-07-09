@@ -1,20 +1,20 @@
-import express from 'express';
-import { AuthController } from '../controllers/auth.controller';
+import logger from "@hospital/shared/dist/utils/logger";
+import express from "express";
+import { supabaseAdmin } from "../config/supabase";
+import { AuthController } from "../controllers/auth.controller";
+import { authMiddleware } from "../middleware/auth.middleware";
 import {
-  validateSignUp,
-  validateSignIn,
-  validateResetPassword,
-  validateRefreshToken,
+  validateDoctorRegistration,
   validateMagicLink,
-  validatePhoneOTP,
-  validateVerifyOTP,
   validateOAuthCallback,
   validatePatientRegistration,
-  validateDoctorRegistration
-} from '../validators/auth.validators';
-import { authMiddleware } from '../middleware/auth.middleware';
-import { supabaseAdmin } from '../config/supabase';
-import logger from '@hospital/shared/dist/utils/logger';
+  validatePhoneOTP,
+  validateRefreshToken,
+  validateResetPassword,
+  validateSignIn,
+  validateSignUp,
+  validateVerifyOTP,
+} from "../validators/auth.validators";
 
 const router = express.Router();
 const authController = new AuthController();
@@ -59,7 +59,7 @@ const authController = new AuthController();
  *       400:
  *         description: Validation error or user already exists
  */
-router.post('/signup', validateSignUp, authController.signUp);
+router.post("/signup", validateSignUp, authController.signUp);
 
 /**
  * @swagger
@@ -88,7 +88,7 @@ router.post('/signup', validateSignUp, authController.signUp);
  *       401:
  *         description: Invalid credentials
  */
-router.post('/signin', validateSignIn, authController.signIn);
+router.post("/signin", validateSignIn, authController.signIn);
 
 /**
  * @swagger
@@ -117,7 +117,7 @@ router.post('/signin', validateSignIn, authController.signIn);
  *       401:
  *         description: Invalid credentials
  */
-router.post('/login', validateSignIn, authController.signIn);
+router.post("/login", validateSignIn, authController.signIn);
 
 /**
  * @swagger
@@ -129,11 +129,11 @@ router.post('/login', validateSignIn, authController.signIn);
  *       200:
  *         description: Service is healthy
  */
-router.get('/health', (req, res) => {
+router.get("/health", (req, res) => {
   res.json({
-    service: 'Auth Service',
-    status: 'healthy',
-    timestamp: new Date().toISOString()
+    service: "Auth Service",
+    status: "healthy",
+    timestamp: new Date().toISOString(),
   });
 });
 
@@ -151,7 +151,7 @@ router.get('/health', (req, res) => {
  *       401:
  *         description: Invalid token
  */
-router.post('/signout', authMiddleware, authController.signOut);
+router.post("/signout", authMiddleware, authController.signOut);
 
 /**
  * @swagger
@@ -176,7 +176,7 @@ router.post('/signout', authMiddleware, authController.signOut);
  *       401:
  *         description: Invalid refresh token
  */
-router.post('/refresh', validateRefreshToken, authController.refreshToken);
+router.post("/refresh", validateRefreshToken, authController.refreshToken);
 
 /**
  * @swagger
@@ -202,7 +202,11 @@ router.post('/refresh', validateRefreshToken, authController.refreshToken);
  *       400:
  *         description: Invalid email
  */
-router.post('/reset-password', validateResetPassword, authController.resetPassword);
+router.post(
+  "/reset-password",
+  validateResetPassword,
+  authController.resetPassword
+);
 
 /**
  * @swagger
@@ -218,7 +222,7 @@ router.post('/reset-password', validateResetPassword, authController.resetPasswo
  *       401:
  *         description: Invalid token
  */
-router.get('/verify', authController.verifyToken);
+router.get("/verify", authController.verifyToken);
 
 /**
  * @swagger
@@ -234,7 +238,7 @@ router.get('/verify', authController.verifyToken);
  *       401:
  *         description: Invalid token
  */
-router.get('/me', authMiddleware, async (req: any, res) => {
+router.get("/me", authMiddleware, async (req: any, res) => {
   try {
     const userId = req.user.id;
     const userRole = req.user.role;
@@ -242,36 +246,39 @@ router.get('/me', authMiddleware, async (req: any, res) => {
     // Get role-specific ID
     let roleSpecificData = {};
     try {
-      if (userRole === 'patient') {
+      if (userRole === "patient") {
         const { data: patientData } = await supabaseAdmin
-          .from('patients')
-          .select('patient_id')
-          .eq('profile_id', userId)
+          .from("patients")
+          .select("patient_id")
+          .eq("profile_id", userId)
           .single();
         if (patientData) {
           roleSpecificData = { patient_id: patientData.patient_id };
         }
-      } else if (userRole === 'doctor') {
+      } else if (userRole === "doctor") {
         const { data: doctorData } = await supabaseAdmin
-          .from('doctors')
-          .select('doctor_id')
-          .eq('profile_id', userId)
+          .from("doctors")
+          .select("doctor_id")
+          .eq("profile_id", userId)
           .single();
         if (doctorData) {
           roleSpecificData = { doctor_id: doctorData.doctor_id };
         }
-      } else if (userRole === 'admin') {
+      } else if (userRole === "admin") {
         const { data: adminData } = await supabaseAdmin
-          .from('admins')
-          .select('admin_id')
-          .eq('profile_id', userId)
+          .from("admins")
+          .select("admin_id")
+          .eq("profile_id", userId)
           .single();
         if (adminData) {
           roleSpecificData = { admin_id: adminData.admin_id };
         }
       }
     } catch (roleError) {
-      logger.warn('Could not fetch role-specific ID in /me endpoint:', roleError);
+      logger.warn(
+        "Could not fetch role-specific ID in /me endpoint:",
+        roleError
+      );
     }
 
     res.json({
@@ -283,14 +290,14 @@ router.get('/me', authMiddleware, async (req: any, res) => {
         role: req.user.role,
         phone_number: req.user.phone_number,
         is_active: req.user.is_active,
-        ...roleSpecificData
-      }
+        ...roleSpecificData,
+      },
     });
   } catch (error) {
-    logger.error('Error in /me endpoint:', error);
+    logger.error("Error in /me endpoint:", error);
     res.status(500).json({
       success: false,
-      error: 'Internal server error'
+      error: "Internal server error",
     });
   }
 });
@@ -321,7 +328,7 @@ router.get('/me', authMiddleware, async (req: any, res) => {
  *       400:
  *         description: Validation error
  */
-router.post('/create-doctor-record', authController.createDoctorRecord);
+router.post("/create-doctor-record", authController.createDoctorRecord);
 
 /**
  * @swagger
@@ -349,7 +356,7 @@ router.post('/create-doctor-record', authController.createDoctorRecord);
  *       400:
  *         description: Validation error
  */
-router.post('/create-patient-record', authController.createPatientRecord);
+router.post("/create-patient-record", authController.createPatientRecord);
 
 /**
  * @swagger
@@ -399,7 +406,11 @@ router.post('/create-patient-record', authController.createPatientRecord);
  *       400:
  *         description: Validation error or user already exists
  */
-router.post('/register-patient', validatePatientRegistration, authController.registerPatient);
+router.post(
+  "/register-patient",
+  validatePatientRegistration,
+  authController.registerPatient
+);
 
 /**
  * @swagger
@@ -456,7 +467,61 @@ router.post('/register-patient', validatePatientRegistration, authController.reg
  *       400:
  *         description: Validation error or user already exists
  */
-router.post('/register-doctor', validateDoctorRegistration, authController.registerDoctor);
+router.post(
+  "/register-doctor",
+  validateDoctorRegistration,
+  authController.registerDoctor
+);
+
+/**
+ * @swagger
+ * /api/auth/register-receptionist:
+ *   post:
+ *     summary: Register a new receptionist
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *               - full_name
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: "receptionist@hospital.com"
+ *               password:
+ *                 type: string
+ *                 minLength: 6
+ *                 example: "Receptionist123!"
+ *               full_name:
+ *                 type: string
+ *                 minLength: 2
+ *                 maxLength: 100
+ *                 example: "Nguyễn Thị Lan"
+ *               phone_number:
+ *                 type: string
+ *                 pattern: "^0\\d{9}$"
+ *                 example: "0987654321"
+ *               department_id:
+ *                 type: string
+ *                 pattern: "^DEPT\\d{3}$"
+ *                 example: "DEPT001"
+ *     responses:
+ *       201:
+ *         description: Receptionist registered successfully
+ *       400:
+ *         description: Validation error or user already exists
+ */
+router.post(
+  "/register-receptionist",
+  validateReceptionistRegistration,
+  authController.registerReceptionist
+);
 
 /**
  * @swagger
@@ -482,7 +547,7 @@ router.post('/register-doctor', validateDoctorRegistration, authController.regis
  *       400:
  *         description: Invalid email
  */
-router.post('/magic-link', validateMagicLink, authController.sendMagicLink);
+router.post("/magic-link", validateMagicLink, authController.sendMagicLink);
 
 /**
  * @swagger
@@ -508,7 +573,7 @@ router.post('/magic-link', validateMagicLink, authController.sendMagicLink);
  *       400:
  *         description: Invalid phone number
  */
-router.post('/phone-otp', validatePhoneOTP, authController.sendPhoneOTP);
+router.post("/phone-otp", validatePhoneOTP, authController.sendPhoneOTP);
 
 /**
  * @swagger
@@ -538,7 +603,7 @@ router.post('/phone-otp', validatePhoneOTP, authController.sendPhoneOTP);
  *       400:
  *         description: Invalid OTP or phone number
  */
-router.post('/verify-otp', validateVerifyOTP, authController.verifyPhoneOTP);
+router.post("/verify-otp", validateVerifyOTP, authController.verifyPhoneOTP);
 
 /**
  * @swagger
@@ -559,7 +624,7 @@ router.post('/verify-otp', validateVerifyOTP, authController.verifyPhoneOTP);
  *       400:
  *         description: Invalid provider
  */
-router.get('/oauth/:provider', authController.initiateOAuth);
+router.get("/oauth/:provider", authController.initiateOAuth);
 
 /**
  * @swagger
@@ -590,7 +655,11 @@ router.get('/oauth/:provider', authController.initiateOAuth);
  *       400:
  *         description: Invalid OAuth callback
  */
-router.post('/oauth/callback', validateOAuthCallback, authController.handleOAuthCallback);
+router.post(
+  "/oauth/callback",
+  validateOAuthCallback,
+  authController.handleOAuthCallback
+);
 
 export default router;
 

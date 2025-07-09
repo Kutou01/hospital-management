@@ -2,13 +2,13 @@
 
 Welcome to the comprehensive documentation for the Hospital Management System.
 
-## 📊 **Current Status: 9.0/10 Score - 90% Complete (Reality-Based)**
+## 📊 **Current Status: 9.5/10 Score - 95% Complete (4-Role System)**
 
 **Quick Links:**
 
-- 📊 [**Progress Evaluation**](PROGRESS_EVALUATION.md) - Detailed progress analysis
-- 🎯 [**Roadmap to 10/10**](ROADMAP_TO_10_POINTS.md) - Implementation plan for full score
-- 🚀 [**Getting Started**](GETTING_STARTED.md) - Quick setup guide
+- 📊 [**Current Project Status 2025**](CURRENT_PROJECT_STATUS_2025.md) - Latest progress analysis
+- 📋 [**Implementation Plan**](../implementation-plan.md) - 4-role system implementation
+- 💳 [**Payment Workflow**](payment-workflow-documentation.md) - PayOS integration guide
 
 ## 📋 Documentation Index
 

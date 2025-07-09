@@ -3,6 +3,7 @@ export declare const FORMAT_PATTERNS: {
     PATIENT_ID: RegExp;
     APPOINTMENT_ID: RegExp;
     ADMIN_ID: RegExp;
+    RECEPTIONIST_ID: RegExp;
     MEDICAL_RECORD_ID: RegExp;
     PRESCRIPTION_ID: RegExp;
     DEPARTMENT_ID: RegExp;

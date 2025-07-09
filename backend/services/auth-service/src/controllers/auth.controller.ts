@@ -1,7 +1,7 @@
-import { Request, Response } from 'express';
-import { validationResult } from 'express-validator';
-import { AuthService } from '../services/auth.service';
-import logger from '@hospital/shared/dist/utils/logger';
+import logger from "@hospital/shared/dist/utils/logger";
+import { Request, Response } from "express";
+import { validationResult } from "express-validator";
+import { AuthService } from "../services/auth.service";
 
 export class AuthController {
   private authService: AuthService;
@@ -20,8 +20,8 @@ export class AuthController {
       if (!errors.isEmpty()) {
         res.status(400).json({
           success: false,
-          error: 'Validation failed',
-          details: errors.array()
+          error: "Validation failed",
+          details: errors.array(),
         });
         return;
       }
@@ -33,55 +33,63 @@ export class AuthController {
         password,
         full_name,
         role,
-        ...additionalData
+        ...additionalData,
       });
 
       if (result.error) {
         // Determine appropriate status code based on error type
         let statusCode = 400;
-        if (result.error.includes('already registered') || result.error.includes('already exists')) {
+        if (
+          result.error.includes("already registered") ||
+          result.error.includes("already exists")
+        ) {
           statusCode = 409; // Conflict
-        } else if (result.error.includes('Invalid') || result.error.includes('validation')) {
+        } else if (
+          result.error.includes("Invalid") ||
+          result.error.includes("validation")
+        ) {
           statusCode = 400; // Bad Request
-        } else if (result.error.includes('permission') || result.error.includes('unauthorized')) {
+        } else if (
+          result.error.includes("permission") ||
+          result.error.includes("unauthorized")
+        ) {
           statusCode = 403; // Forbidden
         }
 
         res.status(statusCode).json({
           success: false,
           error: result.error,
-          message: 'Failed to create account',
-          timestamp: new Date().toISOString()
+          message: "Failed to create account",
+          timestamp: new Date().toISOString(),
         });
         return;
       }
 
-      logger.info('✅ User signed up successfully', {
+      logger.info("✅ User signed up successfully", {
         userId: result.user?.id,
         email: result.user?.email,
         role: result.user?.role,
-        hasSession: !!result.session
+        hasSession: !!result.session,
       });
 
       res.status(201).json({
         success: true,
-        message: 'Account created successfully',
+        message: "Account created successfully",
         user: result.user,
         session: result.session,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
-
     } catch (error: any) {
-      logger.error('❌ Sign up controller error:', {
+      logger.error("❌ Sign up controller error:", {
         error: error.message,
         stack: error.stack,
-        body: req.body
+        body: req.body,
       });
       res.status(500).json({
         success: false,
-        error: 'Internal server error',
-        message: 'Failed to create account',
-        timestamp: new Date().toISOString()
+        error: "Internal server error",
+        message: "Failed to create account",
+        timestamp: new Date().toISOString(),
       });
     }
   };
@@ -95,8 +103,8 @@ export class AuthController {
       if (!errors.isEmpty()) {
         res.status(400).json({
           success: false,
-          error: 'Validation failed',
-          details: errors.array()
+          error: "Validation failed",
+          details: errors.array(),
         });
         return;
       }
@@ -109,31 +117,30 @@ export class AuthController {
         res.status(401).json({
           success: false,
           error: result.error,
-          message: 'Invalid credentials'
+          message: "Invalid credentials",
         });
         return;
       }
 
-      logger.info('User signed in successfully', {
+      logger.info("User signed in successfully", {
         userId: result.user?.id,
         email: result.user?.email,
-        role: result.user?.role
+        role: result.user?.role,
       });
 
       res.status(200).json({
         success: true,
-        message: 'Signed in successfully',
+        message: "Signed in successfully",
         user: result.user,
         session: result.session,
-        access_token: result.session?.access_token
+        access_token: result.session?.access_token,
       });
-
     } catch (error) {
-      logger.error('Sign in error:', error);
+      logger.error("Sign in error:", error);
       res.status(500).json({
         success: false,
-        error: 'Internal server error',
-        message: 'Failed to sign in'
+        error: "Internal server error",
+        message: "Failed to sign in",
       });
     }
   };
@@ -144,12 +151,12 @@ export class AuthController {
   public signOut = async (req: Request, res: Response): Promise<void> => {
     try {
       const authHeader = req.headers.authorization;
-      const token = authHeader?.replace('Bearer ', '');
+      const token = authHeader?.replace("Bearer ", "");
 
       if (!token) {
         res.status(400).json({
           success: false,
-          error: 'No token provided'
+          error: "No token provided",
         });
         return;
       }
@@ -160,24 +167,23 @@ export class AuthController {
         res.status(400).json({
           success: false,
           error: result.error,
-          message: 'Failed to sign out'
+          message: "Failed to sign out",
         });
         return;
       }
 
-      logger.info('User signed out successfully');
+      logger.info("User signed out successfully");
 
       res.status(200).json({
         success: true,
-        message: 'Signed out successfully'
+        message: "Signed out successfully",
       });
-
     } catch (error) {
-      logger.error('Sign out error:', error);
+      logger.error("Sign out error:", error);
       res.status(500).json({
         success: false,
-        error: 'Internal server error',
-        message: 'Failed to sign out'
+        error: "Internal server error",
+        message: "Failed to sign out",
       });
     }
   };
@@ -192,7 +198,7 @@ export class AuthController {
       if (!refresh_token) {
         res.status(400).json({
           success: false,
-          error: 'Refresh token is required'
+          error: "Refresh token is required",
         });
         return;
       }
@@ -203,24 +209,23 @@ export class AuthController {
         res.status(401).json({
           success: false,
           error: result.error,
-          message: 'Failed to refresh token'
+          message: "Failed to refresh token",
         });
         return;
       }
 
       res.status(200).json({
         success: true,
-        message: 'Token refreshed successfully',
+        message: "Token refreshed successfully",
         session: result.session,
-        access_token: result.session?.access_token
+        access_token: result.session?.access_token,
       });
-
     } catch (error) {
-      logger.error('Refresh token error:', error);
+      logger.error("Refresh token error:", error);
       res.status(500).json({
         success: false,
-        error: 'Internal server error',
-        message: 'Failed to refresh token'
+        error: "Internal server error",
+        message: "Failed to refresh token",
       });
     }
   };
@@ -234,8 +239,8 @@ export class AuthController {
       if (!errors.isEmpty()) {
         res.status(400).json({
           success: false,
-          error: 'Validation failed',
-          details: errors.array()
+          error: "Validation failed",
+          details: errors.array(),
         });
         return;
       }
@@ -248,24 +253,23 @@ export class AuthController {
         res.status(400).json({
           success: false,
           error: result.error,
-          message: 'Failed to send reset password email'
+          message: "Failed to send reset password email",
         });
         return;
       }
 
-      logger.info('Password reset email sent', { email });
+      logger.info("Password reset email sent", { email });
 
       res.status(200).json({
         success: true,
-        message: 'Password reset email sent successfully'
+        message: "Password reset email sent successfully",
       });
-
     } catch (error) {
-      logger.error('Reset password error:', error);
+      logger.error("Reset password error:", error);
       res.status(500).json({
         success: false,
-        error: 'Internal server error',
-        message: 'Failed to send reset password email'
+        error: "Internal server error",
+        message: "Failed to send reset password email",
       });
     }
   };
@@ -276,12 +280,12 @@ export class AuthController {
   public verifyToken = async (req: Request, res: Response): Promise<void> => {
     try {
       const authHeader = req.headers.authorization;
-      const token = authHeader?.replace('Bearer ', '');
+      const token = authHeader?.replace("Bearer ", "");
 
       if (!token) {
         res.status(400).json({
           success: false,
-          error: 'No token provided'
+          error: "No token provided",
         });
         return;
       }
@@ -292,23 +296,22 @@ export class AuthController {
         res.status(401).json({
           success: false,
           error: result.error,
-          message: 'Invalid token'
+          message: "Invalid token",
         });
         return;
       }
 
       res.status(200).json({
         success: true,
-        message: 'Token is valid',
-        user: result.user
+        message: "Token is valid",
+        user: result.user,
       });
-
     } catch (error) {
-      logger.error('Verify token error:', error);
+      logger.error("Verify token error:", error);
       res.status(500).json({
         success: false,
-        error: 'Internal server error',
-        message: 'Failed to verify token'
+        error: "Internal server error",
+        message: "Failed to verify token",
       });
     }
   };
@@ -316,33 +319,35 @@ export class AuthController {
   /**
    * Create doctor record with department-based ID
    */
-  public createDoctorRecord = async (req: Request, res: Response): Promise<void> => {
+  public createDoctorRecord = async (
+    req: Request,
+    res: Response
+  ): Promise<void> => {
     try {
       const { userId, userData } = req.body;
 
       if (!userId || !userData) {
         res.status(400).json({
           success: false,
-          error: 'userId and userData are required'
+          error: "userId and userData are required",
         });
         return;
       }
 
       await this.authService.createDoctorRecord(userId, userData);
 
-      logger.info('Doctor record created successfully', { userId });
+      logger.info("Doctor record created successfully", { userId });
 
       res.status(201).json({
         success: true,
-        message: 'Doctor record created successfully'
+        message: "Doctor record created successfully",
       });
-
     } catch (error: any) {
-      logger.error('Create doctor record error:', error);
+      logger.error("Create doctor record error:", error);
       res.status(500).json({
         success: false,
-        error: error.message || 'Internal server error',
-        message: 'Failed to create doctor record'
+        error: error.message || "Internal server error",
+        message: "Failed to create doctor record",
       });
     }
   };
@@ -350,33 +355,35 @@ export class AuthController {
   /**
    * Create patient record
    */
-  public createPatientRecord = async (req: Request, res: Response): Promise<void> => {
+  public createPatientRecord = async (
+    req: Request,
+    res: Response
+  ): Promise<void> => {
     try {
       const { userId, userData } = req.body;
 
       if (!userId || !userData) {
         res.status(400).json({
           success: false,
-          error: 'userId and userData are required'
+          error: "userId and userData are required",
         });
         return;
       }
 
       await this.authService.createPatientRecord(userId, userData);
 
-      logger.info('Patient record created successfully', { userId });
+      logger.info("Patient record created successfully", { userId });
 
       res.status(201).json({
         success: true,
-        message: 'Patient record created successfully'
+        message: "Patient record created successfully",
       });
-
     } catch (error: any) {
-      logger.error('Create patient record error:', error);
+      logger.error("Create patient record error:", error);
       res.status(500).json({
         success: false,
-        error: error.message || 'Internal server error',
-        message: 'Failed to create patient record'
+        error: error.message || "Internal server error",
+        message: "Failed to create patient record",
       });
     }
   };
@@ -384,33 +391,46 @@ export class AuthController {
   /**
    * Complete patient registration (signup + patient record creation)
    */
-  public registerPatient = async (req: Request, res: Response): Promise<void> => {
+  public registerPatient = async (
+    req: Request,
+    res: Response
+  ): Promise<void> => {
     try {
       // Check validation errors
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         res.status(400).json({
           success: false,
-          error: 'Validation failed',
-          details: errors.array()
+          error: "Validation failed",
+          details: errors.array(),
         });
         return;
       }
 
-      const { email, password, full_name, phone_number, gender, date_of_birth, blood_type, address, emergency_contact } = req.body;
+      const {
+        email,
+        password,
+        full_name,
+        phone_number,
+        gender,
+        date_of_birth,
+        blood_type,
+        address,
+        emergency_contact,
+      } = req.body;
 
       // Prepare complete patient data for signup
       const patientSignupData = {
         email,
         password,
         full_name,
-        role: 'patient' as const,
+        role: "patient" as const,
         phone_number,
         gender,
         date_of_birth,
         blood_type,
         address,
-        emergency_contact
+        emergency_contact,
       };
 
       const result = await this.authService.signUp(patientSignupData);
@@ -418,49 +438,57 @@ export class AuthController {
       if (result.error) {
         // Determine appropriate status code based on error type
         let statusCode = 400;
-        if (result.error.includes('already registered') || result.error.includes('already exists')) {
+        if (
+          result.error.includes("already registered") ||
+          result.error.includes("already exists")
+        ) {
           statusCode = 409; // Conflict
-        } else if (result.error.includes('Invalid') || result.error.includes('validation')) {
+        } else if (
+          result.error.includes("Invalid") ||
+          result.error.includes("validation")
+        ) {
           statusCode = 400; // Bad Request
-        } else if (result.error.includes('permission') || result.error.includes('unauthorized')) {
+        } else if (
+          result.error.includes("permission") ||
+          result.error.includes("unauthorized")
+        ) {
           statusCode = 403; // Forbidden
         }
 
         res.status(statusCode).json({
           success: false,
           error: result.error,
-          message: 'Failed to register patient',
-          timestamp: new Date().toISOString()
+          message: "Failed to register patient",
+          timestamp: new Date().toISOString(),
         });
         return;
       }
 
-      logger.info('✅ Patient registered successfully', {
+      logger.info("✅ Patient registered successfully", {
         userId: result.user?.id,
         email: result.user?.email,
         role: result.user?.role,
-        hasSession: !!result.session
+        hasSession: !!result.session,
       });
 
       res.status(201).json({
         success: true,
-        message: 'Patient registered successfully',
+        message: "Patient registered successfully",
         user: result.user,
         session: result.session,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
-
     } catch (error: any) {
-      logger.error('❌ Patient registration controller error:', {
+      logger.error("❌ Patient registration controller error:", {
         error: error.message,
         stack: error.stack,
-        body: req.body
+        body: req.body,
       });
       res.status(500).json({
         success: false,
-        error: 'Internal server error',
-        message: 'Failed to register patient',
-        timestamp: new Date().toISOString()
+        error: "Internal server error",
+        message: "Failed to register patient",
+        timestamp: new Date().toISOString(),
       });
     }
   };
@@ -468,28 +496,42 @@ export class AuthController {
   /**
    * Complete doctor registration (signup + doctor record creation)
    */
-  public registerDoctor = async (req: Request, res: Response): Promise<void> => {
+  public registerDoctor = async (
+    req: Request,
+    res: Response
+  ): Promise<void> => {
     try {
       // Check validation errors
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         res.status(400).json({
           success: false,
-          error: 'Validation failed',
-          details: errors.array()
+          error: "Validation failed",
+          details: errors.array(),
         });
         return;
       }
 
-      const { email, password, full_name, phone_number, gender, date_of_birth, specialty, license_number, qualification, department_id } = req.body;
+      const {
+        email,
+        password,
+        full_name,
+        phone_number,
+        gender,
+        date_of_birth,
+        specialty,
+        license_number,
+        qualification,
+        department_id,
+      } = req.body;
 
       // Validate required doctor fields
       if (!department_id) {
         res.status(400).json({
           success: false,
-          error: 'Department ID is required for doctor registration',
-          message: 'Please provide a valid department_id',
-          timestamp: new Date().toISOString()
+          error: "Department ID is required for doctor registration",
+          message: "Please provide a valid department_id",
+          timestamp: new Date().toISOString(),
         });
         return;
       }
@@ -499,14 +541,14 @@ export class AuthController {
         email,
         password,
         full_name,
-        role: 'doctor' as const,
+        role: "doctor" as const,
         phone_number,
         gender,
         date_of_birth,
         specialty,
         license_number,
         qualification,
-        department_id
+        department_id,
       };
 
       const result = await this.authService.signUp(doctorSignupData);
@@ -514,50 +556,158 @@ export class AuthController {
       if (result.error) {
         // Determine appropriate status code based on error type
         let statusCode = 400;
-        if (result.error.includes('already registered') || result.error.includes('already exists')) {
+        if (
+          result.error.includes("already registered") ||
+          result.error.includes("already exists")
+        ) {
           statusCode = 409; // Conflict
-        } else if (result.error.includes('Invalid') || result.error.includes('validation')) {
+        } else if (
+          result.error.includes("Invalid") ||
+          result.error.includes("validation")
+        ) {
           statusCode = 400; // Bad Request
-        } else if (result.error.includes('permission') || result.error.includes('unauthorized')) {
+        } else if (
+          result.error.includes("permission") ||
+          result.error.includes("unauthorized")
+        ) {
           statusCode = 403; // Forbidden
         }
 
         res.status(statusCode).json({
           success: false,
           error: result.error,
-          message: 'Failed to register doctor',
-          timestamp: new Date().toISOString()
+          message: "Failed to register doctor",
+          timestamp: new Date().toISOString(),
         });
         return;
       }
 
-      logger.info('✅ Doctor registered successfully', {
+      logger.info("✅ Doctor registered successfully", {
         userId: result.user?.id,
         email: result.user?.email,
         role: result.user?.role,
         department_id,
-        hasSession: !!result.session
+        hasSession: !!result.session,
       });
 
       res.status(201).json({
         success: true,
-        message: 'Doctor registered successfully',
+        message: "Doctor registered successfully",
         user: result.user,
         session: result.session,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
-
     } catch (error: any) {
-      logger.error('❌ Doctor registration controller error:', {
+      logger.error("❌ Doctor registration controller error:", {
         error: error.message,
         stack: error.stack,
-        body: req.body
+        body: req.body,
       });
       res.status(500).json({
         success: false,
-        error: 'Internal server error',
-        message: 'Failed to register doctor',
-        timestamp: new Date().toISOString()
+        error: "Internal server error",
+        message: "Failed to register doctor",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  };
+
+  /**
+   * Complete receptionist registration (signup + receptionist record creation)
+   */
+  public registerReceptionist = async (
+    req: Request,
+    res: Response
+  ): Promise<void> => {
+    try {
+      // Check validation errors
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        res.status(400).json({
+          success: false,
+          error: "Validation failed",
+          details: errors.array(),
+        });
+        return;
+      }
+
+      const {
+        email,
+        password,
+        full_name,
+        phone_number,
+        gender,
+        date_of_birth,
+        department_id,
+        shift_schedule,
+        languages_spoken,
+        can_manage_appointments,
+        can_manage_patients,
+        can_view_medical_records,
+      } = req.body;
+
+      // Prepare complete receptionist data for signup
+      const receptionistSignupData = {
+        email,
+        password,
+        full_name,
+        role: "receptionist" as const,
+        phone_number,
+        gender,
+        date_of_birth,
+        department_id,
+        shift_schedule,
+        languages_spoken,
+        can_manage_appointments,
+        can_manage_patients,
+        can_view_medical_records,
+      };
+
+      logger.info("🔄 Starting receptionist registration:", {
+        email,
+        full_name,
+        department_id,
+      });
+
+      // Call auth service signup with complete data
+      const result = await this.authService.signUp(receptionistSignupData);
+
+      if (result.error) {
+        logger.error("❌ Receptionist registration failed:", result.error);
+        res.status(400).json({
+          success: false,
+          error: result.error,
+          message: "Failed to register receptionist",
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      logger.info("✅ Receptionist registration successful:", {
+        email,
+        userId: result.user?.id,
+      });
+
+      res.status(201).json({
+        success: true,
+        message: "Receptionist registered successfully",
+        data: {
+          user: result.user,
+          session: result.session,
+        },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error: any) {
+      logger.error("❌ Receptionist registration controller error:", {
+        error: error.message,
+        stack: error.stack,
+        body: req.body,
+      });
+      res.status(500).json({
+        success: false,
+        error: "Internal server error",
+        message: "Failed to register receptionist",
+        timestamp: new Date().toISOString(),
       });
     }
   };
@@ -571,8 +721,8 @@ export class AuthController {
       if (!errors.isEmpty()) {
         res.status(400).json({
           success: false,
-          error: 'Validation failed',
-          details: errors.array()
+          error: "Validation failed",
+          details: errors.array(),
         });
         return;
       }
@@ -585,24 +735,23 @@ export class AuthController {
         res.status(400).json({
           success: false,
           error: result.error,
-          message: 'Failed to send magic link'
+          message: "Failed to send magic link",
         });
         return;
       }
 
-      logger.info('Magic link sent successfully', { email });
+      logger.info("Magic link sent successfully", { email });
 
       res.status(200).json({
         success: true,
-        message: 'Magic link sent to your email address'
+        message: "Magic link sent to your email address",
       });
-
     } catch (error) {
-      logger.error('Send magic link error:', error);
+      logger.error("Send magic link error:", error);
       res.status(500).json({
         success: false,
-        error: 'Internal server error',
-        message: 'Failed to send magic link'
+        error: "Internal server error",
+        message: "Failed to send magic link",
       });
     }
   };
@@ -616,8 +765,8 @@ export class AuthController {
       if (!errors.isEmpty()) {
         res.status(400).json({
           success: false,
-          error: 'Validation failed',
-          details: errors.array()
+          error: "Validation failed",
+          details: errors.array(),
         });
         return;
       }
@@ -630,24 +779,23 @@ export class AuthController {
         res.status(400).json({
           success: false,
           error: result.error,
-          message: 'Failed to send OTP'
+          message: "Failed to send OTP",
         });
         return;
       }
 
-      logger.info('Phone OTP sent successfully', { phone_number });
+      logger.info("Phone OTP sent successfully", { phone_number });
 
       res.status(200).json({
         success: true,
-        message: 'OTP sent to your phone number'
+        message: "OTP sent to your phone number",
       });
-
     } catch (error) {
-      logger.error('Send phone OTP error:', error);
+      logger.error("Send phone OTP error:", error);
       res.status(500).json({
         success: false,
-        error: 'Internal server error',
-        message: 'Failed to send OTP'
+        error: "Internal server error",
+        message: "Failed to send OTP",
       });
     }
   };
@@ -655,47 +803,52 @@ export class AuthController {
   /**
    * Verify phone OTP and sign in
    */
-  public verifyPhoneOTP = async (req: Request, res: Response): Promise<void> => {
+  public verifyPhoneOTP = async (
+    req: Request,
+    res: Response
+  ): Promise<void> => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         res.status(400).json({
           success: false,
-          error: 'Validation failed',
-          details: errors.array()
+          error: "Validation failed",
+          details: errors.array(),
         });
         return;
       }
 
       const { phone_number, otp_code } = req.body;
 
-      const result = await this.authService.verifyPhoneOTP(phone_number, otp_code);
+      const result = await this.authService.verifyPhoneOTP(
+        phone_number,
+        otp_code
+      );
 
       if (result.error) {
         res.status(400).json({
           success: false,
           error: result.error,
-          message: 'Invalid OTP or phone number'
+          message: "Invalid OTP or phone number",
         });
         return;
       }
 
-      logger.info('Phone OTP verified successfully', { phone_number });
+      logger.info("Phone OTP verified successfully", { phone_number });
 
       res.status(200).json({
         success: true,
-        message: 'OTP verified successfully',
+        message: "OTP verified successfully",
         user: result.user,
         session: result.session,
-        access_token: result.session?.access_token
+        access_token: result.session?.access_token,
       });
-
     } catch (error) {
-      logger.error('Verify phone OTP error:', error);
+      logger.error("Verify phone OTP error:", error);
       res.status(500).json({
         success: false,
-        error: 'Internal server error',
-        message: 'Failed to verify OTP'
+        error: "Internal server error",
+        message: "Failed to verify OTP",
       });
     }
   };
@@ -707,11 +860,11 @@ export class AuthController {
     try {
       const { provider } = req.params;
 
-      if (!['google', 'github', 'facebook', 'apple'].includes(provider)) {
+      if (!["google", "github", "facebook", "apple"].includes(provider)) {
         res.status(400).json({
           success: false,
-          error: 'Invalid OAuth provider',
-          message: 'Supported providers: google, github, facebook, apple'
+          error: "Invalid OAuth provider",
+          message: "Supported providers: google, github, facebook, apple",
         });
         return;
       }
@@ -722,22 +875,21 @@ export class AuthController {
         res.status(400).json({
           success: false,
           error: result.error,
-          message: 'Failed to initiate OAuth login'
+          message: "Failed to initiate OAuth login",
         });
         return;
       }
 
-      logger.info('OAuth login initiated', { provider });
+      logger.info("OAuth login initiated", { provider });
 
       // Redirect to OAuth provider
       res.redirect(result.url!);
-
     } catch (error) {
-      logger.error('Initiate OAuth error:', error);
+      logger.error("Initiate OAuth error:", error);
       res.status(500).json({
         success: false,
-        error: 'Internal server error',
-        message: 'Failed to initiate OAuth login'
+        error: "Internal server error",
+        message: "Failed to initiate OAuth login",
       });
     }
   };
@@ -745,47 +897,53 @@ export class AuthController {
   /**
    * Handle OAuth callback
    */
-  public handleOAuthCallback = async (req: Request, res: Response): Promise<void> => {
+  public handleOAuthCallback = async (
+    req: Request,
+    res: Response
+  ): Promise<void> => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         res.status(400).json({
           success: false,
-          error: 'Validation failed',
-          details: errors.array()
+          error: "Validation failed",
+          details: errors.array(),
         });
         return;
       }
 
       const { code, state, provider } = req.body;
 
-      const result = await this.authService.handleOAuthCallback(code, state, provider);
+      const result = await this.authService.handleOAuthCallback(
+        code,
+        state,
+        provider
+      );
 
       if (result.error) {
         res.status(400).json({
           success: false,
           error: result.error,
-          message: 'OAuth login failed'
+          message: "OAuth login failed",
         });
         return;
       }
 
-      logger.info('OAuth login successful', { provider });
+      logger.info("OAuth login successful", { provider });
 
       res.status(200).json({
         success: true,
-        message: 'OAuth login successful',
+        message: "OAuth login successful",
         user: result.user,
         session: result.session,
-        access_token: result.session?.access_token
+        access_token: result.session?.access_token,
       });
-
     } catch (error) {
-      logger.error('OAuth callback error:', error);
+      logger.error("OAuth callback error:", error);
       res.status(500).json({
         success: false,
-        error: 'Internal server error',
-        message: 'OAuth login failed'
+        error: "Internal server error",
+        message: "OAuth login failed",
       });
     }
   };

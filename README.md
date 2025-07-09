@@ -4,37 +4,36 @@ A comprehensive microservices-based hospital management system built with modern
 
 ## 🚀 Current Status
 
-**Project Progress**: ✅ **98% Complete** - Reality-based database verification
-**Current Score**: **9.8/10** based on actual database analysis
-**Last Updated**: July 3, 2025
-**Status**: 12 services, 50+ pages, 64 database tables, AI features complete - Ready for thesis defense!
+**Project Progress**: ✅ **95% Complete** - 4-Role System Implementation
+**Current Score**: **9.5/10** based on optimized web application design
+**Last Updated**: January 9, 2025
+**Status**: 4-role system, receptionist workflow, queue management, optimized database - Ready for thesis defense!
 
-📊 **[View Current Achievements](docs/CURRENT_ACHIEVEMENTS_SUMMARY.md)** | 📈 **[Detailed Progress](docs/CURRENT_PROGRESS_SUMMARY.md)** | 🎯 **[Roadmap to 10/10](docs/ROADMAP_TO_10_POINTS.md)**
+📊 **[View Current Status](docs/CURRENT_PROJECT_STATUS_2025.md)** | 📋 **[Implementation Plan](implementation-plan.md)** | 💳 **[Payment Documentation](docs/payment-workflow-documentation.md)**
 
 ### **✅ Working Services**
 
 - ✅ **API Gateway** (3100) - Request routing & management
-- ✅ **Auth Service** (3001) - Multi-method authentication & authorization
-- ✅ **Doctor Service v2.0** (3002) - Enhanced doctor management with real-time features
-- ✅ **Patient Service v2.0** (3003) - Patient management with real-time monitoring
-- ✅ **Appointment Service v2.0** (3004) - Advanced booking with WebSocket integration
+- ✅ **Auth Service** (3001) - 4-role authentication & authorization
+- ✅ **Doctor Service** (3002) - Doctor management with schedules & reviews
+- ✅ **Patient Service** (3003) - Patient management with medical history
+- ✅ **Appointment Service** (3004) - Advanced booking with queue integration
 - ✅ **Department Service** (3005) - Hospital structure management
-- ✅ **Medical Records Service** (3006) - Health records & vital signs
-- ✅ **Prescription Service** (3007) - Prescription management system
-- ✅ **Payment Service** (3008) - PayOS integration complete
-- ✅ **Room Service** (3009) - Room management & scheduling
+- ✅ **Receptionist Service** (3006) - Check-in, queue & appointment management
+- ✅ **Medical Records Service** (3007) - Simplified medical records
+- ✅ **Prescription Service** (3008) - Prescription management system
+- ✅ **Payment Service** (3009) - PayOS integration complete
 - ✅ **Notification Service** (3011) - Real-time notifications
-- ✅ **AI Chatbot Service** (3012) - Medical consultation AI with 64 database tables
 
 ### **✅ Frontend Application**
 
 - ✅ **Next.js 14** - Modern React framework với TypeScript
-- ✅ **Admin Dashboard** - Complete management interface với analytics
-- ✅ **Doctor Dashboard** - Enhanced với teal theme và professional charts
-- ✅ **Doctor Profile** - 2-block layout với thông tin chuyên môn
-- ✅ **Patient Dashboard** - Health tracking & appointment booking
-- ✅ **Authentication Pages** - Multi-role login với persistent sessions
-- ✅ **AI Chatbot Interface** - Medical consultation với Vietnamese support
+- ✅ **4-Role Dashboards** - Admin/Doctor/Patient/Receptionist portals
+- ✅ **Queue Management UI** - Real-time receptionist workflow
+- ✅ **Appointment Booking** - Patient self-service system
+- ✅ **Payment Integration** - PayOS QR code & cash payments
+- ✅ **Authentication Pages** - 4-role login với persistent sessions
+- ✅ **Medical Records** - Simplified doctor-patient workflow
 - ✅ **Responsive Design** - Mobile-first approach cho tất cả devices
 
 ---
@@ -43,7 +42,7 @@ A comprehensive microservices-based hospital management system built with modern
 
 ### **Technology Stack**
 
-- **Backend**: Node.js + TypeScript + Express.js (12 microservices)
+- **Backend**: Node.js + TypeScript + Express.js (9 microservices)
 - **Frontend**: Next.js 14 + React + TypeScript + Tailwind CSS
 - **Database**: Supabase (PostgreSQL) with 64 tables + AI features
 - **AI Integration**: OpenAI API + Medical knowledge base + Triage system

@@ -45,7 +45,7 @@ export interface PaginationQuery {
     page?: number;
     limit?: number;
     sortBy?: string;
-    sortOrder?: 'asc' | 'desc';
+    sortOrder?: "asc" | "desc";
     search?: string;
 }
 export interface ServiceConfig {
@@ -53,7 +53,7 @@ export interface ServiceConfig {
     port: number;
     host: string;
     version: string;
-    environment: 'development' | 'staging' | 'production';
+    environment: "development" | "staging" | "production";
 }
 export interface DatabaseConfig {
     host: string;
@@ -83,7 +83,7 @@ export interface JWTConfig {
     refreshExpiresIn: string;
 }
 export interface EmailConfig {
-    provider: 'sendgrid' | 'ses' | 'smtp';
+    provider: "sendgrid" | "ses" | "smtp";
     apiKey?: string;
     from: string;
     templates: {
@@ -91,7 +91,7 @@ export interface EmailConfig {
     };
 }
 export interface SMSConfig {
-    provider: 'twilio' | 'aws-sns';
+    provider: "twilio" | "aws-sns";
     accountSid?: string;
     authToken?: string;
     from: string;
@@ -100,7 +100,6 @@ export declare enum UserRole {
     ADMIN = "admin",
     DOCTOR = "doctor",
     PATIENT = "patient",
-    NURSE = "nurse",
     RECEPTIONIST = "receptionist"
 }
 export declare enum AppointmentStatus {
@@ -155,13 +154,13 @@ export interface Event {
 }
 export interface HealthCheck {
     service: string;
-    status: 'healthy' | 'unhealthy' | 'degraded';
+    status: "healthy" | "unhealthy" | "degraded";
     timestamp: Date;
     uptime: number;
     version: string;
     dependencies: {
         [key: string]: {
-            status: 'healthy' | 'unhealthy';
+            status: "healthy" | "unhealthy";
             responseTime?: number;
             error?: string;
         };
@@ -169,14 +168,14 @@ export interface HealthCheck {
 }
 export interface StandardHealthCheck {
     service: string;
-    status: 'healthy' | 'unhealthy' | 'degraded';
+    status: "healthy" | "unhealthy" | "degraded";
     version: string;
     timestamp: string;
     uptime: number;
     environment: string;
     dependencies?: {
         [key: string]: {
-            status: 'healthy' | 'unhealthy';
+            status: "healthy" | "unhealthy";
             responseTime?: number;
             error?: string;
         };

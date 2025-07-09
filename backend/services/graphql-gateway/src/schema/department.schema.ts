@@ -1,4 +1,4 @@
-import { gql } from 'apollo-server-express';
+import { gql } from 'graphql-tag';
 
 /**
  * GraphQL Schema for Department and related entities
@@ -6,9 +6,7 @@ import { gql } from 'apollo-server-express';
  * Supports Vietnamese language and hospital management requirements
  */
 export const departmentTypeDefs = gql`
-  # Department-specific scalars
-  scalar DepartmentID
-
+  # Department-specific enums only (common scalars defined in base schema)
   # Enums
   enum DepartmentStatus {
     ACTIVE
@@ -244,72 +242,8 @@ export const departmentTypeDefs = gql`
     currency: String! # VND
   }
 
-  # Medical Record
-  type MedicalRecord {
-    id: UUID!
-    patientId: PatientID!
-    doctorId: DoctorID!
-    appointmentId: UUID
-    
-    # Record Information
-    visitDate: Date!
-    chiefComplaint: String
-    historyOfPresentIllness: String
-    physicalExamination: String
-    diagnosis: String
-    treatment: String
-    prescription: String
-    followUpInstructions: String
-    
-    # Vital Signs
-    vitalSigns: VitalSigns
-    
-    # Lab Results
-    labResults: [LabResult!]
-    
-    # Attachments
-    attachments: [MedicalAttachment!]
-    
-    # Relationships
-    patient: Patient!
-    doctor: Doctor!
-    appointment: Appointment
-    
-    # Timestamps
-    createdAt: DateTime!
-    updatedAt: DateTime!
-  }
-
-  type VitalSigns {
-    bloodPressureSystolic: Int
-    bloodPressureDiastolic: Int
-    heartRate: Int
-    temperature: Float
-    respiratoryRate: Int
-    oxygenSaturation: Float
-    height: Float
-    weight: Float
-    bmi: Float
-  }
-
-  type LabResult {
-    testName: String!
-    value: String!
-    unit: String
-    normalRange: String
-    status: String # NORMAL, HIGH, LOW, CRITICAL
-    notes: String
-  }
-
-  type MedicalAttachment {
-    id: UUID!
-    fileName: String!
-    fileType: String!
-    fileSize: Int!
-    url: String!
-    description: String
-    uploadedAt: DateTime!
-  }
+  # Note: MedicalRecord, VitalSigns, LabResult, and MedicalAttachment types
+  # are defined in medical-record.schema.ts to avoid duplication and maintain consistency
 
   # Prescription
   type Prescription {
@@ -491,14 +425,9 @@ export const departmentTypeDefs = gql`
       status: EquipmentStatus
     ): [Equipment!]!
     
-    # Medical records
-    medicalRecord(id: UUID!): MedicalRecord
-    patientMedicalRecords(
-      patientId: PatientID!
-      limit: Int = 20
-      offset: Int = 0
-    ): [MedicalRecord!]!
-    
+    # Note: Medical record queries are defined in medical-record.schema.ts
+    # Note: Patient medical record queries are defined in patient.schema.ts
+
     # Prescriptions
     prescription(id: UUID!): Prescription
     patientPrescriptions(
@@ -507,7 +436,7 @@ export const departmentTypeDefs = gql`
       limit: Int = 20
       offset: Int = 0
     ): [Prescription!]!
-    
+
     # Payments
     payment(id: UUID!): Payment
     patientPayments(

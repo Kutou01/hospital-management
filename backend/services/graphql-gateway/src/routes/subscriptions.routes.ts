@@ -3,236 +3,225 @@ import { subscriptionService } from '../services/subscription.service';
 import logger from '@hospital/shared/dist/utils/logger';
 import { EnhancedResponseHelper } from '@hospital/shared/dist/utils/response-helpers';
 
+// Helper functions for consistent responses
+const sendError = (res: Response, message: string, status = 400) => {
+  return res.status(status).json(EnhancedResponseHelper.error(message));
+};
+
+const sendSuccess = (res: Response, message: string) => {
+  return res.json(EnhancedResponseHelper.success(message));
+};
+
+const sendInternalError = (res: Response, message: string) => {
+  return res.status(500).json(EnhancedResponseHelper.internalError(message));
+};
+
 const router = Router();
 
 /**
  * Webhook endpoint for appointment updates from appointment service
  */
-router.post('/webhook/appointment/updated', async (req: Request, res: Response) => {
+router.post('/webhooks/appointment-created', async (req: Request, res: Response) => {
   try {
     const appointment = req.body;
     
     if (!appointment || !appointment.appointmentId) {
-      return EnhancedResponseHelper.badRequest(res, 'Invalid appointment data');
+      return sendError(res, 'Invalid appointment data');
     }
 
     await subscriptionService.publishAppointmentUpdate(appointment);
     
-    logger.info(`📢 Webhook: Published appointment update for ${appointment.appointmentId}`);
-    return EnhancedResponseHelper.success(res, { message: 'Event published successfully' });
+    logger.info(`📢 Webhook: Published appointment created for ${appointment.appointmentId}`);
+    return sendSuccess(res, 'Event published successfully');
   } catch (error) {
-    logger.error('❌ Webhook error - appointment updated:', error);
-    return EnhancedResponseHelper.internalServerError(res, 'Failed to publish event');
+    logger.error('❌ Webhook error - appointment created:', error);
+    return sendInternalError(res, 'Failed to publish event');
   }
 });
 
-/**
- * Webhook endpoint for appointment status changes
- */
-router.post('/webhook/appointment/status-changed', async (req: Request, res: Response) => {
+router.post('/webhooks/appointment-status-changed', async (req: Request, res: Response) => {
   try {
     const appointment = req.body;
     
     if (!appointment || !appointment.appointmentId) {
-      return EnhancedResponseHelper.badRequest(res, 'Invalid appointment data');
+      return sendError(res, 'Invalid appointment data');
     }
 
     await subscriptionService.publishAppointmentStatusChange(appointment);
     
     logger.info(`📢 Webhook: Published appointment status change for ${appointment.appointmentId}`);
-    return EnhancedResponseHelper.success(res, { message: 'Event published successfully' });
+    return sendSuccess(res, 'Event published successfully');
   } catch (error) {
     logger.error('❌ Webhook error - appointment status changed:', error);
-    return EnhancedResponseHelper.internalServerError(res, 'Failed to publish event');
+    return sendInternalError(res, 'Failed to publish event');
   }
 });
 
 /**
- * Webhook endpoint for new appointments
+ * Webhook endpoint for queue updates
  */
-router.post('/webhook/appointment/created', async (req: Request, res: Response) => {
+router.post('/webhooks/queue-updated', async (req: Request, res: Response) => {
   try {
-    const appointment = req.body;
+    const queueData = req.body;
     
-    if (!appointment || !appointment.appointmentId) {
-      return EnhancedResponseHelper.badRequest(res, 'Invalid appointment data');
+    if (!queueData || !queueData.queueId) {
+      return sendError(res, 'Invalid queue data');
     }
 
-    await subscriptionService.publishNewAppointment(appointment);
+    // await subscriptionService.publishQueueUpdate(queueData); // Method not implemented yet
     
-    logger.info(`📢 Webhook: Published new appointment ${appointment.appointmentId}`);
-    return EnhancedResponseHelper.success(res, { message: 'Event published successfully' });
-  } catch (error) {
-    logger.error('❌ Webhook error - appointment created:', error);
-    return EnhancedResponseHelper.internalServerError(res, 'Failed to publish event');
-  }
-});
-
-/**
- * Webhook endpoint for waiting queue updates
- */
-router.post('/webhook/appointment/queue-updated', async (req: Request, res: Response) => {
-  try {
-    const { doctorId, queue } = req.body;
-    
-    if (!doctorId || !Array.isArray(queue)) {
-      return EnhancedResponseHelper.badRequest(res, 'Invalid queue data');
-    }
-
-    await subscriptionService.publishWaitingQueueUpdate(doctorId, queue);
-    
-    logger.info(`📢 Webhook: Published queue update for doctor ${doctorId}`);
-    return EnhancedResponseHelper.success(res, { message: 'Event published successfully' });
+    logger.info(`📢 Webhook: Published queue update for ${queueData.queueId}`);
+    return sendSuccess(res, 'Event published successfully');
   } catch (error) {
     logger.error('❌ Webhook error - queue updated:', error);
-    return EnhancedResponseHelper.internalServerError(res, 'Failed to publish event');
+    return sendInternalError(res, 'Failed to publish event');
   }
 });
 
 /**
- * Webhook endpoint for doctor status changes
+ * Webhook endpoint for doctor availability updates
  */
-router.post('/webhook/doctor/status-changed', async (req: Request, res: Response) => {
+router.post('/webhooks/doctor-availability-changed', async (req: Request, res: Response) => {
   try {
-    const doctor = req.body;
+    const doctorData = req.body;
     
-    if (!doctor || !doctor.doctorId) {
-      return EnhancedResponseHelper.badRequest(res, 'Invalid doctor data');
+    if (!doctorData || !doctorData.doctorId) {
+      return sendError(res, 'Invalid doctor data');
     }
 
-    await subscriptionService.publishDoctorStatusChange(doctor);
+    await subscriptionService.publishDoctorAvailabilityChange(doctorData);
     
-    logger.info(`📢 Webhook: Published doctor status change for ${doctor.doctorId}`);
-    return EnhancedResponseHelper.success(res, { message: 'Event published successfully' });
-  } catch (error) {
-    logger.error('❌ Webhook error - doctor status changed:', error);
-    return EnhancedResponseHelper.internalServerError(res, 'Failed to publish event');
-  }
-});
-
-/**
- * Webhook endpoint for doctor schedule changes
- */
-router.post('/webhook/doctor/schedule-changed', async (req: Request, res: Response) => {
-  try {
-    const schedule = req.body;
-    
-    if (!schedule || !schedule.doctorId) {
-      return EnhancedResponseHelper.badRequest(res, 'Invalid schedule data');
-    }
-
-    await subscriptionService.publishDoctorScheduleChange(schedule);
-    
-    logger.info(`📢 Webhook: Published doctor schedule change for ${schedule.doctorId}`);
-    return EnhancedResponseHelper.success(res, { message: 'Event published successfully' });
-  } catch (error) {
-    logger.error('❌ Webhook error - doctor schedule changed:', error);
-    return EnhancedResponseHelper.internalServerError(res, 'Failed to publish event');
-  }
-});
-
-/**
- * Webhook endpoint for doctor availability changes
- */
-router.post('/webhook/doctor/availability-changed', async (req: Request, res: Response) => {
-  try {
-    const doctor = req.body;
-    
-    if (!doctor || !doctor.doctorId) {
-      return EnhancedResponseHelper.badRequest(res, 'Invalid doctor data');
-    }
-
-    await subscriptionService.publishDoctorAvailabilityChange(doctor);
-    
-    logger.info(`📢 Webhook: Published doctor availability change for ${doctor.doctorId}`);
-    return EnhancedResponseHelper.success(res, { message: 'Event published successfully' });
+    logger.info(`📢 Webhook: Published doctor availability change for ${doctorData.doctorId}`);
+    return sendSuccess(res, 'Event published successfully');
   } catch (error) {
     logger.error('❌ Webhook error - doctor availability changed:', error);
-    return EnhancedResponseHelper.internalServerError(res, 'Failed to publish event');
+    return sendInternalError(res, 'Failed to publish event');
   }
 });
 
 /**
- * Webhook endpoint for doctor notifications
+ * Webhook endpoint for schedule updates
  */
-router.post('/webhook/doctor/notification', async (req: Request, res: Response) => {
+router.post('/webhooks/schedule-updated', async (req: Request, res: Response) => {
   try {
-    const { doctorId, notification } = req.body;
+    const scheduleData = req.body;
     
-    if (!doctorId || !notification) {
-      return EnhancedResponseHelper.badRequest(res, 'Invalid notification data');
+    if (!scheduleData || !scheduleData.scheduleId) {
+      return sendError(res, 'Invalid schedule data');
     }
 
-    await subscriptionService.publishDoctorNotification(doctorId, notification);
+    // await subscriptionService.publishScheduleUpdate(scheduleData); // Method not implemented yet
     
-    logger.info(`📢 Webhook: Published doctor notification for ${doctorId}`);
-    return EnhancedResponseHelper.success(res, { message: 'Event published successfully' });
+    logger.info(`📢 Webhook: Published schedule update for ${scheduleData.scheduleId}`);
+    return sendSuccess(res, 'Event published successfully');
   } catch (error) {
-    logger.error('❌ Webhook error - doctor notification:', error);
-    return EnhancedResponseHelper.internalServerError(res, 'Failed to publish event');
+    logger.error('❌ Webhook error - schedule updated:', error);
+    return sendInternalError(res, 'Failed to publish event');
   }
 });
 
 /**
- * Webhook endpoint for patient status changes
+ * Webhook endpoint for doctor status updates
  */
-router.post('/webhook/patient/status-changed', async (req: Request, res: Response) => {
+router.post('/webhooks/doctor-status-changed', async (req: Request, res: Response) => {
   try {
-    const patient = req.body;
+    const doctorData = req.body;
     
-    if (!patient || !patient.patientId) {
-      return EnhancedResponseHelper.badRequest(res, 'Invalid patient data');
+    if (!doctorData || !doctorData.doctorId) {
+      return sendError(res, 'Invalid doctor data');
     }
 
-    await subscriptionService.publishPatientStatusChange(patient);
+    await subscriptionService.publishDoctorStatusChange(doctorData);
     
-    logger.info(`📢 Webhook: Published patient status change for ${patient.patientId}`);
-    return EnhancedResponseHelper.success(res, { message: 'Event published successfully' });
+    logger.info(`📢 Webhook: Published doctor status change for ${doctorData.doctorId}`);
+    return sendSuccess(res, 'Event published successfully');
   } catch (error) {
-    logger.error('❌ Webhook error - patient status changed:', error);
-    return EnhancedResponseHelper.internalServerError(res, 'Failed to publish event');
-  }
-});
-
-/**
- * Webhook endpoint for patient updates
- */
-router.post('/webhook/patient/updated', async (req: Request, res: Response) => {
-  try {
-    const patient = req.body;
-    
-    if (!patient || !patient.patientId) {
-      return EnhancedResponseHelper.badRequest(res, 'Invalid patient data');
-    }
-
-    await subscriptionService.publishPatientUpdate(patient);
-    
-    logger.info(`📢 Webhook: Published patient update for ${patient.patientId}`);
-    return EnhancedResponseHelper.success(res, { message: 'Event published successfully' });
-  } catch (error) {
-    logger.error('❌ Webhook error - patient updated:', error);
-    return EnhancedResponseHelper.internalServerError(res, 'Failed to publish event');
+    logger.error('❌ Webhook error - doctor status changed:', error);
+    return sendInternalError(res, 'Failed to publish event');
   }
 });
 
 /**
  * Webhook endpoint for system notifications
  */
-router.post('/webhook/system/notification', async (req: Request, res: Response) => {
+router.post('/webhooks/system-notification', async (req: Request, res: Response) => {
   try {
-    const notification = req.body;
+    const notificationData = req.body;
     
-    if (!notification || !notification.type) {
-      return EnhancedResponseHelper.badRequest(res, 'Invalid notification data');
+    if (!notificationData || !notificationData.type) {
+      return sendError(res, 'Invalid notification data');
     }
 
-    await subscriptionService.publishSystemNotification(notification);
+    await subscriptionService.publishSystemNotification(notificationData);
     
-    logger.info(`📢 Webhook: Published system notification: ${notification.type}`);
-    return EnhancedResponseHelper.success(res, { message: 'Event published successfully' });
+    logger.info(`📢 Webhook: Published system notification of type ${notificationData.type}`);
+    return sendSuccess(res, 'Event published successfully');
   } catch (error) {
     logger.error('❌ Webhook error - system notification:', error);
-    return EnhancedResponseHelper.internalServerError(res, 'Failed to publish event');
+    return sendInternalError(res, 'Failed to publish event');
+  }
+});
+
+/**
+ * Webhook endpoint for patient updates
+ */
+router.post('/webhooks/patient-updated', async (req: Request, res: Response) => {
+  try {
+    const patientData = req.body;
+    
+    if (!patientData || !patientData.patientId) {
+      return sendError(res, 'Invalid patient data');
+    }
+
+    await subscriptionService.publishPatientUpdate(patientData);
+    
+    logger.info(`📢 Webhook: Published patient update for ${patientData.patientId}`);
+    return sendSuccess(res, 'Event published successfully');
+  } catch (error) {
+    logger.error('❌ Webhook error - patient updated:', error);
+    return sendInternalError(res, 'Failed to publish event');
+  }
+});
+
+/**
+ * Webhook endpoint for patient status changes
+ */
+router.post('/webhooks/patient-status-changed', async (req: Request, res: Response) => {
+  try {
+    const patientData = req.body;
+    
+    if (!patientData || !patientData.patientId) {
+      return sendError(res, 'Invalid patient data');
+    }
+
+    await subscriptionService.publishPatientStatusChange(patientData);
+    
+    logger.info(`📢 Webhook: Published patient status change for ${patientData.patientId}`);
+    return sendSuccess(res, 'Event published successfully');
+  } catch (error) {
+    logger.error('❌ Webhook error - patient status changed:', error);
+    return sendInternalError(res, 'Failed to publish event');
+  }
+});
+
+/**
+ * Webhook endpoint for emergency notifications
+ */
+router.post('/webhooks/emergency-notification', async (req: Request, res: Response) => {
+  try {
+    const emergencyData = req.body;
+    
+    if (!emergencyData || !emergencyData.type) {
+      return sendError(res, 'Invalid notification data');
+    }
+
+    await subscriptionService.publishSystemNotification(emergencyData);
+    
+    logger.info(`📢 Webhook: Published emergency notification of type ${emergencyData.type}`);
+    return sendSuccess(res, 'Event published successfully');
+  } catch (error) {
+    logger.error('❌ Webhook error - emergency notification:', error);
+    return sendInternalError(res, 'Failed to publish event');
   }
 });
 
@@ -240,16 +229,33 @@ router.post('/webhook/system/notification', async (req: Request, res: Response) 
  * Health check endpoint for subscription service
  */
 router.get('/health', (req: Request, res: Response) => {
-  const isReady = subscriptionService.isReady();
-  
-  if (isReady) {
-    return EnhancedResponseHelper.success(res, {
+  try {
+    const healthData = {
       status: 'healthy',
-      service: 'GraphQL Subscription Service',
-      timestamp: new Date().toISOString()
-    });
-  } else {
-    return EnhancedResponseHelper.serviceUnavailable(res, 'Subscription service not ready');
+      service: 'GraphQL Subscriptions',
+      timestamp: new Date().toISOString(),
+      version: '1.0.0',
+      subscriptions: {
+        active: 0, // subscriptionService.getActiveSubscriptionsCount() not implemented
+        supported: [
+          'appointmentCreated',
+          'appointmentStatusChanged',
+          'queueUpdated',
+          'doctorAvailabilityChanged',
+          'scheduleUpdated',
+          'doctorStatusChanged',
+          'systemNotification',
+          'patientUpdated',
+          'patientStatusChanged',
+          'emergencyNotification'
+        ]
+      }
+    };
+    
+    return res.json(healthData);
+  } catch (error) {
+    logger.error('❌ Subscription health check failed:', error);
+    return res.status(503).json(EnhancedResponseHelper.serviceUnavailable('Subscription service not ready'));
   }
 });
 

@@ -1,4 +1,4 @@
-import { gql } from 'apollo-server-express';
+import { gql } from "graphql-tag";
 
 /**
  * GraphQL Schema for Doctor entities
@@ -6,35 +6,12 @@ import { gql } from 'apollo-server-express';
  * Supports Vietnamese language and hospital management requirements
  */
 export const doctorTypeDefs = gql`
-  # Scalar types for Vietnamese data
-  scalar Date
-  scalar DateTime
-  scalar PhoneNumber
-  scalar LicenseNumber
-  scalar DoctorID
-  scalar UUID
-
-  # Enums
-  enum Gender {
-    MALE
-    FEMALE
-    OTHER
-  }
-
+  # Doctor-specific enums only (common scalars defined in base schema)
   enum DoctorStatus {
     ACTIVE
     INACTIVE
     ON_LEAVE
     SUSPENDED
-  }
-
-  enum AppointmentStatus {
-    SCHEDULED
-    CONFIRMED
-    IN_PROGRESS
-    COMPLETED
-    CANCELLED
-    NO_SHOW
   }
 
   # Core Doctor Type
@@ -46,7 +23,7 @@ export const doctorTypeDefs = gql`
     fullName: String!
     email: String!
     phoneNumber: PhoneNumber
-    
+
     # Professional Information
     specialization: String!
     licenseNumber: LicenseNumber!
@@ -54,20 +31,20 @@ export const doctorTypeDefs = gql`
     consultationFee: Float
     bio: String
     photoUrl: String
-    
+
     # Personal Information
     gender: Gender
     dateOfBirth: Date
     address: String
-    
+
     # Status
     isActive: Boolean!
     status: DoctorStatus!
-    
+
     # Timestamps
     createdAt: DateTime!
     updatedAt: DateTime!
-    
+
     # Relationships
     department: Department
     experiences: [DoctorExperience!]!
@@ -80,7 +57,7 @@ export const doctorTypeDefs = gql`
       offset: Int = 0
     ): AppointmentConnection!
     reviews(limit: Int = 10, offset: Int = 0): ReviewConnection!
-    
+
     # Computed Fields
     averageRating: Float
     totalPatients: Int
@@ -105,38 +82,85 @@ export const doctorTypeDefs = gql`
     updatedAt: DateTime!
   }
 
-  # Doctor Schedule
-  type DoctorSchedule {
-    id: UUID!
-    doctorId: DoctorID!
-    dayOfWeek: Int! # 0=Sunday, 1=Monday, etc.
-    startTime: String! # HH:MM format
-    endTime: String! # HH:MM format
-    isAvailable: Boolean!
-    maxAppointments: Int
-    slotDuration: Int # minutes
-    breakStartTime: String
-    breakEndTime: String
-    room: Room
-    createdAt: DateTime!
-    updatedAt: DateTime!
+  # Doctor Review (mapped to doctor_reviews table)
+  type DoctorReview {
+    id: UUID! # maps to review_id
+    doctorId: DoctorID! # maps to doctor_id
+    patientId: PatientID! # maps to patient_id
+    appointmentId: UUID # maps to appointment_id
+    # Review Content
+    rating: Int! # maps to rating (1-5)
+    comment: String # maps to comment
+    # Review Details
+    serviceQuality: Int # maps to service_quality
+    communication: Int # maps to communication
+    punctuality: Int # maps to punctuality
+    facilities: Int # maps to facilities
+    # Status
+    isVerified: Boolean! # maps to is_verified
+    isAnonymous: Boolean! # maps to is_anonymous
+    # Timestamps
+    createdAt: DateTime! # maps to created_at
+    updatedAt: DateTime! # maps to updated_at
+    # Relationships
+    doctor: Doctor!
+    patient: Patient!
+    appointment: Appointment
   }
 
-  # Doctor Review
-  type DoctorReview {
-    id: UUID!
-    doctorId: DoctorID!
-    patientId: String!
-    appointmentId: UUID
-    rating: Int! # 1-5 stars
-    comment: String
-    isAnonymous: Boolean!
-    isVerified: Boolean!
-    createdAt: DateTime!
-    
+  # Doctor Schedule (mapped to doctor_schedules table)
+  type DoctorSchedule {
+    id: UUID! # maps to schedule_id
+    doctorId: DoctorID! # maps to doctor_id
+    # Schedule Details
+    dayOfWeek: Int! # maps to day_of_week (0=Sunday, 1=Monday, etc.)
+    startTime: String! # maps to start_time (HH:MM format)
+    endTime: String! # maps to end_time (HH:MM format)
+    # Availability
+    isAvailable: Boolean! # maps to is_available
+    maxAppointments: Int # maps to max_appointments
+    slotDuration: Int # maps to slot_duration (minutes)
+    # Break Time
+    breakStartTime: String # maps to break_start_time
+    breakEndTime: String # maps to break_end_time
+    # Location
+    room: Room # maps to room_id
+    # Additional Info
+    notes: String # maps to notes
+    scheduleType: String # maps to schedule_type
+    # Timestamps
+    createdAt: DateTime! # maps to created_at
+    updatedAt: DateTime! # maps to updated_at
     # Relationships
-    patient: Patient
-    appointment: Appointment
+    doctor: Doctor!
+  }
+
+  # Room Type (mapped to rooms table)
+  type Room {
+    id: UUID! # maps to room_id
+    roomNumber: String! # maps to room_number
+    roomType: String! # maps to room_type
+    departmentId: String # maps to department_id
+    # Capacity
+    capacity: Int! # maps to capacity
+    currentOccupancy: Int! # maps to current_occupancy
+    # Details
+    floorNumber: Int # maps to floor_number
+    amenities: [String!] # maps to amenities
+    dailyRate: Float # maps to daily_rate
+    status: String! # maps to status
+    description: String # maps to description
+    # Equipment
+    equipmentIds: [String!] # maps to equipment_ids
+    location: String # maps to location (jsonb)
+    notes: String # maps to notes
+    # Status
+    isActive: Boolean! # maps to is_active
+    # Timestamps
+    createdAt: DateTime! # maps to created_at
+    updatedAt: DateTime! # maps to updated_at
+    # Relationships
+    department: Department
   }
 
   # Doctor Statistics
@@ -183,17 +207,6 @@ export const doctorTypeDefs = gql`
     cursor: String!
   }
 
-  type AppointmentConnection {
-    edges: [AppointmentEdge!]!
-    pageInfo: PageInfo!
-    totalCount: Int!
-  }
-
-  type AppointmentEdge {
-    node: Appointment!
-    cursor: String!
-  }
-
   type ReviewConnection {
     edges: [ReviewEdge!]!
     pageInfo: PageInfo!
@@ -203,14 +216,6 @@ export const doctorTypeDefs = gql`
   type ReviewEdge {
     node: DoctorReview!
     cursor: String!
-  }
-
-  # Pagination Info
-  type PageInfo {
-    hasNextPage: Boolean!
-    hasPreviousPage: Boolean!
-    startCursor: String
-    endCursor: String
   }
 
   # Input Types
@@ -302,9 +307,19 @@ export const doctorTypeDefs = gql`
 
   input CreateDoctorReviewInput {
     doctorId: DoctorID!
+    patientId: PatientID!
     appointmentId: UUID
-    rating: Int!
+
+    # Review Content
+    rating: Int! # 1-5 stars
     comment: String
+
+    # Review Details
+    serviceQuality: Int # 1-5 stars
+    communication: Int # 1-5 stars
+    punctuality: Int # 1-5 stars
+    facilities: Int # 1-5 stars
+    # Settings
     isAnonymous: Boolean = false
   }
 
@@ -313,7 +328,7 @@ export const doctorTypeDefs = gql`
     # Single doctor queries
     doctor(id: UUID, doctorId: DoctorID): Doctor
     doctorByProfile(profileId: UUID!): Doctor
-    
+
     # Multiple doctors queries
     doctors(
       filters: DoctorFilters
@@ -322,7 +337,7 @@ export const doctorTypeDefs = gql`
       sortBy: String = "createdAt"
       sortOrder: String = "DESC"
     ): DoctorConnection!
-    
+
     # Search doctors
     searchDoctors(
       query: String!
@@ -330,23 +345,20 @@ export const doctorTypeDefs = gql`
       limit: Int = 20
       offset: Int = 0
     ): DoctorConnection!
-    
+
     # Doctor availability
-    doctorAvailability(
-      doctorId: DoctorID!
-      date: Date!
-    ): [AvailableSlot!]!
-    
+    doctorAvailability(doctorId: DoctorID!, date: Date!): [AvailableSlot!]!
+
     # Doctor statistics
     doctorStats(doctorId: DoctorID!): DoctorStats!
-    
+
     # Department doctors
     departmentDoctors(
       departmentId: UUID!
       limit: Int = 20
       offset: Int = 0
     ): DoctorConnection!
-    
+
     # Available doctors
     availableDoctors(
       date: Date!
@@ -354,6 +366,25 @@ export const doctorTypeDefs = gql`
       specialization: String
       limit: Int = 20
     ): [Doctor!]!
+
+    # Doctor reviews
+    doctorReviews(
+      doctorId: DoctorID!
+      limit: Int = 10
+      offset: Int = 0
+    ): [DoctorReview!]!
+
+    # Doctor schedule
+    doctorSchedule(doctorId: DoctorID!, date: Date): [DoctorSchedule!]!
+
+    # Rooms
+    room(id: UUID!): Room
+    rooms(
+      departmentId: String
+      roomType: String
+      isActive: Boolean = true
+      limit: Int = 20
+    ): [Room!]!
   }
 
   # Mutations
@@ -364,17 +395,23 @@ export const doctorTypeDefs = gql`
     deleteDoctor(id: UUID!): Boolean!
     activateDoctor(id: UUID!): Doctor!
     deactivateDoctor(id: UUID!): Doctor!
-    
+
     # Doctor experience
     addDoctorExperience(input: CreateDoctorExperienceInput!): DoctorExperience!
-    updateDoctorExperience(id: UUID!, input: UpdateDoctorExperienceInput!): DoctorExperience!
+    updateDoctorExperience(
+      id: UUID!
+      input: UpdateDoctorExperienceInput!
+    ): DoctorExperience!
     deleteDoctorExperience(id: UUID!): Boolean!
-    
+
     # Doctor schedule
     createDoctorSchedule(input: CreateDoctorScheduleInput!): DoctorSchedule!
-    updateDoctorSchedule(id: UUID!, input: UpdateDoctorScheduleInput!): DoctorSchedule!
+    updateDoctorSchedule(
+      id: UUID!
+      input: UpdateDoctorScheduleInput!
+    ): DoctorSchedule!
     deleteDoctorSchedule(id: UUID!): Boolean!
-    
+
     # Doctor reviews
     createDoctorReview(input: CreateDoctorReviewInput!): DoctorReview!
     updateDoctorReview(id: UUID!, rating: Int, comment: String): DoctorReview!
@@ -386,15 +423,12 @@ export const doctorTypeDefs = gql`
     # Doctor status changes
     doctorStatusChanged(doctorId: DoctorID): Doctor!
     doctorAvailabilityChanged(doctorId: DoctorID): Doctor!
-    
+
     # Doctor schedule changes
     doctorScheduleUpdated(doctorId: DoctorID): DoctorSchedule!
-    
+
     # New reviews
     doctorReviewAdded(doctorId: DoctorID): DoctorReview!
-    
-    # Appointment updates for doctor
-    doctorAppointmentUpdated(doctorId: DoctorID!): Appointment!
   }
 
   # Available time slot

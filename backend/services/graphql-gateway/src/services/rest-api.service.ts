@@ -1,5 +1,5 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
-import logger from '@hospital/shared/dist/utils/logger';
+import logger from "@hospital/shared/dist/utils/logger";
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 
 /**
  * REST API Service Configuration
@@ -8,7 +8,7 @@ interface RestApiConfig {
   baseURL: string;
   token?: string;
   requestId: string;
-  language: 'vi' | 'en';
+  language: "vi" | "en";
   timeout?: number;
 }
 
@@ -49,37 +49,38 @@ export class RestApiService {
 
   constructor(config: RestApiConfig) {
     this.config = config;
-    
+
     // Create axios instance with default configuration
     this.client = axios.create({
       baseURL: config.baseURL,
       timeout: config.timeout || 30000,
       headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-Request-ID': config.requestId,
-        'Accept-Language': config.language === 'vi' ? 'vi-VN' : 'en-US',
-        'X-API-Version': 'v2'
-      }
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "X-Request-ID": config.requestId,
+        "Accept-Language": config.language === "vi" ? "vi-VN" : "en-US",
+        "X-API-Version": "v2",
+      },
     });
 
     // Add authentication header if token is provided
     if (config.token) {
-      this.client.defaults.headers.common['Authorization'] = `Bearer ${config.token}`;
+      this.client.defaults.headers.common["Authorization"] =
+        `Bearer ${config.token}`;
     }
 
     // Request interceptor for logging
     this.client.interceptors.request.use(
       (config) => {
-        logger.debug('REST API Request:', {
+        logger.debug("REST API Request:", {
           method: config.method?.toUpperCase(),
           url: config.url,
-          requestId: this.config.requestId
+          requestId: this.config.requestId,
         });
         return config;
       },
       (error) => {
-        logger.error('REST API Request Error:', error);
+        logger.error("REST API Request Error:", error);
         return Promise.reject(error);
       }
     );
@@ -87,20 +88,20 @@ export class RestApiService {
     // Response interceptor for logging and error handling
     this.client.interceptors.response.use(
       (response: AxiosResponse<StandardApiResponse>) => {
-        logger.debug('REST API Response:', {
+        logger.debug("REST API Response:", {
           status: response.status,
           url: response.config.url,
           success: response.data.success,
-          requestId: this.config.requestId
+          requestId: this.config.requestId,
         });
         return response;
       },
       (error) => {
-        logger.error('REST API Response Error:', {
+        logger.error("REST API Response Error:", {
           status: error.response?.status,
           url: error.config?.url,
           message: error.message,
-          requestId: this.config.requestId
+          requestId: this.config.requestId,
         });
         return Promise.reject(this.formatError(error));
       }
@@ -117,7 +118,7 @@ export class RestApiService {
     specialization?: string;
     departmentId?: string;
   }): Promise<StandardApiResponse> {
-    const response = await this.client.get('/api/doctors', { params });
+    const response = await this.client.get("/api/doctors", { params });
     return response.data;
   }
 
@@ -127,7 +128,7 @@ export class RestApiService {
   }
 
   async createDoctor(data: any): Promise<StandardApiResponse> {
-    const response = await this.client.post('/api/doctors', data);
+    const response = await this.client.post("/api/doctors", data);
     return response.data;
   }
 
@@ -141,9 +142,15 @@ export class RestApiService {
     return response.data;
   }
 
-  async getDoctorSchedule(doctorId: string, date?: string): Promise<StandardApiResponse> {
+  async getDoctorSchedule(
+    doctorId: string,
+    date?: string
+  ): Promise<StandardApiResponse> {
     const params = date ? { date } : {};
-    const response = await this.client.get(`/api/doctors/${doctorId}/schedule`, { params });
+    const response = await this.client.get(
+      `/api/doctors/${doctorId}/schedule`,
+      { params }
+    );
     return response.data;
   }
 
@@ -161,7 +168,7 @@ export class RestApiService {
     search?: string;
     status?: string;
   }): Promise<StandardApiResponse> {
-    const response = await this.client.get('/api/patients', { params });
+    const response = await this.client.get("/api/patients", { params });
     return response.data;
   }
 
@@ -171,7 +178,7 @@ export class RestApiService {
   }
 
   async createPatient(data: any): Promise<StandardApiResponse> {
-    const response = await this.client.post('/api/patients', data);
+    const response = await this.client.post("/api/patients", data);
     return response.data;
   }
 
@@ -186,7 +193,9 @@ export class RestApiService {
   }
 
   async getPatientByProfile(profileId: string): Promise<StandardApiResponse> {
-    const response = await this.client.get(`/api/patients/profile/${profileId}`);
+    const response = await this.client.get(
+      `/api/patients/profile/${profileId}`
+    );
     return response.data;
   }
 
@@ -196,12 +205,16 @@ export class RestApiService {
     offset?: number;
     [key: string]: any;
   }): Promise<StandardApiResponse> {
-    const response = await this.client.get('/api/patients/search', { params });
+    const response = await this.client.get("/api/patients/search", { params });
     return response.data;
   }
 
-  async getPatientMedicalSummary(patientId: string): Promise<StandardApiResponse> {
-    const response = await this.client.get(`/api/patients/${patientId}/medical-summary`);
+  async getPatientMedicalSummary(
+    patientId: string
+  ): Promise<StandardApiResponse> {
+    const response = await this.client.get(
+      `/api/patients/${patientId}/medical-summary`
+    );
     return response.data;
   }
 
@@ -210,10 +223,17 @@ export class RestApiService {
     return response.data;
   }
 
-  async getPatientDoctorHistory(patientId: string, doctorId: string, limit: number): Promise<StandardApiResponse> {
-    const response = await this.client.get(`/api/patients/${patientId}/doctors/${doctorId}/history`, {
-      params: { limit }
-    });
+  async getPatientDoctorHistory(
+    patientId: string,
+    doctorId: string,
+    limit: number
+  ): Promise<StandardApiResponse> {
+    const response = await this.client.get(
+      `/api/patients/${patientId}/doctors/${doctorId}/history`,
+      {
+        params: { limit },
+      }
+    );
     return response.data;
   }
 
@@ -227,13 +247,25 @@ export class RestApiService {
     return response.data;
   }
 
-  async updatePatientMedicalInfo(id: string, medicalInfo: any): Promise<StandardApiResponse> {
-    const response = await this.client.put(`/api/patients/${id}/medical-info`, medicalInfo);
+  async updatePatientMedicalInfo(
+    id: string,
+    medicalInfo: any
+  ): Promise<StandardApiResponse> {
+    const response = await this.client.put(
+      `/api/patients/${id}/medical-info`,
+      medicalInfo
+    );
     return response.data;
   }
 
-  async updatePatientInsurance(id: string, insuranceInfo: any): Promise<StandardApiResponse> {
-    const response = await this.client.put(`/api/patients/${id}/insurance`, insuranceInfo);
+  async updatePatientInsurance(
+    id: string,
+    insuranceInfo: any
+  ): Promise<StandardApiResponse> {
+    const response = await this.client.put(
+      `/api/patients/${id}/insurance`,
+      insuranceInfo
+    );
     return response.data;
   }
 
@@ -249,7 +281,7 @@ export class RestApiService {
     dateFrom?: string;
     dateTo?: string;
   }): Promise<StandardApiResponse> {
-    const response = await this.client.get('/api/appointments', { params });
+    const response = await this.client.get("/api/appointments", { params });
     return response.data;
   }
 
@@ -259,7 +291,7 @@ export class RestApiService {
   }
 
   async createAppointment(data: any): Promise<StandardApiResponse> {
-    const response = await this.client.post('/api/appointments', data);
+    const response = await this.client.post("/api/appointments", data);
     return response.data;
   }
 
@@ -268,15 +300,26 @@ export class RestApiService {
     return response.data;
   }
 
-  async cancelAppointment(id: string, reason: string): Promise<StandardApiResponse> {
-    const response = await this.client.post(`/api/appointments/${id}/cancel`, { reason });
+  async cancelAppointment(
+    id: string,
+    reason: string
+  ): Promise<StandardApiResponse> {
+    const response = await this.client.post(`/api/appointments/${id}/cancel`, {
+      reason,
+    });
     return response.data;
   }
 
-  async getAvailableSlots(doctorId: string, date: string): Promise<StandardApiResponse> {
-    const response = await this.client.get(`/api/appointments/available-slots`, {
-      params: { doctorId, date }
-    });
+  async getAvailableSlots(
+    doctorId: string,
+    date: string
+  ): Promise<StandardApiResponse> {
+    const response = await this.client.get(
+      `/api/appointments/available-slots`,
+      {
+        params: { doctorId, date },
+      }
+    );
     return response.data;
   }
 
@@ -286,7 +329,9 @@ export class RestApiService {
     status?: string;
     date: string;
   }): Promise<StandardApiResponse> {
-    const response = await this.client.get('/api/appointments/today', { params });
+    const response = await this.client.get("/api/appointments/today", {
+      params,
+    });
     return response.data;
   }
 
@@ -296,7 +341,9 @@ export class RestApiService {
     days?: number;
     limit?: number;
   }): Promise<StandardApiResponse> {
-    const response = await this.client.get('/api/appointments/upcoming', { params });
+    const response = await this.client.get("/api/appointments/upcoming", {
+      params,
+    });
     return response.data;
   }
 
@@ -307,7 +354,9 @@ export class RestApiService {
     dateFrom?: string;
     dateTo?: string;
   }): Promise<StandardApiResponse> {
-    const response = await this.client.get('/api/appointments/stats', { params });
+    const response = await this.client.get("/api/appointments/stats", {
+      params,
+    });
     return response.data;
   }
 
@@ -316,8 +365,14 @@ export class RestApiService {
     return response.data;
   }
 
-  async rescheduleAppointment(id: string, data: { newDate: string; newTime: string }): Promise<StandardApiResponse> {
-    const response = await this.client.post(`/api/appointments/${id}/reschedule`, data);
+  async rescheduleAppointment(
+    id: string,
+    data: { newDate: string; newTime: string }
+  ): Promise<StandardApiResponse> {
+    const response = await this.client.post(
+      `/api/appointments/${id}/reschedule`,
+      data
+    );
     return response.data;
   }
 
@@ -326,8 +381,14 @@ export class RestApiService {
     return response.data;
   }
 
-  async completeAppointment(id: string, notes?: string): Promise<StandardApiResponse> {
-    const response = await this.client.post(`/api/appointments/${id}/complete`, { notes });
+  async completeAppointment(
+    id: string,
+    notes?: string
+  ): Promise<StandardApiResponse> {
+    const response = await this.client.post(
+      `/api/appointments/${id}/complete`,
+      { notes }
+    );
     return response.data;
   }
 
@@ -340,7 +401,7 @@ export class RestApiService {
     search?: string;
     status?: string;
   }): Promise<StandardApiResponse> {
-    const response = await this.client.get('/api/departments', { params });
+    const response = await this.client.get("/api/departments", { params });
     return response.data;
   }
 
@@ -350,7 +411,7 @@ export class RestApiService {
   }
 
   async createDepartment(data: any): Promise<StandardApiResponse> {
-    const response = await this.client.post('/api/departments', data);
+    const response = await this.client.post("/api/departments", data);
     return response.data;
   }
 
@@ -369,7 +430,7 @@ export class RestApiService {
     sortOrder?: string;
     [key: string]: any;
   }): Promise<StandardApiResponse> {
-    const response = await this.client.get('/api/medical-records', { params });
+    const response = await this.client.get("/api/medical-records", { params });
     return response.data;
   }
 
@@ -379,11 +440,14 @@ export class RestApiService {
   }
 
   async createMedicalRecord(data: any): Promise<StandardApiResponse> {
-    const response = await this.client.post('/api/medical-records', data);
+    const response = await this.client.post("/api/medical-records", data);
     return response.data;
   }
 
-  async updateMedicalRecord(id: string, data: any): Promise<StandardApiResponse> {
+  async updateMedicalRecord(
+    id: string,
+    data: any
+  ): Promise<StandardApiResponse> {
     const response = await this.client.put(`/api/medical-records/${id}`, data);
     return response.data;
   }
@@ -401,9 +465,12 @@ export class RestApiService {
     dateTo?: string;
   }): Promise<StandardApiResponse> {
     const { patientId, ...queryParams } = params;
-    const response = await this.client.get(`/api/medical-records/patient/${patientId}`, {
-      params: queryParams
-    });
+    const response = await this.client.get(
+      `/api/medical-records/patient/${patientId}`,
+      {
+        params: queryParams,
+      }
+    );
     return response.data;
   }
 
@@ -415,9 +482,12 @@ export class RestApiService {
     dateTo?: string;
   }): Promise<StandardApiResponse> {
     const { doctorId, ...queryParams } = params;
-    const response = await this.client.get(`/api/medical-records/doctor/${doctorId}`, {
-      params: queryParams
-    });
+    const response = await this.client.get(
+      `/api/medical-records/doctor/${doctorId}`,
+      {
+        params: queryParams,
+      }
+    );
     return response.data;
   }
 
@@ -427,7 +497,9 @@ export class RestApiService {
     offset?: number;
     [key: string]: any;
   }): Promise<StandardApiResponse> {
-    const response = await this.client.get('/api/medical-records/search', { params });
+    const response = await this.client.get("/api/medical-records/search", {
+      params,
+    });
     return response.data;
   }
 
@@ -438,7 +510,9 @@ export class RestApiService {
     dateFrom?: string;
     dateTo?: string;
   }): Promise<StandardApiResponse> {
-    const response = await this.client.get('/api/medical-records/vital-signs', { params });
+    const response = await this.client.get("/api/medical-records/vital-signs", {
+      params,
+    });
     return response.data;
   }
 
@@ -450,7 +524,9 @@ export class RestApiService {
     dateFrom?: string;
     dateTo?: string;
   }): Promise<StandardApiResponse> {
-    const response = await this.client.get('/api/medical-records/lab-results', { params });
+    const response = await this.client.get("/api/medical-records/lab-results", {
+      params,
+    });
     return response.data;
   }
 
@@ -458,19 +534,23 @@ export class RestApiService {
    * Authentication Service API calls
    */
   async validateToken(token: string): Promise<StandardApiResponse> {
-    const response = await this.client.post('/api/auth/validate', { token });
+    const response = await this.client.post("/api/auth/validate", { token });
     return response.data;
   }
 
   async refreshToken(refreshToken: string): Promise<StandardApiResponse> {
-    const response = await this.client.post('/api/auth/refresh', { refreshToken });
+    const response = await this.client.post("/api/auth/refresh", {
+      refreshToken,
+    });
     return response.data;
   }
 
   /**
    * Generic API call method
    */
-  async request<T = any>(config: AxiosRequestConfig): Promise<StandardApiResponse<T>> {
+  async request<T = any>(
+    config: AxiosRequestConfig
+  ): Promise<StandardApiResponse<T>> {
     const response = await this.client.request(config);
     return response.data;
   }
@@ -478,12 +558,14 @@ export class RestApiService {
   /**
    * Batch requests for DataLoader
    */
-  async batchRequest<T = any>(requests: AxiosRequestConfig[]): Promise<StandardApiResponse<T>[]> {
-    const promises = requests.map(config => this.client.request(config));
+  async batchRequest<T = any>(
+    requests: AxiosRequestConfig[]
+  ): Promise<StandardApiResponse<T>[]> {
+    const promises = requests.map((config) => this.client.request(config));
     const responses = await Promise.allSettled(promises);
-    
-    return responses.map(result => {
-      if (result.status === 'fulfilled') {
+
+    return responses.map((result) => {
+      if (result.status === "fulfilled") {
         return result.value.data;
       } else {
         // Return error response for failed requests
@@ -491,9 +573,9 @@ export class RestApiService {
           success: false,
           data: null as T,
           error: {
-            message: result.reason.message || 'Request failed',
-            code: 'BATCH_REQUEST_ERROR'
-          }
+            message: result.reason.message || "Request failed",
+            code: "BATCH_REQUEST_ERROR",
+          },
         };
       }
     });
@@ -506,37 +588,38 @@ export class RestApiService {
     if (error.response) {
       // Server responded with error status
       const { status, data } = error.response;
-      const message = data?.error?.message || data?.message || `HTTP ${status} Error`;
+      const message =
+        data?.error?.message || data?.message || `HTTP ${status} Error`;
       const vietnameseMessage = this.translateErrorMessage(message);
-      
+
       const graphqlError = new Error(vietnameseMessage);
       (graphqlError as any).extensions = {
         code: data?.error?.code || `HTTP_${status}`,
         status,
         originalMessage: message,
-        vietnamese: vietnameseMessage
+        vietnamese: vietnameseMessage,
       };
-      
+
       return graphqlError;
     } else if (error.request) {
       // Network error
-      const message = 'Không thể kết nối đến dịch vụ';
+      const message = "Không thể kết nối đến dịch vụ";
       const graphqlError = new Error(message);
       (graphqlError as any).extensions = {
-        code: 'NETWORK_ERROR',
-        vietnamese: message
+        code: "NETWORK_ERROR",
+        vietnamese: message,
       };
-      
+
       return graphqlError;
     } else {
       // Other error
-      const message = error.message || 'Lỗi không xác định';
+      const message = error.message || "Lỗi không xác định";
       const graphqlError = new Error(message);
       (graphqlError as any).extensions = {
-        code: 'UNKNOWN_ERROR',
-        vietnamese: message
+        code: "UNKNOWN_ERROR",
+        vietnamese: message,
       };
-      
+
       return graphqlError;
     }
   }
@@ -546,16 +629,16 @@ export class RestApiService {
    */
   private translateErrorMessage(message: string): string {
     const translations: Record<string, string> = {
-      'Not found': 'Không tìm thấy',
-      'Unauthorized': 'Yêu cầu xác thực',
-      'Forbidden': 'Không có quyền truy cập',
-      'Bad Request': 'Yêu cầu không hợp lệ',
-      'Internal Server Error': 'Lỗi hệ thống',
-      'Service Unavailable': 'Dịch vụ không khả dụng',
-      'Validation Error': 'Lỗi xác thực dữ liệu',
-      'Duplicate Entry': 'Dữ liệu trùng lặp',
-      'Invalid Email': 'Email không hợp lệ',
-      'Invalid Phone': 'Số điện thoại không hợp lệ'
+      "Not found": "Không tìm thấy",
+      Unauthorized: "Yêu cầu xác thực",
+      Forbidden: "Không có quyền truy cập",
+      "Bad Request": "Yêu cầu không hợp lệ",
+      "Internal Server Error": "Lỗi hệ thống",
+      "Service Unavailable": "Dịch vụ không khả dụng",
+      "Validation Error": "Lỗi xác thực dữ liệu",
+      "Duplicate Entry": "Dữ liệu trùng lặp",
+      "Invalid Email": "Email không hợp lệ",
+      "Invalid Phone": "Số điện thoại không hợp lệ",
     };
 
     for (const [english, vietnamese] of Object.entries(translations)) {
@@ -572,7 +655,7 @@ export class RestApiService {
    */
   updateToken(token: string): void {
     this.config.token = token;
-    this.client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    this.client.defaults.headers.common["Authorization"] = `Bearer ${token}`;
   }
 
   /**
@@ -580,7 +663,43 @@ export class RestApiService {
    */
   removeToken(): void {
     this.config.token = undefined;
-    delete this.client.defaults.headers.common['Authorization'];
+    delete this.client.defaults.headers.common["Authorization"];
+  }
+
+  // Missing methods for GraphQL resolvers
+  async getDoctorReviews(params: any): Promise<StandardApiResponse> {
+    const response = await this.client.get("/api/doctors/reviews", { params });
+    return response.data;
+  }
+
+  async createDoctorReview(data: any): Promise<StandardApiResponse> {
+    const response = await this.client.post("/api/doctors/reviews", data);
+    return response.data;
+  }
+
+  async updateDoctorReview(
+    id: string,
+    data: any
+  ): Promise<StandardApiResponse> {
+    const response = await this.client.put(`/api/doctors/reviews/${id}`, data);
+    return response.data;
+  }
+
+  async deleteDoctorReview(id: string): Promise<StandardApiResponse> {
+    const response = await this.client.delete(`/api/doctors/reviews/${id}`);
+    return response.data;
+  }
+
+  async getRoom(id: string): Promise<StandardApiResponse> {
+    const response = await this.client.get(`/api/departments/rooms/${id}`);
+    return response.data;
+  }
+
+  async getRooms(params: any): Promise<StandardApiResponse> {
+    const response = await this.client.get("/api/departments/rooms", {
+      params,
+    });
+    return response.data;
   }
 }
 

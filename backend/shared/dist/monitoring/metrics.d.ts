@@ -10,7 +10,7 @@ export declare const databaseQueryDuration: Histogram<"service" | "operation" | 
 export declare const databaseQueriesTotal: Counter<"service" | "operation" | "table" | "status">;
 export declare const patientsTotal: Gauge<"status">;
 export declare const doctorsTotal: Gauge<"status" | "specialty">;
-export declare const appointmentsTotal: Counter<"status" | "type">;
+export declare const appointmentsTotal: Counter<"type" | "status">;
 export declare const appointmentsActive: Gauge<"status">;
 export declare const authAttemptsTotal: Counter<"role" | "method" | "status">;
 export declare const activeSessionsTotal: Gauge<"role">;

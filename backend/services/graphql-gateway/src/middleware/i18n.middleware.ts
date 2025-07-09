@@ -1,4 +1,4 @@
-import { GraphQLRequestContext } from 'apollo-server-core';
+import { GraphQLRequestContext } from '@apollo/server';
 import { i18nService, SupportedLanguages } from '../services/i18n.service';
 import logger from '@hospital/shared/dist/utils/logger';
 
@@ -6,10 +6,10 @@ import logger from '@hospital/shared/dist/utils/logger';
  * GraphQL plugin for internationalization support
  */
 export const i18nPlugin = {
-  requestDidStart() {
+  async requestDidStart() {
     return {
       // Set language from request headers
-      willSendResponse(requestContext: GraphQLRequestContext) {
+      async willSendResponse(requestContext: any) {
         try {
           // Get language from Accept-Language header or query parameter
           const request = requestContext.request;
@@ -26,7 +26,7 @@ export const i18nPlugin = {
 
           // Check Accept-Language header
           if (!language || language === SupportedLanguages.VI) {
-            const acceptLanguage = request.http?.headers?.['accept-language'];
+            const acceptLanguage = request.http?.headers?.get('accept-language');
             if (acceptLanguage) {
               if (acceptLanguage.includes('en')) {
                 language = SupportedLanguages.EN;
@@ -40,19 +40,19 @@ export const i18nPlugin = {
           i18nService.setLanguage(language);
 
           // Translate response if there are errors
-          if (requestContext.response.errors) {
-            requestContext.response.errors = requestContext.response.errors.map(error => 
+          if (requestContext.response?.errors) {
+            requestContext.response.errors = requestContext.response.errors.map((error: any) =>
               i18nService.translateError(error)
             );
           }
 
           // Add language info to response extensions
-          if (!requestContext.response.extensions) {
-            requestContext.response.extensions = {};
+          if (!requestContext.response?.extensions) {
+            requestContext.response!.extensions = {};
           }
-          
-          requestContext.response.extensions.language = language;
-          requestContext.response.extensions.translations = {
+
+          requestContext.response!.extensions.language = language;
+          requestContext.response!.extensions.translations = {
             available: Object.values(SupportedLanguages),
             current: language
           };

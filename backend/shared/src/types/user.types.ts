@@ -1,4 +1,4 @@
-import { BaseEntity, UserRole } from './common.types';
+import { BaseEntity, UserRole } from "./common.types";
 
 export interface User extends BaseEntity {
   email: string;
@@ -37,7 +37,7 @@ export interface DoctorProfileData {
 
 export interface PatientProfileData {
   date_of_birth: string;
-  gender: 'male' | 'female' | 'other';
+  gender: "male" | "female" | "other";
   address?: Address;
   emergency_contact?: EmergencyContact;
   insurance_info?: InsuranceInfo;
@@ -72,7 +72,7 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
-  user: Omit<User, 'password_hash'>;
+  user: Omit<User, "password_hash">;
   access_token: string;
   refresh_token: string;
   expires_in: number;
@@ -126,7 +126,7 @@ export interface JWTPayload {
 }
 
 export interface AuthContext {
-  user: Omit<User, 'password_hash'>;
+  user: Omit<User, "password_hash">;
   session: Session;
 }
 
@@ -150,7 +150,7 @@ export interface UserProfile {
   avatar_url?: string;
   bio?: string;
   date_of_birth?: Date;
-  gender?: 'male' | 'female' | 'other';
+  gender?: "male" | "female" | "other";
   address?: Address;
   emergency_contact?: EmergencyContact;
   preferences?: UserPreferences;
@@ -179,82 +179,78 @@ export interface UserPreferences {
     sms: boolean;
     push: boolean;
   };
-  theme: 'light' | 'dark' | 'auto';
+  theme: "light" | "dark" | "auto";
 }
 
 export interface RolePermissions {
   [UserRole.ADMIN]: string[];
   [UserRole.DOCTOR]: string[];
   [UserRole.PATIENT]: string[];
-  [UserRole.NURSE]: string[];
   [UserRole.RECEPTIONIST]: string[];
 }
 
 export const DEFAULT_PERMISSIONS: RolePermissions = {
   [UserRole.ADMIN]: [
-    'users:read',
-    'users:write',
-    'users:delete',
-    'doctors:read',
-    'doctors:write',
-    'doctors:delete',
-    'patients:read',
-    'patients:write',
-    'patients:delete',
-    'appointments:read',
-    'appointments:write',
-    'appointments:delete',
-    'medical-records:read',
-    'medical-records:write',
-    'medical-records:delete',
-    'prescriptions:read',
-    'prescriptions:write',
-    'prescriptions:delete',
-    'billing:read',
-    'billing:write',
-    'billing:delete',
-    'reports:read',
-    'system:manage'
+    "users:read",
+    "users:write",
+    "users:delete",
+    "doctors:read",
+    "doctors:write",
+    "doctors:delete",
+    "patients:read",
+    "patients:write",
+    "patients:delete",
+    "appointments:read",
+    "appointments:write",
+    "appointments:delete",
+    "medical-records:read",
+    "medical-records:write",
+    "medical-records:delete",
+    "prescriptions:read",
+    "prescriptions:write",
+    "prescriptions:delete",
+    "billing:read",
+    "billing:write",
+    "billing:delete",
+    "reports:read",
+    "system:manage",
   ],
   [UserRole.DOCTOR]: [
-    'profile:read',
-    'profile:write',
-    'patients:read',
-    'appointments:read',
-    'appointments:write',
-    'medical-records:read',
-    'medical-records:write',
-    'prescriptions:read',
-    'prescriptions:write',
-    'schedule:read',
-    'schedule:write'
+    "profile:read",
+    "profile:write",
+    "patients:read",
+    "appointments:read",
+    "appointments:write",
+    "medical-records:read",
+    "medical-records:write",
+    "prescriptions:read",
+    "prescriptions:write",
+    "schedule:read",
+    "schedule:write",
   ],
   [UserRole.PATIENT]: [
-    'profile:read',
-    'profile:write',
-    'appointments:read',
-    'appointments:write',
-    'medical-records:read',
-    'prescriptions:read',
-    'billing:read'
+    "profile:read",
+    "profile:write",
+    "appointments:read",
+    "appointments:write",
+    "medical-records:read",
+    "prescriptions:read",
+    "billing:read",
   ],
-  [UserRole.NURSE]: [
-    'profile:read',
-    'profile:write',
-    'patients:read',
-    'patients:write',
-    'appointments:read',
-    'medical-records:read',
-    'medical-records:write',
-    'prescriptions:read'
-  ],
+
   [UserRole.RECEPTIONIST]: [
-    'profile:read',
-    'profile:write',
-    'patients:read',
-    'patients:write',
-    'appointments:read',
-    'appointments:write',
-    'billing:read'
-  ]
+    "profile:read",
+    "profile:write",
+    "patients:read",
+    "patients:write",
+    "appointments:read",
+    "appointments:write",
+    "appointments:manage",
+    "patient-checkin:read",
+    "patient-checkin:write",
+    "queue:read",
+    "queue:write",
+    "billing:read",
+    "reports:basic",
+  ],
 };

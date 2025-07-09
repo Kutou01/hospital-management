@@ -542,18 +542,18 @@ export default function DoctorProfilePage() {
                       <div className="flex items-end justify-between gap-1 h-24 mb-3">
                         {appointmentStats?.weekly_data?.length > 0 ? (
                           appointmentStats.weekly_data.map((data, index) => (
-                            <div key={data.day} className="flex flex-col items-center gap-1">
+                            <div key={data.day || `day-${index}`} className="flex flex-col items-center gap-1">
                               <div className="flex flex-col items-center justify-end h-20 w-8">
                                 <div
                                   className="bg-slate-700 w-full rounded-t-sm"
-                                  style={{ height: `${Math.max(data.newPatient * 5, 5)}%` }}
+                                  style={{ height: `${Math.max((data.newPatient || 0) * 5, 5)}%` }}
                                 ></div>
                                 <div
                                   className="bg-teal-400 w-full"
-                                  style={{ height: `${Math.max(data.followUp * 5, 5)}%` }}
+                                  style={{ height: `${Math.max((data.followUp || 0) * 5, 5)}%` }}
                                 ></div>
                               </div>
-                              <span className="text-xs text-gray-500">{data.day.slice(0, 3)}</span>
+                              <span className="text-xs text-gray-500">{data.day?.slice(0, 3) || '---'}</span>
                             </div>
                           ))
                         ) : (

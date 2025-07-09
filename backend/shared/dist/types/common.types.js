@@ -6,7 +6,6 @@ var UserRole;
     UserRole["ADMIN"] = "admin";
     UserRole["DOCTOR"] = "doctor";
     UserRole["PATIENT"] = "patient";
-    UserRole["NURSE"] = "nurse";
     UserRole["RECEPTIONIST"] = "receptionist";
 })(UserRole || (exports.UserRole = UserRole = {}));
 var AppointmentStatus;
@@ -60,35 +59,35 @@ class ValidationError extends Error {
         super(message);
         this.field = field;
         this.value = value;
-        this.name = 'ValidationError';
+        this.name = "ValidationError";
     }
 }
 exports.ValidationError = ValidationError;
 class NotFoundError extends Error {
     constructor(resource, id) {
         super(`${resource} with id ${id} not found`);
-        this.name = 'NotFoundError';
+        this.name = "NotFoundError";
     }
 }
 exports.NotFoundError = NotFoundError;
 class UnauthorizedError extends Error {
-    constructor(message = 'Unauthorized') {
+    constructor(message = "Unauthorized") {
         super(message);
-        this.name = 'UnauthorizedError';
+        this.name = "UnauthorizedError";
     }
 }
 exports.UnauthorizedError = UnauthorizedError;
 class ForbiddenError extends Error {
-    constructor(message = 'Forbidden') {
+    constructor(message = "Forbidden") {
         super(message);
-        this.name = 'ForbiddenError';
+        this.name = "ForbiddenError";
     }
 }
 exports.ForbiddenError = ForbiddenError;
 class ConflictError extends Error {
     constructor(message) {
         super(message);
-        this.name = 'ConflictError';
+        this.name = "ConflictError";
     }
 }
 exports.ConflictError = ConflictError;

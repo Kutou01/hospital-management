@@ -145,3 +145,8 @@ coverage-reports/
 local.json
 local.config.js
 local.config.ts
+
+# Large build artifacts and generated files
+index.html
+*.html.gz
+*.html.bak

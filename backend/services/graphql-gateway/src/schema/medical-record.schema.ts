@@ -103,33 +103,29 @@ export const medicalRecordTypeDefs = gql`
     status: LabResultStatus
   }
 
-  # Core Medical Record Type
+  # Simplified Medical Record Type
   type MedicalRecord {
     id: UUID!
     patientId: PatientID!
     doctorId: DoctorID!
     appointmentId: UUID
 
-    # Record Information
+    # Simplified Record Information
     visitDate: Date!
-    chiefComplaint: String
-    historyOfPresentIllness: String
-    physicalExamination: String
+    symptoms: String # Replaces: chiefComplaint + historyOfPresentIllness
+    examinationNotes: String # Replaces: physicalExamination
     diagnosis: String
-    treatment: String
-    prescription: String
-    followUpInstructions: String
+    treatment: String # Replaces: treatment + followUpInstructions
+    medications: String # Simple text instead of complex prescription system
+    notes: String
 
     # Status
     status: MedicalRecordStatus!
 
-    # Vital Signs
-    vitalSigns: VitalSigns
+    # Simplified Vital Signs (embedded)
+    basicVitals: BasicVitalSigns
 
-    # Lab Results
-    labResults: [LabResult!]!
-
-    # Attachments
+    # Attachments (keep for file uploads)
     attachments: [MedicalAttachment!]!
 
     # Relationships
@@ -142,44 +138,16 @@ export const medicalRecordTypeDefs = gql`
     updatedAt: DateTime!
   }
 
-  # Vital Signs (mapped to vital_signs_history table)
-  type VitalSigns {
-    # Blood Pressure
-    bloodPressureSystolic: Int # maps to blood_pressure_systolic
-    bloodPressureDiastolic: Int # maps to blood_pressure_diastolic
-    # Core Vitals
-    heartRate: Int # maps to heart_rate
-    temperature: Float # maps to temperature
-    respiratoryRate: Int # maps to respiratory_rate
-    oxygenSaturation: Float # maps to oxygen_saturation
-    # Physical Measurements
-    height: Float # maps to height
-    weight: Float # maps to weight
-    bmi: Float # maps to bmi (calculated field)
-    # Metadata
-    recordedAt: DateTime! # maps to recorded_at
-    recordedBy: String! # maps to recorded_by
-    notes: String # maps to notes
+  # Simplified Basic Vital Signs (embedded in medical record)
+  type BasicVitalSigns {
+    temperature: Float # Celsius
+    bloodPressure: String # "120/80" format
+    heartRate: Int # BPM
+    weight: Float # KG
+    height: Float # CM
   }
 
-  # Lab Result
-  type LabResult {
-    id: UUID!
-    recordId: UUID!
-    testName: String!
-    testType: String!
-    resultValue: String
-    referenceRange: String
-    unit: String
-    testDate: Date!
-    resultDate: Date
-    labTechnician: String
-    notes: String
-    status: LabResultStatus!
-    isAbnormal: Boolean!
-    createdAt: DateTime!
-    updatedAt: DateTime!
-  }
+  # REMOVED: LabResult type - lab results now stored as simple text in medical records
 
   # Medical Attachment
   type MedicalAttachment {

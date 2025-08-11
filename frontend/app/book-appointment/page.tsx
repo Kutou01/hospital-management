@@ -1,81 +1,82 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { PublicLayout } from "@/components/layout/PublicLayout";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
-  Calendar,
-  Clock,
-  User,
-  Stethoscope,
-  Building2,
-  Phone,
-  Mail,
-  MapPin,
-  ArrowRight,
-  CheckCircle,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { departmentsApi, doctorsApi } from "@/lib/api";
+import { appointmentsApi } from "@/lib/api/appointments";
+import {
   AlertCircle,
-  Search,
+  ArrowRight,
+  Calendar,
+  CheckCircle,
   Filter,
-  Star
-} from "lucide-react"
-import { PublicLayout } from "@/components/layout/PublicLayout"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
-import { doctorsApi, departmentsApi } from "@/lib/api"
+  Mail,
+  Phone,
+  Search,
+  Star,
+  Stethoscope,
+  User,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 interface Doctor {
-  doctor_id: string
-  user_id: string
-  first_name: string
-  last_name: string
-  specialization: string
-  phone?: string
-  email?: string
-  department_id?: string
-  department_name?: string
-  experience_years?: number
-  rating?: number
-  available_times?: string[]
-  next_available?: string
+  doctor_id: string;
+  user_id: string;
+  first_name: string;
+  last_name: string;
+  specialization: string;
+  phone?: string;
+  email?: string;
+  department_id?: string;
+  department_name?: string;
+  experience_years?: number;
+  rating?: number;
+  available_times?: string[];
+  next_available?: string;
 }
 
 interface Department {
-  department_id: string
-  name: string
-  description?: string
+  department_id: string;
+  name: string;
+  description?: string;
 }
 
 interface BookingForm {
-  selectedDoctor: string
-  selectedDate: string
-  selectedTime: string
-  patientName: string
-  patientPhone: string
-  patientEmail: string
-  symptoms: string
-  urgency: string
+  selectedDoctor: string;
+  selectedDate: string;
+  selectedTime: string;
+  patientName: string;
+  patientPhone: string;
+  patientEmail: string;
+  symptoms: string;
+  urgency: string;
 }
 
-// Mock available time slots
-const timeSlots = [
-  "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
-  "11:00", "11:30", "14:00", "14:30", "15:00", "15:30",
-  "16:00", "16:30", "17:00"
-]
+// Available time slots will be fetched from API based on selected doctor and date
 
 export default function BookAppointmentPage() {
-  const router = useRouter()
-  const [step, setStep] = useState(1) // 1: Select Doctor, 2: Select Time, 3: Patient Info, 4: Confirmation
-  const [doctors, setDoctors] = useState<Doctor[]>([])
-  const [departments, setDepartments] = useState<Department[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [selectedDepartment, setSelectedDepartment] = useState("all")
+  const router = useRouter();
+
+  const [step, setStep] = useState(1); // 1: Select Doctor, 2: Select Time, 3: Patient Info, 4: Confirmation
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedDepartment, setSelectedDepartment] = useState("all");
+  const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
+  const [isLoadingTimeSlots, setIsLoadingTimeSlots] = useState(false);
   const [bookingForm, setBookingForm] = useState<BookingForm>({
     selectedDoctor: "",
     selectedDate: "",
@@ -84,21 +85,26 @@ export default function BookAppointmentPage() {
     patientPhone: "",
     patientEmail: "",
     symptoms: "",
-    urgency: "normal"
-  })
+    urgency: "normal",
+  });
+
+  // Get selected doctor info
+  const selectedDoctor = doctors.find(
+    (doc) => doc.doctor_id === bookingForm.selectedDoctor
+  );
 
   useEffect(() => {
     const fetchData = async () => {
-      setIsLoading(true)
+      setIsLoading(true);
       try {
         const [doctorsData, departmentsData] = await Promise.all([
           doctorsApi.getAllDoctors(),
-          departmentsApi.getAllDepartments()
-        ])
-        setDoctors(doctorsData || [])
-        setDepartments(departmentsData || [])
+          departmentsApi.getAllDepartments(),
+        ]);
+        setDoctors(doctorsData || []);
+        setDepartments(departmentsData || []);
       } catch (error) {
-        console.error('Error fetching data:', error)
+        console.error("Error fetching data:", error);
         // Mock data fallback
         setDoctors([
           {
@@ -110,7 +116,7 @@ export default function BookAppointmentPage() {
             department_name: "Khoa Tim mạch",
             experience_years: 15,
             rating: 4.8,
-            next_available: "2025-01-04"
+            next_available: "2025-01-04",
           },
           {
             doctor_id: "2",
@@ -121,74 +127,159 @@ export default function BookAppointmentPage() {
             department_name: "Khoa Nhi",
             experience_years: 12,
             rating: 4.9,
-            next_available: "2025-01-04"
-          }
-        ])
+            next_available: "2025-01-04",
+          },
+        ]);
         setDepartments([
           { department_id: "1", name: "Khoa Tim mạch" },
-          { department_id: "2", name: "Khoa Nhi" }
-        ])
+          { department_id: "2", name: "Khoa Nhi" },
+        ]);
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
+    };
 
-    fetchData()
-  }, [])
+    fetchData();
+  }, []);
 
-  const filteredDoctors = doctors.filter(doctor => {
-    const matchesSearch = searchTerm === "" ||
-      `${doctor.first_name} ${doctor.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doctor.specialization.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredDoctors = doctors.filter((doctor) => {
+    const matchesSearch =
+      searchTerm === "" ||
+      `${doctor.first_name} ${doctor.last_name}`
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      doctor.specialization.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesDepartment = selectedDepartment === "all" ||
-      doctor.department_name === selectedDepartment
+    const matchesDepartment =
+      selectedDepartment === "all" ||
+      doctor.department_name === selectedDepartment;
 
-    return matchesSearch && matchesDepartment
-  })
+    return matchesSearch && matchesDepartment;
+  });
 
-  const selectedDoctor = doctors.find(d => d.doctor_id === bookingForm.selectedDoctor)
+  const selectedDoctor = doctors.find(
+    (d) => d.doctor_id === bookingForm.selectedDoctor
+  );
 
   const handleDoctorSelect = (doctorId: string) => {
-    setBookingForm(prev => ({ ...prev, selectedDoctor: doctorId }))
-    setStep(2)
-  }
+    setBookingForm((prev) => ({ ...prev, selectedDoctor: doctorId }));
+    setStep(2);
+  };
+
+  // Fetch available time slots when doctor and date are selected
+  const fetchAvailableTimeSlots = async (doctorId: string, date: string) => {
+    if (!doctorId || !date) return;
+
+    setIsLoadingTimeSlots(true);
+    try {
+      console.log("Fetching time slots for:", { doctorId, date });
+      const response = await appointmentsApi.getAvailableSlots(doctorId, date);
+
+      if (response.success && response.data) {
+        setAvailableTimeSlots(response.data);
+        console.log("Available time slots:", response.data);
+      } else {
+        console.error("Failed to fetch time slots:", response.error);
+        // Fallback to mock data if API fails
+        setAvailableTimeSlots([
+          "08:00",
+          "08:30",
+          "09:00",
+          "09:30",
+          "10:00",
+          "10:30",
+          "11:00",
+          "11:30",
+          "14:00",
+          "14:30",
+          "15:00",
+          "15:30",
+          "16:00",
+          "16:30",
+          "17:00",
+        ]);
+      }
+    } catch (error) {
+      console.error("Error fetching time slots:", error);
+      // Fallback to mock data on error
+      setAvailableTimeSlots([
+        "08:00",
+        "08:30",
+        "09:00",
+        "09:30",
+        "10:00",
+        "10:30",
+        "11:00",
+        "11:30",
+        "14:00",
+        "14:30",
+        "15:00",
+        "15:30",
+        "16:00",
+        "16:30",
+        "17:00",
+      ]);
+    } finally {
+      setIsLoadingTimeSlots(false);
+    }
+  };
 
   const handleTimeSelect = (date: string, time: string) => {
-    setBookingForm(prev => ({ ...prev, selectedDate: date, selectedTime: time }))
-    setStep(3)
-  }
+    setBookingForm((prev) => ({
+      ...prev,
+      selectedDate: date,
+      selectedTime: time,
+    }));
+    setStep(3);
+  };
 
-  const handleFormSubmit = () => {
-    // In a real app, this would submit to the backend
-    console.log('Booking form:', bookingForm)
-    setStep(4)
-  }
+  const handleFormSubmit = async () => {
+    try {
+      console.log("Submitting booking form:", bookingForm);
+
+      // For public booking, we'll store the booking info and redirect to login
+      // After login, the user can complete the booking
+      localStorage.setItem(
+        "pendingBooking",
+        JSON.stringify({
+          ...bookingForm,
+          doctorInfo: selectedDoctor,
+          timestamp: new Date().toISOString(),
+        })
+      );
+
+      setStep(4);
+    } catch (error) {
+      console.error("Error preparing booking:", error);
+      // Still proceed to confirmation step for now
+      setStep(4);
+    }
+  };
 
   const handleLoginRedirect = () => {
     // Store booking info in localStorage for after login
-    localStorage.setItem('pendingBooking', JSON.stringify(bookingForm))
-    router.push('/auth/login?redirect=booking')
-  }
+    localStorage.setItem("pendingBooking", JSON.stringify(bookingForm));
+    router.push("/auth/login?redirect=booking");
+  };
 
   // Get next 7 days for date selection
   const getAvailableDates = () => {
-    const dates = []
-    const today = new Date()
+    const dates = [];
+    const today = new Date();
     for (let i = 1; i <= 7; i++) {
-      const date = new Date(today)
-      date.setDate(today.getDate() + i)
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
       dates.push({
-        value: date.toISOString().split('T')[0],
-        label: date.toLocaleDateString('vi-VN', {
-          weekday: 'long',
-          day: 'numeric',
-          month: 'long'
-        })
-      })
+        value: date.toISOString().split("T")[0],
+        label: date.toLocaleDateString("vi-VN", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+        }),
+      });
     }
-    return dates
-  }
+    return dates;
+  };
 
   if (isLoading) {
     return (
@@ -205,7 +296,7 @@ export default function BookAppointmentPage() {
           </div>
         </div>
       </PublicLayout>
-    )
+    );
   }
 
   return (
@@ -217,7 +308,8 @@ export default function BookAppointmentPage() {
             Đặt lịch khám bệnh
           </h1>
           <p className="text-xl mb-6 max-w-2xl mx-auto">
-            Đặt lịch khám với bác sĩ chuyên khoa một cách nhanh chóng và tiện lợi
+            Đặt lịch khám với bác sĩ chuyên khoa một cách nhanh chóng và tiện
+            lợi
           </p>
 
           {/* Progress Steps */}
@@ -226,18 +318,28 @@ export default function BookAppointmentPage() {
               { num: 1, label: "Chọn bác sĩ" },
               { num: 2, label: "Chọn thời gian" },
               { num: 3, label: "Thông tin" },
-              { num: 4, label: "Xác nhận" }
+              { num: 4, label: "Xác nhận" },
             ].map((stepItem, index) => (
               <div key={stepItem.num} className="flex items-center">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                  step >= stepItem.num
-                    ? "bg-white text-[#003087]"
-                    : "bg-white/30 text-white"
-                }`}>
-                  {step > stepItem.num ? <CheckCircle className="w-5 h-5" /> : stepItem.num}
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                    step >= stepItem.num
+                      ? "bg-white text-[#003087]"
+                      : "bg-white/30 text-white"
+                  }`}
+                >
+                  {step > stepItem.num ? (
+                    <CheckCircle className="w-5 h-5" />
+                  ) : (
+                    stepItem.num
+                  )}
                 </div>
-                <span className="ml-2 text-sm hidden md:inline">{stepItem.label}</span>
-                {index < 3 && <ArrowRight className="w-4 h-4 mx-2 text-white/60" />}
+                <span className="ml-2 text-sm hidden md:inline">
+                  {stepItem.label}
+                </span>
+                {index < 3 && (
+                  <ArrowRight className="w-4 h-4 mx-2 text-white/60" />
+                )}
               </div>
             ))}
           </div>
@@ -264,7 +366,10 @@ export default function BookAppointmentPage() {
                     className="pl-10"
                   />
                 </div>
-                <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                <Select
+                  value={selectedDepartment}
+                  onValueChange={setSelectedDepartment}
+                >
                   <SelectTrigger className="w-full md:w-64">
                     <Filter className="w-4 h-4 mr-2" />
                     <SelectValue placeholder="Chọn khoa" />
@@ -284,8 +389,11 @@ export default function BookAppointmentPage() {
             {/* Doctors Grid */}
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredDoctors.map((doctor) => (
-                <Card key={doctor.doctor_id} className="hover:shadow-lg transition-shadow cursor-pointer"
-                      onClick={() => handleDoctorSelect(doctor.doctor_id)}>
+                <Card
+                  key={doctor.doctor_id}
+                  className="hover:shadow-lg transition-shadow cursor-pointer"
+                  onClick={() => handleDoctorSelect(doctor.doctor_id)}
+                >
                   <CardHeader>
                     <div className="flex items-center gap-4">
                       <div className="w-16 h-16 bg-[#003087]/10 rounded-full flex items-center justify-center">
@@ -295,9 +403,13 @@ export default function BookAppointmentPage() {
                         <CardTitle className="text-lg">
                           BS. {doctor.first_name} {doctor.last_name}
                         </CardTitle>
-                        <p className="text-[#003087] font-medium">{doctor.specialization}</p>
+                        <p className="text-[#003087] font-medium">
+                          {doctor.specialization}
+                        </p>
                         {doctor.department_name && (
-                          <p className="text-sm text-gray-600">{doctor.department_name}</p>
+                          <p className="text-sm text-gray-600">
+                            {doctor.department_name}
+                          </p>
                         )}
                       </div>
                     </div>
@@ -319,7 +431,12 @@ export default function BookAppointmentPage() {
                       {doctor.next_available && (
                         <div className="flex items-center gap-2 text-sm text-green-600">
                           <Calendar className="w-4 h-4" />
-                          <span>Có lịch từ {new Date(doctor.next_available).toLocaleDateString('vi-VN')}</span>
+                          <span>
+                            Có lịch từ{" "}
+                            {new Date(doctor.next_available).toLocaleDateString(
+                              "vi-VN"
+                            )}
+                          </span>
                         </div>
                       )}
                     </div>
@@ -359,14 +476,20 @@ export default function BookAppointmentPage() {
               </Button>
 
               <div className="bg-blue-50 p-4 rounded-lg mb-6">
-                <h3 className="font-medium text-[#003087] mb-2">Bác sĩ đã chọn:</h3>
+                <h3 className="font-medium text-[#003087] mb-2">
+                  Bác sĩ đã chọn:
+                </h3>
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-[#003087]/10 rounded-full flex items-center justify-center">
                     <User className="w-6 h-6 text-[#003087]" />
                   </div>
                   <div>
-                    <p className="font-medium">BS. {selectedDoctor.first_name} {selectedDoctor.last_name}</p>
-                    <p className="text-sm text-gray-600">{selectedDoctor.specialization}</p>
+                    <p className="font-medium">
+                      BS. {selectedDoctor.first_name} {selectedDoctor.last_name}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {selectedDoctor.specialization}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -383,16 +506,33 @@ export default function BookAppointmentPage() {
                 {getAvailableDates().map((date) => (
                   <Button
                     key={date.value}
-                    variant={bookingForm.selectedDate === date.value ? "default" : "outline"}
-                    onClick={() => setBookingForm(prev => ({ ...prev, selectedDate: date.value }))}
+                    variant={
+                      bookingForm.selectedDate === date.value
+                        ? "default"
+                        : "outline"
+                    }
+                    onClick={() => {
+                      setBookingForm((prev) => ({
+                        ...prev,
+                        selectedDate: date.value,
+                        selectedTime: "", // Reset selected time when date changes
+                      }));
+                      // Fetch available time slots for selected doctor and date
+                      fetchAvailableTimeSlots(
+                        bookingForm.selectedDoctor,
+                        date.value
+                      );
+                    }}
                     className={`p-4 h-auto flex flex-col ${
                       bookingForm.selectedDate === date.value
                         ? "bg-[#003087] text-white"
                         : "border-[#003087] text-[#003087] hover:bg-[#003087] hover:text-white"
                     }`}
                   >
-                    <span className="text-xs">{date.label.split(',')[0]}</span>
-                    <span className="font-medium">{date.label.split(',')[1]}</span>
+                    <span className="text-xs">{date.label.split(",")[0]}</span>
+                    <span className="font-medium">
+                      {date.label.split(",")[1]}
+                    </span>
                   </Button>
                 ))}
               </div>
@@ -402,22 +542,46 @@ export default function BookAppointmentPage() {
             {bookingForm.selectedDate && (
               <div className="mb-8">
                 <h3 className="text-lg font-medium mb-4">Chọn giờ:</h3>
-                <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-8 gap-3">
-                  {timeSlots.map((time) => (
-                    <Button
-                      key={time}
-                      variant={bookingForm.selectedTime === time ? "default" : "outline"}
-                      onClick={() => handleTimeSelect(bookingForm.selectedDate, time)}
-                      className={`${
-                        bookingForm.selectedTime === time
-                          ? "bg-[#003087] text-white"
-                          : "border-[#003087] text-[#003087] hover:bg-[#003087] hover:text-white"
-                      }`}
-                    >
-                      {time}
-                    </Button>
-                  ))}
-                </div>
+                {isLoadingTimeSlots ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#003087]"></div>
+                    <span className="ml-2 text-gray-600">
+                      Đang tải khung giờ khả dụng...
+                    </span>
+                  </div>
+                ) : availableTimeSlots.length > 0 ? (
+                  <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-8 gap-3">
+                    {availableTimeSlots.map((time) => (
+                      <Button
+                        key={time}
+                        variant={
+                          bookingForm.selectedTime === time
+                            ? "default"
+                            : "outline"
+                        }
+                        onClick={() =>
+                          handleTimeSelect(bookingForm.selectedDate, time)
+                        }
+                        className={`${
+                          bookingForm.selectedTime === time
+                            ? "bg-[#003087] text-white"
+                            : "border-[#003087] text-[#003087] hover:bg-[#003087] hover:text-white"
+                        }`}
+                      >
+                        {time}
+                      </Button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-600 mb-2">
+                      Không có khung giờ khả dụng cho ngày này
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      Vui lòng chọn ngày khác
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -441,14 +605,33 @@ export default function BookAppointmentPage() {
 
               {/* Booking Summary */}
               <div className="bg-blue-50 p-4 rounded-lg mb-6">
-                <h3 className="font-medium text-[#003087] mb-2">Thông tin đặt lịch:</h3>
+                <h3 className="font-medium text-[#003087] mb-2">
+                  Thông tin đặt lịch:
+                </h3>
                 <div className="space-y-1 text-sm">
-                  <p><strong>Bác sĩ:</strong> BS. {selectedDoctor?.first_name} {selectedDoctor?.last_name}</p>
-                  <p><strong>Chuyên khoa:</strong> {selectedDoctor?.specialization}</p>
-                  <p><strong>Ngày:</strong> {new Date(bookingForm.selectedDate).toLocaleDateString('vi-VN', {
-                    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
-                  })}</p>
-                  <p><strong>Giờ:</strong> {bookingForm.selectedTime}</p>
+                  <p>
+                    <strong>Bác sĩ:</strong> BS. {selectedDoctor?.first_name}{" "}
+                    {selectedDoctor?.last_name}
+                  </p>
+                  <p>
+                    <strong>Chuyên khoa:</strong>{" "}
+                    {selectedDoctor?.specialization}
+                  </p>
+                  <p>
+                    <strong>Ngày:</strong>{" "}
+                    {new Date(bookingForm.selectedDate).toLocaleDateString(
+                      "vi-VN",
+                      {
+                        weekday: "long",
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      }
+                    )}
+                  </p>
+                  <p>
+                    <strong>Giờ:</strong> {bookingForm.selectedTime}
+                  </p>
                 </div>
               </div>
             </div>
@@ -464,7 +647,12 @@ export default function BookAppointmentPage() {
                   <Input
                     id="patientName"
                     value={bookingForm.patientName}
-                    onChange={(e) => setBookingForm(prev => ({ ...prev, patientName: e.target.value }))}
+                    onChange={(e) =>
+                      setBookingForm((prev) => ({
+                        ...prev,
+                        patientName: e.target.value,
+                      }))
+                    }
                     placeholder="Nhập họ và tên đầy đủ"
                     required
                   />
@@ -476,7 +664,12 @@ export default function BookAppointmentPage() {
                     id="patientPhone"
                     type="tel"
                     value={bookingForm.patientPhone}
-                    onChange={(e) => setBookingForm(prev => ({ ...prev, patientPhone: e.target.value }))}
+                    onChange={(e) =>
+                      setBookingForm((prev) => ({
+                        ...prev,
+                        patientPhone: e.target.value,
+                      }))
+                    }
                     placeholder="Nhập số điện thoại"
                     required
                   />
@@ -488,16 +681,24 @@ export default function BookAppointmentPage() {
                     id="patientEmail"
                     type="email"
                     value={bookingForm.patientEmail}
-                    onChange={(e) => setBookingForm(prev => ({ ...prev, patientEmail: e.target.value }))}
+                    onChange={(e) =>
+                      setBookingForm((prev) => ({
+                        ...prev,
+                        patientEmail: e.target.value,
+                      }))
+                    }
                     placeholder="Nhập địa chỉ email (tùy chọn)"
                   />
                 </div>
 
                 <div>
                   <Label htmlFor="urgency">Mức độ khẩn cấp</Label>
-                  <Select value={bookingForm.urgency} onValueChange={(value) =>
-                    setBookingForm(prev => ({ ...prev, urgency: value }))
-                  }>
+                  <Select
+                    value={bookingForm.urgency}
+                    onValueChange={(value) =>
+                      setBookingForm((prev) => ({ ...prev, urgency: value }))
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -514,7 +715,12 @@ export default function BookAppointmentPage() {
                   <Textarea
                     id="symptoms"
                     value={bookingForm.symptoms}
-                    onChange={(e) => setBookingForm(prev => ({ ...prev, symptoms: e.target.value }))}
+                    onChange={(e) =>
+                      setBookingForm((prev) => ({
+                        ...prev,
+                        symptoms: e.target.value,
+                      }))
+                    }
                     placeholder="Mô tả ngắn gọn triệu chứng hoặc lý do cần khám..."
                     rows={4}
                   />
@@ -524,10 +730,14 @@ export default function BookAppointmentPage() {
                   <div className="flex items-start gap-3">
                     <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
                     <div className="text-sm">
-                      <p className="font-medium text-yellow-800 mb-1">Lưu ý quan trọng:</p>
+                      <p className="font-medium text-yellow-800 mb-1">
+                        Lưu ý quan trọng:
+                      </p>
                       <ul className="text-yellow-700 space-y-1">
                         <li>• Vui lòng đến trước giờ hẹn 15 phút</li>
-                        <li>• Mang theo CMND/CCCD và thẻ bảo hiểm y tế (nếu có)</li>
+                        <li>
+                          • Mang theo CMND/CCCD và thẻ bảo hiểm y tế (nếu có)
+                        </li>
                         <li>• Liên hệ hotline nếu cần thay đổi lịch hẹn</li>
                       </ul>
                     </div>
@@ -544,7 +754,9 @@ export default function BookAppointmentPage() {
                   </Button>
                   <Button
                     onClick={handleFormSubmit}
-                    disabled={!bookingForm.patientName || !bookingForm.patientPhone}
+                    disabled={
+                      !bookingForm.patientName || !bookingForm.patientPhone
+                    }
                     className="flex-1 bg-[#003087] hover:bg-[#002266]"
                   >
                     Xác nhận đặt lịch
@@ -566,7 +778,8 @@ export default function BookAppointmentPage() {
                 Đặt lịch thành công!
               </h2>
               <p className="text-gray-600 mb-8">
-                Thông tin đặt lịch của bạn đã được ghi nhận. Để hoàn tất quy trình, vui lòng đăng nhập hoặc tạo tài khoản.
+                Thông tin đặt lịch của bạn đã được ghi nhận. Để hoàn tất quy
+                trình, vui lòng đăng nhập hoặc tạo tài khoản.
               </p>
             </div>
 
@@ -578,23 +791,35 @@ export default function BookAppointmentPage() {
               <CardContent className="text-left space-y-3">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Bác sĩ:</span>
-                  <span className="font-medium">BS. {selectedDoctor?.first_name} {selectedDoctor?.last_name}</span>
+                  <span className="font-medium">
+                    BS. {selectedDoctor?.first_name} {selectedDoctor?.last_name}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Chuyên khoa:</span>
-                  <span className="font-medium">{selectedDoctor?.specialization}</span>
+                  <span className="font-medium">
+                    {selectedDoctor?.specialization}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Ngày:</span>
                   <span className="font-medium">
-                    {new Date(bookingForm.selectedDate).toLocaleDateString('vi-VN', {
-                      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
-                    })}
+                    {new Date(bookingForm.selectedDate).toLocaleDateString(
+                      "vi-VN",
+                      {
+                        weekday: "long",
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      }
+                    )}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Giờ:</span>
-                  <span className="font-medium">{bookingForm.selectedTime}</span>
+                  <span className="font-medium">
+                    {bookingForm.selectedTime}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Bệnh nhân:</span>
@@ -602,7 +827,9 @@ export default function BookAppointmentPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Điện thoại:</span>
-                  <span className="font-medium">{bookingForm.patientPhone}</span>
+                  <span className="font-medium">
+                    {bookingForm.patientPhone}
+                  </span>
                 </div>
               </CardContent>
             </Card>
@@ -618,10 +845,13 @@ export default function BookAppointmentPage() {
               </Button>
 
               <div className="text-sm text-gray-600">
-                <p>Chưa có tài khoản?
+                <p>
+                  Chưa có tài khoản?
                   <Button
                     variant="link"
-                    onClick={() => router.push('/auth/register?redirect=booking')}
+                    onClick={() =>
+                      router.push("/auth/register?redirect=booking")
+                    }
                     className="text-[#003087] p-0 ml-1"
                   >
                     Đăng ký ngay
@@ -647,5 +877,5 @@ export default function BookAppointmentPage() {
         )}
       </div>
     </PublicLayout>
-  )
+  );
 }

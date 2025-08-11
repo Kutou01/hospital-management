@@ -1,38 +1,34 @@
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 
 // Load environment variables FIRST
 dotenv.config();
 
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import morgan from 'morgan';
-import logger from '@hospital/shared/dist/utils/logger';
-import { metricsMiddleware, getMetricsHandler } from '@hospital/shared';
-import {
-  ResponseHelper,
-  EnhancedResponseHelper,
-  addRequestId,
-  globalErrorHandler
-} from '@hospital/shared/dist/utils/response-helpers';
-import {
-  sanitizeInput
-} from '@hospital/shared/dist/middleware/validation.middleware';
+import { getMetricsHandler, metricsMiddleware } from "@hospital/shared";
+import { sanitizeInput } from "@hospital/shared/dist/middleware/validation.middleware";
 import {
   createVersioningMiddleware,
-  responseTransformMiddleware
-} from '@hospital/shared/dist/middleware/versioning.middleware';
-import authRoutes from './routes/auth.routes';
-import userRoutes from './routes/user.routes';
-import sessionRoutes from './routes/session.routes';
-import { errorHandler } from './middleware/error.middleware';
-import { setupSwagger } from './config/swagger';
-import { initializeSupabase, testSupabaseConnection } from './config/supabase';
+  responseTransformMiddleware,
+} from "@hospital/shared/dist/middleware/versioning.middleware";
+import logger from "@hospital/shared/dist/utils/logger";
+import {
+  ResponseHelper,
+  addRequestId,
+  globalErrorHandler,
+} from "@hospital/shared/dist/utils/response-helpers";
+import cors from "cors";
+import express from "express";
+import helmet from "helmet";
+import morgan from "morgan";
+import { initializeSupabase, testSupabaseConnection } from "./config/supabase";
+import { setupSwagger } from "./config/swagger";
+import authRoutes from "./routes/auth.routes";
+import sessionRoutes from "./routes/session.routes";
+import userRoutes from "./routes/user.routes";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const SERVICE_NAME = 'Hospital Auth Service';
-const SERVICE_VERSION = '1.0.0';
+const SERVICE_NAME = "Hospital Auth Service";
+const SERVICE_VERSION = "1.0.0";
 
 // Initialize ResponseHelper with service information
 ResponseHelper.initialize(SERVICE_NAME, SERVICE_VERSION);
@@ -41,12 +37,19 @@ ResponseHelper.initialize(SERVICE_NAME, SERVICE_VERSION);
 app.use(helmet());
 
 // CORS configuration
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id', 'x-user-role']
-}));
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN || "http://localhost:3000",
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "x-user-id",
+      "x-user-role",
+    ],
+  })
+);
 
 // Add request ID to all responses
 app.use(addRequestId);
@@ -54,14 +57,14 @@ app.use(addRequestId);
 // Rate limiting temporarily disabled for development
 
 // Logging
-app.use(morgan('combined'));
+app.use(morgan("combined"));
 
 // Metrics middleware
-app.use(metricsMiddleware('auth-service'));
+app.use(metricsMiddleware("auth-service"));
 
 // Body parsing
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // Phase 2 Middleware - API Optimization
 app.use(sanitizeInput); // Sanitize input data
@@ -72,19 +75,19 @@ app.use(responseTransformMiddleware()); // Response transformation based on vers
 setupSwagger(app);
 
 // Health check endpoint
-app.get('/health', async (req, res) => {
+app.get("/health", async (req, res) => {
   try {
     const supabaseConnected = await testSupabaseConnection();
-    const status = supabaseConnected ? 'healthy' : 'unhealthy';
+    const status = supabaseConnected ? "healthy" : "unhealthy";
     const statusCode = supabaseConnected ? 200 : 503;
 
     const healthCheck = ResponseHelper.healthCheck(
       status,
       {
         supabase: {
-          status: supabaseConnected ? 'healthy' : 'unhealthy',
-          responseTime: 50
-        }
+          status: supabaseConnected ? "healthy" : "unhealthy",
+          responseTime: 50,
+        },
       },
       {
         authentication: true,
@@ -92,68 +95,72 @@ app.get('/health', async (req, res) => {
         session_management: true,
         oauth_providers: true,
         password_reset: true,
-        email_verification: true
+        email_verification: true,
       }
     );
 
     res.status(statusCode).json(healthCheck);
   } catch (error: any) {
-    logger.error('Health check error:', error);
-    const errorHealthCheck = ResponseHelper.healthCheck(
-      'unhealthy',
-      {
-        supabase: {
-          status: 'unhealthy',
-          error: error.message
-        }
-      }
-    );
+    logger.error("Health check error:", error);
+    const errorHealthCheck = ResponseHelper.healthCheck("unhealthy", {
+      supabase: {
+        status: "unhealthy",
+        error: error.message,
+      },
+    });
     res.status(503).json(errorHealthCheck);
   }
 });
 
 // Metrics endpoint for Prometheus
-app.get('/metrics', getMetricsHandler);
+app.get("/metrics", getMetricsHandler);
 
 // API Routes with error handling
 try {
-  app.use('/api/auth', authRoutes);
-  app.use('/api/users', userRoutes);
-  app.use('/api/sessions', sessionRoutes);
-  logger.info('✅ Routes loaded successfully');
+  app.use("/api/auth", authRoutes);
+  app.use("/api/auth", patientRegistrationRoutes);
+  app.use("/api/users", userRoutes);
+  app.use("/api/sessions", sessionRoutes);
+  logger.info("✅ Routes loaded successfully");
 } catch (error: any) {
-  logger.error('❌ Failed to load routes:', {
+  logger.error("❌ Failed to load routes:", {
     error: error.message,
-    stack: error.stack
+    stack: error.stack,
   });
 }
 
 // Root endpoint
-app.get('/', (req, res) => {
+app.get("/", (req, res) => {
   res.json({
-    service: 'Hospital Auth Service',
-    version: '1.0.0',
-    status: 'running',
+    service: "Hospital Auth Service",
+    version: "1.0.0",
+    status: "running",
     timestamp: new Date().toISOString(),
-    description: 'Authentication microservice using Supabase Auth',
+    description: "Authentication microservice using Supabase Auth",
     endpoints: {
-      health: '/health',
-      docs: '/docs',
-      auth: '/api/auth',
-      users: '/api/users',
-      sessions: '/api/sessions'
-    }
+      health: "/health",
+      docs: "/docs",
+      auth: "/api/auth",
+      users: "/api/users",
+      sessions: "/api/sessions",
+    },
   });
 });
 
 // 404 handler
-app.use('*', (req, res) => {
+app.use("*", (req, res) => {
   res.status(404).json({
-    error: 'Route not found',
+    error: "Route not found",
     path: req.originalUrl,
     method: req.method,
     service: SERVICE_NAME,
-    availableRoutes: ['/api/auth', '/api/users', '/api/sessions', '/health', '/docs']
+    availableRoutes: [
+      "/api/auth",
+      "/api/users",
+      "/api/sessions",
+      "/health",
+      "/docs",
+    ],
   });
 });
 
@@ -163,38 +170,37 @@ app.use(globalErrorHandler);
 // Initialize and start server
 const startServer = async () => {
   try {
-    logger.info('🔄 Starting server initialization...');
+    logger.info("🔄 Starting server initialization...");
 
     // Initialize Supabase connection
     await initializeSupabase();
 
-    logger.info('🔄 Starting Express server...');
+    logger.info("🔄 Starting Express server...");
 
     // Start server
     const server = app.listen(PORT, () => {
       logger.info(`🚀 ${SERVICE_NAME} started successfully on port ${PORT}`, {
         service: SERVICE_NAME,
         port: PORT,
-        environment: process.env.NODE_ENV || 'development',
+        environment: process.env.NODE_ENV || "development",
         timestamp: new Date().toISOString(),
-        supabaseConnected: true
+        supabaseConnected: true,
       });
     });
 
     // Handle server errors
-    server.on('error', (error: any) => {
-      logger.error('❌ Server error:', {
+    server.on("error", (error: any) => {
+      logger.error("❌ Server error:", {
         error: error.message,
         code: error.code,
-        stack: error.stack
+        stack: error.stack,
       });
       process.exit(1);
     });
-
   } catch (error: any) {
-    logger.error('❌ Failed to start server:', {
+    logger.error("❌ Failed to start server:", {
       error: error.message,
-      stack: error.stack
+      stack: error.stack,
     });
     process.exit(1);
   }
@@ -203,13 +209,13 @@ const startServer = async () => {
 startServer();
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
-  logger.info('SIGTERM received, shutting down gracefully');
+process.on("SIGTERM", () => {
+  logger.info("SIGTERM received, shutting down gracefully");
   process.exit(0);
 });
 
-process.on('SIGINT', () => {
-  logger.info('SIGINT received, shutting down gracefully');
+process.on("SIGINT", () => {
+  logger.info("SIGINT received, shutting down gracefully");
   process.exit(0);
 });
 

@@ -45,12 +45,9 @@ export class ServiceRegistry {
     this.registerService(
       "medical-records-service",
       process.env.MEDICAL_RECORDS_SERVICE_URL ||
-        "http://medical-records-service:3006"
+        "http://medical-records-service:3007" // Updated port to 3007 (merged with prescription service)
     );
-    this.registerService(
-      "prescription-service",
-      process.env.PRESCRIPTION_SERVICE_URL || "http://prescription-service:3007"
-    );
+    // REMOVED: prescription-service - merged into medical-records-service
     this.registerService(
       "payment-service",
       process.env.PAYMENT_SERVICE_URL || "http://payment-service:3009"

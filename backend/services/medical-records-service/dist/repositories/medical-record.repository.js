@@ -1,21 +1,20 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MedicalRecordRepository = void 0;
-const database_config_1 = require("../config/database.config");
 const shared_1 = require("@hospital/shared");
+const database_config_1 = require("../config/database.config");
 class MedicalRecordRepository {
     constructor() {
         this.supabase = database_config_1.supabaseAdmin;
     }
     async findAll(limit = 50, offset = 0) {
         try {
-            const { data, error } = await this.supabase
-                .rpc('get_all_medical_records', {
+            const { data, error } = await this.supabase.rpc("get_all_medical_records", {
                 limit_count: limit,
-                offset_count: offset
+                offset_count: offset,
             });
             if (error) {
-                shared_1.logger.error('Database function error in findAll:', error);
+                shared_1.logger.error("Database function error in findAll:", error);
                 throw error;
             }
             if (!data || data.length === 0) {
@@ -24,235 +23,325 @@ class MedicalRecordRepository {
             return data.map(this.mapSupabaseRecordToMedicalRecord);
         }
         catch (error) {
-            shared_1.logger.error('Error fetching medical records', { error });
+            shared_1.logger.error("Error fetching medical records", { error });
             throw error;
         }
     }
     async findById(recordId) {
         try {
             const { data, error } = await this.supabase
-                .from('medical_records')
-                .select('*')
-                .eq('record_id', recordId)
-                .eq('status', 'active')
+                .from("medical_records")
+                .select("*")
+                .eq("record_id", recordId)
+                .eq("status", "active")
                 .single();
             if (error) {
-                if (error.code === 'PGRST116')
+                if (error.code === "PGRST116")
                     return null;
                 throw error;
             }
             return this.mapSupabaseRecordToMedicalRecord(data);
         }
         catch (error) {
-            shared_1.logger.error('Error fetching medical record by ID', { error, recordId });
+            shared_1.logger.error("Error fetching medical record by ID", { error, recordId });
             throw error;
         }
     }
     async findByPatientId(patientId) {
         try {
             const { data, error } = await this.supabase
-                .from('medical_records')
-                .select('*')
-                .eq('patient_id', patientId)
-                .eq('status', 'active')
-                .order('visit_date', { ascending: false });
+                .from("medical_records")
+                .select("*")
+                .eq("patient_id", patientId)
+                .eq("status", "active")
+                .order("visit_date", { ascending: false });
             if (error)
                 throw error;
             return data?.map(this.mapSupabaseRecordToMedicalRecord) || [];
         }
         catch (error) {
-            shared_1.logger.error('Error fetching medical records by patient ID', { error, patientId });
+            shared_1.logger.error("Error fetching medical records by patient ID", {
+                error,
+                patientId,
+            });
             throw error;
         }
     }
     async findByDoctorId(doctorId) {
         try {
             const { data, error } = await this.supabase
-                .from('medical_records')
-                .select('*')
-                .eq('doctor_id', doctorId)
-                .eq('status', 'active')
-                .order('visit_date', { ascending: false });
+                .from("medical_records")
+                .select("*")
+                .eq("doctor_id", doctorId)
+                .eq("status", "active")
+                .order("visit_date", { ascending: false });
             if (error)
                 throw error;
             return data?.map(this.mapSupabaseRecordToMedicalRecord) || [];
         }
         catch (error) {
-            shared_1.logger.error('Error fetching medical records by doctor ID', { error, doctorId });
+            shared_1.logger.error("Error fetching medical records by doctor ID", {
+                error,
+                doctorId,
+            });
             throw error;
         }
     }
     async create(recordData, createdBy) {
         try {
-            const { data, error } = await this.supabase
-                .rpc('create_medical_record', {
+            const { data, error } = await this.supabase.rpc("create_medical_record", {
                 record_data: {
                     ...recordData,
                     created_by: createdBy,
-                    updated_by: createdBy
-                }
+                    updated_by: createdBy,
+                },
             });
             if (error) {
-                shared_1.logger.error('Database function error in create:', error);
+                shared_1.logger.error("Database function error in create:", error);
                 throw error;
             }
             if (!data || data.length === 0) {
-                throw new Error('Failed to create medical record - no data returned');
+                throw new Error("Failed to create medical record - no data returned");
             }
-            shared_1.logger.info('Medical record created successfully via database function:', {
-                recordId: data[0].record_id
+            shared_1.logger.info("Medical record created successfully via database function:", {
+                recordId: data[0].record_id,
             });
             return this.mapSupabaseRecordToMedicalRecord(data[0]);
         }
         catch (error) {
-            shared_1.logger.error('Error creating medical record', { error, recordData });
+            shared_1.logger.error("Error creating medical record", { error, recordData });
             throw error;
         }
     }
     async update(recordId, recordData, updatedBy) {
         try {
-            const { data, error } = await this.supabase
-                .rpc('update_medical_record', {
+            const { data, error } = await this.supabase.rpc("update_medical_record", {
                 record_id: recordId,
                 record_data: {
                     ...recordData,
-                    updated_by: updatedBy
-                }
+                    updated_by: updatedBy,
+                },
             });
             if (error) {
-                shared_1.logger.error('Database function error in update:', error);
+                shared_1.logger.error("Database function error in update:", error);
                 throw error;
             }
             if (!data || data.length === 0) {
-                throw new Error('Failed to update medical record - record not found');
+                throw new Error("Failed to update medical record - record not found");
             }
-            shared_1.logger.info('Medical record updated successfully via database function:', {
+            shared_1.logger.info("Medical record updated successfully via database function:", {
                 recordId,
-                updatedFields: Object.keys(recordData)
+                updatedFields: Object.keys(recordData),
             });
             return this.mapSupabaseRecordToMedicalRecord(data[0]);
         }
         catch (error) {
-            shared_1.logger.error('Error updating medical record', { error, recordId, recordData });
+            shared_1.logger.error("Error updating medical record", {
+                error,
+                recordId,
+                recordData,
+            });
             throw error;
         }
     }
     async delete(recordId) {
         try {
             const { error } = await this.supabase
-                .from('medical_records')
-                .update({ status: 'deleted' })
-                .eq('record_id', recordId);
+                .from("medical_records")
+                .update({ status: "deleted" })
+                .eq("record_id", recordId);
             if (error)
                 throw error;
         }
         catch (error) {
-            shared_1.logger.error('Error deleting medical record', { error, recordId });
+            shared_1.logger.error("Error deleting medical record", { error, recordId });
             throw error;
         }
     }
     async count() {
         try {
             const { count, error } = await this.supabase
-                .from('medical_records')
-                .select('*', { count: 'exact', head: true })
-                .eq('status', 'active');
+                .from("medical_records")
+                .select("*", { count: "exact", head: true })
+                .eq("status", "active");
             if (error)
                 throw error;
             return count || 0;
         }
         catch (error) {
-            shared_1.logger.error('Error counting medical records', { error });
+            shared_1.logger.error("Error counting medical records", { error });
             throw error;
         }
     }
-    // Lab Results methods
-    async createLabResult(labData) {
+    // REMOVED: Lab Results methods - lab results now stored as simple text in medical records
+    // REMOVED: Vital Signs methods - vital signs now embedded as BasicVitalSigns in medical records
+    // REMOVED: calculateBMI method - no longer needed in simplified system
+    // ============================================
+    // PRESCRIPTION METHODS (Merged from Prescription Service)
+    // ============================================
+    async createPrescriptionForRecord(recordId, prescriptionData, createdBy) {
         try {
-            // Generate ID using timestamp for now (should use database function)
-            const resultId = `LAB${Date.now().toString().slice(-6)}`;
-            const supabaseLabResult = {
-                result_id: resultId,
-                ...labData
+            // Generate prescription ID
+            const prescriptionId = `PRES-${Date.now().toString().slice(-6)}`;
+            // Calculate total cost
+            let totalCost = 0;
+            const medications = prescriptionData.medications.map((med) => {
+                const itemCost = (med.cost_per_unit || 0) * med.quantity;
+                totalCost += itemCost;
+                return {
+                    ...med,
+                    total_cost: itemCost,
+                };
+            });
+            const prescription = {
+                prescription_id: prescriptionId,
+                prescription_date: new Date(prescriptionData.prescription_date),
+                status: "active",
+                medications,
+                notes: prescriptionData.notes,
+                total_cost: totalCost,
+                created_at: new Date(),
+                updated_at: new Date(),
             };
-            const { data, error } = await this.supabase
-                .from('lab_results')
-                .insert([supabaseLabResult])
-                .select()
-                .single();
+            // Get current medical record
+            const currentRecord = await this.findById(recordId);
+            if (!currentRecord) {
+                throw new Error("Medical record not found");
+            }
+            // Add prescription to existing prescriptions array
+            const updatedPrescriptions = [
+                ...(currentRecord.prescriptions || []),
+                prescription,
+            ];
+            // Update medical record with new prescription
+            const { error } = await this.supabase
+                .from("medical_records")
+                .update({
+                prescriptions: updatedPrescriptions,
+                updated_at: new Date().toISOString(),
+            })
+                .eq("record_id", recordId);
             if (error)
                 throw error;
-            return data;
+            return prescription;
         }
         catch (error) {
-            shared_1.logger.error('Error creating lab result', { error, labData });
+            shared_1.logger.error("Error creating prescription for record", {
+                error,
+                recordId,
+                prescriptionData,
+            });
             throw error;
         }
     }
-    async getLabResultsByRecordId(recordId) {
+    async updatePrescriptionInRecord(recordId, prescriptionId, updateData) {
         try {
-            const { data, error } = await this.supabase
-                .from('lab_results')
-                .select('*')
-                .eq('record_id', recordId)
-                .order('test_date', { ascending: false });
-            if (error)
-                throw error;
-            return data || [];
-        }
-        catch (error) {
-            shared_1.logger.error('Error fetching lab results', { error, recordId });
-            throw error;
-        }
-    }
-    // Vital Signs methods
-    async createVitalSigns(vitalData, recordedBy) {
-        try {
-            // Generate ID using timestamp for now (should use database function)
-            const vitalId = `VS${Date.now().toString().slice(-6)}`;
-            const supabaseVitalSigns = {
-                vital_id: vitalId,
-                ...vitalData,
-                recorded_by: recordedBy,
-                bmi: this.calculateBMI(vitalData.weight, vitalData.height)
+            // Get current medical record
+            const currentRecord = await this.findById(recordId);
+            if (!currentRecord) {
+                throw new Error("Medical record not found");
+            }
+            // Find and update the prescription
+            const prescriptions = currentRecord.prescriptions || [];
+            const prescriptionIndex = prescriptions.findIndex((p) => p.prescription_id === prescriptionId);
+            if (prescriptionIndex === -1) {
+                throw new Error("Prescription not found");
+            }
+            // Update prescription
+            const updatedPrescription = {
+                ...prescriptions[prescriptionIndex],
+                ...updateData,
+                updated_at: new Date(),
             };
-            const { data, error } = await this.supabase
-                .from('vital_signs_history')
-                .insert([supabaseVitalSigns])
-                .select()
-                .single();
+            // Recalculate total cost if medications updated
+            if (updateData.medications) {
+                let totalCost = 0;
+                const medications = updateData.medications.map((med) => {
+                    const itemCost = (med.cost_per_unit || 0) * med.quantity;
+                    totalCost += itemCost;
+                    return {
+                        ...med,
+                        total_cost: itemCost,
+                    };
+                });
+                updatedPrescription.medications = medications;
+                updatedPrescription.total_cost = totalCost;
+            }
+            prescriptions[prescriptionIndex] = updatedPrescription;
+            // Update medical record
+            const { error } = await this.supabase
+                .from("medical_records")
+                .update({
+                prescriptions,
+                updated_at: new Date().toISOString(),
+            })
+                .eq("record_id", recordId);
             if (error)
                 throw error;
-            return data;
+            return updatedPrescription;
         }
         catch (error) {
-            shared_1.logger.error('Error creating vital signs', { error, vitalData });
+            shared_1.logger.error("Error updating prescription in record", {
+                error,
+                recordId,
+                prescriptionId,
+            });
             throw error;
         }
     }
-    async getVitalSignsByRecordId(recordId) {
+    async getPrescriptionsByPatientId(patientId) {
         try {
             const { data, error } = await this.supabase
-                .from('vital_signs_history')
-                .select('*')
-                .eq('record_id', recordId)
-                .order('recorded_at', { ascending: false });
+                .from("medical_records")
+                .select("prescriptions")
+                .eq("patient_id", patientId)
+                .not("prescriptions", "is", null);
             if (error)
                 throw error;
-            return data || [];
+            // Flatten all prescriptions from all medical records
+            const allPrescriptions = [];
+            data?.forEach((record) => {
+                if (record.prescriptions) {
+                    allPrescriptions.push(...record.prescriptions);
+                }
+            });
+            return allPrescriptions.sort((a, b) => new Date(b.prescription_date).getTime() -
+                new Date(a.prescription_date).getTime());
         }
         catch (error) {
-            shared_1.logger.error('Error fetching vital signs', { error, recordId });
+            shared_1.logger.error("Error fetching prescriptions by patient ID", {
+                error,
+                patientId,
+            });
             throw error;
         }
     }
-    // Remove local ID generation - now handled by database functions
-    // These methods are kept for backward compatibility but not used
-    calculateBMI(weight, height) {
-        if (!weight || !height)
-            return undefined;
-        const heightInMeters = height / 100;
-        return Math.round((weight / (heightInMeters * heightInMeters)) * 10) / 10;
+    async getPrescriptionsByDoctorId(doctorId) {
+        try {
+            const { data, error } = await this.supabase
+                .from("medical_records")
+                .select("prescriptions")
+                .eq("doctor_id", doctorId)
+                .not("prescriptions", "is", null);
+            if (error)
+                throw error;
+            // Flatten all prescriptions from all medical records
+            const allPrescriptions = [];
+            data?.forEach((record) => {
+                if (record.prescriptions) {
+                    allPrescriptions.push(...record.prescriptions);
+                }
+            });
+            return allPrescriptions.sort((a, b) => new Date(b.prescription_date).getTime() -
+                new Date(a.prescription_date).getTime());
+        }
+        catch (error) {
+            shared_1.logger.error("Error fetching prescriptions by doctor ID", {
+                error,
+                doctorId,
+            });
+            throw error;
+        }
     }
     mapSupabaseRecordToMedicalRecord(supabaseRecord) {
         return {
@@ -261,21 +350,21 @@ class MedicalRecordRepository {
             doctor_id: supabaseRecord.doctor_id,
             appointment_id: supabaseRecord.appointment_id,
             visit_date: new Date(supabaseRecord.visit_date),
-            chief_complaint: supabaseRecord.chief_complaint,
-            present_illness: supabaseRecord.present_illness,
-            past_medical_history: supabaseRecord.past_medical_history,
-            physical_examination: supabaseRecord.physical_examination,
-            vital_signs: supabaseRecord.vital_signs,
+            // Map simplified fields
+            symptoms: supabaseRecord.symptoms,
+            examination_notes: supabaseRecord.examination_notes,
             diagnosis: supabaseRecord.diagnosis,
-            treatment_plan: supabaseRecord.treatment_plan,
+            treatment: supabaseRecord.treatment,
             medications: supabaseRecord.medications,
-            follow_up_instructions: supabaseRecord.follow_up_instructions,
             notes: supabaseRecord.notes,
+            basic_vitals: supabaseRecord.basic_vitals,
+            // MERGED: Map prescriptions data
+            prescriptions: supabaseRecord.prescriptions || [],
             status: supabaseRecord.status,
             created_at: new Date(supabaseRecord.created_at),
             updated_at: new Date(supabaseRecord.updated_at),
             created_by: supabaseRecord.created_by,
-            updated_by: supabaseRecord.updated_by
+            updated_by: supabaseRecord.updated_by,
         };
     }
 }

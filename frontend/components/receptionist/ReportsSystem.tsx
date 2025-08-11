@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
+import {
   BarChart3,
   Calendar,
   Download,
@@ -16,6 +16,7 @@ import {
   FileText,
   Activity
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface DailyStats {
   totalAppointments: number;
@@ -137,9 +138,151 @@ export function ReportsSystem() {
     }
   };
 
-  const exportReport = () => {
-    // Simulate export functionality
-    alert('Xuất báo cáo thành công!');
+  const handleExportReport = async () => {
+    try {
+      if (!reportData) {
+        toast.error('Không có dữ liệu báo cáo để xuất');
+        return;
+      }
+
+      const reportContent = generateReportHTML(reportData, reportType);
+      const blob = new Blob([reportContent], { type: 'text/html' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+
+      const fileName = `bao-cao-${reportType}-${selectedDate || startDate}-${new Date().toISOString().split('T')[0]}.html`;
+      link.download = fileName;
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast.success('Báo cáo đã được xuất thành công!');
+    } catch (error) {
+      console.error('Error exporting report:', error);
+      toast.error('Lỗi khi xuất báo cáo');
+    }
+  };
+
+  const generateReportHTML = (data: any, type: string): string => {
+    const reportTitle = getReportTitle(type);
+    const currentDate = new Date().toLocaleDateString('vi-VN');
+    const currentTime = new Date().toLocaleTimeString('vi-VN');
+
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>${reportTitle}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+        .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
+        .section { margin-bottom: 20px; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
+        .stat-card { border: 1px solid #ddd; padding: 15px; border-radius: 5px; text-align: center; }
+        .stat-number { font-size: 24px; font-weight: bold; color: #0066cc; }
+        .stat-label { font-size: 14px; color: #666; }
+        .table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .table th, .table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        .table th { background-color: #f5f5f5; font-weight: bold; }
+        .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #ccc; padding-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>${reportTitle}</h1>
+        <p><strong>Ngày báo cáo:</strong> ${selectedDate || `${startDate} - ${endDate}`}</p>
+        <p><strong>Ngày xuất:</strong> ${currentDate} ${currentTime}</p>
+    </div>
+
+    <div class="section">
+        <h2>Thống kê tổng quan</h2>
+        <div class="stats">
+            ${generateStatsHTML(data)}
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Chi tiết dữ liệu</h2>
+        ${generateDataTableHTML(data, type)}
+    </div>
+
+    <div class="footer">
+        <p>Báo cáo được tạo tự động từ Hệ thống Quản lý Bệnh viện</p>
+        <p>Người tạo: Lễ tân | Thời gian: ${currentDate} ${currentTime}</p>
+    </div>
+</body>
+</html>
+    `;
+  };
+
+  const getReportTitle = (type: string): string => {
+    const titles: { [key: string]: string } = {
+      'daily': 'Báo cáo Hoạt động Hàng ngày',
+      'weekly': 'Báo cáo Hoạt động Hàng tuần',
+      'monthly': 'Báo cáo Hoạt động Hàng tháng',
+      'patient-flow': 'Báo cáo Luồng Bệnh nhân',
+      'appointment-summary': 'Báo cáo Tổng hợp Lịch hẹn'
+    };
+    return titles[type] || 'Báo cáo Hệ thống';
+  };
+
+  const generateStatsHTML = (data: any): string => {
+    if (!data) return '<p>Không có dữ liệu thống kê</p>';
+
+    return `
+      <div class="stat-card">
+        <div class="stat-number">${data.totalAppointments || 0}</div>
+        <div class="stat-label">Tổng lịch hẹn</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">${data.completedAppointments || 0}</div>
+        <div class="stat-label">Đã hoàn thành</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">${data.cancelledAppointments || 0}</div>
+        <div class="stat-label">Đã hủy</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">${data.newPatients || 0}</div>
+        <div class="stat-label">Bệnh nhân mới</div>
+      </div>
+    `;
+  };
+
+  const generateDataTableHTML = (data: any, type: string): string => {
+    if (!data || !data.appointments) return '<p>Không có dữ liệu chi tiết</p>';
+
+    const appointments = data.appointments || [];
+    const rows = appointments.map((apt: any) => `
+      <tr>
+        <td>${apt.appointment_id || 'N/A'}</td>
+        <td>${apt.patient_name || 'N/A'}</td>
+        <td>${apt.doctor_name || 'N/A'}</td>
+        <td>${apt.appointment_time || 'N/A'}</td>
+        <td>${apt.status || 'N/A'}</td>
+      </tr>
+    `).join('');
+
+    return `
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Mã lịch hẹn</th>
+            <th>Bệnh nhân</th>
+            <th>Bác sĩ</th>
+            <th>Thời gian</th>
+            <th>Trạng thái</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
+    `;
   };
 
   const renderDailyReport = () => {
@@ -436,7 +579,7 @@ export function ReportsSystem() {
             )}
 
             <div className="flex items-end">
-              <Button onClick={exportReport} className="w-full">
+              <Button onClick={handleExportReport} className="w-full">
                 <Download className="h-4 w-4 mr-2" />
                 Xuất báo cáo
               </Button>

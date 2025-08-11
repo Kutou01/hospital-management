@@ -18,6 +18,7 @@ import {
   Phone,
   Mail
 } from "lucide-react";
+import { paymentsApi, paymentUtils } from "@/lib/api/payments";
 import { toast } from "sonner";
 
 interface PaymentResult {
@@ -63,20 +64,17 @@ export default function PaymentResultPage() {
   }, [orderCode]);
 
   const verifyPaymentStatus = async () => {
+    if (!orderCode) return;
+
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/payments/verify?orderCode=${orderCode}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+      const response = await paymentsApi.verifyPayment(orderCode);
 
-      if (!response.ok) {
-        throw new Error('Failed to verify payment');
+      if (response.success && response.data) {
+        setPaymentResult(response.data);
+      } else {
+        toast.error("Không thể xác minh trạng thái thanh toán: " + (response.message || 'Không xác định'));
       }
-
-      const data = await response.json();
-      setPaymentResult(data.data);
     } catch (error) {
       console.error('Error verifying payment:', error);
       toast.error("Không thể xác minh trạng thái thanh toán");
@@ -92,29 +90,23 @@ export default function PaymentResultPage() {
   };
 
   const downloadReceipt = async () => {
-    if (!paymentResult) return;
+    if (!paymentResult) {
+      toast.error("Không có thông tin thanh toán để tải hóa đơn");
+      return;
+    }
 
     try {
-      const response = await fetch(`/api/payments/receipt/${paymentResult.id}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to download receipt');
-      }
-
-      const blob = await response.blob();
+      // Generate receipt HTML content
+      const receiptContent = generateReceiptHTML(paymentResult);
+      const blob = new Blob([receiptContent], { type: 'text/html' });
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = `receipt-${paymentResult.orderCode}.pdf`;
-      document.body.appendChild(a);
-      a.click();
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `receipt-${paymentResult.orderCode}-${new Date().toISOString().split('T')[0]}.html`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
 
       toast.success("Đã tải hóa đơn thành công");
     } catch (error) {
@@ -123,23 +115,103 @@ export default function PaymentResultPage() {
     }
   };
 
-  const formatCurrency = (amount: number): string => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND'
-    }).format(amount);
+  const generateReceiptHTML = (payment: any): string => {
+    const currentDate = new Date().toLocaleDateString('vi-VN');
+    const currentTime = new Date().toLocaleTimeString('vi-VN');
+
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Hóa đơn thanh toán - ${payment.orderCode}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+        .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 15px; margin-bottom: 20px; }
+        .company-info { text-align: center; margin-bottom: 20px; }
+        .receipt-info { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .section { margin-bottom: 15px; }
+        .label { font-weight: bold; color: #333; }
+        .value { margin-left: 10px; }
+        .amount { font-size: 18px; font-weight: bold; color: #0066cc; text-align: center; padding: 15px; background-color: #f0f8ff; border: 2px solid #0066cc; margin: 20px 0; }
+        .status { padding: 8px 16px; border-radius: 20px; text-align: center; font-weight: bold; }
+        .status.success { background-color: #d4edda; color: #155724; }
+        .status.pending { background-color: #fff3cd; color: #856404; }
+        .status.failed { background-color: #f8d7da; color: #721c24; }
+        .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #ccc; padding-top: 15px; }
+        .qr-note { text-align: center; margin: 20px 0; padding: 10px; background-color: #f8f9fa; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="company-info">
+        <h1>HỆ THỐNG QUẢN LÝ BỆNH VIỆN</h1>
+        <p>Địa chỉ: 123 Đường ABC, Quận XYZ, TP. Hồ Chí Minh</p>
+        <p>Điện thoại: (028) 1234-5678 | Email: info@hospital.com</p>
+    </div>
+
+    <div class="header">
+        <h2>HÓA ĐƠN THANH TOÁN</h2>
+        <p><strong>Mã đơn hàng:</strong> ${payment.orderCode}</p>
+    </div>
+
+    <div class="receipt-info">
+        <div>
+            <div class="section">
+                <div class="label">Ngày thanh toán:</div>
+                <div class="value">${payment.paidAt ? new Date(payment.paidAt).toLocaleDateString('vi-VN') : currentDate}</div>
+            </div>
+
+            <div class="section">
+                <div class="label">Phương thức:</div>
+                <div class="value">${payment.paymentMethod === 'payos' ? 'Chuyển khoản QR' : 'Tiền mặt'}</div>
+            </div>
+
+            <div class="section">
+                <div class="label">Mã giao dịch:</div>
+                <div class="value">${payment.transactionId || 'N/A'}</div>
+            </div>
+        </div>
+
+        <div>
+            <div class="section">
+                <div class="label">Trạng thái:</div>
+                <div class="status ${payment.status === 'success' ? 'success' : payment.status === 'pending' ? 'pending' : 'failed'}">
+                    ${payment.status === 'success' ? 'Thành công' : payment.status === 'pending' ? 'Đang xử lý' : 'Thất bại'}
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="label">Mô tả:</div>
+                <div class="value">${payment.description || 'Thanh toán dịch vụ y tế'}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="amount">
+        <div>Tổng tiền thanh toán</div>
+        <div>${payment.amount?.toLocaleString('vi-VN')} VNĐ</div>
+    </div>
+
+    ${payment.paymentMethod === 'payos' ? `
+    <div class="qr-note">
+        <p><strong>Lưu ý:</strong> Thanh toán đã được thực hiện qua mã QR PayOS</p>
+        <p>Vui lòng giữ hóa đơn này làm bằng chứng thanh toán</p>
+    </div>
+    ` : ''}
+
+    <div class="footer">
+        <p><strong>Cảm ơn quý khách đã sử dụng dịch vụ!</strong></p>
+        <p>Hóa đơn được tạo tự động từ Hệ thống Quản lý Bệnh viện</p>
+        <p>Ngày in: ${currentDate} ${currentTime}</p>
+        <p>Hotline hỗ trợ: (028) 1234-5678</p>
+    </div>
+</body>
+</html>
+    `;
   };
 
-  const formatDateTime = (dateString: string): string => {
-    return new Intl.DateTimeFormat('vi-VN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    }).format(new Date(dateString));
-  };
+  const formatCurrency = paymentUtils.formatCurrency;
+  const formatDateTime = paymentUtils.formatDateTime;
 
   const getStatusConfig = (): StatusConfig => {
     const currentStatus = paymentResult?.status || status;

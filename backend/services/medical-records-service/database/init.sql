@@ -46,6 +46,33 @@ BEGIN
         ALTER TABLE medical_records ADD COLUMN follow_up_instructions TEXT;
     END IF;
 
+    -- MERGED: Add prescriptions column for embedded prescription data (from Prescription Service)
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_name = 'medical_records' AND column_name = 'prescriptions') THEN
+        ALTER TABLE medical_records ADD COLUMN prescriptions JSONB;
+    END IF;
+
+    -- Add simplified fields for the new structure
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_name = 'medical_records' AND column_name = 'symptoms') THEN
+        ALTER TABLE medical_records ADD COLUMN symptoms TEXT;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_name = 'medical_records' AND column_name = 'examination_notes') THEN
+        ALTER TABLE medical_records ADD COLUMN examination_notes TEXT;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_name = 'medical_records' AND column_name = 'treatment') THEN
+        ALTER TABLE medical_records ADD COLUMN treatment TEXT;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_name = 'medical_records' AND column_name = 'basic_vitals') THEN
+        ALTER TABLE medical_records ADD COLUMN basic_vitals JSONB;
+    END IF;
+
     -- Add status if not exists
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns
                    WHERE table_name = 'medical_records' AND column_name = 'status') THEN

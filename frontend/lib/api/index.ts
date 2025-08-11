@@ -15,6 +15,7 @@ export * from './rooms';
 export * from './medical-records';
 export * from './prescriptions';
 export * from './billing';
+export * from './payments';
 
 // Re-export types for convenience
 export type {

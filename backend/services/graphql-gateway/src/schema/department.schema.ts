@@ -1,4 +1,4 @@
-import { gql } from 'graphql-tag';
+import { gql } from "graphql-tag";
 
 /**
  * GraphQL Schema for Department and related entities
@@ -53,7 +53,7 @@ export const departmentTypeDefs = gql`
     nameEn: String
     nameVi: String!
     description: String
-    
+
     # Department Details
     code: String! # e.g., CARD, NEUR, ORTH
     type: String # Internal, Surgical, Diagnostic, etc.
@@ -61,24 +61,24 @@ export const departmentTypeDefs = gql`
     building: String
     phoneNumber: PhoneNumber
     email: String
-    
+
     # Operational Information
     status: DepartmentStatus!
     isActive: Boolean!
     operatingHours: OperatingHours
     emergencyAvailable: Boolean!
-    
+
     # Capacity Information
     totalRooms: Int!
     availableRooms: Int!
     totalBeds: Int
     availableBeds: Int
     maxPatients: Int
-    
+
     # Timestamps
     createdAt: DateTime!
     updatedAt: DateTime!
-    
+
     # Relationships
     head: Doctor # Department head
     doctors(
@@ -104,10 +104,10 @@ export const departmentTypeDefs = gql`
       limit: Int = 20
       offset: Int = 0
     ): AppointmentConnection!
-    
+
     # Statistics
     stats: DepartmentStats
-    
+
     # Computed Fields
     currentPatients: Int!
     todayAppointments: Int!
@@ -148,7 +148,7 @@ export const departmentTypeDefs = gql`
     capacity: Int
     departmentId: UUID!
     department: Department!
-    
+
     # Room Details
     area: Float # square meters
     hasAirConditioning: Boolean
@@ -156,15 +156,15 @@ export const departmentTypeDefs = gql`
     hasVacuum: Boolean
     hasInternet: Boolean
     accessibility: Boolean
-    
+
     # Equipment in room
     equipment: [Equipment!]!
-    
+
     # Current usage
     currentAppointment: Appointment
     nextAppointment: Appointment
     isOccupied: Boolean!
-    
+
     # Timestamps
     createdAt: DateTime!
     updatedAt: DateTime!
@@ -179,24 +179,24 @@ export const departmentTypeDefs = gql`
     serialNumber: String
     type: String!
     status: EquipmentStatus!
-    
+
     # Location
     departmentId: UUID
     roomId: UUID
     department: Department
     room: Room
-    
+
     # Equipment Details
     purchaseDate: Date
     warrantyExpiry: Date
     lastMaintenanceDate: Date
     nextMaintenanceDate: Date
     cost: Float
-    
+
     # Operational
     isOperational: Boolean!
     requiresCalibration: Boolean
-    
+
     # Timestamps
     createdAt: DateTime!
     updatedAt: DateTime!
@@ -211,22 +211,22 @@ export const departmentTypeDefs = gql`
     availableRooms: Int!
     totalEquipment: Int!
     operationalEquipment: Int!
-    
+
     # Appointment statistics
     todayAppointments: Int!
     thisWeekAppointments: Int!
     thisMonthAppointments: Int!
     completedAppointments: Int!
     cancelledAppointments: Int!
-    
+
     # Patient statistics
     totalPatients: Int!
     newPatients: Int!
     returningPatients: Int!
-    
+
     # Financial
     revenue: DepartmentRevenue!
-    
+
     # Performance
     averageWaitTime: Float! # minutes
     averageConsultationTime: Float! # minutes
@@ -245,44 +245,42 @@ export const departmentTypeDefs = gql`
   # Note: MedicalRecord, VitalSigns, LabResult, and MedicalAttachment types
   # are defined in medical-record.schema.ts to avoid duplication and maintain consistency
 
-  # Prescription
-  type Prescription {
+  # Simplified Prescription
+  type SimplifiedPrescription {
     id: UUID!
     patientId: PatientID!
     doctorId: DoctorID!
     appointmentId: UUID
-    
-    # Prescription Details
-    prescriptionNumber: String!
+
+    # Simplified Prescription Details
     prescriptionDate: Date!
-    medications: [Medication!]!
-    instructions: String
+    medications: [SimplifiedMedication!]! # Embedded simplified medications
     notes: String
-    
-    # Status
-    isActive: Boolean!
-    isDispensed: Boolean!
-    dispensedAt: DateTime
-    dispensedBy: String
-    
+
+    # Simplified Status
+    status: PrescriptionStatus! # active, completed, cancelled
     # Relationships
     patient: Patient!
     doctor: Doctor!
     appointment: Appointment
-    
+
     # Timestamps
     createdAt: DateTime!
     updatedAt: DateTime!
   }
 
-  type Medication {
-    name: String!
-    dosage: String!
-    frequency: String!
-    duration: String!
-    instructions: String
-    quantity: Int
-    unit: String
+  enum PrescriptionStatus {
+    ACTIVE
+    COMPLETED
+    CANCELLED
+  }
+
+  # Simplified Medication (embedded in prescription)
+  type SimplifiedMedication {
+    name: String! # Simple medication name
+    dosage: String! # Free text (e.g., "500mg")
+    instructions: String! # Simple instructions (e.g., "Take twice daily after meals")
+    quantity: Int! # Number of units
   }
 
   # Payment
@@ -290,14 +288,14 @@ export const departmentTypeDefs = gql`
     id: UUID!
     patientId: PatientID!
     appointmentId: UUID
-    
+
     # Payment Details
     paymentNumber: String!
     amount: Float!
     currency: String! # VND
     paymentMethod: String!
     paymentStatus: PaymentStatus!
-    
+
     # Payment Breakdown
     consultationFee: Float!
     medicationFee: Float
@@ -306,17 +304,17 @@ export const departmentTypeDefs = gql`
     insuranceCoverage: Float
     discount: Float
     tax: Float
-    
+
     # Payment Information
     paidAt: DateTime
     refundedAt: DateTime
     refundAmount: Float
     transactionId: String
-    
+
     # Relationships
     patient: Patient!
     appointment: Appointment
-    
+
     # Timestamps
     createdAt: DateTime!
     updatedAt: DateTime!
@@ -399,10 +397,10 @@ export const departmentTypeDefs = gql`
       sortBy: String = "name"
       sortOrder: String = "ASC"
     ): [Department!]!
-    
+
     # Department statistics
     departmentStats(departmentId: UUID!): DepartmentStats!
-    
+
     # Room queries
     room(id: UUID!): Room
     departmentRooms(
@@ -417,14 +415,14 @@ export const departmentTypeDefs = gql`
       timeFrom: Time
       timeTo: Time
     ): [Room!]!
-    
+
     # Equipment queries
     equipment(id: UUID!): Equipment
     departmentEquipment(
       departmentId: UUID!
       status: EquipmentStatus
     ): [Equipment!]!
-    
+
     # Note: Medical record queries are defined in medical-record.schema.ts
     # Note: Patient medical record queries are defined in patient.schema.ts
 
@@ -462,10 +460,10 @@ export const departmentTypeDefs = gql`
     # Department updates
     departmentUpdated(departmentId: UUID): Department!
     departmentStatsUpdated(departmentId: UUID!): DepartmentStats!
-    
+
     # Room availability
     roomAvailabilityChanged(departmentId: UUID): Room!
-    
+
     # Equipment status
     equipmentStatusChanged(departmentId: UUID): Equipment!
   }

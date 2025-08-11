@@ -19,6 +19,8 @@ import {
   FileText
 } from "lucide-react";
 import { PatientLayout } from "@/components/layout/UniversalLayout";
+import { paymentsApi, paymentUtils, PaymentHistoryItem } from "@/lib/api/payments";
+import { useEnhancedAuth } from "@/lib/auth/auth-wrapper";
 import { toast } from "sonner";
 
 interface Payment {

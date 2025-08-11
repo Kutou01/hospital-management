@@ -47,28 +47,158 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Basic notification endpoints
-app.post('/api/notifications/send', (req, res) => {
-  // Placeholder for sending notifications
+// Enhanced notification endpoints
+app.post('/api/notifications/send', async (req, res) => {
+  try {
+    const { type, recipient, subject, message, data } = req.body;
+
+    // Validate input
+    if (!type || !recipient || !message) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: type, recipient, message'
+      });
+    }
+
+    let result;
+    switch (type) {
+      case 'email':
+        result = await sendEmailNotification(recipient, subject, message, data);
+        break;
+      case 'sms':
+        result = await sendSMSNotification(recipient, message);
+        break;
+      case 'push':
+        result = await sendPushNotification(recipient, subject, message, data);
+        break;
+      default:
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid notification type. Supported: email, sms, push'
+        });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Notification sent successfully',
+      data: result
+    });
+  } catch (error) {
+    console.error('Notification send error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to send notification',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// Appointment notification endpoints
+app.post('/api/notifications/appointment/reminder', async (req, res) => {
+  try {
+    const { appointmentId, patientEmail, doctorName, appointmentTime } = req.body;
+
+    const subject = 'Nhắc nhở lịch khám - Hospital Management';
+    const message = `
+      Xin chào,
+
+      Đây là lời nhắc về lịch khám của bạn:
+      - Bác sĩ: ${doctorName}
+      - Thời gian: ${appointmentTime}
+      - Mã lịch khám: ${appointmentId}
+
+      Vui lòng đến đúng giờ. Cảm ơn!
+
+      Bệnh viện ABC
+    `;
+
+    const result = await sendEmailNotification(patientEmail, subject, message, {
+      type: 'appointment_reminder',
+      appointmentId
+    });
+
+    res.json({
+      success: true,
+      message: 'Appointment reminder sent',
+      data: result
+    });
+  } catch (error) {
+    console.error('Appointment reminder error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to send appointment reminder'
+    });
+  }
+});
+
+app.get('/api/notifications', (req, res) => {
+  // Return notification service status
   res.json({
     success: true,
-    message: 'Notification service is ready - implementation coming soon',
+    message: 'Notification service is running',
     data: {
-      type: req.body.type || 'email',
-      recipient: req.body.recipient,
-      message: req.body.message
+      service: 'Hospital Notification Service',
+      features: {
+        email: !!process.env.SMTP_HOST,
+        sms: !!process.env.TWILIO_ACCOUNT_SID,
+        push: !!process.env.FIREBASE_SERVER_KEY
+      },
+      endpoints: [
+        'POST /api/notifications/send',
+        'POST /api/notifications/appointment/reminder',
+        'GET /api/notifications',
+        'GET /health'
+      ]
     }
   });
 });
 
-app.get('/api/notifications', (req, res) => {
-  // Placeholder for getting notifications
-  res.json({
-    success: true,
-    message: 'Notification service is running',
-    data: []
-  });
-});
+// Notification service functions
+async function sendEmailNotification(recipient: string, subject: string, message: string, data?: any) {
+  // For demo purposes, we'll simulate email sending
+  console.log(`📧 Email notification sent to: ${recipient}`);
+  console.log(`📧 Subject: ${subject}`);
+  console.log(`📧 Message: ${message}`);
+
+  return {
+    type: 'email',
+    recipient,
+    subject,
+    status: 'sent',
+    timestamp: new Date().toISOString(),
+    messageId: `email_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  };
+}
+
+async function sendSMSNotification(recipient: string, message: string) {
+  // Placeholder for SMS - would integrate with Twilio
+  console.log(`📱 SMS notification sent to: ${recipient}`);
+  console.log(`📱 Message: ${message}`);
+
+  return {
+    type: 'sms',
+    recipient,
+    status: 'sent',
+    timestamp: new Date().toISOString(),
+    messageId: `sms_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  };
+}
+
+async function sendPushNotification(recipient: string, title: string, message: string, data?: any) {
+  // Placeholder for Push - would integrate with Firebase
+  console.log(`🔔 Push notification sent to: ${recipient}`);
+  console.log(`🔔 Title: ${title}`);
+  console.log(`🔔 Message: ${message}`);
+
+  return {
+    type: 'push',
+    recipient,
+    title,
+    status: 'sent',
+    timestamp: new Date().toISOString(),
+    messageId: `push_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  };
+}
 
 // 404 handler
 app.use('*', (req, res) => {

@@ -51,7 +51,7 @@ export async function testDatabaseConnection(): Promise<boolean> {
     const supabase = getSupabase();
     const { data, error } = await supabase
       .from('receptionist')
-      .select('count(*)')
+      .select('*')
       .limit(1);
 
     if (error) {

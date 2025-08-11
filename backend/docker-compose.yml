@@ -19,7 +19,7 @@ services:
       - DEPARTMENT_SERVICE_URL=http://department-service:3005
       - RECEPTIONIST_SERVICE_URL=http://receptionist-service:3006
       - MEDICAL_RECORDS_SERVICE_URL=http://medical-records-service:3007
-      - PRESCRIPTION_SERVICE_URL=http://prescription-service:3008
+      # REMOVED: PRESCRIPTION_SERVICE_URL - merged into medical-records-service
       - BILLING_SERVICE_URL=http://billing-service:3008
       - PAYMENT_SERVICE_URL=http://payment-service:3009
       - NOTIFICATION_SERVICE_URL=http://notification-service:3011
@@ -366,44 +366,44 @@ services:
   # ALL OTHER SERVICES DISABLED FOR DOCTOR-ONLY MODE
   # Uncomment these services when you want to enable full system
 
-  # Prescription Service - ENABLED
-  prescription-service:
-    build:
-      context: .
-      dockerfile: ./services/prescription-service/Dockerfile
-    ports:
-      - "3007:3007"
-    env_file:
-      - ./services/prescription-service/.env
-    environment:
-      - NODE_ENV=development
-      - PORT=3007
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-      - REDIS_URL=redis://redis:6379
-      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
-      - AUTH_SERVICE_URL=http://auth-service:3001
-      - DOCTOR_SERVICE_URL=http://doctor-service:3002
-      - PATIENT_SERVICE_URL=http://patient-service:3003
-      - MEDICAL_RECORDS_SERVICE_URL=http://medical-records-service:3006
-      - NOTIFICATION_SERVICE_URL=http://notification-service:3011
-    depends_on:
-      - redis
-      - rabbitmq
-    networks:
-      - hospital-network
-    # Resource limits
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-          cpus: "0.5"
-        reservations:
-          memory: 128M
-          cpus: "0.25"
-    profiles:
-      - core
-      - full
+  # Prescription Service - DISABLED (service not found)
+  # prescription-service:
+  #   build:
+  #     context: .
+  #     dockerfile: ./services/prescription-service/Dockerfile
+  #   ports:
+  #     - "3007:3007"
+  #   env_file:
+  #     - ./services/prescription-service/.env
+  #   environment:
+  #     - NODE_ENV=development
+  #     - PORT=3007
+  #     - SUPABASE_URL=${SUPABASE_URL}
+  #     - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+  #     - REDIS_URL=redis://redis:6379
+  #     - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+  #     - AUTH_SERVICE_URL=http://auth-service:3001
+  #     - DOCTOR_SERVICE_URL=http://doctor-service:3002
+  #     - PATIENT_SERVICE_URL=http://patient-service:3003
+  #     - MEDICAL_RECORDS_SERVICE_URL=http://medical-records-service:3006
+  #     - NOTIFICATION_SERVICE_URL=http://notification-service:3011
+  #   depends_on:
+  #     - redis
+  #     - rabbitmq
+  #   networks:
+  #     - hospital-network
+  #   # Resource limits
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 256M
+  #         cpus: "0.5"
+  #       reservations:
+  #         memory: 128M
+  #         cpus: "0.25"
+  #   profiles:
+  #     - core
+  #     - full
 
   # Payment Service - ENABLED (PayOS Integration)
   payment-service:

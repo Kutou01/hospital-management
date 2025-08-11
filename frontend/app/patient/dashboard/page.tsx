@@ -27,6 +27,7 @@ import { ChartCard, BarChartGroup, ProgressChart, MetricComparison } from "@/com
 import { ActivityTimeline } from "@/components/dashboard/ActivityTimeline"
 import { NotificationCenter } from "@/components/dashboard/NotificationCenter"
 import { InteractiveCalendar } from "@/components/dashboard/InteractiveCalendar"
+import { RecentActivity } from "@/components/dashboard/RecentActivity"
 import { StatCardSkeleton, ChartCardSkeleton, PulseWrapper } from "@/components/dashboard/SkeletonLoaders"
 import { useDashboardLoading } from "@/hooks/useProgressiveLoading"
 import { Button } from "@/components/ui/button"

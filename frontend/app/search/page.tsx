@@ -29,6 +29,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { doctorsApi, departmentsApi } from "@/lib/api"
+import { toast } from "sonner"
 
 interface SearchResult {
   id: string
@@ -148,21 +149,9 @@ export default function SearchPage() {
     setHasSearched(true)
 
     try {
-      // In real app, this would call search API
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Filter mock results based on query and type
-      const filtered = mockResults.filter(result => {
-        const matchesQuery = result.title.toLowerCase().includes(query.toLowerCase()) ||
-                            result.description.toLowerCase().includes(query.toLowerCase()) ||
-                            result.subtitle?.toLowerCase().includes(query.toLowerCase())
-        
-        const matchesType = searchType === "all" || result.type === searchType
-
-        return matchesQuery && matchesType
-      })
-
-      setResults(filtered)
+      // Call actual search API
+      const searchResults = await performGlobalSearch(query, searchType)
+      setResults(searchResults)
 
       // Save to recent searches
       const newRecentSearches = [query, ...recentSearches.filter(s => s !== query)].slice(0, 5)
@@ -171,9 +160,145 @@ export default function SearchPage() {
 
     } catch (error) {
       console.error('Search error:', error)
+      toast.error('Lỗi khi tìm kiếm. Vui lòng thử lại.')
       setResults([])
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const performGlobalSearch = async (query: string, type: string): Promise<SearchResult[]> => {
+    const results: SearchResult[] = []
+
+    try {
+      // Search patients if type is 'all' or 'patients'
+      if (type === 'all' || type === 'patients') {
+        const patientResults = await searchPatients(query)
+        results.push(...patientResults)
+      }
+
+      // Search doctors if type is 'all' or 'doctors'
+      if (type === 'all' || type === 'doctors') {
+        const doctorResults = await searchDoctors(query)
+        results.push(...doctorResults)
+      }
+
+      // Search appointments if type is 'all' or 'appointments'
+      if (type === 'all' || type === 'appointments') {
+        const appointmentResults = await searchAppointments(query)
+        results.push(...appointmentResults)
+      }
+
+      // Search medical records if type is 'all' or 'medical-records'
+      if (type === 'all' || type === 'medical-records') {
+        const medicalRecordResults = await searchMedicalRecords(query)
+        results.push(...medicalRecordResults)
+      }
+
+      return results
+    } catch (error) {
+      console.error('Global search error:', error)
+      return []
+    }
+  }
+
+  const searchPatients = async (query: string): Promise<SearchResult[]> => {
+    try {
+      // Mock API call - replace with actual API
+      const response = await fetch(`/api/patients/search?q=${encodeURIComponent(query)}`)
+      if (!response.ok) throw new Error('Search failed')
+
+      const patients = await response.json()
+      return patients.map((patient: any) => ({
+        id: patient.patient_id,
+        type: 'patients' as const,
+        title: patient.profiles?.full_name || 'Unknown Patient',
+        subtitle: `ID: ${patient.patient_id}`,
+        description: `Phone: ${patient.profiles?.phone_number || 'N/A'} | DOB: ${patient.profiles?.date_of_birth || 'N/A'}`,
+        url: `/admin/patients/${patient.patient_id}`,
+        metadata: {
+          status: patient.status,
+          created_at: patient.created_at
+        }
+      }))
+    } catch (error) {
+      console.error('Patient search error:', error)
+      return []
+    }
+  }
+
+  const searchDoctors = async (query: string): Promise<SearchResult[]> => {
+    try {
+      // Mock API call - replace with actual API
+      const response = await fetch(`/api/doctors/search?q=${encodeURIComponent(query)}`)
+      if (!response.ok) throw new Error('Search failed')
+
+      const doctors = await response.json()
+      return doctors.map((doctor: any) => ({
+        id: doctor.doctor_id,
+        type: 'doctors' as const,
+        title: doctor.profiles?.full_name || 'Unknown Doctor',
+        subtitle: `${doctor.specialty} | ${doctor.department_name}`,
+        description: `License: ${doctor.license_number} | Experience: ${doctor.experience_years} years`,
+        url: `/admin/doctors/${doctor.doctor_id}`,
+        metadata: {
+          status: doctor.availability_status,
+          rating: doctor.rating
+        }
+      }))
+    } catch (error) {
+      console.error('Doctor search error:', error)
+      return []
+    }
+  }
+
+  const searchAppointments = async (query: string): Promise<SearchResult[]> => {
+    try {
+      // Mock API call - replace with actual API
+      const response = await fetch(`/api/appointments/search?q=${encodeURIComponent(query)}`)
+      if (!response.ok) throw new Error('Search failed')
+
+      const appointments = await response.json()
+      return appointments.map((appointment: any) => ({
+        id: appointment.appointment_id,
+        type: 'appointments' as const,
+        title: `Appointment ${appointment.appointment_id}`,
+        subtitle: `${appointment.patient_name} with ${appointment.doctor_name}`,
+        description: `Date: ${appointment.appointment_date} | Time: ${appointment.start_time} | Status: ${appointment.status}`,
+        url: `/admin/appointments/${appointment.appointment_id}`,
+        metadata: {
+          status: appointment.status,
+          date: appointment.appointment_date
+        }
+      }))
+    } catch (error) {
+      console.error('Appointment search error:', error)
+      return []
+    }
+  }
+
+  const searchMedicalRecords = async (query: string): Promise<SearchResult[]> => {
+    try {
+      // Mock API call - replace with actual API
+      const response = await fetch(`/api/medical-records/search?q=${encodeURIComponent(query)}`)
+      if (!response.ok) throw new Error('Search failed')
+
+      const records = await response.json()
+      return records.map((record: any) => ({
+        id: record.record_id,
+        type: 'medical-records' as const,
+        title: `Medical Record ${record.record_id}`,
+        subtitle: `Patient: ${record.patient_id} | Doctor: ${record.doctor_id}`,
+        description: `Diagnosis: ${record.diagnosis || 'N/A'} | Visit: ${record.visit_date || 'N/A'}`,
+        url: `/doctors/medical-records/${record.record_id}`,
+        metadata: {
+          visit_date: record.visit_date,
+          diagnosis: record.diagnosis
+        }
+      }))
+    } catch (error) {
+      console.error('Medical record search error:', error)
+      return []
     }
   }
 

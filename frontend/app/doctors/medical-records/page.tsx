@@ -251,9 +251,101 @@ export default function DoctorMedicalRecordsPage() {
     router.push(`/doctors/patients/${record.patient_id}?tab=medical-records&edit=${record.record_id}`)
   }
 
+  const handleDownloadRecord = async (record: MedicalRecord) => {
+    try {
+      // Generate PDF content for the medical record
+      const recordContent = generateMedicalRecordPDF(record)
+
+      // Create blob and download
+      const blob = new Blob([recordContent], { type: 'text/html' })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `medical-record-${record.record_id}-${new Date().toISOString().split('T')[0]}.html`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+
+      toast.success('Hồ sơ y tế đã được tải xuống thành công')
+    } catch (error) {
+      console.error('Error downloading medical record:', error)
+      toast.error('Lỗi khi tải xuống hồ sơ y tế')
+    }
+  }
+
   const handleCreateNew = () => {
     // Navigate to patients page to select patient first
     router.push('/doctors/patients?action=create-record')
+  }
+
+  const generateMedicalRecordPDF = (record: MedicalRecord): string => {
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Hồ sơ Y tế - ${record.record_id}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+        .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
+        .section { margin-bottom: 15px; }
+        .label { font-weight: bold; color: #333; }
+        .value { margin-left: 10px; }
+        .diagnosis { background-color: #f0f8ff; padding: 10px; border-left: 4px solid #0066cc; margin: 10px 0; }
+        .treatment { background-color: #f0fff0; padding: 10px; border-left: 4px solid #00cc66; margin: 10px 0; }
+        .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #ccc; padding-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>HỒ SƠ Y TẾ</h1>
+        <p><strong>Mã hồ sơ:</strong> ${record.record_id}</p>
+        <p><strong>Ngày tạo:</strong> ${new Date(record.created_at).toLocaleDateString('vi-VN')}</p>
+    </div>
+
+    <div class="section">
+        <div class="label">Bệnh nhân:</div>
+        <div class="value">${record.patient_id}</div>
+    </div>
+
+    <div class="section">
+        <div class="label">Bác sĩ:</div>
+        <div class="value">${record.doctor_id}</div>
+    </div>
+
+    <div class="section">
+        <div class="label">Ngày khám:</div>
+        <div class="value">${record.visit_date ? new Date(record.visit_date).toLocaleDateString('vi-VN') : 'Chưa xác định'}</div>
+    </div>
+
+    <div class="diagnosis">
+        <div class="label">Chẩn đoán:</div>
+        <div class="value">${record.diagnosis || 'Chưa có chẩn đoán'}</div>
+    </div>
+
+    <div class="treatment">
+        <div class="label">Điều trị:</div>
+        <div class="value">${record.treatment || 'Chưa có phương pháp điều trị'}</div>
+    </div>
+
+    <div class="section">
+        <div class="label">Ghi chú:</div>
+        <div class="value">${record.notes || 'Không có ghi chú'}</div>
+    </div>
+
+    <div class="section">
+        <div class="label">Hướng dẫn tái khám:</div>
+        <div class="value">${record.follow_up_instructions || 'Không có hướng dẫn'}</div>
+    </div>
+
+    <div class="footer">
+        <p>Hồ sơ được tạo tự động từ Hệ thống Quản lý Bệnh viện</p>
+        <p>Ngày xuất: ${new Date().toLocaleDateString('vi-VN')} ${new Date().toLocaleTimeString('vi-VN')}</p>
+    </div>
+</body>
+</html>
+    `
   }
 
   // Loading state
@@ -504,10 +596,7 @@ export default function DoctorMedicalRecordsPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => {
-                              // TODO: Implement download/print functionality
-                              toast.info('Tính năng xuất file đang được phát triển')
-                            }}
+                            onClick={() => handleDownloadRecord(record)}
                           >
                             <Download className="h-4 w-4" />
                           </Button>

@@ -4,33 +4,31 @@ export interface MedicalRecord {
   doctor_id: string;
   appointment_id?: string;
   visit_date: Date;
-  chief_complaint?: string;
-  present_illness?: string;
-  past_medical_history?: string;
-  physical_examination?: string;
-  vital_signs?: VitalSigns;
-  diagnosis?: string;
-  treatment_plan?: string;
-  medications?: string;
-  follow_up_instructions?: string;
+  // Simplified medical fields - merge complex terminology into simple text fields
+  symptoms?: string; // Replaces: chief_complaint + present_illness
+  examination_notes?: string; // Replaces: physical_examination
+  diagnosis?: string; // Keep as is
+  treatment?: string; // Replaces: treatment_plan + follow_up_instructions
+  medications?: string; // Keep as simple text for backward compatibility
   notes?: string;
-  status: 'active' | 'archived' | 'deleted';
+  // Simplified vital signs embedded
+  basic_vitals?: BasicVitalSigns;
+  // MERGED: Prescription data embedded (replaces separate Prescription Service)
+  prescriptions?: EmbeddedPrescription[]; // Array of prescriptions for this medical record
+  status: "active" | "archived" | "deleted";
   created_at: Date;
   updated_at: Date;
   created_by?: string;
   updated_by?: string;
 }
 
-export interface VitalSigns {
-  temperature?: number;
-  blood_pressure_systolic?: number;
-  blood_pressure_diastolic?: number;
-  heart_rate?: number;
-  respiratory_rate?: number;
-  oxygen_saturation?: number;
-  weight?: number;
-  height?: number;
-  bmi?: number;
+// Simplified vital signs - only 5 basic fields
+export interface BasicVitalSigns {
+  temperature?: number; // Celsius
+  blood_pressure?: string; // "120/80" format
+  heart_rate?: number; // BPM
+  weight?: number; // KG
+  height?: number; // CM
 }
 
 export interface MedicalRecordAttachment {
@@ -46,104 +44,92 @@ export interface MedicalRecordAttachment {
   uploaded_at: Date;
 }
 
-export interface LabResult {
-  result_id: string;
-  record_id: string;
-  test_name: string;
-  test_type: string;
-  result_value?: string;
-  reference_range?: string;
-  unit?: string;
-  status: 'pending' | 'completed' | 'cancelled';
-  test_date: Date;
-  result_date?: Date;
-  lab_technician?: string;
-  notes?: string;
-  created_at: Date;
-}
+// REMOVED: LabResult interface - lab results now stored as simple text in medical records
+// REMOVED: VitalSignsHistory interface - vital signs now embedded as BasicVitalSigns in medical records
 
-export interface VitalSignsHistory {
-  vital_id: string;
-  record_id: string;
-  temperature?: number;
-  blood_pressure_systolic?: number;
-  blood_pressure_diastolic?: number;
-  heart_rate?: number;
-  respiratory_rate?: number;
-  oxygen_saturation?: number;
-  weight?: number;
-  height?: number;
-  bmi?: number;
-  recorded_at: Date;
-  recorded_by: string;
-  notes?: string;
-}
+// Keep only essential interfaces for simplified system
 
-export interface MedicalRecordTemplate {
-  template_id: string;
-  template_name: string;
-  specialty?: string;
-  template_content: any;
-  is_active: boolean;
-  created_by: string;
-  created_at: Date;
-  updated_at: Date;
-}
+// REMOVED: MedicalRecordTemplate - templates are too complex for simplified system
 
 export interface CreateMedicalRecordRequest {
   patient_id: string;
   doctor_id: string;
   appointment_id?: string;
   visit_date: string;
-  chief_complaint?: string;
-  present_illness?: string;
-  past_medical_history?: string;
-  physical_examination?: string;
-  vital_signs?: VitalSigns;
+  // Simplified fields
+  symptoms?: string; // Replaces: chief_complaint + present_illness
+  examination_notes?: string; // Replaces: physical_examination
   diagnosis?: string;
-  treatment_plan?: string;
-  medications?: string;
-  follow_up_instructions?: string;
+  treatment?: string; // Replaces: treatment_plan + follow_up_instructions
+  medications?: string; // Keep for backward compatibility
   notes?: string;
+  // Basic vital signs
+  basic_vitals?: BasicVitalSigns;
+  // MERGED: Prescription data (optional)
+  prescriptions?: CreateEmbeddedPrescriptionRequest[];
 }
 
 export interface UpdateMedicalRecordRequest {
-  chief_complaint?: string;
-  present_illness?: string;
-  past_medical_history?: string;
-  physical_examination?: string;
-  vital_signs?: VitalSigns;
+  // Simplified fields
+  symptoms?: string;
+  examination_notes?: string;
   diagnosis?: string;
-  treatment_plan?: string;
-  medications?: string;
-  follow_up_instructions?: string;
+  treatment?: string;
+  medications?: string; // Keep for backward compatibility
   notes?: string;
-  status?: 'active' | 'archived' | 'deleted';
+  basic_vitals?: BasicVitalSigns;
+  // MERGED: Prescription updates
+  prescriptions?: CreateEmbeddedPrescriptionRequest[];
+  status?: "active" | "archived" | "deleted";
 }
 
-export interface CreateLabResultRequest {
-  record_id: string;
-  test_name: string;
-  test_type: string;
-  result_value?: string;
-  reference_range?: string;
-  unit?: string;
-  test_date: string;
-  result_date?: string;
-  lab_technician?: string;
+// REMOVED: CreateLabResultRequest - lab results now stored as simple text in medical records
+// REMOVED: CreateVitalSignsRequest - vital signs now embedded as BasicVitalSigns in medical records
+
+// ============================================
+// PRESCRIPTION TYPES (Merged from Prescription Service)
+// ============================================
+
+// Simplified Prescription embedded in Medical Records
+export interface EmbeddedPrescription {
+  prescription_id: string;
+  prescription_date: Date;
+  status: "active" | "completed" | "cancelled";
+  medications: SimplifiedMedication[];
+  notes?: string;
+  total_cost?: number;
+  created_at: Date;
+  updated_at: Date;
+}
+
+// Simplified Medication for embedded prescriptions
+export interface SimplifiedMedication {
+  medication_name: string; // Just the name, no complex lookup
+  dosage: string; // Free text (e.g., "500mg")
+  instructions: string; // Simple instructions (e.g., "Take twice daily after meals")
+  quantity: number;
+  cost_per_unit?: number;
+  total_cost?: number;
+}
+
+// Create Prescription Request (embedded in medical record)
+export interface CreateEmbeddedPrescriptionRequest {
+  prescription_date: string;
+  medications: CreateSimplifiedMedicationRequest[];
   notes?: string;
 }
 
-export interface CreateVitalSignsRequest {
-  record_id: string;
-  temperature?: number;
-  blood_pressure_systolic?: number;
-  blood_pressure_diastolic?: number;
-  heart_rate?: number;
-  respiratory_rate?: number;
-  oxygen_saturation?: number;
-  weight?: number;
-  height?: number;
-  recorded_at: string;
+export interface CreateSimplifiedMedicationRequest {
+  medication_name: string;
+  dosage: string;
+  instructions: string;
+  quantity: number;
+  cost_per_unit?: number;
+}
+
+// Update Prescription Request
+export interface UpdateEmbeddedPrescriptionRequest {
+  status?: "active" | "completed" | "cancelled";
+  medications?: CreateSimplifiedMedicationRequest[];
   notes?: string;
 }

@@ -551,24 +551,11 @@ export function createApp(): express.Application {
     })
   );
 
-  // Prescription Service Routes - ENABLED
-  app.use(
-    "/api/prescriptions",
-    authMiddleware,
-    createProxyMiddleware({
-      target:
-        process.env.PRESCRIPTION_SERVICE_URL ||
-        "http://prescription-service:3007",
-      changeOrigin: true,
-      pathRewrite: {
-        "^/api/prescriptions": "/api/prescriptions",
-      },
-      onError: (err: any, req: any, res: any) => {
-        console.error("Prescription Service Proxy Error:", err);
-        res.status(503).json({ error: "Prescription service unavailable" });
-      },
-    })
-  );
+  // REMOVED: Prescription Service Routes - MERGED into Medical Records Service
+  // Prescription endpoints now available at:
+  // - /api/medical-records/:recordId/prescriptions (create/update prescriptions for a medical record)
+  // - /api/medical-records/prescriptions/patient/:patientId (get prescriptions by patient)
+  // - /api/medical-records/prescriptions/doctor/:doctorId (get prescriptions by doctor)
 
   // Payment Service Routes - ENABLED
   app.use(
@@ -707,10 +694,12 @@ export function createApp(): express.Application {
         "departments",
         "specialties",
         "rooms",
-        "medical-records",
-        "prescriptions",
+        "medical-records", // Now includes prescription functionality
         "payments",
         "notifications",
+      ],
+      mergedServices: [
+        "prescriptions -> medical-records", // Prescription service merged into Medical Records
       ],
       disabledServices: [],
       services: serviceRegistry.getRegisteredServices(),

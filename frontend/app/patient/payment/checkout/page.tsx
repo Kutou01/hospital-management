@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { CreditCard, Banknote, Shield, Clock, CheckCircle } from "lucide-react";
 import { PatientLayout } from "@/components/layout/UniversalLayout";
+import { paymentsApi, paymentUtils } from "@/lib/api/payments";
 import { toast } from "sonner";
 
 interface Invoice {
@@ -95,55 +96,48 @@ export default function PaymentCheckoutPage() {
     }
   };
 
-  const formatCurrency = (amount: number): string => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND'
-    }).format(amount);
-  };
+  const formatCurrency = paymentUtils.formatCurrency;
 
-  const formatDateTime = (dateString: string): string => {
-    return new Intl.DateTimeFormat('vi-VN', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(new Date(dateString));
-  };
+  const formatDateTime = paymentUtils.formatDateTime;
 
   const handlePayOSPayment = async () => {
     if (!invoice) return;
 
+    // Validate amount
+    if (!paymentUtils.validateAmount(invoice.total)) {
+      toast.error('Số tiền thanh toán không hợp lệ');
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const response = await fetch('/api/payments/payos/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+      const response = await paymentsApi.createPayOSPayment({
+        appointmentId: invoice.appointmentId,
+        amount: invoice.total,
+        description: `Thanh toán khám bệnh - ${invoice.appointmentId}`,
+        serviceName: 'Phí khám bệnh',
+        patientInfo: {
+          doctorName: invoice.doctorName,
+          department: invoice.department,
+          appointmentDate: invoice.appointmentDate,
+          timeSlot: invoice.timeSlot
         },
-        body: JSON.stringify({
-          appointmentId: invoice.appointmentId,
-          amount: invoice.total,
-          description: `Thanh toán khám bệnh - ${invoice.appointmentId}`,
-          serviceName: 'Phí khám bệnh',
-          patientInfo: {
-            doctorName: invoice.doctorName,
-            department: invoice.department,
-            appointmentDate: invoice.appointmentDate,
-            timeSlot: invoice.timeSlot
-          }
-        })
+        returnUrl: `${window.location.origin}/patient/payment/result`,
+        cancelUrl: `${window.location.origin}/patient/payment/checkout?appointmentId=${invoice.appointmentId}`
       });
 
-      const data = await response.json();
-      
-      if (data.success) {
+      if (response.success && response.data) {
+        // Store payment info for tracking
+        localStorage.setItem('pendingPayment', JSON.stringify({
+          orderCode: response.data.orderCode,
+          appointmentId: invoice.appointmentId,
+          amount: invoice.total
+        }));
+
         // Redirect to PayOS payment page
-        window.location.href = data.data.checkoutUrl;
+        window.location.href = response.data.checkoutUrl;
       } else {
-        toast.error('Lỗi tạo thanh toán: ' + data.message);
+        toast.error('Lỗi tạo thanh toán: ' + (response.message || 'Không xác định'));
       }
     } catch (error) {
       console.error('Payment error:', error);
@@ -158,26 +152,18 @@ export default function PaymentCheckoutPage() {
 
     setIsLoading(true);
     try {
-      const response = await fetch('/api/payments/cash/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          appointmentId: invoice.appointmentId,
-          amount: invoice.total,
-          paymentMethod: 'cash'
-        })
+      const response = await paymentsApi.createCashPayment({
+        appointmentId: invoice.appointmentId,
+        amount: invoice.total,
+        paymentMethod: 'cash',
+        notes: `Thanh toán tiền mặt cho lịch khám ${invoice.appointmentId}`
       });
 
-      const data = await response.json();
-      
-      if (data.success) {
+      if (response.success && response.data) {
         toast.success('Đã tạo phiếu thanh toán tiền mặt');
-        router.push(`/patient/payment/result?orderCode=${data.data.orderCode}&status=PENDING&method=cash`);
+        router.push(`/patient/payment/result?orderCode=${response.data.orderCode}&status=PENDING&method=cash`);
       } else {
-        toast.error('Lỗi tạo phiếu thanh toán: ' + data.message);
+        toast.error('Lỗi tạo phiếu thanh toán: ' + (response.message || 'Không xác định'));
       }
     } catch (error) {
       console.error('Cash payment error:', error);

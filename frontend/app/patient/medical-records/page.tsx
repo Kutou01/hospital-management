@@ -148,6 +148,56 @@ export default function PatientMedicalRecords() {
     )
   }
 
+  const handleViewRecord = (record: MedicalRecord) => {
+    // TODO: Implement view record modal or navigate to detail page
+    toast.info('Tính năng xem chi tiết đang được phát triển')
+  }
+
+  const handleDownloadRecord = async (record: MedicalRecord) => {
+    try {
+      const recordContent = generateMedicalRecordHTML(record)
+      const blob = new Blob([recordContent], { type: 'text/html' })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `medical-record-${record.record_id}-${new Date().toISOString().split('T')[0]}.html`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+
+      toast.success('Hồ sơ y tế đã được tải xuống thành công')
+    } catch (error) {
+      console.error('Error downloading medical record:', error)
+      toast.error('Lỗi khi tải xuống hồ sơ y tế')
+    }
+  }
+
+  const handleDownloadAll = async () => {
+    try {
+      if (!records || records.length === 0) {
+        toast.error('Không có hồ sơ y tế để tải xuống')
+        return
+      }
+
+      const allRecordsContent = generateAllRecordsHTML(records)
+      const blob = new Blob([allRecordsContent], { type: 'text/html' })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `all-medical-records-${new Date().toISOString().split('T')[0]}.html`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+
+      toast.success(`Đã tải xuống ${records.length} hồ sơ y tế thành công`)
+    } catch (error) {
+      console.error('Error downloading all medical records:', error)
+      toast.error('Lỗi khi tải xuống tất cả hồ sơ y tế')
+    }
+  }
+
   if (!user || user.role !== 'patient') {
     return (
       <RoleBasedLayout>
@@ -161,6 +211,121 @@ export default function PatientMedicalRecords() {
     )
   }
 
+  const generateMedicalRecordHTML = (record: MedicalRecord): string => {
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Hồ sơ Y tế - ${record.record_id}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+        .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
+        .section { margin-bottom: 15px; }
+        .label { font-weight: bold; color: #333; }
+        .value { margin-left: 10px; }
+        .diagnosis { background-color: #f0f8ff; padding: 10px; border-left: 4px solid #0066cc; margin: 10px 0; }
+        .treatment { background-color: #f0fff0; padding: 10px; border-left: 4px solid #00cc66; margin: 10px 0; }
+        .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #ccc; padding-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>HỒ SƠ Y TẾ</h1>
+        <p><strong>Mã hồ sơ:</strong> ${record.record_id}</p>
+        <p><strong>Ngày tạo:</strong> ${new Date(record.created_at).toLocaleDateString('vi-VN')}</p>
+    </div>
+
+    <div class="section">
+        <div class="label">Bệnh nhân:</div>
+        <div class="value">${record.patient_id}</div>
+    </div>
+
+    <div class="section">
+        <div class="label">Bác sĩ:</div>
+        <div class="value">${record.doctor_id}</div>
+    </div>
+
+    <div class="section">
+        <div class="label">Ngày khám:</div>
+        <div class="value">${record.visit_date ? new Date(record.visit_date).toLocaleDateString('vi-VN') : 'Chưa xác định'}</div>
+    </div>
+
+    <div class="diagnosis">
+        <div class="label">Chẩn đoán:</div>
+        <div class="value">${record.diagnosis || 'Chưa có chẩn đoán'}</div>
+    </div>
+
+    <div class="treatment">
+        <div class="label">Điều trị:</div>
+        <div class="value">${record.treatment || 'Chưa có phương pháp điều trị'}</div>
+    </div>
+
+    <div class="section">
+        <div class="label">Ghi chú:</div>
+        <div class="value">${record.notes || 'Không có ghi chú'}</div>
+    </div>
+
+    <div class="section">
+        <div class="label">Hướng dẫn tái khám:</div>
+        <div class="value">${record.follow_up_instructions || 'Không có hướng dẫn'}</div>
+    </div>
+
+    <div class="footer">
+        <p>Hồ sơ được tạo tự động từ Hệ thống Quản lý Bệnh viện</p>
+        <p>Ngày xuất: ${new Date().toLocaleDateString('vi-VN')} ${new Date().toLocaleTimeString('vi-VN')}</p>
+    </div>
+</body>
+</html>
+    `
+  }
+
+  const generateAllRecordsHTML = (records: MedicalRecord[]): string => {
+    const recordsHTML = records.map(record => `
+      <div class="record">
+        <h3>Hồ sơ: ${record.record_id}</h3>
+        <p><strong>Ngày khám:</strong> ${record.visit_date ? new Date(record.visit_date).toLocaleDateString('vi-VN') : 'Chưa xác định'}</p>
+        <p><strong>Bác sĩ:</strong> ${record.doctor_id}</p>
+        <div class="diagnosis"><strong>Chẩn đoán:</strong> ${record.diagnosis || 'Chưa có chẩn đoán'}</div>
+        <div class="treatment"><strong>Điều trị:</strong> ${record.treatment || 'Chưa có phương pháp điều trị'}</div>
+        <p><strong>Ghi chú:</strong> ${record.notes || 'Không có ghi chú'}</p>
+        <p><strong>Hướng dẫn tái khám:</strong> ${record.follow_up_instructions || 'Không có hướng dẫn'}</p>
+      </div>
+    `).join('')
+
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Tất cả Hồ sơ Y tế</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+        .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
+        .record { border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; border-radius: 5px; }
+        .diagnosis { background-color: #f0f8ff; padding: 8px; border-left: 4px solid #0066cc; margin: 8px 0; }
+        .treatment { background-color: #f0fff0; padding: 8px; border-left: 4px solid #00cc66; margin: 8px 0; }
+        .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #ccc; padding-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>TẤT CẢ HỒ SƠ Y TẾ</h1>
+        <p><strong>Tổng số hồ sơ:</strong> ${records.length}</p>
+        <p><strong>Ngày xuất:</strong> ${new Date().toLocaleDateString('vi-VN')}</p>
+    </div>
+
+    ${recordsHTML}
+
+    <div class="footer">
+        <p>Hồ sơ được tạo tự động từ Hệ thống Quản lý Bệnh viện</p>
+        <p>Ngày xuất: ${new Date().toLocaleDateString('vi-VN')} ${new Date().toLocaleTimeString('vi-VN')}</p>
+    </div>
+</body>
+</html>
+    `
+  }
+
   return (
     <RoleBasedLayout>
       {/* Header */}
@@ -170,7 +335,10 @@ export default function PatientMedicalRecords() {
             <h2 className="text-2xl font-bold text-gray-900">Medical Records</h2>
             <p className="text-gray-600">View your complete medical history and documents</p>
           </div>
-          <Button className="bg-blue-600 hover:bg-blue-700">
+          <Button
+            className="bg-blue-600 hover:bg-blue-700"
+            onClick={handleDownloadAll}
+          >
             <Download className="h-4 w-4 mr-2" />
             Download All
           </Button>
@@ -333,11 +501,19 @@ export default function PatientMedicalRecords() {
                 </div>
 
                 <div className="flex gap-2 ml-4">
-                  <Button variant="outline" size="sm">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleViewRecord(record)}
+                  >
                     <Eye className="h-4 w-4 mr-1" />
                     View
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDownloadRecord(record)}
+                  >
                     <Download className="h-4 w-4 mr-1" />
                     Download
                   </Button>

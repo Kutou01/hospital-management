@@ -1,9 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MedicalRecordController = void 0;
-const medical_record_repository_1 = require("../repositories/medical-record.repository");
 const shared_1 = require("@hospital/shared");
 const express_validator_1 = require("express-validator");
+const medical_record_repository_1 = require("../repositories/medical-record.repository");
 class MedicalRecordController {
     constructor() {
         this.medicalRecordRepository = new medical_record_repository_1.MedicalRecordRepository();
@@ -22,16 +22,16 @@ class MedicalRecordController {
                     page,
                     limit,
                     total,
-                    pages: Math.ceil(total / limit)
-                }
+                    pages: Math.ceil(total / limit),
+                },
             });
         }
         catch (error) {
-            shared_1.logger.error('Error fetching medical records', { error });
+            shared_1.logger.error("Error fetching medical records", { error });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
@@ -42,21 +42,24 @@ class MedicalRecordController {
             if (!record) {
                 res.status(404).json({
                     success: false,
-                    message: 'Medical record not found'
+                    message: "Medical record not found",
                 });
                 return;
             }
             res.json({
                 success: true,
-                data: record
+                data: record,
             });
         }
         catch (error) {
-            shared_1.logger.error('Error fetching medical record by ID', { error, recordId: req.params.recordId });
+            shared_1.logger.error("Error fetching medical record by ID", {
+                error,
+                recordId: req.params.recordId,
+            });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
@@ -66,15 +69,18 @@ class MedicalRecordController {
             const records = await this.medicalRecordRepository.findByPatientId(patientId);
             res.json({
                 success: true,
-                data: records
+                data: records,
             });
         }
         catch (error) {
-            shared_1.logger.error('Error fetching medical records by patient ID', { error, patientId: req.params.patientId });
+            shared_1.logger.error("Error fetching medical records by patient ID", {
+                error,
+                patientId: req.params.patientId,
+            });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
@@ -84,15 +90,18 @@ class MedicalRecordController {
             const records = await this.medicalRecordRepository.findByDoctorId(doctorId);
             res.json({
                 success: true,
-                data: records
+                data: records,
             });
         }
         catch (error) {
-            shared_1.logger.error('Error fetching medical records by doctor ID', { error, doctorId: req.params.doctorId });
+            shared_1.logger.error("Error fetching medical records by doctor ID", {
+                error,
+                doctorId: req.params.doctorId,
+            });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
@@ -102,25 +111,25 @@ class MedicalRecordController {
             if (!errors.isEmpty()) {
                 res.status(400).json({
                     success: false,
-                    message: 'Validation failed',
-                    errors: errors.array()
+                    message: "Validation failed",
+                    errors: errors.array(),
                 });
                 return;
             }
-            const userId = req.user?.id || 'SYSTEM';
+            const userId = req.user?.id || "SYSTEM";
             const record = await this.medicalRecordRepository.create(req.body, userId);
             res.status(201).json({
                 success: true,
-                message: 'Medical record created successfully',
-                data: record
+                message: "Medical record created successfully",
+                data: record,
             });
         }
         catch (error) {
-            shared_1.logger.error('Error creating medical record', { error, body: req.body });
+            shared_1.logger.error("Error creating medical record", { error, body: req.body });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
@@ -130,26 +139,30 @@ class MedicalRecordController {
             if (!errors.isEmpty()) {
                 res.status(400).json({
                     success: false,
-                    message: 'Validation failed',
-                    errors: errors.array()
+                    message: "Validation failed",
+                    errors: errors.array(),
                 });
                 return;
             }
             const { recordId } = req.params;
-            const userId = req.user?.id || 'SYSTEM';
+            const userId = req.user?.id || "SYSTEM";
             const record = await this.medicalRecordRepository.update(recordId, req.body, userId);
             res.json({
                 success: true,
-                message: 'Medical record updated successfully',
-                data: record
+                message: "Medical record updated successfully",
+                data: record,
             });
         }
         catch (error) {
-            shared_1.logger.error('Error updating medical record', { error, recordId: req.params.recordId, body: req.body });
+            shared_1.logger.error("Error updating medical record", {
+                error,
+                recordId: req.params.recordId,
+                body: req.body,
+            });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
@@ -159,108 +172,130 @@ class MedicalRecordController {
             await this.medicalRecordRepository.delete(recordId);
             res.json({
                 success: true,
-                message: 'Medical record deleted successfully'
+                message: "Medical record deleted successfully",
             });
         }
         catch (error) {
-            shared_1.logger.error('Error deleting medical record', { error, recordId: req.params.recordId });
+            shared_1.logger.error("Error deleting medical record", {
+                error,
+                recordId: req.params.recordId,
+            });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
-    // Lab Results endpoints
-    async createLabResult(req, res) {
+    // REMOVED: Lab Results endpoints - lab results now stored as simple text in medical records
+    // REMOVED: Vital Signs endpoints - vital signs now embedded as BasicVitalSigns in medical records
+    // ============================================
+    // PRESCRIPTION ENDPOINTS (Merged from Prescription Service)
+    // ============================================
+    async createPrescriptionForRecord(req, res) {
         try {
             const errors = (0, express_validator_1.validationResult)(req);
             if (!errors.isEmpty()) {
                 res.status(400).json({
                     success: false,
-                    message: 'Validation failed',
-                    errors: errors.array()
+                    message: "Validation failed",
+                    errors: errors.array(),
                 });
                 return;
             }
-            const labResult = await this.medicalRecordRepository.createLabResult(req.body);
+            const { recordId } = req.params;
+            const userId = req.user?.id || "SYSTEM";
+            const prescription = await this.medicalRecordRepository.createPrescriptionForRecord(recordId, req.body, userId);
             res.status(201).json({
                 success: true,
-                message: 'Lab result created successfully',
-                data: labResult
+                message: "Prescription created successfully",
+                data: prescription,
             });
         }
         catch (error) {
-            shared_1.logger.error('Error creating lab result', { error, body: req.body });
+            shared_1.logger.error("Error creating prescription for record", {
+                error,
+                body: req.body,
+            });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
-    async getLabResultsByRecordId(req, res) {
-        try {
-            const { recordId } = req.params;
-            const labResults = await this.medicalRecordRepository.getLabResultsByRecordId(recordId);
-            res.json({
-                success: true,
-                data: labResults
-            });
-        }
-        catch (error) {
-            shared_1.logger.error('Error fetching lab results', { error, recordId: req.params.recordId });
-            res.status(500).json({
-                success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
-            });
-        }
-    }
-    // Vital Signs endpoints
-    async createVitalSigns(req, res) {
+    async updatePrescriptionInRecord(req, res) {
         try {
             const errors = (0, express_validator_1.validationResult)(req);
             if (!errors.isEmpty()) {
                 res.status(400).json({
                     success: false,
-                    message: 'Validation failed',
-                    errors: errors.array()
+                    message: "Validation failed",
+                    errors: errors.array(),
                 });
                 return;
             }
-            const userId = req.user?.id || 'SYSTEM';
-            const vitalSigns = await this.medicalRecordRepository.createVitalSigns(req.body, userId);
-            res.status(201).json({
+            const { recordId, prescriptionId } = req.params;
+            const prescription = await this.medicalRecordRepository.updatePrescriptionInRecord(recordId, prescriptionId, req.body);
+            res.json({
                 success: true,
-                message: 'Vital signs recorded successfully',
-                data: vitalSigns
+                message: "Prescription updated successfully",
+                data: prescription,
             });
         }
         catch (error) {
-            shared_1.logger.error('Error creating vital signs', { error, body: req.body });
+            shared_1.logger.error("Error updating prescription in record", {
+                error,
+                params: req.params,
+            });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
-    async getVitalSignsByRecordId(req, res) {
+    async getPrescriptionsByPatientId(req, res) {
         try {
-            const { recordId } = req.params;
-            const vitalSigns = await this.medicalRecordRepository.getVitalSignsByRecordId(recordId);
+            const { patientId } = req.params;
+            const prescriptions = await this.medicalRecordRepository.getPrescriptionsByPatientId(patientId);
             res.json({
                 success: true,
-                data: vitalSigns
+                message: "Prescriptions retrieved successfully",
+                data: prescriptions,
             });
         }
         catch (error) {
-            shared_1.logger.error('Error fetching vital signs', { error, recordId: req.params.recordId });
+            shared_1.logger.error("Error fetching prescriptions by patient ID", {
+                error,
+                patientId: req.params.patientId,
+            });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
+            });
+        }
+    }
+    async getPrescriptionsByDoctorId(req, res) {
+        try {
+            const { doctorId } = req.params;
+            const prescriptions = await this.medicalRecordRepository.getPrescriptionsByDoctorId(doctorId);
+            res.json({
+                success: true,
+                message: "Prescriptions retrieved successfully",
+                data: prescriptions,
+            });
+        }
+        catch (error) {
+            shared_1.logger.error("Error fetching prescriptions by doctor ID", {
+                error,
+                doctorId: req.params.doctorId,
+            });
+            res.status(500).json({
+                success: false,
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }

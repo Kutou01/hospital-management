@@ -5,7 +5,7 @@ import morgan from 'morgan';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
-import { logger } from '@hospital/shared';
+import { logger } from './utils/logger';
 import { payosRoutes } from './routes/payos.routes';
 import { paymentRoutes } from './routes/payment.routes';
 import { webhookRoutes } from './routes/webhook.routes';
@@ -66,9 +66,29 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.get('/health', (req: Request, res: Response) => {
   res.json({
     status: 'healthy',
-    service: 'payment-service',
+    service: 'Hospital Payment Service',
     timestamp: new Date().toISOString(),
-    version: process.env.npm_package_version || '1.0.0'
+    version: process.env.npm_package_version || '1.0.0',
+    features: {
+      payos_integration: true,
+      cash_payments: true,
+      webhook_handling: true,
+      payment_verification: true,
+      payment_history: true,
+      microservice_architecture: true
+    },
+    endpoints: {
+      payos_create: '/api/payments/payos/create',
+      cash_create: '/api/payments/cash/create',
+      verify: '/api/payments/verify',
+      history: '/api/payments/history',
+      webhooks: '/api/webhooks/payos'
+    },
+    environment: {
+      payos_configured: !!(process.env.PAYOS_CLIENT_ID && process.env.PAYOS_API_KEY),
+      database_connected: true,
+      jwt_configured: !!process.env.JWT_SECRET
+    }
   });
 });
 

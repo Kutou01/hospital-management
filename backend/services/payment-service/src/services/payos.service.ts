@@ -1,6 +1,6 @@
 import PayOS from '@payos/node';
 import crypto from 'crypto';
-import { logger } from '@hospital/shared';
+import { logger } from '../utils/logger';
 
 export interface PaymentRequest {
   orderCode: string;

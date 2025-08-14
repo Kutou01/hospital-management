@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PayOSService = void 0;
 const node_1 = __importDefault(require("@payos/node"));
 const crypto_1 = __importDefault(require("crypto"));
-const shared_1 = require("@hospital/shared");
+const logger_1 = require("../utils/logger");
 class PayOSService {
     constructor() {
         const clientId = process.env.PAYOS_CLIENT_ID;
@@ -18,7 +18,7 @@ class PayOSService {
         this.payOS = new node_1.default(clientId, apiKey, checksumKey);
         this.returnUrl = `${process.env.FRONTEND_URL}/patient/payment/result`;
         this.cancelUrl = `${process.env.FRONTEND_URL}/patient/payment/result`;
-        shared_1.logger.info('PayOS Service initialized', {
+        logger_1.logger.info('PayOS Service initialized', {
             environment: process.env.PAYOS_ENVIRONMENT || 'sandbox',
             returnUrl: this.returnUrl,
             cancelUrl: this.cancelUrl
@@ -26,7 +26,7 @@ class PayOSService {
     }
     async createPaymentLink(paymentData) {
         try {
-            shared_1.logger.info('Creating PayOS payment link', {
+            logger_1.logger.info('Creating PayOS payment link', {
                 orderCode: paymentData.orderCode,
                 amount: paymentData.amount,
                 appointmentId: paymentData.appointmentId
@@ -46,7 +46,7 @@ class PayOSService {
                 cancelUrl: `${this.cancelUrl}?orderCode=${paymentData.orderCode}&status=CANCELLED`
             };
             const paymentLinkResponse = await this.payOS.createPaymentLink(order);
-            shared_1.logger.info('PayOS payment link created successfully', {
+            logger_1.logger.info('PayOS payment link created successfully', {
                 orderCode: paymentData.orderCode,
                 paymentLinkId: paymentLinkResponse.paymentLinkId,
                 checkoutUrl: paymentLinkResponse.checkoutUrl
@@ -54,7 +54,7 @@ class PayOSService {
             return paymentLinkResponse;
         }
         catch (error) {
-            shared_1.logger.error('PayOS payment creation failed', {
+            logger_1.logger.error('PayOS payment creation failed', {
                 error: error?.message || 'Unknown error',
                 orderCode: paymentData.orderCode,
                 amount: paymentData.amount
@@ -64,7 +64,7 @@ class PayOSService {
     }
     async verifyPaymentWebhook(webhookData) {
         try {
-            shared_1.logger.info('Verifying PayOS webhook', {
+            logger_1.logger.info('Verifying PayOS webhook', {
                 orderCode: webhookData.orderCode,
                 amount: webhookData.amount
             });
@@ -79,7 +79,7 @@ class PayOSService {
             if (!result.success) {
                 result.failureReason = verifiedData.desc;
             }
-            shared_1.logger.info('PayOS webhook verified', {
+            logger_1.logger.info('PayOS webhook verified', {
                 orderCode: result.orderCode,
                 status: result.status,
                 success: result.success
@@ -87,7 +87,7 @@ class PayOSService {
             return result;
         }
         catch (error) {
-            shared_1.logger.error('PayOS webhook verification failed', {
+            logger_1.logger.error('PayOS webhook verification failed', {
                 error: error?.message || 'Unknown error',
                 webhookData
             });
@@ -96,10 +96,10 @@ class PayOSService {
     }
     async getPaymentInfo(orderCode) {
         try {
-            shared_1.logger.info('Getting PayOS payment info', { orderCode });
+            logger_1.logger.info('Getting PayOS payment info', { orderCode });
             const numericOrderCode = parseInt(orderCode.replace(/\D/g, ''));
             const paymentInfo = await this.payOS.getPaymentLinkInformation(numericOrderCode);
-            shared_1.logger.info('PayOS payment info retrieved', {
+            logger_1.logger.info('PayOS payment info retrieved', {
                 orderCode,
                 status: paymentInfo.status,
                 amount: paymentInfo.amount
@@ -107,7 +107,7 @@ class PayOSService {
             return paymentInfo;
         }
         catch (error) {
-            shared_1.logger.error('PayOS get payment info failed', {
+            logger_1.logger.error('PayOS get payment info failed', {
                 error: error?.message || 'Unknown error',
                 orderCode
             });
@@ -116,14 +116,14 @@ class PayOSService {
     }
     async cancelPaymentLink(orderCode, reason) {
         try {
-            shared_1.logger.info('Cancelling PayOS payment link', { orderCode, reason });
+            logger_1.logger.info('Cancelling PayOS payment link', { orderCode, reason });
             const numericOrderCode = parseInt(orderCode.replace(/\D/g, ''));
             await this.payOS.cancelPaymentLink(numericOrderCode, reason);
-            shared_1.logger.info('PayOS payment link cancelled successfully', { orderCode });
+            logger_1.logger.info('PayOS payment link cancelled successfully', { orderCode });
             return true;
         }
         catch (error) {
-            shared_1.logger.error('PayOS payment cancellation failed', {
+            logger_1.logger.error('PayOS payment cancellation failed', {
                 error: error?.message || 'Unknown error',
                 orderCode
             });
@@ -144,7 +144,7 @@ class PayOSService {
             return crypto_1.default.timingSafeEqual(Buffer.from(signature, 'hex'), Buffer.from(expectedSignature, 'hex'));
         }
         catch (error) {
-            shared_1.logger.error('Webhook signature validation failed', { error: error?.message || 'Unknown error' });
+            logger_1.logger.error('Webhook signature validation failed', { error: error?.message || 'Unknown error' });
             return false;
         }
     }

@@ -569,7 +569,7 @@ export function createApp(): express.Application {
     },
     authMiddleware,
     createProxyMiddleware({
-      target: process.env.PAYMENT_SERVICE_URL || "http://payment-service:3008",
+      target: process.env.PAYMENT_SERVICE_URL || "http://payment-service:3009",
       changeOrigin: true,
       pathRewrite: {
         "^/api/payments": "/api/payments",
@@ -585,7 +585,7 @@ export function createApp(): express.Application {
   app.use(
     "/api/webhooks",
     createProxyMiddleware({
-      target: process.env.PAYMENT_SERVICE_URL || "http://payment-service:3008",
+      target: process.env.PAYMENT_SERVICE_URL || "http://payment-service:3009",
       changeOrigin: true,
       pathRewrite: {
         "^/api/webhooks": "/api/webhooks",

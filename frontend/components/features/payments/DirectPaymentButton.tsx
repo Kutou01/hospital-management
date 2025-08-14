@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { CreditCard, Loader2 } from 'lucide-react';
+import { paymentApi } from '@/lib/api/payment';
 
 interface DirectPaymentButtonProps {
     amount: number;
@@ -52,23 +53,21 @@ export default function DirectPaymentButton({
         try {
             console.log('🚀 Creating direct payment...', { amount, doctorId, doctorName });
 
-            // Call API to create payment and get PayOS URL
-            const response = await fetch('/api/payment/checkout', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    amount,
-                    description,
-                    doctorId,
+            // Call microservice API to create PayOS payment
+            const response = await paymentApi.createPayOSPayment({
+                appointmentId: recordId || `APT-${Date.now()}`,
+                amount,
+                description: description || `Thanh toán khám bệnh với ${doctorName}`,
+                serviceName: doctorName ? `Khám bệnh với ${doctorName}` : 'Dịch vụ y tế',
+                patientInfo: doctorName ? {
                     doctorName,
-                    patientId,
-                    recordId
-                }),
+                    department: 'Khoa khám bệnh',
+                    appointmentDate: new Date().toISOString().split('T')[0],
+                    timeSlot: '09:00 - 10:00'
+                } : undefined
             });
 
-            const data = await response.json();
+            const data = response;
             console.log('📊 Payment API response:', data);
 
             if (data.success && data.data?.checkoutUrl) {

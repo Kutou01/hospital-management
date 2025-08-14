@@ -10,49 +10,85 @@ export interface PaymentResponse {
 }
 
 export interface CreatePaymentParams {
+    appointmentId: string;
     amount: number;
     description: string;
-    appointmentId?: string;
-    doctorName?: string;
-    redirectUrl?: string;
+    serviceName: string;
+    patientInfo?: {
+        doctorName: string;
+        department: string;
+        appointmentDate: string;
+        timeSlot: string;
+    };
+}
+
+export interface CreateCashPaymentParams {
+    appointmentId: string;
+    amount: number;
+    description?: string;
 }
 
 /**
- * API helper để tương tác với PayOS payment gateway
+ * Payment API Client - Microservice Architecture
+ * Routes requests through API Gateway to Payment Service
  */
 export const paymentApi = {
     /**
-     * Create a new payment request
+     * Create PayOS payment link via microservice
      */
-    async createPayment(params: CreatePaymentParams): Promise<PaymentResponse> {
+    async createPayOSPayment(params: CreatePaymentParams): Promise<PaymentResponse> {
         try {
-            const response = await apiClient.post('/api/payment/create', params);
-            return {
-                success: true,
-                data: response.data
-            };
+            const response = await apiClient.post('/api/payment/proxy', {
+                endpoint: '/api/payments/payos/create',
+                method: 'POST',
+                data: params
+            });
+            return response.data;
         } catch (error: any) {
-            console.error('API Error - Create Payment:', error);
+            console.error('API Error - Create PayOS Payment:', error);
             return {
                 success: false,
                 error: {
-                    code: error.code || 'PAYMENT_CREATE_ERROR',
-                    message: error.message || 'Failed to create payment'
+                    code: error.code || 'PAYOS_CREATE_ERROR',
+                    message: error.message || 'Failed to create PayOS payment'
                 }
             };
         }
     },
 
     /**
-     * Verify a payment's status
+     * Create cash payment record via microservice
+     */
+    async createCashPayment(params: CreateCashPaymentParams): Promise<PaymentResponse> {
+        try {
+            const response = await apiClient.post('/api/payment/proxy', {
+                endpoint: '/api/payments/cash/create',
+                method: 'POST',
+                data: params
+            });
+            return response.data;
+        } catch (error: any) {
+            console.error('API Error - Create Cash Payment:', error);
+            return {
+                success: false,
+                error: {
+                    code: error.code || 'CASH_PAYMENT_ERROR',
+                    message: error.message || 'Failed to create cash payment'
+                }
+            };
+        }
+    },
+
+    /**
+     * Verify payment status via microservice
      */
     async verifyPayment(orderCode: string): Promise<PaymentResponse> {
         try {
-            const response = await apiClient.get(`/api/payment/verify?orderCode=${orderCode}`);
-            return {
-                success: true,
-                data: response.data
-            };
+            const response = await apiClient.post('/api/payment/proxy', {
+                endpoint: `/api/payments/verify?orderCode=${orderCode}`,
+                method: 'GET'
+            });
+            return response.data;
         } catch (error: any) {
             console.error('API Error - Verify Payment:', error);
             return {
@@ -66,22 +102,52 @@ export const paymentApi = {
     },
 
     /**
-     * Process payment callback (for webhook handling)
+     * Get payment history via microservice
      */
-    async handlePaymentCallback(callbackData: any): Promise<PaymentResponse> {
+    async getPaymentHistory(params?: {
+        page?: number;
+        limit?: number;
+        status?: string;
+        method?: string;
+    }): Promise<PaymentResponse> {
         try {
-            const response = await apiClient.post('/api/payment/callback', callbackData);
-            return {
-                success: true,
-                data: response.data
-            };
+            const queryParams = new URLSearchParams();
+            if (params?.page) queryParams.append('page', params.page.toString());
+            if (params?.limit) queryParams.append('limit', params.limit.toString());
+            if (params?.status) queryParams.append('status', params.status);
+            if (params?.method) queryParams.append('method', params.method);
+
+            const response = await apiClient.post('/api/payment/proxy', {
+                endpoint: `/api/payments/history?${queryParams.toString()}`,
+                method: 'GET'
+            });
+            return response.data;
         } catch (error: any) {
-            console.error('API Error - Payment Callback:', error);
+            console.error('API Error - Get Payment History:', error);
             return {
                 success: false,
                 error: {
-                    code: error.code || 'PAYMENT_CALLBACK_ERROR',
-                    message: error.message || 'Failed to process payment callback'
+                    code: error.code || 'PAYMENT_HISTORY_ERROR',
+                    message: error.message || 'Failed to get payment history'
+                }
+            };
+        }
+    },
+
+    /**
+     * Health check for payment service
+     */
+    async healthCheck(): Promise<PaymentResponse> {
+        try {
+            const response = await apiClient.get('/api/payment/proxy');
+            return response.data;
+        } catch (error: any) {
+            console.error('API Error - Payment Health Check:', error);
+            return {
+                success: false,
+                error: {
+                    code: error.code || 'PAYMENT_HEALTH_ERROR',
+                    message: error.message || 'Payment service health check failed'
                 }
             };
         }

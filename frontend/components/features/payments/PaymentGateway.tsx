@@ -65,11 +65,17 @@ export default function PaymentGateway({
                     ? `Thanh toán khám bệnh với BS ${doctorName}`
                     : description;
 
-                const response = await paymentApi.createPayment({
+                const response = await paymentApi.createPayOSPayment({
+                    appointmentId: recordId || `APT-${Date.now()}`,
                     amount,
                     description: paymentDescription,
-                    appointmentId: recordId,
-                    doctorName
+                    serviceName: doctorName ? `Khám bệnh với ${doctorName}` : 'Dịch vụ y tế',
+                    patientInfo: doctorName ? {
+                        doctorName,
+                        department: 'Khoa khám bệnh',
+                        appointmentDate: new Date().toISOString().split('T')[0],
+                        timeSlot: '09:00 - 10:00'
+                    } : undefined
                 });
 
                 if (response.success && response.data) {

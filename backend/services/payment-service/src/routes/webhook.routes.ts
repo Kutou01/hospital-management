@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { PayOSService } from '../services/payos.service';
 import { PaymentRepository } from '../repositories/payment.repository';
-import { logger } from '@hospital/shared';
+import { logger } from '../utils/logger';
 
 const router = Router();
 const payOSService = new PayOSService();

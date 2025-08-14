@@ -10,7 +10,7 @@ const morgan_1 = __importDefault(require("morgan"));
 const compression_1 = __importDefault(require("compression"));
 const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 const dotenv_1 = __importDefault(require("dotenv"));
-const shared_1 = require("@hospital/shared");
+const logger_1 = require("./utils/logger");
 const payos_routes_1 = require("./routes/payos.routes");
 const payment_routes_1 = require("./routes/payment.routes");
 const webhook_routes_1 = require("./routes/webhook.routes");
@@ -46,7 +46,7 @@ app.use((0, cors_1.default)({
 app.use((0, compression_1.default)());
 app.use((0, morgan_1.default)('combined', {
     stream: {
-        write: (message) => shared_1.logger.info(message.trim())
+        write: (message) => logger_1.logger.info(message.trim())
     }
 }));
 app.use(express_1.default.json({ limit: '10mb' }));
@@ -54,9 +54,29 @@ app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
 app.get('/health', (req, res) => {
     res.json({
         status: 'healthy',
-        service: 'payment-service',
+        service: 'Hospital Payment Service',
         timestamp: new Date().toISOString(),
-        version: process.env.npm_package_version || '1.0.0'
+        version: process.env.npm_package_version || '1.0.0',
+        features: {
+            payos_integration: true,
+            cash_payments: true,
+            webhook_handling: true,
+            payment_verification: true,
+            payment_history: true,
+            microservice_architecture: true
+        },
+        endpoints: {
+            payos_create: '/api/payments/payos/create',
+            cash_create: '/api/payments/cash/create',
+            verify: '/api/payments/verify',
+            history: '/api/payments/history',
+            webhooks: '/api/webhooks/payos'
+        },
+        environment: {
+            payos_configured: !!(process.env.PAYOS_CLIENT_ID && process.env.PAYOS_API_KEY),
+            database_connected: true,
+            jwt_configured: !!process.env.JWT_SECRET
+        }
     });
 });
 app.use('/api/payments/payos', auth_middleware_1.authMiddleware, payos_routes_1.payosRoutes);
@@ -71,17 +91,17 @@ app.use('*', (req, res) => {
 });
 app.use(error_middleware_1.errorHandler);
 process.on('SIGTERM', () => {
-    shared_1.logger.info('SIGTERM received, shutting down gracefully');
+    logger_1.logger.info('SIGTERM received, shutting down gracefully');
     process.exit(0);
 });
 process.on('SIGINT', () => {
-    shared_1.logger.info('SIGINT received, shutting down gracefully');
+    logger_1.logger.info('SIGINT received, shutting down gracefully');
     process.exit(0);
 });
 app.listen(PORT, () => {
-    shared_1.logger.info(`Payment Service running on port ${PORT}`);
-    shared_1.logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
-    shared_1.logger.info(`PayOS Environment: ${process.env.PAYOS_ENVIRONMENT || 'sandbox'}`);
+    logger_1.logger.info(`Payment Service running on port ${PORT}`);
+    logger_1.logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    logger_1.logger.info(`PayOS Environment: ${process.env.PAYOS_ENVIRONMENT || 'sandbox'}`);
 });
 exports.default = app;
 //# sourceMappingURL=app.js.map

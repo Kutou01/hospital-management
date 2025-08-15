@@ -51,7 +51,7 @@ function HomePage() {
 
   // Enable URL-based session detection for demo
   useSessionFromUrl();
-
+  
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [selectedDepartmentFilter, setSelectedDepartmentFilter] = useState<string>('all');
@@ -70,9 +70,9 @@ function HomePage() {
   }, []);
 
   // Filter doctors by department
-  const filteredDoctors = selectedDepartmentFilter === 'all'
+  const filteredDoctors = selectedDepartmentFilter === 'all' 
     ? mockDoctors.slice(0, 6) // Show top 6 doctors
-    : mockDoctors.filter(doctor =>
+    : mockDoctors.filter(doctor => 
         doctor.department.toLowerCase().includes(selectedDepartmentFilter.toLowerCase()) ||
         doctor.departmentVi.toLowerCase().includes(selectedDepartmentFilter.toLowerCase())
       );
@@ -107,7 +107,7 @@ function HomePage() {
                 {t('booking.title')}
               </h2>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                {language === 'vi'
+                {language === 'vi' 
                   ? 'Đặt lịch khám nhanh chóng với hệ thống thông minh, kiểm tra xung đột lịch tự động'
                   : 'Quick appointment booking with smart system and automatic schedule conflict checking'
                 }
@@ -117,15 +117,15 @@ function HomePage() {
             <div className="max-w-4xl mx-auto">
               <Card className="shadow-lg">
                 <CardContent className="p-8">
-                  <Button
-                    size="lg"
+                  <Button 
+                    size="lg" 
                     className="w-full text-lg py-6"
                     onClick={() => setIsBookingOpen(true)}
                   >
                     <Sparkles className="mr-2 h-5 w-5" />
                     {t('hero.ctaPrimary')}
                   </Button>
-
+                  
                   <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
                     <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                       <CheckCircle className="h-4 w-4 text-green-600" />
@@ -224,7 +224,7 @@ function HomePage() {
                 {t('highlights.title')}
               </h2>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                {language === 'vi'
+                {language === 'vi' 
                   ? 'Công nghệ tiên tiến và bảo mật cao cho trải nghiệm y tế tốt nhất'
                   : 'Advanced technology and high security for the best healthcare experience'
                 }

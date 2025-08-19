@@ -1,8 +1,8 @@
 import { authServiceApi } from '../api/auth';
-import { supabaseClient } from '../supabase-client';
 
 /**
- * Debug utility to check auth state and doctor_id
+ * Debug utility to check auth state using Auth Service exclusively
+ * Updated to remove Supabase dependencies
  */
 export async function debugAuthState() {
   console.log('🔍 [DEBUG] Starting auth state debug...');
@@ -33,27 +33,26 @@ export async function debugAuthState() {
         return;
       }
 
-      // 3. Check profile data in database
-      const { data: profile, error: profileError } = await supabaseClient
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+      // 3. Get current user data from Auth Service (includes profile data)
+      const currentUserResult = await authServiceApi.getCurrentUser();
+      console.log('🔍 [DEBUG] Current user data:', currentUserResult);
 
-      console.log('🔍 [DEBUG] Profile data:', { profile, error: profileError });
+      if (currentUserResult.success && currentUserResult.data?.user) {
+        const fullUserData = currentUserResult.data.user;
+        console.log('✅ [DEBUG] Full user profile:', {
+          id: fullUserData.id,
+          email: fullUserData.email,
+          role: fullUserData.role,
+          full_name: fullUserData.full_name,
+          is_active: fullUserData.is_active,
+          doctor_id: fullUserData.doctor_id,
+          patient_id: fullUserData.patient_id
+        });
 
-      // 4. Check doctor data if role is doctor
-      if (user.role === 'doctor') {
-        const { data: doctor, error: doctorError } = await supabaseClient
-          .from('doctors')
-          .select('*')
-          .eq('profile_id', user.id)
-          .single();
-
-        console.log('🔍 [DEBUG] Doctor data:', { doctor, error: doctorError });
+        return { user: fullUserData };
       }
 
-      return { user, profile };
+      return { user };
 
     } catch (verifyError) {
       console.error('❌ [DEBUG] Token verification error:', verifyError);

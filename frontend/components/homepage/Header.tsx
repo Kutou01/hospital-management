@@ -215,10 +215,10 @@ export function Header({ session, onSearchOpen }: HeaderProps) {
             ) : (
               <div className="hidden sm:flex items-center space-x-2">
                 <Button variant="ghost" asChild>
-                  <Link href="/auth/login">{t('nav.login')}</Link>
+                  <Link href="/login">{t('nav.login')}</Link>
                 </Button>
                 <Button asChild>
-                  <Link href="/auth/register-patient">{t('nav.signup')}</Link>
+                  <Link href="/register">{t('nav.signup')}</Link>
                 </Button>
               </div>
             )}
@@ -257,12 +257,12 @@ export function Header({ session, onSearchOpen }: HeaderProps) {
               {!isLoggedIn && (
                 <div className="flex flex-col space-y-2 pt-4 border-t">
                   <Button variant="ghost" asChild className="justify-start">
-                    <Link href="/auth/login" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
                       {t('nav.login')}
                     </Link>
                   </Button>
                   <Button asChild className="justify-start">
-                    <Link href="/auth/register-patient" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
                       {t('nav.signup')}
                     </Link>
                   </Button>

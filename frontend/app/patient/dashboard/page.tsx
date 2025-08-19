@@ -126,7 +126,7 @@ export default function PatientDashboard() {
         // Try to get patient_id via API
         try {
           const patientResponse = await patientsApi.getByProfileId(user.id)
-          if (patientResponse.success && patientResponse.data) {
+          if (patientResponse.success && patientResponse.data?.patient_id) {
             console.log('🏥 [PatientDashboard] Found patient via API:', patientResponse.data.patient_id)
             // Update user object with patient_id (temporary fix)
             user.patient_id = patientResponse.data.patient_id

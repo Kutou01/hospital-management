@@ -157,9 +157,7 @@ export default function BookAppointmentPage() {
     return matchesSearch && matchesDepartment;
   });
 
-  const selectedDoctor = doctors.find(
-    (d) => d.doctor_id === bookingForm.selectedDoctor
-  );
+  // selectedDoctor already defined above, no need to redeclare
 
   const handleDoctorSelect = (doctorId: string) => {
     setBookingForm((prev) => ({ ...prev, selectedDoctor: doctorId }));

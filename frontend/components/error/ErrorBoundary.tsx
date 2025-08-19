@@ -133,7 +133,8 @@ Please describe what you were doing when this error occurred:
 [Your description here]
     `);
 
-    window.open(`mailto:support@hospital.com?subject=${subject}&body=${body}`);
+    const supportEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@hospital.com';
+    window.open(`mailto:${supportEmail}?subject=${subject}&body=${body}`);
   };
 
   render() {

@@ -45,14 +45,14 @@ interface UnifiedAuthContextType {
   signOut: () => Promise<void>
   refreshUser: () => Promise<void>
   clearError: () => void
+  clearAuthData: () => void
   hasRole: (role: string) => boolean
   hasAnyRole: (roles: string[]) => boolean
   switchAuthType: (type: AuthType) => void
   changePassword: (currentPassword: string, newPassword: string) => Promise<{ error: string | null }>
   resetPassword: (email: string) => Promise<{ error: string | null }>
   updatePassword: (newPassword: string) => Promise<{ error: string | null }>
-  // Access to underlying auth clients for advanced operations
-  getSupabaseClient: () => any
+  // Note: Removed getSupabaseClient as we now use Auth Service exclusively
 }
 
 const UnifiedAuthContext = createContext<UnifiedAuthContextType | undefined>(undefined)
@@ -152,6 +152,36 @@ export function UnifiedAuthProvider({ children }: { children: React.ReactNode })
     initializeAuth()
   }, [])
 
+  // Clear all authentication data
+  const clearAuthData = () => {
+    console.log('🧹 [UnifiedAuth] Clearing all authentication data')
+    localStorage.removeItem('auth_token')
+    localStorage.removeItem('refresh_token')
+    localStorage.removeItem('user_data')
+    sessionStorage.removeItem('auth_token')
+    sessionStorage.removeItem('refresh_token')
+    sessionStorage.removeItem('user_data')
+
+    // Clear cookies
+    document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    document.cookie = 'refresh_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+
+    clearUserSession()
+    setUser(null)
+    setError(null)
+  }
+
+  // Validate token before using it
+  const validateToken = async (token: string): Promise<boolean> => {
+    try {
+      const response = await authServiceApi.getCurrentUser()
+      return response.success && !!response.data?.user
+    } catch (error) {
+      console.error('❌ [UnifiedAuth] Token validation failed:', error)
+      return false
+    }
+  }
+
   // Initialize Auth Service
   const initializeAuthService = async () => {
     try {
@@ -178,6 +208,14 @@ export function UnifiedAuthProvider({ children }: { children: React.ReactNode })
         return
       }
 
+      // Validate token before using it
+      const isTokenValid = await validateToken(storedToken)
+      if (!isTokenValid) {
+        console.log('🔄 [UnifiedAuth] Token is invalid, clearing auth data')
+        clearAuthData()
+        return
+      }
+
       const response = await authServiceApi.getCurrentUser()
 
       if (response.success && response.data?.user) {
@@ -192,50 +230,29 @@ export function UnifiedAuthProvider({ children }: { children: React.ReactNode })
 
         console.log('✅ [UnifiedAuth] Auth Service user restored from token:', unifiedUser.role)
       } else {
-        // Try to restore from stored user data as fallback
+        console.log('🔄 [UnifiedAuth] Failed to get user data, clearing auth data')
+        clearAuthData()
+      }
+    } catch (err) {
+      console.error('❌ [UnifiedAuth] Auth Service initialization failed:', err)
+
+      // If it's a network error, try to restore from stored user data as fallback
+      if (err instanceof Error && (err.message.includes('fetch') || err.message.includes('network'))) {
         try {
           const storedUserData = localStorage.getItem('user_data')
           if (storedUserData) {
             const userData = JSON.parse(storedUserData)
             setUser(userData)
+            console.log('⚡ [UnifiedAuth] Using cached user data due to network error')
             return
           }
         } catch (fallbackErr) {
           console.error('❌ [UnifiedAuth] Fallback restoration failed:', fallbackErr)
         }
-
-        // Clear invalid tokens
-        localStorage.removeItem('auth_token')
-        localStorage.removeItem('refresh_token')
-        localStorage.removeItem('user_data')
-        sessionStorage.removeItem('auth_token')
-        sessionStorage.removeItem('refresh_token')
-        sessionStorage.removeItem('user_data')
-        setUser(null)
-      }
-    } catch (err) {
-      console.error('❌ [UnifiedAuth] Auth Service initialization failed:', err)
-
-      // Try to restore from stored user data as fallback
-      try {
-        const storedUserData = localStorage.getItem('user_data')
-        if (storedUserData) {
-          const userData = JSON.parse(storedUserData)
-          setUser(userData)
-          return
-        }
-      } catch (fallbackErr) {
-        console.error('❌ [UnifiedAuth] Fallback restoration failed:', fallbackErr)
       }
 
-      // Clear potentially corrupted tokens only if fallback also fails
-      localStorage.removeItem('auth_token')
-      localStorage.removeItem('refresh_token')
-      localStorage.removeItem('user_data')
-      sessionStorage.removeItem('auth_token')
-      sessionStorage.removeItem('refresh_token')
-      sessionStorage.removeItem('user_data')
-      setUser(null)
+      // Clear potentially corrupted tokens
+      clearAuthData()
     }
   }
 
@@ -259,34 +276,55 @@ export function UnifiedAuthProvider({ children }: { children: React.ReactNode })
 
   // Sign in with Auth Service
   const signInWithAuthService = async (email: string, password: string) => {
-    const response = await authServiceApi.signIn({ email, password })
+    try {
+      const response = await authServiceApi.signIn({ email, password })
 
-    if (!response.success || !response.data?.user) {
-      throw new Error(response.error?.message || 'Invalid credentials')
-    }
-
-    const unifiedUser = convertAuthUser(response.data.user)
-    setUser(unifiedUser)
-    setAuthType('service')
-
-    // Store token for future requests - use localStorage for persistence across browser sessions
-    if (response.data.session?.access_token) {
-      localStorage.setItem('auth_token', response.data.session.access_token)
-
-      if (response.data.session.refresh_token) {
-        localStorage.setItem('refresh_token', response.data.session.refresh_token)
+      if (!response.success || !response.data?.user) {
+        throw new Error(response.error?.message || 'Invalid credentials')
       }
 
-      // Store user data using session persistence utility
-      saveUserSession(unifiedUser, {
-        access_token: response.data.session.access_token,
-        refresh_token: response.data.session.refresh_token
-      })
-    }
+      const unifiedUser = convertAuthUser(response.data.user)
+      setUser(unifiedUser)
+      setAuthType('service')
 
-    // Redirect to dashboard
-    const dashboardPath = getDashboardPath(unifiedUser.role as any)
-    router.replace(dashboardPath)
+      // Store token for future requests - use both localStorage and cookies
+      if (response.data.session?.access_token) {
+        // Store in localStorage for frontend access
+        localStorage.setItem('auth_token', response.data.session.access_token)
+
+        if (response.data.session.refresh_token) {
+          localStorage.setItem('refresh_token', response.data.session.refresh_token)
+        }
+
+        // Store in cookies for middleware access
+        document.cookie = `auth_token=${response.data.session.access_token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`
+        if (response.data.session.refresh_token) {
+          document.cookie = `refresh_token=${response.data.session.refresh_token}; path=/; max-age=${30 * 24 * 60 * 60}; SameSite=Lax`
+        }
+
+        // Store user data using session persistence utility
+        saveUserSession(unifiedUser, {
+          access_token: response.data.session.access_token,
+          refresh_token: response.data.session.refresh_token
+        })
+
+        console.log('✅ [UnifiedAuth] Sign in successful, tokens stored in localStorage and cookies')
+
+        // Redirect to dashboard with a small delay to ensure state is updated
+        setTimeout(() => {
+          const dashboardPath = getDashboardPath(unifiedUser.role as any)
+          console.log('🔄 [UnifiedAuth] Redirecting to:', dashboardPath)
+          router.replace(dashboardPath)
+        }, 100)
+      } else {
+        throw new Error('No access token received')
+      }
+    } catch (error) {
+      console.error('❌ [UnifiedAuth] Sign in error:', error)
+      // Clear any partial auth data on error
+      clearAuthData()
+      throw error
+    }
   }
 
 
@@ -391,10 +429,7 @@ export function UnifiedAuthProvider({ children }: { children: React.ReactNode })
     }
   }
 
-  // Get Supabase client for advanced operations
-  const getSupabaseClient = () => {
-    return null // Auth service doesn't use Supabase client directly
-  }
+  // Note: Removed getSupabaseClient - Auth Service is now the exclusive authentication method
 
   // Role checking methods
   const hasRole = (role: string): boolean => {
@@ -422,13 +457,13 @@ export function UnifiedAuthProvider({ children }: { children: React.ReactNode })
     signOut,
     refreshUser,
     clearError,
+    clearAuthData,
     hasRole,
     hasAnyRole,
     switchAuthType,
     changePassword,
     resetPassword,
-    updatePassword,
-    getSupabaseClient
+    updatePassword
   }
 
   // Don't render children until auth is initialized

@@ -22,6 +22,7 @@ import morgan from "morgan";
 import { initializeSupabase, testSupabaseConnection } from "./config/supabase";
 import { setupSwagger } from "./config/swagger";
 import authRoutes from "./routes/auth.routes";
+import patientRegistrationRoutes from "./routes/patient-registration.routes";
 import sessionRoutes from "./routes/session.routes";
 import userRoutes from "./routes/user.routes";
 

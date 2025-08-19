@@ -1,21 +1,21 @@
-// Export API client
+// Export API client - Named exports for better tree-shaking
 export { apiClient, ApiClient, handleApiError, isApiSuccess, getApiError } from './client';
 
-// Export authentication API
-export * from './auth';
+// Export authentication API - Named exports
+export { authServiceApi } from './auth';
 
-// Export all API services
-export * from './doctors';
-export * from './patients';
-export * from './appointments';
-export * from './departments';
-export * from './rooms';
+// Export API services - Named exports for better tree-shaking
+export { doctorsApi } from './doctors';
+export { patientsApi } from './patients';
+export { appointmentsApi } from './appointments';
+export { departmentsApi } from './departments';
+export { roomsApi } from './rooms';
 
-// Export microservices APIs
-export * from './medical-records';
-export * from './prescriptions';
-export * from './billing';
-export * from './payments';
+// Export microservices APIs - Named exports
+export { medicalRecordsApi } from './medical-records';
+export { prescriptionsApi } from './prescriptions';
+export { billingApi } from './billing';
+export { paymentsApi } from './payments';
 
 // Re-export types for convenience
 export type {

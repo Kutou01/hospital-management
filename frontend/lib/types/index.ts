@@ -143,16 +143,27 @@ export interface Department extends BaseEntity {
   head_doctor?: Doctor;
 }
 
-// Room types
+// Room types - Updated to match database schema
 export interface Room extends BaseEntity {
   room_number: string;
-  room_type: 'consultation' | 'surgery' | 'emergency' | 'ward' | 'icu' | 'laboratory';
+  room_type_id: string; // References room_types table
   department_id: string;
   capacity: number;
   status: 'available' | 'occupied' | 'maintenance' | 'reserved';
   equipment?: string;
   notes?: string;
   department?: Department;
+  room_type?: RoomType; // Join with room_types table
+}
+
+// Room type from database
+export interface RoomType {
+  room_type_id: string;
+  type_name: string; // 'Standard Room', 'VIP Room', 'ICU', 'Operating Room', 'Emergency Room'
+  type_code: string; // 'STD', 'VIP', 'ICU', 'OR', 'ER'
+  description: string;
+  base_price: string;
+  is_active: boolean;
 }
 
 // API Response types

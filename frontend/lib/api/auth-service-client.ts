@@ -1,9 +1,9 @@
 /**
- * Auth Service Client - Direct integration with Auth Service microservice
- * Updated for Phase 4: Frontend Integration
+ * Auth Service Client - Integration via API Gateway
+ * Updated to use API Gateway instead of direct service URLs
  */
 
-const AUTH_SERVICE_URL = process.env.NEXT_PUBLIC_AUTH_SERVICE_URL || 'http://localhost:3001';
+const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:3100';
 
 export interface AuthServiceRegisterData {
   email: string;
@@ -58,7 +58,7 @@ class AuthServiceClient {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = AUTH_SERVICE_URL;
+    this.baseUrl = API_GATEWAY_URL;
   }
 
   /**
@@ -256,6 +256,42 @@ class AuthServiceClient {
       };
     }
   }
+
+  /**
+   * Check if email is available for registration
+   */
+  async checkEmailAvailability(email: string): Promise<AuthServiceResponse> {
+    try {
+      console.log('🔍 [AuthServiceClient] Checking email availability:', email);
+
+      const response = await fetch(`${this.baseUrl}/api/auth/check-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const result = await response.json();
+
+      return {
+        success: response.ok,
+        data: {
+          available: result.available,
+          email: email,
+        },
+        message: result.message,
+        error: response.ok ? undefined : result.error,
+      };
+
+    } catch (error: any) {
+      console.error('❌ [AuthServiceClient] Email availability check error:', error);
+      return {
+        success: false,
+        error: error.message || 'Network error',
+      };
+    }
+  }
 }
 
 // Export singleton instance
@@ -268,3 +304,4 @@ export const loginWithAuthService = (credentials: AuthServiceLoginData) => authS
 export const getCurrentUserFromAuthService = (token: string) => authServiceClient.getCurrentUser(token);
 export const logoutFromAuthService = (token?: string) => authServiceClient.logout(token);
 export const resetPasswordWithAuthService = (email: string) => authServiceClient.resetPassword(email);
+export const checkEmailAvailabilityWithAuthService = (email: string) => authServiceClient.checkEmailAvailability(email);

@@ -369,7 +369,7 @@ function HomePage() {
                     className="text-lg px-8 py-6 border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary"
                     asChild
                   >
-                    <Link href="/auth/register-patient">
+                    <Link href="/register">
                       {t('cta.register')}
                     </Link>
                   </Button>

@@ -45,71 +45,170 @@
 
 :root {
   --radius: 0.625rem;
+
+  /* Base Colors */
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+
+  /* Medical Primary Colors - Professional Medical Blue */
+  --primary: oklch(0.45 0.15 220);
+  /* Medical Blue #2563eb */
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
+
+  /* Medical Secondary Colors */
+  --secondary: oklch(0.96 0.02 220);
+  /* Light Medical Blue */
   --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
+
+  /* Medical Accent Colors */
+  --muted: oklch(0.97 0.01 220);
   --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
+  --accent: oklch(0.94 0.03 220);
+  /* Soft Medical Blue */
   --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
+
+  /* Medical Status Colors */
+  --destructive: oklch(0.65 0.2 15);
+  /* Medical Red for emergencies */
+  --success: oklch(0.6 0.15 140);
+  /* Medical Green for healthy status */
+  --warning: oklch(0.75 0.15 60);
+  /* Medical Orange for warnings */
+  --info: oklch(0.55 0.15 200);
+  /* Medical Info Blue */
+
+  /* Medical Specialty Colors */
+  --cardiology: oklch(0.55 0.2 15);
+  /* Heart Red */
+  --neurology: oklch(0.45 0.15 280);
+  /* Brain Purple */
+  --pediatrics: oklch(0.65 0.15 120);
+  /* Child Green */
+  --orthopedics: oklch(0.5 0.1 40);
+  /* Bone Orange */
+  --dermatology: oklch(0.7 0.1 50);
+  /* Skin Peach */
+  --emergency: oklch(0.6 0.25 10);
+  /* Emergency Red */
+  --pharmacy: oklch(0.5 0.15 160);
+  /* Medicine Teal */
+  --radiology: oklch(0.4 0.1 240);
+  /* X-ray Blue */
+
+  /* UI Elements */
+  --border: oklch(0.92 0.01 220);
+  --input: oklch(0.92 0.01 220);
+  --ring: oklch(0.45 0.15 220);
+
+  /* Medical Charts */
+  --chart-1: oklch(0.55 0.2 15);
+  /* Cardiology Red */
+  --chart-2: oklch(0.5 0.15 160);
+  /* Pharmacy Teal */
+  --chart-3: oklch(0.45 0.15 280);
+  /* Neurology Purple */
+  --chart-4: oklch(0.65 0.15 120);
+  /* Pediatrics Green */
+  --chart-5: oklch(0.5 0.1 40);
+  /* Orthopedics Orange */
+
+  /* Sidebar Medical Theme */
+  --sidebar: oklch(0.98 0.01 220);
   --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary: oklch(0.45 0.15 220);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent: oklch(0.94 0.03 220);
   --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-border: oklch(0.92 0.01 220);
+  --sidebar-ring: oklch(0.45 0.15 220);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
+  /* Dark Mode Base Colors */
+  --background: oklch(0.12 0.01 220);
+  /* Dark Medical Blue */
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
+  --card: oklch(0.18 0.02 220);
+  /* Dark Medical Card */
   --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
+  --popover: oklch(0.18 0.02 220);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
+
+  /* Dark Mode Medical Primary */
+  --primary: oklch(0.65 0.15 220);
+  /* Lighter Medical Blue for dark mode */
+  --primary-foreground: oklch(0.12 0.01 220);
+
+  /* Dark Mode Medical Secondary */
+  --secondary: oklch(0.25 0.03 220);
+  /* Dark Medical Secondary */
   --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
+
+  /* Dark Mode Medical Accent */
+  --muted: oklch(0.22 0.02 220);
   --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
+  --accent: oklch(0.28 0.04 220);
+  /* Dark Medical Accent */
   --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
+
+  /* Dark Mode Medical Status Colors */
+  --destructive: oklch(0.7 0.2 15);
+  /* Brighter red for dark mode */
+  --success: oklch(0.65 0.15 140);
+  /* Brighter green for dark mode */
+  --warning: oklch(0.8 0.15 60);
+  /* Brighter orange for dark mode */
+  --info: oklch(0.6 0.15 200);
+  /* Brighter blue for dark mode */
+
+  /* Dark Mode Medical Specialty Colors */
+  --cardiology: oklch(0.65 0.2 15);
+  /* Brighter Heart Red */
+  --neurology: oklch(0.6 0.15 280);
+  /* Brighter Brain Purple */
+  --pediatrics: oklch(0.7 0.15 120);
+  /* Brighter Child Green */
+  --orthopedics: oklch(0.65 0.1 40);
+  /* Brighter Bone Orange */
+  --dermatology: oklch(0.75 0.1 50);
+  /* Brighter Skin Peach */
+  --emergency: oklch(0.7 0.25 10);
+  /* Brighter Emergency Red */
+  --pharmacy: oklch(0.6 0.15 160);
+  /* Brighter Medicine Teal */
+  --radiology: oklch(0.55 0.1 240);
+  /* Brighter X-ray Blue */
+
+  /* Dark Mode UI Elements */
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 18%);
+  --ring: oklch(0.65 0.15 220);
+
+  /* Dark Mode Medical Charts */
+  --chart-1: oklch(0.65 0.2 15);
+  /* Cardiology Red */
+  --chart-2: oklch(0.6 0.15 160);
+  /* Pharmacy Teal */
+  --chart-3: oklch(0.6 0.15 280);
+  /* Neurology Purple */
+  --chart-4: oklch(0.7 0.15 120);
+  /* Pediatrics Green */
+  --chart-5: oklch(0.65 0.1 40);
+  /* Orthopedics Orange */
+
+  /* Dark Mode Sidebar Medical Theme */
+  --sidebar: oklch(0.18 0.02 220);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-primary: oklch(0.65 0.15 220);
+  --sidebar-primary-foreground: oklch(0.12 0.01 220);
+  --sidebar-accent: oklch(0.28 0.04 220);
   --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-border: oklch(1 0 0 / 12%);
+  --sidebar-ring: oklch(0.65 0.15 220);
 }
 
 /* Accessibility Features */
@@ -193,7 +292,8 @@
     text-shadow: none !important;
   }
 
-  a, a:visited {
+  a,
+  a:visited {
     text-decoration: underline;
   }
 
@@ -205,11 +305,14 @@
     content: " (" attr(title) ")";
   }
 
-  .ir a:after, a[href^="javascript:"]:after, a[href^="#"]:after {
+  .ir a:after,
+  a[href^="javascript:"]:after,
+  a[href^="#"]:after {
     content: "";
   }
 
-  pre, blockquote {
+  pre,
+  blockquote {
     border: 1px solid #999;
     page-break-inside: avoid;
   }
@@ -218,7 +321,8 @@
     display: table-header-group;
   }
 
-  tr, img {
+  tr,
+  img {
     page-break-inside: avoid;
   }
 
@@ -226,20 +330,118 @@
     max-width: 100% !important;
   }
 
-  p, h2, h3 {
+  p,
+  h2,
+  h3 {
     orphans: 3;
     widows: 3;
   }
 
-  h2, h3 {
+  h2,
+  h3 {
     page-break-after: avoid;
   }
+}
+
+/* Medical Color Utilities */
+.medical-gradient {
+  background: linear-gradient(135deg,
+      hsl(var(--primary)) 0%,
+      hsl(var(--info)) 50%,
+      hsl(var(--success)) 100%);
+}
+
+.medical-cardiology {
+  color: hsl(var(--cardiology));
+}
+
+.medical-neurology {
+  color: hsl(var(--neurology));
+}
+
+.medical-pediatrics {
+  color: hsl(var(--pediatrics));
+}
+
+.medical-orthopedics {
+  color: hsl(var(--orthopedics));
+}
+
+.medical-dermatology {
+  color: hsl(var(--dermatology));
+}
+
+.medical-emergency {
+  color: hsl(var(--emergency));
+}
+
+.medical-pharmacy {
+  color: hsl(var(--pharmacy));
+}
+
+.medical-radiology {
+  color: hsl(var(--radiology));
+}
+
+/* Medical Background Colors */
+.bg-medical-cardiology {
+  background-color: hsl(var(--cardiology) / 0.1);
+}
+
+.bg-medical-neurology {
+  background-color: hsl(var(--neurology) / 0.1);
+}
+
+.bg-medical-pediatrics {
+  background-color: hsl(var(--pediatrics) / 0.1);
+}
+
+.bg-medical-orthopedics {
+  background-color: hsl(var(--orthopedics) / 0.1);
+}
+
+.bg-medical-dermatology {
+  background-color: hsl(var(--dermatology) / 0.1);
+}
+
+.bg-medical-emergency {
+  background-color: hsl(var(--emergency) / 0.1);
+}
+
+.bg-medical-pharmacy {
+  background-color: hsl(var(--pharmacy) / 0.1);
+}
+
+.bg-medical-radiology {
+  background-color: hsl(var(--radiology) / 0.1);
+}
+
+/* Medical Status Indicators */
+.status-healthy {
+  color: hsl(var(--success));
+  background-color: hsl(var(--success) / 0.1);
+}
+
+.status-warning {
+  color: hsl(var(--warning));
+  background-color: hsl(var(--warning) / 0.1);
+}
+
+.status-critical {
+  color: hsl(var(--emergency));
+  background-color: hsl(var(--emergency) / 0.1);
+}
+
+.status-info {
+  color: hsl(var(--info));
+  background-color: hsl(var(--info) / 0.1);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }

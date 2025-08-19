@@ -24,7 +24,8 @@ export default function ApiDebugger() {
   // Test 1: Check API Gateway connectivity
   const testApiGateway = async () => {
     try {
-      const response = await fetch('http://localhost:3100/health')
+      const apiGatewayUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:3100'
+      const response = await fetch(`${apiGatewayUrl}/health`)
       if (response.ok) {
         const data = await response.json()
         addDebugResult('API Gateway Health', 'success', 'API Gateway is responding', data)
@@ -50,21 +51,10 @@ export default function ApiDebugger() {
         addDebugResult('Auth Token (localStorage)', 'error', 'No auth token found in localStorage')
       }
 
-      // Check Supabase session
-      const { createClient } = await import('@supabase/supabase-js')
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
-      
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.access_token) {
-        addDebugResult('Supabase Session', 'success', `Session found: ${session.access_token.substring(0, 20)}...`)
-      } else {
-        addDebugResult('Supabase Session', 'error', 'No Supabase session found')
-      }
+      // Note: Removed Supabase session check - using Auth Service exclusively
+      addDebugResult('Auth Service Token', 'info', 'Using Auth Service exclusively (Supabase auth removed)')
 
-      return authToken || session?.access_token
+      return authToken
     } catch (error) {
       addDebugResult('Authentication Check', 'error', error instanceof Error ? error.message : 'Auth error')
       return null

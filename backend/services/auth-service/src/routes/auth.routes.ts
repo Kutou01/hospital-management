@@ -5,10 +5,12 @@ import { AuthController } from "../controllers/auth.controller";
 import { authMiddleware } from "../middleware/auth.middleware";
 import {
   validateDoctorRegistration,
+  validateEmail,
   validateMagicLink,
   validateOAuthCallback,
   validatePatientRegistration,
   validatePhoneOTP,
+  validateReceptionistRegistration,
   validateRefreshToken,
   validateResetPassword,
   validateSignIn,
@@ -660,6 +662,43 @@ router.post(
   validateOAuthCallback,
   authController.handleOAuthCallback
 );
+
+/**
+ * @swagger
+ * /api/auth/check-email:
+ *   post:
+ *     summary: Check if email is available for registration
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *     responses:
+ *       200:
+ *         description: Email availability check successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 available:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Invalid email format
+ */
+router.post("/check-email", validateEmail, authController.checkEmailAvailability);
 
 export default router;
 

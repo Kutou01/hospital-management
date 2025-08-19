@@ -175,7 +175,7 @@ export class PatientRegistrationController {
         email: patientData.email,
         full_name: patientData.full_name,
         user_id: result.user?.id,
-        profile_id: result.profile?.id,
+        patient_id: result.user?.patient_id,
       });
 
       res.status(201).json({
@@ -183,7 +183,7 @@ export class PatientRegistrationController {
         message: "Patient registration successful",
         data: {
           user: result.user,
-          profile: result.profile,
+          session: result.session,
         },
       });
     } catch (error: any) {

@@ -21,14 +21,70 @@ interface DepartmentCardProps {
 export function DepartmentCard({ department }: DepartmentCardProps) {
   const { t, language } = useI18n();
 
+  // Medical color mapping for departments
+  const getMedicalColors = (departmentId: string) => {
+    const colorMap: Record<string, { text: string; bg: string; border: string }> = {
+      'cardiology': {
+        text: 'text-medical-cardiology',
+        bg: 'bg-medical-cardiology/10 hover:bg-medical-cardiology/20',
+        border: 'border-medical-cardiology/20 hover:border-medical-cardiology/30'
+      },
+      'neurology': {
+        text: 'text-medical-neurology',
+        bg: 'bg-medical-neurology/10 hover:bg-medical-neurology/20',
+        border: 'border-medical-neurology/20 hover:border-medical-neurology/30'
+      },
+      'pediatrics': {
+        text: 'text-medical-pediatrics',
+        bg: 'bg-medical-pediatrics/10 hover:bg-medical-pediatrics/20',
+        border: 'border-medical-pediatrics/20 hover:border-medical-pediatrics/30'
+      },
+      'orthopedics': {
+        text: 'text-medical-orthopedics',
+        bg: 'bg-medical-orthopedics/10 hover:bg-medical-orthopedics/20',
+        border: 'border-medical-orthopedics/20 hover:border-medical-orthopedics/30'
+      },
+      'dermatology': {
+        text: 'text-medical-dermatology',
+        bg: 'bg-medical-dermatology/10 hover:bg-medical-dermatology/20',
+        border: 'border-medical-dermatology/20 hover:border-medical-dermatology/30'
+      },
+      'ent': {
+        text: 'text-medical-pharmacy',
+        bg: 'bg-medical-pharmacy/10 hover:bg-medical-pharmacy/20',
+        border: 'border-medical-pharmacy/20 hover:border-medical-pharmacy/30'
+      },
+      'endocrinology': {
+        text: 'text-medical-radiology',
+        bg: 'bg-medical-radiology/10 hover:bg-medical-radiology/20',
+        border: 'border-medical-radiology/20 hover:border-medical-radiology/30'
+      },
+      'emergency': {
+        text: 'text-medical-emergency',
+        bg: 'bg-medical-emergency/10 hover:bg-medical-emergency/20',
+        border: 'border-medical-emergency/20 hover:border-medical-emergency/30'
+      }
+    };
+
+    return colorMap[departmentId] || {
+      text: 'text-primary',
+      bg: 'bg-primary/10 hover:bg-primary/20',
+      border: 'border-primary/20 hover:border-primary/30'
+    };
+  };
+
+  const medicalColors = getMedicalColors(department.id);
+
   return (
-    <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 h-full">
+    <Card className={`group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 h-full border-2 ${medicalColors.border} ${medicalColors.bg}`}>
       <CardHeader className="pb-4">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="text-3xl">{department.icon}</div>
+            <div className={`text-3xl p-2 rounded-lg ${medicalColors.bg} ${medicalColors.text}`}>
+              {department.icon}
+            </div>
             <div>
-              <CardTitle className="text-lg leading-tight">
+              <CardTitle className={`text-lg leading-tight ${medicalColors.text}`}>
                 {language === 'vi' ? department.nameVi : department.name}
               </CardTitle>
             </div>

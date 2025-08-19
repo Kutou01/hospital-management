@@ -35,20 +35,32 @@ export interface SupabaseDoctor {
   };
 }
 
-// Patient types from Supabase
+// Patient types from Supabase - Updated to match actual database schema
 export interface SupabasePatient {
   patient_id: string;
-  full_name: string;
-  dateofbirth: string;
-  registration_date: string;
-  phone_number: string;
-  email: string;
-  blood_type: string;
+  profile_id: string;
   gender: string;
-  address: string;
-  allergies: string;
-  chronic_diseases: string;
-  insurance_info: string;
+  blood_type: string;
+  address: any; // JSONB field
+  emergency_contact: any; // JSONB field
+  insurance_info: any; // JSONB field
+  medical_history: string;
+  allergies: string[]; // Array field
+  chronic_conditions: string[]; // Array field (renamed from chronic_diseases)
+  current_medications: any; // JSONB field
+  status: string;
+  notes: string;
+  height: number;
+  weight: number;
+  preferred_language: string;
+  created_at: string;
+  updated_at: string;
+  created_by: string;
+  // Personal info comes from profiles table via profile_id
+  full_name?: string; // From profiles join
+  email?: string; // From profiles join
+  phone_number?: string; // From profiles join
+  date_of_birth?: string; // From profiles join (correct field name)
 }
 
 // Appointment types from Supabase
@@ -132,15 +144,15 @@ export interface SupabaseDoctorForm {
 
 export interface SupabasePatientForm {
   full_name: string;
-  dateofbirth: string;
+  date_of_birth: string; // Fixed: matches database schema
   phone_number: string;
   email: string;
   blood_type: string;
   gender: string;
   address: string;
-  allergies: string;
-  chronic_diseases: string;
-  insurance_info: string;
+  allergies: string[];
+  chronic_conditions: string[]; // Fixed: matches database schema (renamed from chronic_diseases)
+  insurance_info: any; // JSONB field
 }
 
 export interface SupabaseAppointmentForm {

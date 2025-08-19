@@ -18,7 +18,7 @@ interface AuthRedirectProps {
 export function AuthRedirect({
   expectedRole,
   redirectTo,
-  fallbackPath = '/auth/login'
+  fallbackPath = '/login'
 }: AuthRedirectProps) {
   const { user, loading } = useEnhancedAuth();
   const router = useRouter();
@@ -99,7 +99,7 @@ export function useAuthRedirect() {
   const redirectToLogin = async () => {
     console.log('useAuthRedirect: redirecting to login');
     await new Promise(resolve => setTimeout(resolve, 1000));
-    router.push('/auth/login');
+    router.push('/login');
   };
 
   const redirectWithDelay = (path: string, delay: number = 1000) => {

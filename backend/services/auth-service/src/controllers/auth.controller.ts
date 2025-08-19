@@ -947,4 +947,44 @@ export class AuthController {
       });
     }
   };
+
+  /**
+   * Check if email is available for registration
+   */
+  public checkEmailAvailability = async (req: Request, res: Response): Promise<void> => {
+    try {
+      // Check validation errors
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        res.status(400).json({
+          success: false,
+          error: "Validation failed",
+          details: errors.array(),
+        });
+        return;
+      }
+
+      const { email } = req.body;
+
+      logger.info(`🔍 Checking email availability for: ${email}`);
+
+      const isAvailable = await this.authService.checkEmailAvailability(email);
+
+      res.status(200).json({
+        success: true,
+        available: isAvailable,
+        message: isAvailable
+          ? "Email is available for registration"
+          : "Email is already registered",
+      });
+
+    } catch (error) {
+      logger.error("Check email availability error:", error);
+      res.status(500).json({
+        success: false,
+        error: "Internal server error",
+        message: "Failed to check email availability",
+      });
+    }
+  };
 }

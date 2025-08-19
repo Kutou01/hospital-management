@@ -39,8 +39,8 @@ export function RoleShortcuts({ session }: RoleShortcutsProps) {
             description: language === 'vi' ? 'Xem và quản lý lịch khám của bạn' : 'View and manage your appointments',
             icon: Calendar,
             href: '/patient/appointments',
-            color: 'text-blue-600',
-            bgColor: 'bg-blue-50 dark:bg-blue-950/20',
+            color: 'text-medical-cardiology',
+            bgColor: 'bg-medical-cardiology/10 dark:bg-medical-cardiology/20',
             count: '3',
           },
           {
@@ -48,8 +48,8 @@ export function RoleShortcuts({ session }: RoleShortcutsProps) {
             description: language === 'vi' ? 'Truy cập hồ sơ bệnh án điện tử' : 'Access your electronic medical records',
             icon: FileText,
             href: '/patient/medical-records',
-            color: 'text-green-600',
-            bgColor: 'bg-green-50 dark:bg-green-950/20',
+            color: 'text-medical-pediatrics',
+            bgColor: 'bg-medical-pediatrics/10 dark:bg-medical-pediatrics/20',
             count: '12',
           },
           {
@@ -57,8 +57,8 @@ export function RoleShortcuts({ session }: RoleShortcutsProps) {
             description: language === 'vi' ? 'Nhắc nhở và thông báo quan trọng' : 'Important reminders and notifications',
             icon: Bell,
             href: '/patient/reminders',
-            color: 'text-orange-600',
-            bgColor: 'bg-orange-50 dark:bg-orange-950/20',
+            color: 'text-medical-emergency',
+            bgColor: 'bg-medical-emergency/10 dark:bg-medical-emergency/20',
             count: '2',
           },
           {
@@ -66,8 +66,8 @@ export function RoleShortcuts({ session }: RoleShortcutsProps) {
             description: language === 'vi' ? 'Theo dõi chỉ số sức khỏe' : 'Track your health metrics',
             icon: Activity,
             href: '/patient/health-tracking',
-            color: 'text-purple-600',
-            bgColor: 'bg-purple-50 dark:bg-purple-950/20',
+            color: 'text-medical-pharmacy',
+            bgColor: 'bg-medical-pharmacy/10 dark:bg-medical-pharmacy/20',
           },
         ];
 
@@ -78,8 +78,8 @@ export function RoleShortcuts({ session }: RoleShortcutsProps) {
             description: language === 'vi' ? 'Lịch làm việc và bệnh nhân hôm nay' : 'Today\'s schedule and patients',
             icon: Clock,
             href: '/doctors/today',
-            color: 'text-blue-600',
-            bgColor: 'bg-blue-50 dark:bg-blue-950/20',
+            color: 'text-medical-cardiology',
+            bgColor: 'bg-medical-cardiology/10 dark:bg-medical-cardiology/20',
             count: '8',
           },
           {
@@ -87,8 +87,8 @@ export function RoleShortcuts({ session }: RoleShortcutsProps) {
             description: language === 'vi' ? 'Yêu cầu tư vấn chờ phản hồi' : 'Pending consultation requests',
             icon: Stethoscope,
             href: '/doctors/consultation',
-            color: 'text-red-600',
-            bgColor: 'bg-red-50 dark:bg-red-950/20',
+            color: 'text-medical-emergency',
+            bgColor: 'bg-medical-emergency/10 dark:bg-medical-emergency/20',
             count: '5',
           },
           {
@@ -96,8 +96,8 @@ export function RoleShortcuts({ session }: RoleShortcutsProps) {
             description: language === 'vi' ? 'Hồ sơ bệnh nhân đang điều trị' : 'Patient records under care',
             icon: FileText,
             href: '/doctors/patients',
-            color: 'text-green-600',
-            bgColor: 'bg-green-50 dark:bg-green-950/20',
+            color: 'text-medical-pediatrics',
+            bgColor: 'bg-medical-pediatrics/10 dark:bg-medical-pediatrics/20',
             count: '24',
           },
           {
@@ -105,8 +105,8 @@ export function RoleShortcuts({ session }: RoleShortcutsProps) {
             description: language === 'vi' ? 'Cập nhật thông tin cá nhân' : 'Update your professional profile',
             icon: Settings,
             href: '/doctors/profile',
-            color: 'text-purple-600',
-            bgColor: 'bg-purple-50 dark:bg-purple-950/20',
+            color: 'text-medical-neurology',
+            bgColor: 'bg-medical-neurology/10 dark:bg-medical-neurology/20',
           },
         ];
 

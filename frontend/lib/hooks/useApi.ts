@@ -36,7 +36,7 @@ export const useApi = <T>(
     try {
       const response = await apiFunction(...executeArgs);
 
-      if (response.success && response.data) {
+      if (response?.success && response.data) {
         setState({
           data: response.data,
           isLoading: false,
@@ -48,7 +48,7 @@ export const useApi = <T>(
         setState({
           data: null,
           isLoading: false,
-          error: response.error?.message || 'An error occurred',
+          error: response?.error?.message || 'An error occurred',
           isSuccess: false,
         });
         return null;

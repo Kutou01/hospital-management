@@ -40,9 +40,41 @@ A comprehensive microservices-based hospital management system built with modern
 
 ## 🏗️ Architecture
 
+### **Clean Microservices Structure** *(Updated 2025-01-17)*
+
+```
+hospital-management/
+├── backend/                 # Microservices Backend
+│   ├── services/           # 11 Microservices
+│   │   ├── api-gateway/    # Main API Gateway (port 3100)
+│   │   ├── graphql-gateway/# GraphQL Gateway (port 3200)
+│   │   ├── auth-service/   # Authentication & Authorization
+│   │   ├── appointment-service/
+│   │   ├── doctor-service/
+│   │   ├── patient-service/
+│   │   ├── department-service/
+│   │   ├── medical-records-service/
+│   │   ├── notification-service/
+│   │   ├── payment-service/
+│   │   └── receptionist-service/
+│   ├── docker-compose.yml  # Container orchestration
+│   └── shared/            # Shared utilities
+├── frontend/              # Next.js Frontend
+│   ├── app/              # App Router pages
+│   ├── components/       # React components
+│   ├── lib/             # Frontend utilities & services
+│   └── middleware.ts    # Authentication middleware
+├── docs/                # Documentation
+├── schemas/            # Database schemas
+└── scripts/           # Organized scripts
+    ├── testing/       # Test scripts
+    ├── database/      # Database scripts
+    └── deployment/    # Deployment scripts
+```
+
 ### **Technology Stack**
 
-- **Backend**: Node.js + TypeScript + Express.js (9 microservices)
+- **Backend**: Node.js + TypeScript + Express.js (11 microservices)
 - **Frontend**: Next.js 14 + React + TypeScript + Tailwind CSS
 - **Database**: Supabase (PostgreSQL) with 64 tables + AI features
 - **AI Integration**: OpenAI API + Medical knowledge base + Triage system

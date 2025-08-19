@@ -25,7 +25,7 @@ export interface SignUpData {
   email: string;
   password: string;
   full_name: string;
-  role: "admin" | "doctor" | "patient";
+  role: "admin" | "doctor" | "patient" | "receptionist";
   phone_number?: string;
   gender?: "male" | "female" | "other";
   date_of_birth?: string;
@@ -1504,6 +1504,49 @@ export class AuthService {
     } catch (error: any) {
       logger.error("OAuth callback service error:", error);
       return { error: "Internal server error" };
+    }
+  }
+
+  /**
+   * Check if email is available for registration
+   */
+  async checkEmailAvailability(email: string): Promise<boolean> {
+    try {
+      logger.info(`🔍 Checking email availability in database: ${email}`);
+
+      // Check if email exists in profiles table
+      const { data, error } = await supabaseAdmin
+        .from("profiles")
+        .select("id")
+        .eq("email", email.toLowerCase())
+        .single();
+
+      if (error) {
+        // If error is "PGRST116" (no rows found), email is available
+        if (error.code === "PGRST116") {
+          logger.info(`✅ Email is available: ${email}`);
+          return true;
+        }
+
+        // Other errors should be logged and treated as unavailable for safety
+        logger.error("Error checking email availability:", error);
+        return false;
+      }
+
+      // If data exists, email is already taken
+      if (data) {
+        logger.info(`❌ Email is already registered: ${email}`);
+        return false;
+      }
+
+      // Default to available if no data and no error
+      logger.info(`✅ Email is available: ${email}`);
+      return true;
+
+    } catch (error: any) {
+      logger.error("Email availability check service error:", error);
+      // Return false for safety in case of errors
+      return false;
     }
   }
 }

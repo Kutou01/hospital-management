@@ -3,18 +3,22 @@
 // =====================================================
 // Phiên bản đơn giản chỉ sử dụng tiếng Việt
 
-// Base interface for all enum tables
+// Base interface for status_values table (main enum table)
 export interface BaseEnum {
-  id: number;
-  code: string;
-  name: string; // Changed from name_vi to name
-  description?: string; // Changed from description_vi to description
+  status_id: string;
+  status_type: string;
+  status_value: string;
+  status_label: string;
+  description?: string;
   color_code?: string;
   icon_name?: string;
   sort_order: number;
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  code?: string;
+  name?: string;
+  applies_to?: string;
 }
 
 // Individual enum table interfaces

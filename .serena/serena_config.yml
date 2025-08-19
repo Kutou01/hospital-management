@@ -1,0 +1,72 @@
+# Serena Global Configuration
+# This file contains global settings that apply to all clients and projects
+
+# General settings
+dashboard_enabled: true
+dashboard_port: 24282
+gui_enabled: false # Disabled on Windows for better compatibility
+
+# Language server settings
+language_server_timeout: 30
+language_server_restart_on_failure: true
+
+# Tool settings
+record_tool_usage_stats: true
+enable_shell_execution: true
+enable_file_editing: true
+
+# Context and mode settings
+default_context: "ide-assistant" # Best for development work
+default_modes: ["editing", "interactive"]
+
+# Project settings
+auto_activate_last_project: true
+auto_index_projects: false # Manual indexing for better control
+
+# Memory settings
+max_memory_files: 50
+memory_retention_days: 30
+
+# Logging settings
+log_level: "INFO"
+log_to_file: true
+log_file_path: ".serena/logs/serena.log"
+
+# Performance settings
+max_concurrent_language_servers: 3
+language_server_memory_limit: "512MB"
+
+# Security settings
+allowed_shell_commands:
+  [
+    "npm",
+    "node",
+    "npx",
+    "yarn",
+    "pnpm",
+    "git",
+    "docker",
+    "docker-compose",
+    "uv",
+    "uvx",
+    "python",
+    "pip",
+    "echo",
+    "ls",
+    "cat",
+    "head",
+    "tail",
+    "grep",
+    "find",
+    "wc",
+    "sort",
+    "uniq",
+  ]
+
+# Hospital Management specific settings
+project_specific_settings:
+  hospital-management:
+    preferred_language_servers: ["typescript", "javascript"]
+    auto_restart_language_server: true
+    enable_testing_tools: true
+    enable_database_tools: true

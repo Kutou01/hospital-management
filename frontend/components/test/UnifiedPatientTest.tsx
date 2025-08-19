@@ -253,7 +253,7 @@ export default function UnifiedPatientTest() {
         emergency_contact: { name: 'Emergency Contact', phone: '0123456789', relationship: 'Family' }
       }
 
-      const response = await fetch('http://localhost:3001/api/auth/register-patient', {
+      const response = await fetch('http://localhost:3100/api/auth/register-patient', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(registrationData)

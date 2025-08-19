@@ -3,7 +3,7 @@
  * This ensures consistent routing across the application
  */
 
-export type UserRole = 'admin' | 'doctor' | 'patient'
+export type UserRole = 'admin' | 'doctor' | 'patient' | 'staff' | 'receptionist' | 'superadmin'
 
 /**
  * Get the dashboard path for a given user role
@@ -15,7 +15,11 @@ export function getDashboardPath(role: UserRole): string {
     case 'patient':
       return '/patient/dashboard'
     case 'admin':
+    case 'superadmin':
       return '/admin/dashboard'
+    case 'staff':
+    case 'receptionist':
+      return '/staff/dashboard'
     default:
       return '/auth/login'
   }

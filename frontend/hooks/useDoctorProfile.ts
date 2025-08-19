@@ -35,6 +35,10 @@ export function useDoctorProfile(doctorId: string): UseDoctorProfileReturn {
       }
 
       const doctorData = doctorResponse.data
+      if (!doctorData) {
+        throw new Error('No doctor data received from API')
+      }
+
       setDoctor(doctorData)
 
       // Extract the actual doctor_id from the response

@@ -1,4 +1,4 @@
-import type { Config } from "tailwindcss"
+import type { Config } from "tailwindcss";
 
 const config = {
   darkMode: ["class"],
@@ -26,7 +26,7 @@ const config = {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
-          DEFAULT: "#003087",
+          DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
         },
         secondary: {
@@ -48,6 +48,21 @@ const config = {
         popover: {
           DEFAULT: "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",
+        },
+        // Medical Status Colors
+        success: "hsl(var(--success))",
+        warning: "hsl(var(--warning))",
+        info: "hsl(var(--info))",
+        // Medical Specialty Colors
+        medical: {
+          cardiology: "hsl(var(--cardiology))",
+          neurology: "hsl(var(--neurology))",
+          pediatrics: "hsl(var(--pediatrics))",
+          orthopedics: "hsl(var(--orthopedics))",
+          dermatology: "hsl(var(--dermatology))",
+          emergency: "hsl(var(--emergency))",
+          pharmacy: "hsl(var(--pharmacy))",
+          radiology: "hsl(var(--radiology))",
         },
         card: {
           DEFAULT: "hsl(var(--card))",
@@ -76,6 +91,6 @@ const config = {
     },
   },
   plugins: [require("tailwindcss-animate")],
-} satisfies Config
+} satisfies Config;
 
-export default config
+export default config;

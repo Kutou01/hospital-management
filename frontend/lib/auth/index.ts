@@ -1,17 +1,23 @@
 // Auth API exports - now using Auth Service
-export { authServiceApi as authApi } from '../api/auth';
+export { authServiceApi as authApi } from "../api/auth";
 export type {
+  AuthResponse,
   AuthUser as HospitalUser,
   LoginCredentials,
   RegisterData,
-  AuthResponse
-} from '../api/auth';
+} from "../api/auth";
 
 // Export client-side auth guard hook
-export { useAuthGuard, withAuthGuard, useAdminGuard, useDoctorGuard, usePatientGuard } from '../../hooks/useAuthGuard';
+export {
+  useAdminGuard,
+  useAuthGuard,
+  useDoctorGuard,
+  usePatientGuard,
+  withAuthGuard,
+} from "../../hooks/useAuthGuard";
 
 // Export client-side RLS helpers
-export { clientRLS } from './rls-helpers';
+export { clientRLS } from "./rls-helpers";
 
-// Note: Server-side auth-guard (withServerAuth) should be imported directly
-// from lib/auth/auth-guard.ts in server components and getServerSideProps
+// Note: Server-side authentication is now handled by middleware.ts
+// Use client-side auth guards for component-level protection

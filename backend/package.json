@@ -15,7 +15,7 @@
     "dev:patient": "cd services/patient-service && npm run dev",
     "dev:appointment": "cd services/appointment-service && npm run dev",
     "dev:medical-records": "cd services/medical-records-service && npm run dev",
-    "dev:prescription": "cd services/prescription-service && npm run dev",
+    // REMOVED: "dev:prescription" - merged into medical-records service
     "dev:billing": "cd services/billing-service && npm run dev",
     "dev:room": "cd services/room-service && npm run dev",
     "dev:notification": "cd services/notification-service && npm run dev",

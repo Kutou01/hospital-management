@@ -900,12 +900,8 @@ export function createApp(): express.Application {
             "http://medical-records-service:3006",
           status: "active",
         },
-        prescriptions: {
-          url:
-            process.env.PRESCRIPTION_SERVICE_URL ||
-            "http://prescription-service:3007",
-          status: "active",
-        },
+        // REMOVED: prescriptions service - merged into medical-records service
+        // Prescription endpoints now available at /api/medical-records/prescriptions/*
 
         notifications: {
           url:

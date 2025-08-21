@@ -1,10 +1,10 @@
-import logger from '@hospital/shared/dist/utils/logger';
-import axios from 'axios';
+import logger from "@hospital/shared/dist/utils/logger";
+import axios from "axios";
 
 export interface ServiceInfo {
   name: string;
   url: string;
-  status: 'healthy' | 'unhealthy' | 'unknown';
+  status: "healthy" | "unhealthy" | "unknown";
   lastHealthCheck: Date;
   responseTime?: number;
   version?: string;
@@ -19,7 +19,7 @@ export interface ServiceRegistryConfig {
 
 /**
  * Service Registry for Pure API Gateway Communication
- * 
+ *
  * This service manages service discovery and health monitoring
  * for all microservices in the hospital management system.
  */
@@ -45,48 +45,53 @@ export class ServiceRegistryService {
   private initializeServices(): void {
     const serviceConfigs = [
       {
-        name: 'auth',
-        url: process.env.AUTH_SERVICE_URL || 'http://auth-service:3001',
+        name: "auth",
+        url: process.env.AUTH_SERVICE_URL || "http://auth-service:3001",
       },
       {
-        name: 'doctors',
-        url: process.env.DOCTOR_SERVICE_URL || 'http://doctor-service:3002',
+        name: "doctors",
+        url: process.env.DOCTOR_SERVICE_URL || "http://doctor-service:3002",
       },
       {
-        name: 'patients',
-        url: process.env.PATIENT_SERVICE_URL || 'http://patient-service:3003',
+        name: "patients",
+        url: process.env.PATIENT_SERVICE_URL || "http://patient-service:3003",
       },
       {
-        name: 'appointments',
-        url: process.env.APPOINTMENT_SERVICE_URL || 'http://appointment-service:3004',
+        name: "appointments",
+        url:
+          process.env.APPOINTMENT_SERVICE_URL ||
+          "http://appointment-service:3004",
       },
       {
-        name: 'departments',
-        url: process.env.DEPARTMENT_SERVICE_URL || 'http://department-service:3005',
+        name: "departments",
+        url:
+          process.env.DEPARTMENT_SERVICE_URL ||
+          "http://department-service:3005",
       },
       {
-        name: 'medical-records',
-        url: process.env.MEDICAL_RECORDS_SERVICE_URL || 'http://medical-records-service:3006',
+        name: "medical-records",
+        url:
+          process.env.MEDICAL_RECORDS_SERVICE_URL ||
+          "http://medical-records-service:3006",
+      },
+      // REMOVED: prescriptions service - merged into medical-records service
+      {
+        name: "billing",
+        url: process.env.BILLING_SERVICE_URL || "http://billing-service:3008",
       },
       {
-        name: 'prescriptions',
-        url: process.env.PRESCRIPTION_SERVICE_URL || 'http://prescription-service:3007',
-      },
-      {
-        name: 'billing',
-        url: process.env.BILLING_SERVICE_URL || 'http://billing-service:3008',
-      },
-      {
-        name: 'notifications',
-        url: process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:3011',
+        name: "notifications",
+        url:
+          process.env.NOTIFICATION_SERVICE_URL ||
+          "http://notification-service:3011",
       },
     ];
 
-    serviceConfigs.forEach(config => {
+    serviceConfigs.forEach((config) => {
       this.registerService(config.name, config.url);
     });
 
-    logger.info('🏥 Service Registry initialized', {
+    logger.info("🏥 Service Registry initialized", {
       servicesCount: this.services.size,
       services: Array.from(this.services.keys()),
     });
@@ -99,18 +104,21 @@ export class ServiceRegistryService {
     const serviceInfo: ServiceInfo = {
       name,
       url,
-      status: 'unknown',
+      status: "unknown",
       lastHealthCheck: new Date(),
       version,
     };
 
     this.services.set(name, serviceInfo);
-    
-    logger.info('📝 Service registered', { name, url, version });
+
+    logger.info("📝 Service registered", { name, url, version });
 
     // Perform immediate health check
-    this.performHealthCheck(name).catch(error => {
-      logger.warn('⚠️ Initial health check failed for service', { name, error: error.message });
+    this.performHealthCheck(name).catch((error) => {
+      logger.warn("⚠️ Initial health check failed for service", {
+        name,
+        error: error.message,
+      });
     });
   }
 
@@ -120,7 +128,7 @@ export class ServiceRegistryService {
   unregisterService(name: string): boolean {
     const removed = this.services.delete(name);
     if (removed) {
-      logger.info('🗑️ Service unregistered', { name });
+      logger.info("🗑️ Service unregistered", { name });
     }
     return removed;
   }
@@ -143,7 +151,9 @@ export class ServiceRegistryService {
    * Get healthy services only
    */
   getHealthyServices(): ServiceInfo[] {
-    return Array.from(this.services.values()).filter(service => service.status === 'healthy');
+    return Array.from(this.services.values()).filter(
+      (service) => service.status === "healthy"
+    );
   }
 
   /**
@@ -158,14 +168,17 @@ export class ServiceRegistryService {
     // If health check is stale (older than 2x interval), mark as unknown
     const staleThreshold = this.config.healthCheckInterval * 2;
     const timeSinceLastCheck = Date.now() - service.lastHealthCheck.getTime();
-    
-    if (timeSinceLastCheck > staleThreshold && service.status !== 'unknown') {
-      service.status = 'unknown';
-      logger.warn('⚠️ Service health status marked as unknown due to stale data', {
-        name,
-        timeSinceLastCheck,
-        staleThreshold,
-      });
+
+    if (timeSinceLastCheck > staleThreshold && service.status !== "unknown") {
+      service.status = "unknown";
+      logger.warn(
+        "⚠️ Service health status marked as unknown due to stale data",
+        {
+          name,
+          timeSinceLastCheck,
+          staleThreshold,
+        }
+      );
     }
 
     return service;
@@ -183,7 +196,7 @@ export class ServiceRegistryService {
       this.performAllHealthChecks();
     }, this.config.healthCheckInterval);
 
-    logger.info('🔄 Health checks started', {
+    logger.info("🔄 Health checks started", {
       interval: this.config.healthCheckInterval,
       timeout: this.config.healthCheckTimeout,
     });
@@ -196,7 +209,7 @@ export class ServiceRegistryService {
     if (this.healthCheckInterval) {
       clearInterval(this.healthCheckInterval);
       this.healthCheckInterval = null;
-      logger.info('⏹️ Health checks stopped');
+      logger.info("⏹️ Health checks stopped");
     }
   }
 
@@ -204,10 +217,14 @@ export class ServiceRegistryService {
    * Perform health checks for all services
    */
   private async performAllHealthChecks(): Promise<void> {
-    const healthCheckPromises = Array.from(this.services.keys()).map(serviceName =>
-      this.performHealthCheck(serviceName).catch(error => {
-        logger.error('❌ Health check failed', { serviceName, error: error.message });
-      })
+    const healthCheckPromises = Array.from(this.services.keys()).map(
+      (serviceName) =>
+        this.performHealthCheck(serviceName).catch((error) => {
+          logger.error("❌ Health check failed", {
+            serviceName,
+            error: error.message,
+          });
+        })
     );
 
     await Promise.allSettled(healthCheckPromises);
@@ -215,7 +232,7 @@ export class ServiceRegistryService {
     const healthyCount = this.getHealthyServices().length;
     const totalCount = this.services.size;
 
-    logger.debug('🏥 Health check cycle completed', {
+    logger.debug("🏥 Health check cycle completed", {
       healthy: healthyCount,
       total: totalCount,
       unhealthy: totalCount - healthyCount,
@@ -228,7 +245,9 @@ export class ServiceRegistryService {
   private async performHealthCheck(serviceName: string): Promise<void> {
     const service = this.services.get(serviceName);
     if (!service) {
-      logger.warn('⚠️ Attempted health check for unregistered service', { serviceName });
+      logger.warn("⚠️ Attempted health check for unregistered service", {
+        serviceName,
+      });
       return;
     }
 
@@ -243,19 +262,19 @@ export class ServiceRegistryService {
         });
 
         const responseTime = Date.now() - startTime;
-        
+
         // Update service info
-        service.status = 'healthy';
+        service.status = "healthy";
         service.lastHealthCheck = new Date();
         service.responseTime = responseTime;
-        
+
         // Extract additional info from health response if available
         if (response.data) {
           service.version = response.data.version || service.version;
           service.uptime = response.data.uptime || service.uptime;
         }
 
-        logger.debug('✅ Health check passed', {
+        logger.debug("✅ Health check passed", {
           serviceName,
           responseTime,
           retries,
@@ -264,13 +283,13 @@ export class ServiceRegistryService {
         return;
       } catch (error: any) {
         retries++;
-        
+
         if (retries >= this.config.maxRetries) {
-          service.status = 'unhealthy';
+          service.status = "unhealthy";
           service.lastHealthCheck = new Date();
           service.responseTime = Date.now() - startTime;
 
-          logger.warn('❌ Health check failed after all retries', {
+          logger.warn("❌ Health check failed after all retries", {
             serviceName,
             retries,
             error: error.message,
@@ -279,7 +298,7 @@ export class ServiceRegistryService {
         } else {
           // Wait before retry (exponential backoff)
           const delay = Math.pow(2, retries - 1) * 1000;
-          await new Promise(resolve => setTimeout(resolve, delay));
+          await new Promise((resolve) => setTimeout(resolve, delay));
         }
       }
     }
@@ -296,17 +315,19 @@ export class ServiceRegistryService {
     averageResponseTime: number;
   } {
     const services = Array.from(this.services.values());
-    const healthy = services.filter(s => s.status === 'healthy');
-    const unhealthy = services.filter(s => s.status === 'unhealthy');
-    const unknown = services.filter(s => s.status === 'unknown');
-    
+    const healthy = services.filter((s) => s.status === "healthy");
+    const unhealthy = services.filter((s) => s.status === "unhealthy");
+    const unknown = services.filter((s) => s.status === "unknown");
+
     const responseTimes = services
-      .filter(s => s.responseTime !== undefined)
-      .map(s => s.responseTime!);
-    
-    const averageResponseTime = responseTimes.length > 0
-      ? responseTimes.reduce((sum, time) => sum + time, 0) / responseTimes.length
-      : 0;
+      .filter((s) => s.responseTime !== undefined)
+      .map((s) => s.responseTime!);
+
+    const averageResponseTime =
+      responseTimes.length > 0
+        ? responseTimes.reduce((sum, time) => sum + time, 0) /
+          responseTimes.length
+        : 0;
 
     return {
       total: services.length,
@@ -331,6 +352,6 @@ export class ServiceRegistryService {
   destroy(): void {
     this.stopHealthChecks();
     this.services.clear();
-    logger.info('🧹 Service Registry destroyed');
+    logger.info("🧹 Service Registry destroyed");
   }
 }

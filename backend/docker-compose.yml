@@ -90,7 +90,7 @@ services:
       - DEPARTMENT_SERVICE_URL=http://department-service:3005
       - RECEPTIONIST_SERVICE_URL=http://receptionist-service:3006
       - MEDICAL_RECORDS_SERVICE_URL=http://medical-records-service:3007
-      - PRESCRIPTION_SERVICE_URL=http://prescription-service:3008
+      # REMOVED: PRESCRIPTION_SERVICE_URL - merged into medical-records-service
       - PAYMENT_SERVICE_URL=http://payment-service:3009
       - NOTIFICATION_SERVICE_URL=http://notification-service:3011
       - GRAPHQL_GATEWAY_URL=http://graphql-gateway:3200

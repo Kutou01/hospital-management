@@ -228,12 +228,40 @@ export class AuthService {
   }
 
   /**
-   * Sign up a new user using Supabase Auth
+   * Sign up a new user using Supabase Auth with Enhanced Security
    */
   public async signUp(userData: SignUpData): Promise<AuthResponse> {
     let authData: any = null;
 
     try {
+      // Validate password against HIPAA-compliant policy
+      const passwordValidation = await this.validatePasswordPolicy(
+        userData.password,
+        userData.email,
+        userData.full_name
+      );
+
+      if (!passwordValidation.is_valid) {
+        logger.warn("Password validation failed:", {
+          email: userData.email,
+          errors: passwordValidation.errors,
+        });
+
+        return {
+          error: `Password does not meet security requirements: ${passwordValidation.errors.join(", ")}`,
+          details: {
+            validation: passwordValidation,
+            recommendations: passwordValidation.recommendations,
+          },
+        };
+      }
+
+      logger.info("✅ Password validation passed:", {
+        email: userData.email,
+        strength_level: passwordValidation.strength_level,
+        strength_score: passwordValidation.strength_score,
+      });
+
       // Create user in Supabase Auth
       const { data: authDataResult, error: authError } =
         await supabaseAdmin.auth.admin.createUser({
@@ -527,9 +555,77 @@ export class AuthService {
   }
 
   /**
-   * Sign in user using Supabase Auth
+   * Validate password against HIPAA-compliant policy
    */
-  public async signIn(email: string, password: string): Promise<AuthResponse> {
+  private async validatePasswordPolicy(
+    password: string,
+    email?: string,
+    fullName?: string
+  ): Promise<any> {
+    try {
+      const { data, error } = await supabaseAdmin.rpc(
+        "validate_password_policy",
+        {
+          password,
+          user_email: email,
+          user_name: fullName,
+        }
+      );
+
+      if (error) {
+        logger.warn("Password validation error:", error);
+        return { is_valid: false, errors: ["Password validation failed"] };
+      }
+
+      return data;
+    } catch (error) {
+      logger.warn("Password validation service error:", error);
+      return {
+        is_valid: false,
+        errors: ["Password validation service unavailable"],
+      };
+    }
+  }
+
+  /**
+   * Enhanced audit logging function
+   */
+  private async logAuditEvent(
+    actorId: string | null,
+    action: string,
+    resourceType: string,
+    resourceId?: string,
+    details?: any,
+    ipAddress?: string,
+    userAgent?: string,
+    severity: string = "info"
+  ): Promise<void> {
+    try {
+      await supabaseAdmin.rpc("enhanced_audit_log", {
+        p_actor_id: actorId,
+        p_action: action,
+        p_resource_type: resourceType,
+        p_resource_id: resourceId,
+        p_details: details,
+        p_ip_address: ipAddress,
+        p_user_agent: userAgent,
+        p_severity: severity,
+      });
+    } catch (error) {
+      logger.warn("Failed to log audit event:", error);
+      // Don't fail the main operation for audit logging failures
+    }
+  }
+
+  /**
+   * Sign in user using Enhanced Supabase Auth with Custom JWT Claims
+   */
+  public async signIn(
+    email: string,
+    password: string,
+    ipAddress?: string,
+    userAgent?: string
+  ): Promise<AuthResponse> {
     try {
       const { data, error } = await supabaseClient.auth.signInWithPassword({
         email,
@@ -538,6 +634,19 @@ export class AuthService {
 
       if (error) {
         logger.error("Sign in error:", error);
+
+        // Log failed authentication attempt
+        await this.logAuditEvent(
+          null, // No user ID for failed attempts
+          "AUTH_SIGN_IN_FAILED",
+          "AUTHENTICATION",
+          undefined,
+          { email, error: error.message },
+          ipAddress,
+          userAgent,
+          "warning"
+        );
+
         return { error: error.message };
       }
 
@@ -545,19 +654,55 @@ export class AuthService {
         return { error: "Invalid credentials" };
       }
 
-      // Get user profile
-      const { data: profile, error: profileError } = await supabaseAdmin
-        .from("profiles")
-        .select("*")
-        .eq("id", data.user.id)
-        .single();
+      // Decode enhanced JWT to get business data
+      let enhancedClaims: any = {};
+      try {
+        const jwt = require("jsonwebtoken");
+        const decoded = jwt.decode(data.session.access_token);
+        enhancedClaims = decoded || {};
 
-      if (profileError) {
-        logger.error("Profile fetch error:", profileError);
-        return { error: "User profile not found" };
+        logger.info("✅ Enhanced JWT Claims received:", {
+          userId: enhancedClaims.sub,
+          role: enhancedClaims.user_role,
+          roleSpecificId:
+            enhancedClaims.doctor_id ||
+            enhancedClaims.patient_id ||
+            enhancedClaims.admin_id,
+          permissions: enhancedClaims.permissions?.length || 0,
+          tokenVersion: enhancedClaims.token_version,
+        });
+      } catch (jwtError) {
+        logger.warn("JWT decode warning:", jwtError);
       }
 
-      if (!profile.is_active) {
+      // Enhanced security check with business logic
+      const { data: securityCheck, error: securityError } =
+        await supabaseAdmin.rpc("enhanced_user_authentication", {
+          p_user_id: data.user.id,
+          p_ip_address: ipAddress,
+          p_user_agent: userAgent,
+          p_action: "AUTH_SIGN_IN_SUCCESS",
+        });
+
+      if (securityError) {
+        logger.warn("Security check failed:", securityError);
+        // Continue with basic checks if security service fails
+      } else if (securityCheck && !securityCheck.success) {
+        logger.warn("Authentication blocked by security check:", {
+          userId: data.user.id,
+          error: securityCheck.error,
+          errorCode: securityCheck.error_code,
+          securityInfo: securityCheck.security_info,
+        });
+
+        return {
+          error: securityCheck.error,
+          securityInfo: securityCheck.security_info,
+        };
+      }
+
+      // Check if user is active (from JWT claims as fallback)
+      if (enhancedClaims.is_active === false) {
         return { error: "Account is inactive" };
       }
 
@@ -571,95 +716,65 @@ export class AuthService {
         // Don't fail the login, just log the warning
       }
 
-      // Get role-specific ID
-      let roleSpecificData = {};
-      try {
-        if (profile.role === "patient") {
-          logger.info("🔍 [SignIn] Fetching patient_id for profile:", {
-            profile_id: data.user.id,
-            email: data.user.email,
-          });
-
-          const { data: patientData, error: patientError } = await supabaseAdmin
-            .from("patients")
-            .select("patient_id")
-            .eq("profile_id", data.user.id)
-            .single();
-
-          logger.info("🔍 [SignIn] Patient query raw result:", {
-            patientData,
-            patientError,
-            profile_id: data.user.id,
-          });
-
-          if (patientError) {
-            logger.warn("⚠️ [SignIn] Patient query error:", {
-              error: patientError.message,
-              code: patientError.code,
-              profile_id: data.user.id,
-            });
-          }
-
-          if (patientData) {
-            logger.info("✅ [SignIn] Patient found:", {
-              patient_id: patientData.patient_id,
-              profile_id: data.user.id,
-            });
-            roleSpecificData = { patient_id: patientData.patient_id };
-            logger.info(
-              "🔍 [SignIn] roleSpecificData set to:",
-              roleSpecificData
-            );
-          } else {
-            logger.warn(
-              "⚠️ [SignIn] No patient data found for profile_id:",
-              data.user.id
-            );
-          }
-        } else if (profile.role === "doctor") {
-          const { data: doctorData } = await supabaseAdmin
-            .from("doctors")
-            .select("doctor_id")
-            .eq("profile_id", data.user.id)
-            .single();
-          if (doctorData) {
-            roleSpecificData = { doctor_id: doctorData.doctor_id };
-          }
-        } else if (profile.role === "admin") {
-          const { data: adminData } = await supabaseAdmin
-            .from("admins")
-            .select("admin_id")
-            .eq("profile_id", data.user.id)
-            .single();
-          if (adminData) {
-            roleSpecificData = { admin_id: adminData.admin_id };
-          }
-        }
-      } catch (roleError) {
-        logger.warn("Could not fetch role-specific ID:", roleError);
-      }
-
-      logger.info(
-        "🔍 [SignIn] Final roleSpecificData before return:",
-        roleSpecificData
-      );
-
+      // Build enhanced user object from JWT claims (no need for additional DB queries)
       const finalUser = {
         id: data.user.id,
         email: data.user.email,
-        full_name: profile.full_name,
-        role: profile.role,
-        phone_number: profile.phone_number,
-        is_active: profile.is_active,
+        full_name: enhancedClaims.full_name || data.user.email,
+        role: enhancedClaims.user_role || "unknown",
+        phone_number: enhancedClaims.phone_number,
+        date_of_birth: enhancedClaims.date_of_birth,
+        is_active: enhancedClaims.is_active,
+        email_verified: enhancedClaims.email_verified,
         last_sign_in_at: data.user.last_sign_in_at,
-        ...roleSpecificData,
+
+        // Role-specific IDs from JWT claims
+        ...(enhancedClaims.doctor_id && {
+          doctor_id: enhancedClaims.doctor_id,
+        }),
+        ...(enhancedClaims.patient_id && {
+          patient_id: enhancedClaims.patient_id,
+        }),
+        ...(enhancedClaims.admin_id && { admin_id: enhancedClaims.admin_id }),
+        ...(enhancedClaims.receptionist_id && {
+          receptionist_id: enhancedClaims.receptionist_id,
+        }),
+
+        // Enhanced data from JWT
+        permissions: enhancedClaims.permissions || [],
+        role_data: enhancedClaims.role_data || {},
+        token_version: enhancedClaims.token_version || "v1.0",
       };
+
+      // Log successful authentication
+      await this.logAuditEvent(
+        data.user.id,
+        "AUTH_SIGN_IN_SUCCESS",
+        "AUTHENTICATION",
+        data.user.id,
+        {
+          email: data.user.email,
+          role: enhancedClaims.user_role,
+          token_version: enhancedClaims.token_version,
+          permissions_count: enhancedClaims.permissions?.length || 0,
+        },
+        ipAddress,
+        userAgent,
+        "info"
+      );
 
       logger.info("🔍 [SignIn] Final user object:", finalUser);
 
       return {
         user: finalUser,
         session: data.session,
+        securityInfo: securityCheck
+          ? {
+              riskLevel: securityCheck.security_info?.risk_level,
+              riskScore: securityCheck.security_info?.risk_score,
+              sessionInfo: securityCheck.session_info,
+            }
+          : undefined,
       };
     } catch (error) {
       logger.error("Sign in service error:", error);
@@ -1542,7 +1657,6 @@ export class AuthService {
       // Default to available if no data and no error
       logger.info(`✅ Email is available: ${email}`);
       return true;
-
     } catch (error: any) {
       logger.error("Email availability check service error:", error);
       // Return false for safety in case of errors

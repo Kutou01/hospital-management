@@ -1,13 +1,15 @@
-import express from 'express';
-import { body, param, query } from 'express-validator';
-import { DoctorController } from '../controllers/doctor.controller';
-import { AppointmentStatsController } from '../controllers/appointment-stats.controller';
-import { WeeklyScheduleController } from '../controllers/weekly-schedule.controller';
-import { EnhancedReviewsController } from '../controllers/enhanced-reviews.controller';
-import { DashboardController } from '../controllers/dashboard.controller';
-import { authMiddleware, requireDoctor, authenticateToken } from '../middleware/auth.middleware';
-import logger from '@hospital/shared/dist/utils/logger';
-import { validateRequest, CommonValidationSchemas } from '@hospital/shared/dist/middleware/validation.middleware';
+import {
+  CommonValidationSchemas,
+  validateRequest,
+} from "@hospital/shared/dist/middleware/validation.middleware";
+import express from "express";
+import { body, param, query } from "express-validator";
+import { AppointmentStatsController } from "../controllers/appointment-stats.controller";
+import { DashboardController } from "../controllers/dashboard.controller";
+import { DoctorController } from "../controllers/doctor.controller";
+import { EnhancedReviewsController } from "../controllers/enhanced-reviews.controller";
+import { WeeklyScheduleController } from "../controllers/weekly-schedule.controller";
+import { authMiddleware, requireDoctor } from "../middleware/auth.middleware";
 
 // Force rebuild timestamp: 2025-06-23 01:15
 
@@ -20,117 +22,119 @@ const dashboardController = new DashboardController();
 
 // Validation middleware
 const validateCreateDoctor = [
-  body('full_name').notEmpty().withMessage('Full name is required'),
-  body('specialty').notEmpty().withMessage('Specialty is required'),
-  body('qualification').notEmpty().withMessage('Qualification is required'),
-  body('department_id').notEmpty().withMessage('Department ID is required'),
-  body('license_number').notEmpty().withMessage('License number is required'),
-  body('gender').isIn(['male', 'female', 'other']).withMessage('Valid gender is required'),
-  body('phone_number').optional().isMobilePhone('any'),
-  body('email').optional().isEmail().withMessage('Valid email is required'),
-  body('working_hours').optional().isObject(),
-  body('photo_url').optional().isURL()
+  body("full_name").notEmpty().withMessage("Full name is required"),
+  body("specialty").notEmpty().withMessage("Specialty is required"),
+  body("qualification").notEmpty().withMessage("Qualification is required"),
+  body("department_id").notEmpty().withMessage("Department ID is required"),
+  body("license_number").notEmpty().withMessage("License number is required"),
+  body("gender")
+    .isIn(["male", "female", "other"])
+    .withMessage("Valid gender is required"),
+  body("phone_number").optional().isMobilePhone("any"),
+  body("email").optional().isEmail().withMessage("Valid email is required"),
+  body("working_hours").optional().isObject(),
+  body("photo_url").optional().isURL(),
 ];
 
 const validateUpdateDoctor = [
-  body('full_name').optional().notEmpty(),
-  body('specialty').optional().notEmpty(),
-  body('qualification').optional().notEmpty(),
-  body('department_id').optional().notEmpty(),
-  body('license_number').optional().notEmpty(),
-  body('gender').optional().isIn(['male', 'female', 'other']),
-  body('phone_number').optional().isMobilePhone('any'),
-  body('email').optional().isEmail(),
-  body('schedule').optional().isObject(),
-  body('photo_url').optional().isURL(),
-  body('is_active').optional().isBoolean()
+  body("full_name").optional().notEmpty(),
+  body("specialty").optional().notEmpty(),
+  body("qualification").optional().notEmpty(),
+  body("department_id").optional().notEmpty(),
+  body("license_number").optional().notEmpty(),
+  body("gender").optional().isIn(["male", "female", "other"]),
+  body("phone_number").optional().isMobilePhone("any"),
+  body("email").optional().isEmail(),
+  body("schedule").optional().isObject(),
+  body("photo_url").optional().isURL(),
+  body("is_active").optional().isBoolean(),
 ];
 
 const validateDoctorId = [
-  param('doctorId').notEmpty().withMessage('Doctor ID is required')
+  param("doctorId").notEmpty().withMessage("Doctor ID is required"),
 ];
 
 const validateDepartmentId = [
-  param('departmentId').notEmpty().withMessage('Department ID is required')
+  param("departmentId").notEmpty().withMessage("Department ID is required"),
 ];
 
 const validateSearchQuery = [
-  query('specialty').optional().isString(),
-  query('department_id').optional().isString(),
-  query('gender').optional().isIn(['male', 'female', 'other']),
-  query('search').optional().isString(),
-  query('page').optional().isInt({ min: 1 }),
-  query('limit').optional().isInt({ min: 1, max: 100 })
+  query("specialty").optional().isString(),
+  query("department_id").optional().isString(),
+  query("gender").optional().isIn(["male", "female", "other"]),
+  query("search").optional().isString(),
+  query("page").optional().isInt({ min: 1 }),
+  query("limit").optional().isInt({ min: 1, max: 100 }),
 ];
 
 // Routes
 
 // GET /api/doctors/test-simple - Simple test without auth
-router.get('/test-simple', async (req, res) => {
+router.get("/test-simple", async (req, res) => {
   res.json({
     success: true,
-    message: 'Doctor service is working',
+    message: "Doctor service is working",
     timestamp: new Date().toISOString(),
-    service: 'doctor-service'
+    service: "doctor-service",
   });
 });
 
 // GET /api/doctors/test-all - Comprehensive test endpoint
-router.get('/test-all', async (req, res) => {
+router.get("/test-all", async (req, res) => {
   try {
     const testResults = {
-      service: 'Doctor Service',
-      status: 'healthy',
+      service: "Doctor Service",
+      status: "healthy",
       endpoints: {
-        health: '✅ Working',
-        getAllDoctors: '✅ Working',
-        getDoctorById: '✅ Working',
-        getDoctorByProfileId: '✅ Working',
-        searchDoctors: '✅ Enhanced with advanced filters',
-        createDoctor: '✅ Working',
-        updateDoctor: '✅ Working',
-        deleteDoctor: '✅ Working',
-        getDoctorProfile: '✅ Working',
-        scheduleManagement: '✅ Working',
-        experienceManagement: '✅ Working',
-        reviewManagement: '✅ Working',
-        shiftManagement: '✅ Working',
-        doctorStats: '✅ Working'
+        health: "✅ Working",
+        getAllDoctors: "✅ Working",
+        getDoctorById: "✅ Working",
+        getDoctorByProfileId: "✅ Working",
+        searchDoctors: "✅ Enhanced with advanced filters",
+        createDoctor: "✅ Working (redirects to Auth Service)",
+        updateDoctor: "✅ Working",
+        deleteDoctor: "✅ Working",
+        getDoctorProfile: "✅ Working",
+        scheduleManagement: "✅ Working",
+        experienceManagement: "✅ Working",
+        reviewManagement: "✅ Working",
+        shiftManagement: "✅ Working",
+        doctorStats: "✅ Working",
       },
       features: {
-        departmentBasedIds: '✅ Implemented',
-        scheduleManagement: '✅ Complete',
-        experienceTracking: '✅ Complete',
-        reviewSystem: '✅ Complete',
-        shiftManagement: '✅ Complete',
-        timeSlotGeneration: '✅ Complete',
-        weeklyScheduleGeneration: '✅ Complete',
-        profileAggregation: '✅ Complete',
-        statisticsReporting: '✅ Complete',
-        advancedSearch: '✅ Enhanced with 10+ filters',
-        performanceOptimization: '✅ Parallel queries & metrics',
-        errorHandling: '✅ Comprehensive validation'
+        departmentBasedIds: "✅ Implemented",
+        scheduleManagement: "✅ Complete",
+        experienceTracking: "✅ Complete",
+        reviewSystem: "✅ Complete",
+        shiftManagement: "✅ Complete",
+        timeSlotGeneration: "✅ Complete",
+        weeklyScheduleGeneration: "✅ Complete",
+        profileAggregation: "✅ Complete",
+        statisticsReporting: "✅ Complete",
+        advancedSearch: "✅ Enhanced with 10+ filters",
+        performanceOptimization: "✅ Parallel queries & metrics",
+        errorHandling: "✅ Comprehensive validation",
       },
       database: {
-        doctors: '✅ 124 records',
-        schedules: '✅ Auto-generated',
-        experiences: '✅ Ready for data',
-        reviews: '✅ Ready for data',
-        shifts: '✅ Ready for data'
+        doctors: "✅ 124 records",
+        schedules: "✅ Auto-generated",
+        experiences: "✅ Ready for data",
+        reviews: "✅ Ready for data",
+        shifts: "✅ Ready for data",
       },
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     res.json({
       success: true,
-      message: 'Doctor Service comprehensive test completed',
-      data: testResults
+      message: "Doctor Service comprehensive test completed",
+      data: testResults,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: 'Test failed',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      error: "Test failed",
+      message: error instanceof Error ? error.message : "Unknown error",
     });
   }
 });
@@ -156,7 +160,7 @@ router.get('/test-all', async (req, res) => {
  *       200:
  *         description: List of doctors
  */
-router.get('/', doctorController.getAllDoctors.bind(doctorController));
+router.get("/", doctorController.getAllDoctors.bind(doctorController));
 
 /**
  * @swagger
@@ -185,7 +189,11 @@ router.get('/', doctorController.getAllDoctors.bind(doctorController));
  *       200:
  *         description: Search results
  */
-router.get('/search', validateSearchQuery, doctorController.searchDoctors.bind(doctorController));
+router.get(
+  "/search",
+  validateSearchQuery,
+  doctorController.searchDoctors.bind(doctorController)
+);
 
 // =====================================================
 // REAL-TIME FEATURES (Must be before /:doctorId routes)
@@ -201,7 +209,10 @@ router.get('/search', validateSearchQuery, doctorController.searchDoctors.bind(d
  *       200:
  *         description: Real-time service status
  */
-router.get('/realtime/status', doctorController.getRealtimeStatus.bind(doctorController));
+router.get(
+  "/realtime/status",
+  doctorController.getRealtimeStatus.bind(doctorController)
+);
 
 /**
  * @swagger
@@ -222,9 +233,7 @@ router.get('/realtime/status', doctorController.getRealtimeStatus.bind(doctorCon
  *       200:
  *         description: Live doctors with real-time capabilities
  */
-router.get('/live', doctorController.getLiveDoctors.bind(doctorController));
-
-
+router.get("/live", doctorController.getLiveDoctors.bind(doctorController));
 
 /**
  * @swagger
@@ -244,7 +253,10 @@ router.get('/live', doctorController.getLiveDoctors.bind(doctorController));
  *       404:
  *         description: Doctor not found
  */
-router.get('/by-profile/:profileId', doctorController.getDoctorByProfileId.bind(doctorController));
+router.get(
+  "/by-profile/:profileId",
+  doctorController.getDoctorByProfileId.bind(doctorController)
+);
 
 // =====================================================
 // AUTHENTICATED DOCTOR DASHBOARD ROUTES (Must be before /:doctorId routes)
@@ -266,7 +278,12 @@ router.get('/by-profile/:profileId', doctorController.getDoctorByProfileId.bind(
  *       404:
  *         description: Doctor not found
  */
-router.get('/dashboard/stats', authMiddleware, requireDoctor, doctorController.getCurrentDoctorStats.bind(doctorController));
+router.get(
+  "/dashboard/stats",
+  authMiddleware,
+  requireDoctor,
+  doctorController.getCurrentDoctorStats.bind(doctorController)
+);
 
 /**
  * @swagger
@@ -302,8 +319,18 @@ router.get('/dashboard/stats', authMiddleware, requireDoctor, doctorController.g
  *       404:
  *         description: Doctor not found
  */
-router.get('/dashboard/profile', authMiddleware, requireDoctor, doctorController.getCurrentDoctorProfile.bind(doctorController));
-router.get('/dashboard/complete', authMiddleware, requireDoctor, doctorController.getDashboardComplete.bind(doctorController));
+router.get(
+  "/dashboard/profile",
+  authMiddleware,
+  requireDoctor,
+  doctorController.getCurrentDoctorProfile.bind(doctorController)
+);
+router.get(
+  "/dashboard/complete",
+  authMiddleware,
+  requireDoctor,
+  doctorController.getDashboardComplete.bind(doctorController)
+);
 
 /**
  * @swagger
@@ -319,7 +346,12 @@ router.get('/dashboard/complete', authMiddleware, requireDoctor, doctorControlle
  *       401:
  *         description: Unauthorized
  */
-router.get('/appointments/today', authMiddleware, requireDoctor, doctorController.getTodayAppointments.bind(doctorController));
+router.get(
+  "/appointments/today",
+  authMiddleware,
+  requireDoctor,
+  doctorController.getTodayAppointments.bind(doctorController)
+);
 
 /**
  * @swagger
@@ -335,7 +367,12 @@ router.get('/appointments/today', authMiddleware, requireDoctor, doctorControlle
  *       401:
  *         description: Unauthorized
  */
-router.get('/appointments/upcoming', authMiddleware, requireDoctor, doctorController.getUpcomingAppointments.bind(doctorController));
+router.get(
+  "/appointments/upcoming",
+  authMiddleware,
+  requireDoctor,
+  doctorController.getUpcomingAppointments.bind(doctorController)
+);
 
 /**
  * @swagger
@@ -351,7 +388,12 @@ router.get('/appointments/upcoming', authMiddleware, requireDoctor, doctorContro
  *       401:
  *         description: Unauthorized
  */
-router.get('/activity/recent', authMiddleware, requireDoctor, doctorController.getRecentActivity.bind(doctorController));
+router.get(
+  "/activity/recent",
+  authMiddleware,
+  requireDoctor,
+  doctorController.getRecentActivity.bind(doctorController)
+);
 
 /**
  * @swagger
@@ -371,7 +413,11 @@ router.get('/activity/recent', authMiddleware, requireDoctor, doctorController.g
  *       404:
  *         description: Doctor not found
  */
-router.get('/:doctorId', validateDoctorId, doctorController.getDoctorById.bind(doctorController));
+router.get(
+  "/:doctorId",
+  validateDoctorId,
+  doctorController.getDoctorById.bind(doctorController)
+);
 
 /**
  * @swagger
@@ -389,7 +435,11 @@ router.get('/:doctorId', validateDoctorId, doctorController.getDoctorById.bind(d
  *       200:
  *         description: List of doctors in department
  */
-router.get('/department/:departmentId', validateDepartmentId, doctorController.getDoctorsByDepartment.bind(doctorController));
+router.get(
+  "/department/:departmentId",
+  validateDepartmentId,
+  doctorController.getDoctorsByDepartment.bind(doctorController)
+);
 
 /**
  * @swagger
@@ -428,7 +478,8 @@ router.get('/department/:departmentId', validateDepartmentId, doctorController.g
  *       201:
  *         description: Doctor created successfully
  */
-router.post('/',
+router.post(
+  "/",
   validateRequest(CommonValidationSchemas.createDoctor),
   doctorController.createDoctor.bind(doctorController)
 );
@@ -451,7 +502,12 @@ router.post('/',
  *       404:
  *         description: Doctor not found
  */
-router.put('/:doctorId', validateDoctorId, validateUpdateDoctor, doctorController.updateDoctor.bind(doctorController));
+router.put(
+  "/:doctorId",
+  validateDoctorId,
+  validateUpdateDoctor,
+  doctorController.updateDoctor.bind(doctorController)
+);
 
 /**
  * @swagger
@@ -471,13 +527,15 @@ router.put('/:doctorId', validateDoctorId, validateUpdateDoctor, doctorControlle
  *       404:
  *         description: Doctor not found
  */
-router.delete('/:doctorId', validateDoctorId, doctorController.deleteDoctor.bind(doctorController));
+router.delete(
+  "/:doctorId",
+  validateDoctorId,
+  doctorController.deleteDoctor.bind(doctorController)
+);
 
 // =====================================================
 // ENHANCED DOCTOR PROFILE ROUTES
 // =====================================================
-
-
 
 /**
  * @swagger
@@ -497,7 +555,11 @@ router.delete('/:doctorId', validateDoctorId, doctorController.deleteDoctor.bind
  *       404:
  *         description: Doctor not found
  */
-router.get('/:doctorId/profile', validateDoctorId, doctorController.getDoctorProfile.bind(doctorController));
+router.get(
+  "/:doctorId/profile",
+  validateDoctorId,
+  doctorController.getDoctorProfile.bind(doctorController)
+);
 
 /**
  * @swagger
@@ -517,7 +579,8 @@ router.get('/:doctorId/profile', validateDoctorId, doctorController.getDoctorPro
  *       404:
  *         description: Doctor not found
  */
-router.get('/:doctorId/profile-dashboard',
+router.get(
+  "/:doctorId/profile-dashboard",
   validateDoctorId,
   dashboardController.getDoctorProfileDashboard.bind(dashboardController)
 );
@@ -542,7 +605,11 @@ router.get('/:doctorId/profile-dashboard',
  *       200:
  *         description: Doctor's schedule
  */
-router.get('/:doctorId/schedule', validateDoctorId, doctorController.getDoctorSchedule.bind(doctorController));
+router.get(
+  "/:doctorId/schedule",
+  validateDoctorId,
+  doctorController.getDoctorSchedule.bind(doctorController)
+);
 
 /**
  * @swagger
@@ -560,12 +627,20 @@ router.get('/:doctorId/schedule', validateDoctorId, doctorController.getDoctorSc
  *       200:
  *         description: Doctor's weekly schedule
  */
-router.get('/:doctorId/schedule/today', validateDoctorId, doctorController.getTodaySchedule.bind(doctorController));
+router.get(
+  "/:doctorId/schedule/today",
+  validateDoctorId,
+  doctorController.getTodaySchedule.bind(doctorController)
+);
 
 // Enhanced weekly schedule with real-time availability
-router.get('/:doctorId/schedule/weekly',
+router.get(
+  "/:doctorId/schedule/weekly",
   validateDoctorId,
-  query('date').optional().isISO8601().withMessage('Date must be valid ISO date'),
+  query("date")
+    .optional()
+    .isISO8601()
+    .withMessage("Date must be valid ISO date"),
   weeklyScheduleController.getWeeklySchedule.bind(weeklyScheduleController)
 );
 
@@ -596,7 +671,11 @@ router.get('/:doctorId/schedule/weekly',
  *       200:
  *         description: Schedule updated successfully
  */
-router.put('/:doctorId/schedule', validateDoctorId, doctorController.updateSchedule.bind(doctorController));
+router.put(
+  "/:doctorId/schedule",
+  validateDoctorId,
+  doctorController.updateSchedule.bind(doctorController)
+);
 
 /**
  * @swagger
@@ -620,7 +699,11 @@ router.put('/:doctorId/schedule', validateDoctorId, doctorController.updateSched
  *       200:
  *         description: Doctor's availability
  */
-router.get('/:doctorId/availability', validateDoctorId, doctorController.getAvailability.bind(doctorController));
+router.get(
+  "/:doctorId/availability",
+  validateDoctorId,
+  doctorController.getAvailability.bind(doctorController)
+);
 
 /**
  * @swagger
@@ -644,7 +727,11 @@ router.get('/:doctorId/availability', validateDoctorId, doctorController.getAvai
  *       200:
  *         description: Available time slots
  */
-router.get('/:doctorId/time-slots', validateDoctorId, doctorController.getAvailableTimeSlots.bind(doctorController));
+router.get(
+  "/:doctorId/time-slots",
+  validateDoctorId,
+  doctorController.getAvailableTimeSlots.bind(doctorController)
+);
 
 // =====================================================
 // REVIEW MANAGEMENT ROUTES
@@ -675,13 +762,29 @@ router.get('/:doctorId/time-slots', validateDoctorId, doctorController.getAvaila
  *         description: Doctor's reviews
  */
 // Enhanced reviews endpoint with Vietnamese support
-router.get('/:doctorId/reviews',
+router.get(
+  "/:doctorId/reviews",
   validateDoctorId,
-  query('page').optional().isInt({ min: 1 }).withMessage('Page must be positive integer'),
-  query('limit').optional().isInt({ min: 1, max: 50 }).withMessage('Limit must be between 1 and 50'),
-  query('sort').optional().isIn(['newest', 'oldest', 'rating_high', 'rating_low', 'helpful']).withMessage('Invalid sort option'),
-  query('rating_filter').optional().isInt({ min: 1, max: 5 }).withMessage('Rating filter must be between 1 and 5'),
-  query('verified_only').optional().isBoolean().withMessage('Verified only must be boolean'),
+  query("page")
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage("Page must be positive integer"),
+  query("limit")
+    .optional()
+    .isInt({ min: 1, max: 50 })
+    .withMessage("Limit must be between 1 and 50"),
+  query("sort")
+    .optional()
+    .isIn(["newest", "oldest", "rating_high", "rating_low", "helpful"])
+    .withMessage("Invalid sort option"),
+  query("rating_filter")
+    .optional()
+    .isInt({ min: 1, max: 5 })
+    .withMessage("Rating filter must be between 1 and 5"),
+  query("verified_only")
+    .optional()
+    .isBoolean()
+    .withMessage("Verified only must be boolean"),
   enhancedReviewsController.getDoctorReviews.bind(enhancedReviewsController)
 );
 
@@ -701,7 +804,11 @@ router.get('/:doctorId/reviews',
  *       200:
  *         description: Review statistics
  */
-router.get('/:doctorId/reviews/stats', validateDoctorId, doctorController.getReviewStats.bind(doctorController));
+router.get(
+  "/:doctorId/reviews/stats",
+  validateDoctorId,
+  doctorController.getReviewStats.bind(doctorController)
+);
 
 // =====================================================
 // APPOINTMENT MANAGEMENT ROUTES
@@ -746,7 +853,11 @@ router.get('/:doctorId/reviews/stats', validateDoctorId, doctorController.getRev
  *       404:
  *         description: Doctor not found
  */
-router.get('/:doctorId/appointments', validateDoctorId, doctorController.getDoctorAppointments.bind(doctorController));
+router.get(
+  "/:doctorId/appointments",
+  validateDoctorId,
+  doctorController.getDoctorAppointments.bind(doctorController)
+);
 
 /**
  * @swagger
@@ -766,7 +877,11 @@ router.get('/:doctorId/appointments', validateDoctorId, doctorController.getDoct
  *       404:
  *         description: Doctor not found
  */
-router.get('/:doctorId/stats', validateDoctorId, doctorController.getDoctorStats.bind(doctorController));
+router.get(
+  "/:doctorId/stats",
+  validateDoctorId,
+  doctorController.getDoctorStats.bind(doctorController)
+);
 
 // =====================================================
 // EXPERIENCE MANAGEMENT ROUTES
@@ -796,7 +911,11 @@ router.get('/:doctorId/stats', validateDoctorId, doctorController.getDoctorStats
  *       404:
  *         description: Doctor not found
  */
-router.get('/:doctorId/experiences', validateDoctorId, doctorController.getDoctorExperiences.bind(doctorController));
+router.get(
+  "/:doctorId/experiences",
+  validateDoctorId,
+  doctorController.getDoctorExperiences.bind(doctorController)
+);
 
 /**
  * @swagger
@@ -823,18 +942,33 @@ router.get('/:doctorId/experiences', validateDoctorId, doctorController.getDocto
  *         description: Doctor not found
  */
 // Enhanced appointment statistics endpoint
-router.get('/:doctorId/appointment-stats',
+router.get(
+  "/:doctorId/appointment-stats",
   validateDoctorId,
-  query('period').optional().isIn(['week', 'month', 'year']).withMessage('Period must be week, month, or year'),
-  query('start_date').optional().isISO8601().withMessage('Start date must be valid ISO date'),
-  query('include_trends').optional().isBoolean().withMessage('Include trends must be boolean'),
-  appointmentStatsController.getDoctorAppointmentStats.bind(appointmentStatsController)
+  query("period")
+    .optional()
+    .isIn(["week", "month", "year"])
+    .withMessage("Period must be week, month, or year"),
+  query("start_date")
+    .optional()
+    .isISO8601()
+    .withMessage("Start date must be valid ISO date"),
+  query("include_trends")
+    .optional()
+    .isBoolean()
+    .withMessage("Include trends must be boolean"),
+  appointmentStatsController.getDoctorAppointmentStats.bind(
+    appointmentStatsController
+  )
 );
 
 // Legacy endpoint for backward compatibility
-router.get('/:doctorId/appointments/stats',
+router.get(
+  "/:doctorId/appointments/stats",
   validateDoctorId,
-  appointmentStatsController.getDoctorAppointmentStats.bind(appointmentStatsController)
+  appointmentStatsController.getDoctorAppointmentStats.bind(
+    appointmentStatsController
+  )
 );
 
 export default router;

@@ -111,7 +111,16 @@ export class AuthController {
 
       const { email, password } = req.body;
 
-      const result = await this.authService.signIn(email, password);
+      // Extract IP address and user agent for audit logging
+      const ipAddress = req.ip || req.connection.remoteAddress || "unknown";
+      const userAgent = req.headers["user-agent"] || "unknown";
+
+      const result = await this.authService.signIn(
+        email,
+        password,
+        ipAddress,
+        userAgent
+      );
 
       if (result.error) {
         res.status(401).json({
@@ -951,7 +960,10 @@ export class AuthController {
   /**
    * Check if email is available for registration
    */
-  public checkEmailAvailability = async (req: Request, res: Response): Promise<void> => {
+  public checkEmailAvailability = async (
+    req: Request,
+    res: Response
+  ): Promise<void> => {
     try {
       // Check validation errors
       const errors = validationResult(req);
@@ -977,7 +989,6 @@ export class AuthController {
           ? "Email is available for registration"
           : "Email is already registered",
       });
-
     } catch (error) {
       logger.error("Check email availability error:", error);
       res.status(500).json({

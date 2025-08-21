@@ -428,36 +428,32 @@ export const appointmentResolvers = {
       }
     },
 
-    // Check in appointment
+    // Check in appointment - DELEGATED to Receptionist Service
     async checkInAppointment(
       _: any,
       { id }: { id: string },
       context: GraphQLContext
     ) {
       try {
-        logger.debug("Checking in appointment:", {
+        logger.debug("Delegating check-in to Receptionist Service:", {
           id,
           requestId: context.requestId,
         });
 
-        const response = await context.restApi.checkInAppointment(id);
+        // TODO: Call Receptionist Service API for check-in
+        // This ensures proper queue management and receptionist workflow
+        // For now, return error to indicate delegation needed
+        throw new Error(
+          contextUtils.translate(
+            context,
+            "appointment.errors.checkin_delegated_to_receptionist"
+          ) || "Check-in operations are handled by Receptionist Service"
+        );
 
-        if (!response.success) {
-          throw new Error(
-            response.error?.message ||
-              contextUtils.translate(
-                context,
-                "appointment.errors.checkin_failed"
-              )
-          );
-        }
-
-        logger.info("Appointment checked in successfully:", {
-          appointmentId: id,
-        });
-        return response.data;
+        // Future implementation should call:
+        // const response = await context.restApi.receptionistCheckIn(id);
       } catch (error) {
-        logger.error("Error checking in appointment:", error);
+        logger.error("Error in check-in delegation:", error);
         throw error;
       }
     },

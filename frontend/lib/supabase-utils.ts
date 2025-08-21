@@ -1,42 +1,19 @@
 // Utility functions for Supabase client management
-import { supabaseClient } from './supabase-client';
-import { createSupabaseServerClient } from './supabase-server';
-
-/**
- * Get the appropriate Supabase client based on environment
- * @param isServer - Whether this is running on server-side
- * @returns Supabase client instance
- */
-export async function getSupabaseClient(isServer: boolean = false) {
-  if (isServer) {
-    return await createSupabaseServerClient();
-  }
-  return supabaseClient;
-}
+// NOTE: This file is deprecated as we're moving away from Supabase Auth
+// Use Auth Service microservice instead for authentication
+import { supabaseClient } from "./supabase-client";
 
 /**
  * Client-side only Supabase client
- * Use this in React components, hooks, and client-side logic
+ * Use this only for database operations, NOT for authentication
+ * Authentication is now handled by Auth Service microservice
  */
 export const clientSupabase = supabaseClient;
 
 /**
- * Server-side Supabase client factory
- * Use this in API routes, getServerSideProps, and middleware
- */
-export const serverSupabase = createSupabaseServerClient;
-
-/**
  * Type guard to check if we're on the server
  */
-export const isServer = typeof window === 'undefined';
+export const isServer = typeof window === "undefined";
 
-/**
- * Get Supabase client with automatic environment detection
- */
-export async function getSupabase() {
-  return await getSupabaseClient(isServer);
-}
-
-// Re-export for convenience
-export { supabaseClient, createSupabaseServerClient };
+// Re-export for convenience (database operations only)
+export { supabaseClient };

@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { NextFunction, Request, Response } from "express";
 declare global {
     namespace Express {
         interface Request {
@@ -12,4 +12,6 @@ export declare const requireAdmin: (req: Request, res: Response, next: NextFunct
 export declare const requireDoctor: (req: Request, res: Response, next: NextFunction) => void;
 export declare const requirePatient: (req: Request, res: Response, next: NextFunction) => void;
 export declare const requireDoctorOrAdmin: (req: Request, res: Response, next: NextFunction) => void;
+export declare const requireReceptionist: (req: Request, res: Response, next: NextFunction) => void;
+export declare const requireReceptionistOrAdmin: (req: Request, res: Response, next: NextFunction) => void;
 //# sourceMappingURL=auth.middleware.d.ts.map

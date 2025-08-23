@@ -120,6 +120,7 @@ app.get("/metrics", getMetricsHandler);
 try {
   app.use("/api/auth", authRoutes);
   app.use("/api/auth", patientRegistrationRoutes);
+  app.use("/api/auth", mfaRoutes);
   app.use("/api/users", userRoutes);
   app.use("/api/sessions", sessionRoutes);
   logger.info("✅ Routes loaded successfully");
@@ -142,6 +143,7 @@ app.get("/", (req, res) => {
       health: "/health",
       docs: "/docs",
       auth: "/api/auth",
+      mfa: "/api/auth/mfa",
       users: "/api/users",
       sessions: "/api/sessions",
     },
@@ -157,6 +159,7 @@ app.use("*", (req, res) => {
     service: SERVICE_NAME,
     availableRoutes: [
       "/api/auth",
+      "/api/auth/mfa",
       "/api/users",
       "/api/sessions",
       "/health",

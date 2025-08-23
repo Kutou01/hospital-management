@@ -53,10 +53,31 @@ export interface AuthResponse {
     phone_number?: string;
     is_active?: boolean;
     last_sign_in_at?: string;
+    date_of_birth?: string;
+    email_verified?: boolean;
+    permissions?: string[];
+    role_data?: any;
+    token_version?: string;
+    receptionist_id?: string;
   } | null;
   session?: any;
   error?: string;
   url?: string; // For OAuth redirects
+  details?: {
+    validation?: any;
+    recommendations?: string[];
+  };
+  securityInfo?:
+    | {
+        riskLevel?: string;
+        riskScore?: number;
+        sessionInfo?: any;
+        risk_level?: string;
+        risk_score?: number;
+        security_info?: any;
+        session_info?: any;
+      }
+    | any;
 }
 
 export class AuthService {

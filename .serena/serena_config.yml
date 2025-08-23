@@ -70,3 +70,4 @@ project_specific_settings:
     auto_restart_language_server: true
     enable_testing_tools: true
     enable_database_tools: true
+

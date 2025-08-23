@@ -3,94 +3,116 @@
  * Handles sending various types of emails including invitations
  */
 
-import nodemailer from 'nodemailer'
-import { AuditLogger } from '../security/audit'
+import nodemailer from "nodemailer";
+import { AuditLogger } from "../security/audit";
+import { vaultService } from "./vault.service";
 
 interface EmailConfig {
-  host: string
-  port: number
-  secure: boolean
+  host: string;
+  port: number;
+  secure: boolean;
   auth: {
-    user: string
-    pass: string
-  }
+    user: string;
+    pass: string;
+  };
 }
 
 interface EmailTemplate {
-  subject: string
-  html: string
-  text: string
+  subject: string;
+  html: string;
+  text: string;
 }
 
 interface InvitationEmailData {
-  email: string
-  role: string
-  inviteUrl: string
-  invitedBy: string
-  departmentName?: string
-  message?: string
-  expiresAt: string
+  email: string;
+  role: string;
+  inviteUrl: string;
+  invitedBy: string;
+  departmentName?: string;
+  message?: string;
+  expiresAt: string;
 }
 
 class EmailService {
-  private transporter: nodemailer.Transporter | null = null
-  private isConfigured = false
+  private transporter: nodemailer.Transporter | null = null;
+  private isConfigured = false;
+  private initializationPromise: Promise<void> | null = null;
 
   constructor() {
-    this.initializeTransporter()
+    // Lazy initialization when first used
   }
 
-  private initializeTransporter() {
+  private async ensureInitialized(): Promise<void> {
+    if (!this.initializationPromise) {
+      this.initializationPromise = this.initializeTransporter();
+    }
+    return this.initializationPromise;
+  }
+
+  private async initializeTransporter() {
     try {
+      // Get configuration from Vault with fallback to environment variables
+      const [host, port, secure, user, pass, systemName] = await Promise.all([
+        vaultService.getConfig("smtp_host", "SMTP_HOST"),
+        vaultService.getConfig("smtp_port", "SMTP_PORT"),
+        vaultService.getConfig("smtp_secure", "SMTP_SECURE"),
+        vaultService.getConfig("smtp_user", "SMTP_USER"),
+        vaultService.getConfig("smtp_pass", "SMTP_PASS"),
+        vaultService.getConfig("hospital_system_name", "SYSTEM_NAME"),
+      ]);
+
       const config: EmailConfig = {
-        host: process.env.SMTP_HOST || 'smtp.gmail.com',
-        port: parseInt(process.env.SMTP_PORT || '587'),
-        secure: process.env.SMTP_SECURE === 'true',
+        host: host || "smtp.gmail.com",
+        port: parseInt(port || "587"),
+        secure: secure === "true",
         auth: {
-          user: process.env.SMTP_USER || '',
-          pass: process.env.SMTP_PASS || '',
+          user: user || "",
+          pass: pass || "",
         },
-      }
+      };
 
       if (!config.auth.user || !config.auth.pass) {
-        console.warn('Email service not configured: Missing SMTP credentials')
-        return
+        console.warn("Email service not configured: Missing SMTP credentials");
+        return;
       }
 
-      this.transporter = nodemailer.createTransporter(config)
-      this.isConfigured = true
+      this.transporter = nodemailer.createTransporter(config);
+      this.isConfigured = true;
+
+      console.log("📧 Email service initialized with Vault configuration");
 
       // Verify connection
       this.transporter.verify((error, success) => {
         if (error) {
-          console.error('Email service verification failed:', error)
-          this.isConfigured = false
+          console.error("Email service verification failed:", error);
+          this.isConfigured = false;
         } else {
-          console.log('Email service ready')
+          console.log("✅ Email service ready (Vault + SMTP)");
         }
-      })
+      });
     } catch (error) {
-      console.error('Failed to initialize email service:', error)
-      this.isConfigured = false
+      console.error("Failed to initialize email service:", error);
+      this.isConfigured = false;
     }
   }
 
   private generateInvitationTemplate(data: InvitationEmailData): EmailTemplate {
-    const roleDisplayName = {
-      doctor: 'Bác sĩ',
-      staff: 'Nhân viên',
-      admin: 'Quản trị viên',
-    }[data.role] || data.role
+    const roleDisplayName =
+      {
+        doctor: "Bác sĩ",
+        staff: "Nhân viên",
+        admin: "Quản trị viên",
+      }[data.role] || data.role;
 
-    const expiresDate = new Date(data.expiresAt).toLocaleDateString('vi-VN', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
+    const expiresDate = new Date(data.expiresAt).toLocaleDateString("vi-VN", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 
-    const subject = `Lời mời tham gia Hệ thống Quản lý Bệnh viện - ${roleDisplayName}`
+    const subject = `Lời mời tham gia Hệ thống Quản lý Bệnh viện - ${roleDisplayName}`;
 
     const html = `
 <!DOCTYPE html>
@@ -123,14 +145,22 @@ class EmailService {
             
             <p>Bạn đã được <strong>${data.invitedBy}</strong> mời tham gia Hệ thống Quản lý Bệnh viện với vai trò <strong>${roleDisplayName}</strong>.</p>
             
-            ${data.departmentName ? `<div class="info-box">
+            ${
+              data.departmentName
+                ? `<div class="info-box">
                 <strong>Khoa/Phòng:</strong> ${data.departmentName}
-            </div>` : ''}
+            </div>`
+                : ""
+            }
             
-            ${data.message ? `<div class="info-box">
+            ${
+              data.message
+                ? `<div class="info-box">
                 <strong>Tin nhắn từ người mời:</strong><br>
                 ${data.message}
-            </div>` : ''}
+            </div>`
+                : ""
+            }
             
             <p>Để chấp nhận lời mời và tạo tài khoản, vui lòng nhấp vào nút bên dưới:</p>
             
@@ -162,7 +192,7 @@ class EmailService {
     </div>
 </body>
 </html>
-    `
+    `;
 
     const text = `
 Lời mời tham gia Hệ thống Quản lý Bệnh viện
@@ -171,8 +201,8 @@ Xin chào!
 
 Bạn đã được ${data.invitedBy} mời tham gia Hệ thống Quản lý Bệnh viện với vai trò ${roleDisplayName}.
 
-${data.departmentName ? `Khoa/Phòng: ${data.departmentName}\n` : ''}
-${data.message ? `Tin nhắn từ người mời: ${data.message}\n` : ''}
+${data.departmentName ? `Khoa/Phòng: ${data.departmentName}\n` : ""}
+${data.message ? `Tin nhắn từ người mời: ${data.message}\n` : ""}
 
 Để chấp nhận lời mời và tạo tài khoản, vui lòng truy cập liên kết sau:
 ${data.inviteUrl}
@@ -186,129 +216,140 @@ Nếu bạn không mong đợi email này hoặc có bất kỳ câu hỏi nào,
 
 © 2024 Hệ thống Quản lý Bệnh viện. Tất cả quyền được bảo lưu.
 Email này được gửi tự động, vui lòng không trả lời.
-    `
+    `;
 
-    return { subject, html, text }
+    return { subject, html, text };
   }
 
   async sendInvitationEmail(data: InvitationEmailData): Promise<{
-    success: boolean
-    messageId?: string
-    error?: string
+    success: boolean;
+    messageId?: string;
+    error?: string;
   }> {
+    await this.ensureInitialized();
+
     if (!this.isConfigured || !this.transporter) {
-      console.warn('Email service not configured, skipping email send')
+      console.warn("Email service not configured, skipping email send");
       return {
         success: false,
-        error: 'Email service not configured'
-      }
+        error: "Email service not configured",
+      };
     }
 
     try {
-      const template = this.generateInvitationTemplate(data)
-      
+      const template = this.generateInvitationTemplate(data);
+
       const mailOptions = {
         from: {
-          name: 'Hệ thống Quản lý Bệnh viện',
-          address: process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@hospital.com'
+          name: "Hệ thống Quản lý Bệnh viện",
+          address:
+            process.env.SMTP_FROM ||
+            process.env.SMTP_USER ||
+            "noreply@hospital.com",
         },
         to: data.email,
         subject: template.subject,
         html: template.html,
         text: template.text,
-      }
+      };
 
-      const result = await this.transporter.sendMail(mailOptions)
+      const result = await this.transporter.sendMail(mailOptions);
 
       // Log successful email send
       await AuditLogger.log({
         actorId: undefined,
-        action: 'invitation_email_sent',
-        resourceType: 'email',
+        action: "invitation_email_sent",
+        resourceType: "email",
         resourceId: data.email,
         details: {
           email: data.email,
           role: data.role,
           messageId: result.messageId,
         },
-        severity: 'info',
-        ipAddress: '',
-        userAgent: '',
-      })
+        severity: "info",
+        ipAddress: "",
+        userAgent: "",
+      });
 
       return {
         success: true,
-        messageId: result.messageId
-      }
+        messageId: result.messageId,
+      };
     } catch (error) {
-      console.error('Failed to send invitation email:', error)
-      
+      console.error("Failed to send invitation email:", error);
+
       // Log email send failure
       await AuditLogger.logSecurityEvent(
-        'invitation_email_failed',
+        "invitation_email_failed",
         undefined,
         {
-          ipAddress: '',
-          userAgent: '',
+          ipAddress: "",
+          userAgent: "",
         },
         {
-          reason: 'email_send_failed',
+          reason: "email_send_failed",
           email: data.email,
-          error: error instanceof Error ? error.message : 'Unknown error'
+          error: error instanceof Error ? error.message : "Unknown error",
         }
-      )
+      );
 
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      }
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
     }
   }
 
   async sendTestEmail(to: string): Promise<{
-    success: boolean
-    messageId?: string
-    error?: string
+    success: boolean;
+    messageId?: string;
+    error?: string;
   }> {
+    await this.ensureInitialized();
+
     if (!this.isConfigured || !this.transporter) {
       return {
         success: false,
-        error: 'Email service not configured'
-      }
+        error: "Email service not configured",
+      };
     }
 
     try {
       const mailOptions = {
         from: {
-          name: 'Hệ thống Quản lý Bệnh viện',
-          address: process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@hospital.com'
+          name: "Hệ thống Quản lý Bệnh viện",
+          address:
+            process.env.SMTP_FROM ||
+            process.env.SMTP_USER ||
+            "noreply@hospital.com",
         },
         to,
-        subject: 'Test Email - Hệ thống Quản lý Bệnh viện',
-        html: '<h1>Test Email</h1><p>Email service is working correctly!</p>',
-        text: 'Test Email\n\nEmail service is working correctly!',
-      }
+        subject: "Test Email - Hệ thống Quản lý Bệnh viện",
+        html: "<h1>Test Email</h1><p>Email service is working correctly!</p>",
+        text: "Test Email\n\nEmail service is working correctly!",
+      };
 
-      const result = await this.transporter.sendMail(mailOptions)
+      const result = await this.transporter.sendMail(mailOptions);
 
       return {
         success: true,
-        messageId: result.messageId
-      }
+        messageId: result.messageId,
+      };
     } catch (error) {
-      console.error('Failed to send test email:', error)
+      console.error("Failed to send test email:", error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      }
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
     }
   }
 
-  isReady(): boolean {
-    return this.isConfigured
+  async isReady(): Promise<boolean> {
+    await this.ensureInitialized();
+    return this.isConfigured;
   }
 }
 
 // Export singleton instance
-export const emailService = new EmailService()
-export default emailService
+export const emailService = new EmailService();
+export default emailService;

@@ -214,3 +214,4 @@ Make sure to set up these environment variables:
 - **Database issues**: Run `npm run db:check` and `npm run db:setup`
 - **Build failures**: Clean and reinstall with `npm run clean && npm run install:all`
 - **Docker issues**: Use `npm run docker:clean` and restart
+

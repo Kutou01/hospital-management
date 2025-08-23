@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Request, Response } from "express";
 export declare class AuthController {
     private authService;
     constructor();
@@ -12,10 +12,12 @@ export declare class AuthController {
     createPatientRecord: (req: Request, res: Response) => Promise<void>;
     registerPatient: (req: Request, res: Response) => Promise<void>;
     registerDoctor: (req: Request, res: Response) => Promise<void>;
+    registerReceptionist: (req: Request, res: Response) => Promise<void>;
     sendMagicLink: (req: Request, res: Response) => Promise<void>;
     sendPhoneOTP: (req: Request, res: Response) => Promise<void>;
     verifyPhoneOTP: (req: Request, res: Response) => Promise<void>;
     initiateOAuth: (req: Request, res: Response) => Promise<void>;
     handleOAuthCallback: (req: Request, res: Response) => Promise<void>;
+    checkEmailAvailability: (req: Request, res: Response) => Promise<void>;
 }
 //# sourceMappingURL=auth.controller.d.ts.map

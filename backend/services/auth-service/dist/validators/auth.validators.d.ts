@@ -1,6 +1,7 @@
 export declare const validateSignUp: import("express-validator").ValidationChain[];
 export declare const validatePatientRegistration: import("express-validator").ValidationChain[];
 export declare const validateDoctorRegistration: import("express-validator").ValidationChain[];
+export declare const validateReceptionistRegistration: import("express-validator").ValidationChain[];
 export declare const validateSignIn: import("express-validator").ValidationChain[];
 export declare const validateResetPassword: import("express-validator").ValidationChain[];
 export declare const validateRefreshToken: import("express-validator").ValidationChain[];

@@ -1,0 +1,11 @@
+{
+  "supabase": {
+    "command": "C:\\Program Files\\nodejs\\node.exe",
+    "args": ["D:\\TEST\\hospital-management\\mcp-supabase-server.js"],
+    "working_directory": "D:\\TEST\\hospital-management",
+    "env": {
+      "SUPABASE_URL": "https://ciasxktujslgsdgylimv.supabase.co",
+      "SUPABASE_SERVICE_ROLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpYXN4a3R1anNsZ3NkZ3lsaW12Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MjA2MTE5MiwiZXhwIjoyMDY3NjM3MTkyfQ.ulj25FnFrqa80DAnvsxIMgvHm1wAccJZMiMDcE5dDLk"
+    }
+  }
+}

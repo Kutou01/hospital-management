@@ -5,8 +5,8 @@ export declare const supabaseClient: SupabaseClient;
 export declare const testSupabaseConnection: () => Promise<boolean>;
 export declare const initializeSupabase: () => Promise<void>;
 declare const _default: {
-    admin: SupabaseClient<any, "public", any>;
-    client: SupabaseClient<any, "public", any>;
+    admin: SupabaseClient<any, "public", "public", any, any>;
+    client: SupabaseClient<any, "public", "public", any, any>;
     testConnection: () => Promise<boolean>;
 };
 export default _default;

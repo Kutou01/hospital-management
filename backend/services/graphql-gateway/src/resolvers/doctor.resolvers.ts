@@ -272,7 +272,7 @@ export const doctorResolvers = {
       }
     },
 
-    // Get doctor schedule
+    // Get doctor schedule (legacy support)
     async doctorSchedule(
       _: any,
       { doctorId, date }: { doctorId: string; date?: string },
@@ -299,6 +299,97 @@ export const doctorResolvers = {
         return response.data || [];
       } catch (error) {
         logger.error("Error fetching doctor schedule:", error);
+        throw error;
+      }
+    },
+
+    // Enhanced doctor schedule queries
+    async doctorScheduleEnhanced(
+      _: any,
+      { doctorId, weekStartDate }: { doctorId: string; weekStartDate?: string },
+      context: GraphQLContext
+    ) {
+      try {
+        logger.debug("Fetching enhanced doctor schedule:", {
+          doctorId,
+          weekStartDate,
+          requestId: context.requestId,
+        });
+
+        const response = await context.restApi.getDoctorScheduleEnhanced(
+          doctorId,
+          weekStartDate
+        );
+
+        if (!response.success) {
+          throw new Error(
+            response.error?.message || "Không thể lấy lịch làm việc nâng cao"
+          );
+        }
+
+        return response.data || [];
+      } catch (error) {
+        logger.error("Error fetching enhanced doctor schedule:", error);
+        throw error;
+      }
+    },
+
+    async doctorWeeklyAvailability(
+      _: any,
+      { doctorId, weekStartDate }: { doctorId: string; weekStartDate: string },
+      context: GraphQLContext
+    ) {
+      try {
+        logger.debug("Fetching doctor weekly availability:", {
+          doctorId,
+          weekStartDate,
+          requestId: context.requestId,
+        });
+
+        const response = await context.restApi.getDoctorWeeklyAvailability(
+          doctorId,
+          weekStartDate
+        );
+
+        if (!response.success) {
+          throw new Error(
+            response.error?.message || "Không thể lấy lịch tuần bác sĩ"
+          );
+        }
+
+        return response.data;
+      } catch (error) {
+        logger.error("Error fetching doctor weekly availability:", error);
+        throw error;
+      }
+    },
+
+    async doctorAppointmentSlots(
+      _: any,
+      { doctorId, date }: { doctorId: string; date: string },
+      context: GraphQLContext
+    ) {
+      try {
+        logger.debug("Fetching doctor appointment slots:", {
+          doctorId,
+          date,
+          requestId: context.requestId,
+        });
+
+        const response = await context.restApi.getDoctorAppointmentSlots(
+          doctorId,
+          date
+        );
+
+        if (!response.success) {
+          throw new Error(
+            response.error?.message || "Không thể lấy slot cuộc hẹn"
+          );
+        }
+
+        return response.data || [];
+      } catch (error) {
+        logger.error("Error fetching doctor appointment slots:", error);
         throw error;
       }
     },
@@ -831,18 +922,55 @@ export const doctorResolvers = {
     },
   },
 
-  // Field resolvers for DoctorSchedule type
+  // Field resolvers for Enhanced DoctorSchedule type
   DoctorSchedule: {
-    // Map database snake_case to GraphQL camelCase
+    // Map database snake_case to GraphQL camelCase for enhanced schedule
     dayOfWeek: (parent: any) => parent.day_of_week,
     startTime: (parent: any) => parent.start_time,
     endTime: (parent: any) => parent.end_time,
-    isAvailable: (parent: any) => parent.is_available,
-    maxAppointments: (parent: any) => parent.max_appointments,
+    templateId: (parent: any) => parent.template_id,
+
+    // Enhanced break system
+    breakPeriods: (parent: any) => {
+      if (!parent.break_periods) return [];
+      try {
+        const periods =
+          typeof parent.break_periods === "string"
+            ? JSON.parse(parent.break_periods)
+            : parent.break_periods;
+        return Array.isArray(periods)
+          ? periods.map((period: any) => ({
+              startTime: period.start_time,
+              endTime: period.end_time,
+              breakType: period.break_type,
+            }))
+          : [];
+      } catch {
+        return [];
+      }
+    },
+
+    // Appointment configuration
     slotDuration: (parent: any) => parent.slot_duration,
-    breakStartTime: (parent: any) => parent.break_start_time,
-    breakEndTime: (parent: any) => parent.break_end_time,
-    scheduleType: (parent: any) => parent.schedule_type,
+    bufferTime: (parent: any) => parent.buffer_time,
+    maxAppointments: (parent: any) => parent.max_appointments,
+
+    // Availability settings
+    isAvailable: (parent: any) => parent.is_available,
+    availabilityType: (parent: any) =>
+      parent.availability_type?.toUpperCase() || "REGULAR",
+
+    // Department rules
+    departmentRules: (parent: any) => parent.department_rules,
+
+    // Effective period
+    effectiveFrom: (parent: any) => parent.effective_from,
+    effectiveTo: (parent: any) => parent.effective_to,
+
+    // Status
+    isActive: (parent: any) => parent.is_active,
+
+    // Timestamps
     createdAt: (parent: any) => parent.created_at,
     updatedAt: (parent: any) => parent.updated_at,
 

@@ -27,6 +27,7 @@ import reviewsRoutes from "./routes/reviews.routes";
 import scheduleRoutes from "./routes/schedule.routes";
 import settingsRoutes from "./routes/settings.routes";
 import shiftRoutes from "./routes/shift.routes";
+import slotManagementRoutes from "./routes/slot-management.routes";
 import { DoctorRealtimeService } from "./services/realtime.service";
 
 const app = express();
@@ -126,6 +127,7 @@ app.use("/api/doctors", (req, res, next) => {
 app.use("/api/doctors", doctorRoutes); // Mount doctor routes first (has specific routes like /by-profile)
 app.use("/api/doctors", scheduleRoutes); // Mount schedule routes after (has /:doctorId patterns)
 app.use("/api/doctors", availabilityRoutes); // Mount availability routes
+app.use("/api/doctors", slotManagementRoutes); // Mount slot management routes
 app.use("/api/doctors", reviewsRoutes);
 app.use("/api/doctors", settingsRoutes);
 app.use("/api/doctors", experienceRoutes); // Mount experience routes under /api/doctors

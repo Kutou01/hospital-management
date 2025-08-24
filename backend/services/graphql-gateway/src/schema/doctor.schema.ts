@@ -108,26 +108,33 @@ export const doctorTypeDefs = gql`
     appointment: Appointment
   }
 
-  # Doctor Schedule (mapped to doctor_schedules table)
+  # Enhanced Doctor Schedule (mapped to doctor_work_schedules_enhanced table)
   type DoctorSchedule {
     id: UUID! # maps to schedule_id
     doctorId: DoctorID! # maps to doctor_id
+    templateId: UUID # maps to template_id
     # Schedule Details
     dayOfWeek: Int! # maps to day_of_week (0=Sunday, 1=Monday, etc.)
     startTime: String! # maps to start_time (HH:MM format)
     endTime: String! # maps to end_time (HH:MM format)
-    # Availability
-    isAvailable: Boolean! # maps to is_available
+    # Enhanced Break System
+    breakPeriods: [BreakPeriod!]! # maps to break_periods JSONB
+    # Appointment Configuration
+    slotDuration: Int! # maps to slot_duration (minutes)
+    bufferTime: Int # maps to buffer_time (minutes between appointments)
     maxAppointments: Int # maps to max_appointments
-    slotDuration: Int # maps to slot_duration (minutes)
-    # Break Time
-    breakStartTime: String # maps to break_start_time
-    breakEndTime: String # maps to break_end_time
-    # Location
-    room: Room # maps to room_id
-    # Additional Info
-    notes: String # maps to notes
-    scheduleType: String # maps to schedule_type
+    # Availability Settings
+    isAvailable: Boolean! # maps to is_available
+    availabilityType: ScheduleAvailabilityType! # maps to availability_type
+    # Department Rules
+    departmentRules: JSON # maps to department_rules JSONB
+    # Effective Period
+    effectiveFrom: Date # maps to effective_from
+    effectiveTo: Date # maps to effective_to
+    # Status
+    isActive: Boolean! # maps to is_active
+    # Relationships
+    template: DoctorScheduleTemplate # maps to template_id
     # Timestamps
     createdAt: DateTime! # maps to created_at
     updatedAt: DateTime! # maps to updated_at
@@ -305,6 +312,99 @@ export const doctorTypeDefs = gql`
     roomId: UUID
   }
 
+  # Enhanced Schedule Input Types
+  input CreateDoctorScheduleEnhancedInput {
+    doctorId: DoctorID!
+    templateId: UUID
+    dayOfWeek: Int!
+    startTime: String!
+    endTime: String!
+    breakPeriods: [BreakPeriodInput!]!
+    slotDuration: Int = 30
+    bufferTime: Int = 5
+    maxAppointments: Int = 16
+    isAvailable: Boolean = true
+    availabilityType: ScheduleAvailabilityType = REGULAR
+    departmentRules: JSON
+    effectiveFrom: Date
+    effectiveTo: Date
+    isActive: Boolean = true
+  }
+
+  input UpdateDoctorScheduleEnhancedInput {
+    templateId: UUID
+    dayOfWeek: Int
+    startTime: String
+    endTime: String
+    breakPeriods: [BreakPeriodInput!]
+    slotDuration: Int
+    bufferTime: Int
+    maxAppointments: Int
+    isAvailable: Boolean
+    availabilityType: ScheduleAvailabilityType
+    departmentRules: JSON
+    effectiveFrom: Date
+    effectiveTo: Date
+    isActive: Boolean
+  }
+
+  input BreakPeriodInput {
+    startTime: String!
+    endTime: String!
+    breakType: String!
+  }
+
+  input CreateScheduleTemplateInput {
+    templateName: String!
+    departmentId: String
+    description: String
+    defaultStartTime: String!
+    defaultEndTime: String!
+    defaultBreakStart: String
+    defaultBreakEnd: String
+    defaultSlotDuration: Int = 30
+    defaultBufferTime: Int = 5
+    maxAppointmentsPerDay: Int = 16
+    workingDays: [Int!]!
+    isActive: Boolean = true
+  }
+
+  input UpdateScheduleTemplateInput {
+    templateName: String
+    description: String
+    defaultStartTime: String
+    defaultEndTime: String
+    defaultBreakStart: String
+    defaultBreakEnd: String
+    defaultSlotDuration: Int
+    defaultBufferTime: Int
+    maxAppointmentsPerDay: Int
+    workingDays: [Int!]
+    isActive: Boolean
+  }
+
+  input CreateScheduleExceptionInput {
+    doctorId: DoctorID!
+    exceptionDate: Date!
+    exceptionType: ScheduleExceptionType!
+    isAvailable: Boolean = false
+    reason: String
+    overrideStartTime: String
+    overrideEndTime: String
+    overrideBreakPeriods: [BreakPeriodInput!]
+    overrideMaxAppointments: Int
+  }
+
+  input UpdateScheduleExceptionInput {
+    exceptionType: ScheduleExceptionType
+    isAvailable: Boolean
+    reason: String
+    overrideStartTime: String
+    overrideEndTime: String
+    overrideBreakPeriods: [BreakPeriodInput!]
+    overrideMaxAppointments: Int
+  }
+
   input CreateDoctorReviewInput {
     doctorId: DoctorID!
     patientId: PatientID!
@@ -374,8 +474,31 @@ export const doctorTypeDefs = gql`
       offset: Int = 0
     ): [DoctorReview!]!
 
-    # Doctor schedule
+    # Enhanced Doctor schedule queries
     doctorSchedule(doctorId: DoctorID!, date: Date): [DoctorSchedule!]!
+    doctorScheduleEnhanced(
+      doctorId: DoctorID!
+      weekStartDate: Date
+    ): [DoctorSchedule!]!
+    doctorScheduleTemplates(departmentId: String): [DoctorScheduleTemplate!]!
+    doctorScheduleExceptions(
+      doctorId: DoctorID!
+      dateFrom: Date
+      dateTo: Date
+    ): [DoctorScheduleException!]!
+    doctorAppointmentSlots(
+      doctorId: DoctorID!
+      date: Date!
+    ): [DoctorAppointmentSlot!]!
+
+    # Enhanced availability queries
+    doctorWeeklyAvailability(doctorId: DoctorID!, weekStartDate: Date!): JSON
+    doctorAvailabilityOptimized(
+      doctorId: DoctorID!
+      startDate: Date
+      endDate: Date
+    ): JSON
+    bulkDoctorAvailability(doctorIds: [DoctorID!]!, date: Date!): JSON
 
     # Rooms
     room(id: UUID!): Room
@@ -412,6 +535,44 @@ export const doctorTypeDefs = gql`
     ): DoctorSchedule!
     deleteDoctorSchedule(id: UUID!): Boolean!
 
+    # Enhanced Doctor schedule mutations
+    createDoctorScheduleEnhanced(
+      input: CreateDoctorScheduleEnhancedInput!
+    ): DoctorSchedule!
+    updateDoctorScheduleEnhanced(
+      id: UUID!
+      input: UpdateDoctorScheduleEnhancedInput!
+    ): DoctorSchedule!
+    deleteDoctorScheduleEnhanced(id: UUID!): Boolean!
+
+    # Schedule template mutations
+    createScheduleTemplate(
+      input: CreateScheduleTemplateInput!
+    ): DoctorScheduleTemplate!
+    updateScheduleTemplate(
+      id: UUID!
+      input: UpdateScheduleTemplateInput!
+    ): DoctorScheduleTemplate!
+
+    # Schedule exception mutations
+    createScheduleException(
+      input: CreateScheduleExceptionInput!
+    ): DoctorScheduleException!
+    updateScheduleException(
+      id: UUID!
+      input: UpdateScheduleExceptionInput!
+    ): DoctorScheduleException!
+    deleteScheduleException(id: UUID!): Boolean!
+
+    # Appointment slot mutations
+    generateDoctorSlots(
+      doctorId: DoctorID!
+      startDate: Date!
+      endDate: Date!
+    ): Int!
+    blockAppointmentSlot(slotId: UUID!, reason: String!): DoctorAppointmentSlot!
+    unblockAppointmentSlot(slotId: UUID!): DoctorAppointmentSlot!
+
     # Doctor reviews
     createDoctorReview(input: CreateDoctorReviewInput!): DoctorReview!
     updateDoctorReview(id: UUID!, rating: Int, comment: String): DoctorReview!
@@ -431,6 +592,90 @@ export const doctorTypeDefs = gql`
     doctorReviewAdded(doctorId: DoctorID): DoctorReview!
   }
 
+  # Enhanced Schedule Types
+  type DoctorScheduleTemplate {
+    id: UUID! # maps to template_id
+    templateName: String! # maps to template_name
+    departmentId: String # maps to department_id
+    description: String # maps to description
+    defaultStartTime: String! # maps to default_start_time
+    defaultEndTime: String! # maps to default_end_time
+    defaultBreakStart: String # maps to default_break_start
+    defaultBreakEnd: String # maps to default_break_end
+    defaultSlotDuration: Int # maps to default_slot_duration
+    defaultBufferTime: Int # maps to default_buffer_time
+    maxAppointmentsPerDay: Int # maps to max_appointments_per_day
+    workingDays: [Int!]! # maps to working_days array
+    isActive: Boolean! # maps to is_active
+    createdAt: DateTime! # maps to created_at
+    updatedAt: DateTime! # maps to updated_at
+  }
+
+  type BreakPeriod {
+    startTime: String! # HH:MM format
+    endTime: String! # HH:MM format
+    breakType: String! # lunch, snack, rest, etc.
+  }
+
+  type DoctorScheduleException {
+    id: UUID! # maps to exception_id
+    doctorId: DoctorID! # maps to doctor_id
+    exceptionDate: Date! # maps to exception_date
+    exceptionType: ScheduleExceptionType! # maps to exception_type
+    isAvailable: Boolean! # maps to is_available
+    reason: String # maps to reason
+    # Override fields for special schedules
+    overrideStartTime: String # maps to override_start_time
+    overrideEndTime: String # maps to override_end_time
+    overrideBreakPeriods: [BreakPeriod!] # maps to override_break_periods
+    overrideMaxAppointments: Int # maps to override_max_appointments
+    approvedBy: UUID # maps to approved_by
+    createdAt: DateTime! # maps to created_at
+    updatedAt: DateTime! # maps to updated_at
+  }
+
+  type DoctorAppointmentSlot {
+    id: UUID! # maps to slot_id
+    doctorId: DoctorID! # maps to doctor_id
+    slotDate: Date! # maps to slot_date
+    startTime: String! # maps to start_time
+    endTime: String! # maps to end_time
+    durationMinutes: Int! # maps to duration_minutes
+    slotType: SlotType! # maps to slot_type
+    isAvailable: Boolean! # maps to is_available
+    isBlocked: Boolean! # maps to is_blocked
+    blockReason: String # maps to block_reason
+    maxBookings: Int! # maps to max_bookings
+    currentBookings: Int! # maps to current_bookings
+    generatedFromScheduleId: UUID # maps to generated_from_schedule_id
+    generationTimestamp: DateTime # maps to generation_timestamp
+    createdAt: DateTime! # maps to created_at
+    updatedAt: DateTime! # maps to updated_at
+  }
+
+  # Enums for Enhanced Scheduling
+  enum ScheduleAvailabilityType {
+    REGULAR
+    EMERGENCY
+    CONSULTATION
+    SURGERY
+  }
+
+  enum ScheduleExceptionType {
+    HOLIDAY
+    LEAVE
+    SICK_LEAVE
+    SPECIAL_SCHEDULE
+    EMERGENCY_DUTY
+  }
+
+  enum SlotType {
+    REGULAR
+    EMERGENCY
+    FOLLOW_UP
+    CONSULTATION
+  }
+
   # Available time slot
   type AvailableSlot {
     startTime: DateTime!
@@ -438,6 +683,8 @@ export const doctorTypeDefs = gql`
     isAvailable: Boolean!
     appointmentId: UUID
     reason: String # If not available
+    slotType: SlotType
+    durationMinutes: Int
   }
 `;
 

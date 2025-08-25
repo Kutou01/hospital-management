@@ -12,7 +12,7 @@ export const patientResolvers = {
     // Get single patient
     async patient(
       _: any,
-      { id, patientId }: { id?: string; patientId?: string },
+      { id, patient_id }: { id?: string; patient_id?: string },
       context: GraphQLContext
     ) {
       try {
@@ -79,7 +79,7 @@ export const patientResolvers = {
         filters,
         limit = 20,
         offset = 0,
-        sortBy = "createdAt",
+        sortBy = "created_at",
         sortOrder = "DESC",
       }: any,
       context: GraphQLContext
@@ -193,17 +193,17 @@ export const patientResolvers = {
     // Get patient medical summary
     async patientMedicalSummary(
       _: any,
-      { patientId }: { patientId: string },
+      { patient_id }: { patient_id: string },
       context: GraphQLContext
     ) {
       try {
         logger.debug("Fetching patient medical summary:", {
-          patientId,
+          patient_id,
           requestId: context.requestId,
         });
 
         const response =
-          await context.restApi.getPatientMedicalSummary(patientId);
+          await context.restApi.getPatientMedicalSummary(patient_id);
 
         if (!response.success) {
           throw new Error(
@@ -222,16 +222,16 @@ export const patientResolvers = {
     // Get patient statistics
     async patientStats(
       _: any,
-      { patientId }: { patientId: string },
+      { patient_id }: { patient_id: string },
       context: GraphQLContext
     ) {
       try {
         logger.debug("Fetching patient stats:", {
-          patientId,
+          patient_id,
           requestId: context.requestId,
         });
 
-        const response = await context.restApi.getPatientStats(patientId);
+        const response = await context.restApi.getPatientStats(patient_id);
 
         if (!response.success) {
           throw new Error(
@@ -251,23 +251,23 @@ export const patientResolvers = {
     async patientDoctorHistory(
       _: any,
       {
-        patientId,
-        doctorId,
+        patient_id,
+        doctor_id,
         limit = 10,
-      }: { patientId: string; doctorId: string; limit: number },
+      }: { patient_id: string; doctor_id: string; limit: number },
       context: GraphQLContext
     ) {
       try {
         logger.debug("Fetching patient-doctor history:", {
-          patientId,
-          doctorId,
+          patient_id,
+          doctor_id,
           limit,
           requestId: context.requestId,
         });
 
         const response = await context.restApi.getPatientDoctorHistory(
-          patientId,
-          doctorId,
+          patient_id,
+          doctor_id,
           limit
         );
 
@@ -288,19 +288,19 @@ export const patientResolvers = {
     // Get patient medical records
     async patientMedicalRecords(
       _: any,
-      { patientId, limit = 20, offset = 0, dateFrom, dateTo }: any,
+      { patient_id, limit = 20, offset = 0, dateFrom, dateTo }: any,
       context: GraphQLContext
     ) {
       try {
         logger.debug("Fetching patient medical records:", {
-          patientId,
+          patient_id,
           limit,
           offset,
           requestId: context.requestId,
         });
 
         const response = await context.restApi.getPatientMedicalRecords({
-          patientId,
+          patient_id,
           limit,
           offset,
           dateFrom,
@@ -367,7 +367,7 @@ export const patientResolvers = {
         }
 
         logger.info("Patient created successfully:", {
-          patientId: response.data.patientId,
+          patient_id: response.data.patient_id,
         });
         return response.data;
       } catch (error) {
@@ -398,7 +398,7 @@ export const patientResolvers = {
           );
         }
 
-        logger.info("Patient updated successfully:", { patientId: id });
+        logger.info("Patient updated successfully:", { patient_id: id });
         return response.data;
       } catch (error) {
         logger.error("Error updating patient:", error);
@@ -424,7 +424,7 @@ export const patientResolvers = {
           );
         }
 
-        logger.info("Patient deleted successfully:", { patientId: id });
+        logger.info("Patient deleted successfully:", { patient_id: id });
         return true;
       } catch (error) {
         logger.error("Error deleting patient:", error);
@@ -453,7 +453,7 @@ export const patientResolvers = {
           );
         }
 
-        logger.info("Patient activated successfully:", { patientId: id });
+        logger.info("Patient activated successfully:", { patient_id: id });
         return response.data;
       } catch (error) {
         logger.error("Error activating patient:", error);
@@ -482,7 +482,7 @@ export const patientResolvers = {
           );
         }
 
-        logger.info("Patient deactivated successfully:", { patientId: id });
+        logger.info("Patient deactivated successfully:", { patient_id: id });
         return response.data;
       } catch (error) {
         logger.error("Error deactivating patient:", error);
@@ -532,7 +532,7 @@ export const patientResolvers = {
         }
 
         logger.info("Patient medical info updated successfully:", {
-          patientId: id,
+          patient_id: id,
         });
         return response.data;
       } catch (error) {
@@ -579,7 +579,7 @@ export const patientResolvers = {
         }
 
         logger.info("Patient insurance updated successfully:", {
-          patientId: id,
+          patient_id: id,
         });
         return response.data;
       } catch (error) {
@@ -629,7 +629,7 @@ export const patientResolvers = {
       try {
         const appointments =
           await context.dataloaders.appointmentsByPatient.load(
-            parent.patientId || parent.id
+            parent.patient_id || parent.id
           );
 
         // Apply filters
@@ -704,7 +704,7 @@ export const patientResolvers = {
       try {
         const medicalRecords =
           await context.dataloaders.medicalRecordsByPatient.load(
-            parent.patientId || parent.id
+            parent.patient_id || parent.id
           );
 
         // Apply date filters
@@ -766,7 +766,7 @@ export const patientResolvers = {
       try {
         const appointments =
           await context.dataloaders.appointmentsByPatient.load(
-            parent.patientId || parent.id
+            parent.patient_id || parent.id
           );
         return appointments ? appointments.length : 0;
       } catch (error) {
@@ -779,7 +779,7 @@ export const patientResolvers = {
       try {
         const appointments =
           await context.dataloaders.appointmentsByPatient.load(
-            parent.patientId || parent.id
+            parent.patient_id || parent.id
           );
         if (!appointments) return 0;
 
@@ -798,7 +798,7 @@ export const patientResolvers = {
       try {
         const appointments =
           await context.dataloaders.appointmentsByPatient.load(
-            parent.patientId || parent.id
+            parent.patient_id || parent.id
           );
         if (!appointments) return 0;
 
@@ -814,7 +814,7 @@ export const patientResolvers = {
       try {
         const appointments =
           await context.dataloaders.appointmentsByPatient.load(
-            parent.patientId || parent.id
+            parent.patient_id || parent.id
           );
         if (!appointments || appointments.length === 0) return null;
 
@@ -837,7 +837,7 @@ export const patientResolvers = {
       try {
         const appointments =
           await context.dataloaders.appointmentsByPatient.load(
-            parent.patientId || parent.id
+            parent.patient_id || parent.id
           );
         if (!appointments || appointments.length === 0) return null;
 

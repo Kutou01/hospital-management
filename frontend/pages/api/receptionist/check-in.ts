@@ -1,112 +1,136 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import { createClient } from '@supabase/supabase-js';
+import { NextApiRequest, NextApiResponse } from "next";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// API Gateway configuration
+const API_GATEWAY_URL =
+  process.env.NEXT_PUBLIC_API_GATEWAY_URL || "http://localhost:3100";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method not allowed' });
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  if (req.method !== "POST") {
+    // Vietnamese error handling
+    const language = req.headers["accept-language"]?.includes("en")
+      ? "en"
+      : "vi";
+    return res.status(405).json({
+      success: false,
+      error:
+        language === "vi"
+          ? "Phương thức không được phép"
+          : "Method not allowed",
+      message:
+        language === "vi"
+          ? "Chỉ hỗ trợ phương thức POST"
+          : "Only POST method is supported",
+    });
   }
 
-  const { appointmentId, receptionistId, insuranceVerified = false, notes = '' } = req.body;
+  const {
+    appointmentId,
+    receptionistId,
+    insuranceVerified = false,
+    notes = "",
+  } = req.body;
 
   if (!appointmentId) {
-    return res.status(400).json({ message: 'Appointment ID is required' });
+    const language = req.headers["accept-language"]?.includes("en")
+      ? "en"
+      : "vi";
+    return res.status(400).json({
+      success: false,
+      error:
+        language === "vi"
+          ? "Thiếu thông tin bắt buộc"
+          : "Missing required information",
+      message:
+        language === "vi"
+          ? "ID cuộc hẹn là bắt buộc"
+          : "Appointment ID is required",
+    });
   }
 
   try {
-    // Start transaction
-    const { data: appointment, error: appointmentError } = await supabase
-      .from('appointments')
-      .select('*')
-      .eq('appointment_id', appointmentId)
-      .single();
-
-    if (appointmentError || !appointment) {
-      return res.status(404).json({ message: 'Appointment not found' });
+    // Get authentication token from request
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      const language = req.headers["accept-language"]?.includes("en")
+        ? "en"
+        : "vi";
+      return res.status(401).json({
+        success: false,
+        error: language === "vi" ? "Không có quyền truy cập" : "Unauthorized",
+        message:
+          language === "vi"
+            ? "Vui lòng đăng nhập để tiếp tục"
+            : "Please login to continue",
+      });
     }
 
-    // Create check-in record
-    const { data: checkIn, error: checkInError } = await supabase
-      .from('patient_check_ins')
-      .insert({
-        patient_id: appointment.patient_id,
-        appointment_id: appointmentId,
-        receptionist_id: receptionistId,
-        check_in_time: new Date().toISOString(),
-        insurance_verified: insuranceVerified,
-        documents_complete: true,
-        notes: notes,
-        status: 'checked_in'
-      })
-      .select()
-      .single();
+    // Forward check-in request to API Gateway -> Appointment Service
+    const response = await fetch(
+      `${API_GATEWAY_URL}/api/appointments/${appointmentId}/check-in`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: authHeader,
+          "Accept-Language": req.headers["accept-language"] || "vi-VN",
+        },
+        body: JSON.stringify({
+          receptionistId,
+          insuranceVerified,
+          notes,
+        }),
+      }
+    );
 
-    if (checkInError) {
-      console.error('Check-in creation error:', checkInError);
-      return res.status(500).json({ message: 'Error creating check-in record' });
+    const result = await response.json();
+
+    if (!response.ok) {
+      const language = req.headers["accept-language"]?.includes("en")
+        ? "en"
+        : "vi";
+      return res.status(response.status).json({
+        success: false,
+        error:
+          result.error ||
+          (language === "vi" ? "Lỗi check-in" : "Check-in error"),
+        message:
+          result.message ||
+          (language === "vi"
+            ? "Không thể thực hiện check-in"
+            : "Unable to perform check-in"),
+      });
     }
 
-    // Update appointment status
-    const { error: updateError } = await supabase
-      .from('appointments')
-      .update({ 
-        status: 'checked_in',
-        checked_in_at: new Date().toISOString(),
-        insurance_verified: insuranceVerified
-      })
-      .eq('appointment_id', appointmentId);
-
-    if (updateError) {
-      console.error('Appointment update error:', updateError);
-      return res.status(500).json({ message: 'Error updating appointment' });
-    }
-
-    // Update queue status
-    const { error: queueError } = await supabase
-      .from('appointment_queue')
-      .update({ 
-        status: 'waiting',
-        checked_in_at: new Date().toISOString()
-      })
-      .eq('appointment_id', appointmentId);
-
-    if (queueError) {
-      console.error('Queue update error:', queueError);
-      // Don't fail the request if queue update fails
-    }
-
-    // Send notification to doctor (optional)
-    try {
-      await supabase
-        .from('notifications')
-        .insert({
-          user_id: appointment.doctor_id,
-          type: 'patient_checked_in',
-          title: 'Bệnh nhân đã check-in',
-          message: `Bệnh nhân ${appointment.patient_id} đã check-in cho cuộc hẹn lúc ${appointment.start_time}`,
-          read_at: null,
-          created_at: new Date().toISOString()
-        });
-    } catch (notificationError) {
-      console.error('Notification error:', notificationError);
-      // Don't fail the request if notification fails
-    }
+    // Return successful response with Vietnamese language support
+    const language = req.headers["accept-language"]?.includes("en")
+      ? "en"
+      : "vi";
 
     res.status(200).json({
       success: true,
-      message: 'Patient checked in successfully',
-      checkIn
+      message:
+        language === "vi"
+          ? "Check-in thành công"
+          : "Patient checked in successfully",
+      data: result.data,
     });
-
   } catch (error) {
-    console.error('Check-in API error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Internal server error' 
+    console.error("Check-in API error:", error);
+    const language = req.headers["accept-language"]?.includes("en")
+      ? "en"
+      : "vi";
+
+    res.status(500).json({
+      success: false,
+      error:
+        language === "vi" ? "Lỗi hệ thống nội bộ" : "Internal server error",
+      message:
+        language === "vi"
+          ? "Đã xảy ra lỗi, vui lòng thử lại"
+          : "Something went wrong, please try again",
     });
   }
 }

@@ -154,10 +154,10 @@ export class PatientRepository {
   }
 
   // Get patient by ID
-  async getPatientById(patientId: string): Promise<PatientWithProfile | null> {
+  async getPatientById(patient_id: string): Promise<PatientWithProfile | null> {
     try {
       const { data, error } = await this.supabase
-        .rpc('get_patient_by_id', { input_patient_id: patientId });
+        .rpc('get_patient_by_id', { input_patient_id: patient_id });
 
       if (error) {
         logger.error('Database function error in getPatientById:', error);
@@ -198,7 +198,7 @@ export class PatientRepository {
   }
 
   // Get patients by doctor ID (through appointments)
-  async getPatientsByDoctorId(doctorId: string): Promise<PatientWithProfile[]> {
+  async getPatientsByDoctorId(doctor_id: string): Promise<PatientWithProfile[]> {
     try {
       const { data, error } = await this.supabase
         .from('appointments')
@@ -219,7 +219,7 @@ export class PatientRepository {
             )
           )
         `)
-        .eq('doctor_id', doctorId);
+        .eq('doctor_id', doctor_id);
 
       if (error) {
         logger.error('Error fetching patients by doctor ID:', error);
@@ -283,7 +283,7 @@ export class PatientRepository {
       }
 
       logger.info('Patient created successfully via database function:', {
-        patientId: data[0].patient_id
+        patient_id: data[0].patient_id
       });
 
       return data[0] as Patient;
@@ -294,11 +294,11 @@ export class PatientRepository {
   }
 
   // Update patient
-  async updatePatient(patientId: string, updateData: UpdatePatientDto): Promise<Patient> {
+  async updatePatient(patient_id: string, updateData: UpdatePatientDto): Promise<Patient> {
     try {
       const { data, error } = await this.supabase
         .rpc('update_patient', {
-          input_patient_id: patientId,
+          input_patient_id: patient_id,
           patient_data: updateData
         });
 
@@ -312,7 +312,7 @@ export class PatientRepository {
       }
 
       logger.info('Patient updated successfully via database function:', {
-        patientId,
+        patient_id,
         updatedFields: Object.keys(updateData)
       });
 
@@ -324,17 +324,17 @@ export class PatientRepository {
   }
 
   // Delete patient (soft delete by setting status to inactive)
-  async deletePatient(patientId: string): Promise<boolean> {
+  async deletePatient(patient_id: string): Promise<boolean> {
     try {
       const { data, error } = await this.supabase
-        .rpc('delete_patient', { input_patient_id: patientId });
+        .rpc('delete_patient', { input_patient_id: patient_id });
 
       if (error) {
         logger.error('Database function error in deletePatient:', error);
         throw error;
       }
 
-      logger.info('Patient deleted successfully via database function:', { patientId });
+      logger.info('Patient deleted successfully via database function:', { patient_id });
       return data === true;
     } catch (error) {
       logger.error('Exception in deletePatient:', error);
@@ -343,12 +343,12 @@ export class PatientRepository {
   }
 
   // Check if patient exists (only active patients)
-  async patientExists(patientId: string): Promise<boolean> {
+  async patientExists(patient_id: string): Promise<boolean> {
     try {
       const { data, error } = await this.supabase
         .from('patients')
         .select('patient_id')
-        .eq('patient_id', patientId)
+        .eq('patient_id', patient_id)
         .eq('status', 'active')
         .single();
 
@@ -505,7 +505,7 @@ export class PatientRepository {
   }
 
   // ENHANCED: Get patient medical summary
-  async getPatientMedicalSummary(patientId: string): Promise<{
+  async getPatientMedicalSummary(patient_id: string): Promise<{
     patient: PatientWithProfile | null;
     appointmentCount: number;
     lastAppointment: string | null;
@@ -515,7 +515,7 @@ export class PatientRepository {
   }> {
     try {
       // Get patient details
-      const patient = await this.getPatientById(patientId);
+      const patient = await this.getPatientById(patient_id);
 
       if (!patient) {
         return {
@@ -532,7 +532,7 @@ export class PatientRepository {
       const { data: appointments, error: appointmentError } = await this.supabase
         .from('appointments')
         .select('appointment_date, status')
-        .eq('patient_id', patientId)
+        .eq('patient_id', patient_id)
         .order('appointment_date', { ascending: false });
 
       if (appointmentError) {
@@ -558,12 +558,12 @@ export class PatientRepository {
   }
 
   // Get unique patient count for a specific doctor (through appointments)
-  async getPatientCountForDoctor(doctorId: string): Promise<number> {
+  async getPatientCountForDoctor(doctor_id: string): Promise<number> {
     try {
       const { data, error } = await this.supabase
         .from('appointments')
         .select('patient_id')
-        .eq('doctor_id', doctorId);
+        .eq('doctor_id', doctor_id);
 
       if (error) {
         logger.error('Error fetching patient count for doctor:', error);
@@ -582,9 +582,9 @@ export class PatientRepository {
   }
 
   // Get comprehensive patient statistics for a specific doctor
-  async getPatientStatsForDoctor(doctorId: string): Promise<any> {
+  async getPatientStatsForDoctor(doctor_id: string): Promise<any> {
     try {
-      logger.info(`Getting patient statistics for doctor: ${doctorId}`);
+      logger.info(`Getting patient statistics for doctor: ${doctor_id}`);
 
       // Get all appointments for this doctor with patient details
       const { data: appointments, error: appointmentsError } = await this.supabase
@@ -605,7 +605,7 @@ export class PatientRepository {
             )
           )
         `)
-        .eq('doctor_id', doctorId);
+        .eq('doctor_id', doctor_id);
 
       if (appointmentsError) {
         logger.error('Error fetching appointments for patient stats:', appointmentsError);
@@ -632,17 +632,17 @@ export class PatientRepository {
       const newPatients = [];
       const returningPatients = [];
 
-      for (const patientId of recentPatientIds) {
+      for (const patient_id of recentPatientIds) {
         const patientAppointments = appointmentList
-          .filter(a => a.patient_id === patientId)
+          .filter(a => a.patient_id === patient_id)
           .sort((a, b) => new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime());
 
         if (patientAppointments.length > 0) {
           const firstAppointment = patientAppointments[0];
           if (new Date(firstAppointment.appointment_date) >= thirtyDaysAgo) {
-            newPatients.push(patientId);
+            newPatients.push(patient_id);
           } else {
-            returningPatients.push(patientId);
+            returningPatients.push(patient_id);
           }
         }
       }
@@ -726,7 +726,7 @@ export class PatientRepository {
         }
       };
 
-      logger.info(`Patient statistics calculated for doctor ${doctorId}:`, {
+      logger.info(`Patient statistics calculated for doctor ${doctor_id}:`, {
         totalPatients: totalUniquePatients,
         newPatients: newPatients.length,
         returningPatients: returningPatients.length

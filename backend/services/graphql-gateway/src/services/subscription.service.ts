@@ -87,20 +87,20 @@ class SubscriptionService {
       });
 
       // Also publish to doctor-specific channel
-      if (appointment.doctorId) {
+      if (appointment.doctor_id) {
         await this.pubsub.publish(SubscriptionEvents.DOCTOR_APPOINTMENT_UPDATED, {
           doctorAppointmentUpdated: appointment
         });
       }
 
       // Also publish to patient-specific channel
-      if (appointment.patientId) {
+      if (appointment.patient_id) {
         await this.pubsub.publish(SubscriptionEvents.PATIENT_APPOINTMENT_UPDATED, {
           patientAppointmentUpdated: appointment
         });
       }
 
-      logger.info(`📢 Published appointment update: ${appointment.appointmentId}`);
+      logger.info(`📢 Published appointment update: ${appointment.appointment_id}`);
     } catch (error) {
       logger.error('❌ Failed to publish appointment update:', error);
     }
@@ -115,7 +115,7 @@ class SubscriptionService {
         appointmentStatusChanged: appointment
       });
 
-      logger.info(`📢 Published appointment status change: ${appointment.appointmentId} -> ${appointment.status}`);
+      logger.info(`📢 Published appointment status change: ${appointment.appointment_id} -> ${appointment.status}`);
     } catch (error) {
       logger.error('❌ Failed to publish appointment status change:', error);
     }
@@ -130,7 +130,7 @@ class SubscriptionService {
         newAppointmentCreated: appointment
       });
 
-      logger.info(`📢 Published new appointment: ${appointment.appointmentId}`);
+      logger.info(`📢 Published new appointment: ${appointment.appointment_id}`);
     } catch (error) {
       logger.error('❌ Failed to publish new appointment:', error);
     }
@@ -139,13 +139,13 @@ class SubscriptionService {
   /**
    * Publish waiting queue update event
    */
-  async publishWaitingQueueUpdate(doctorId: string, queue: any[]): Promise<void> {
+  async publishWaitingQueueUpdate(doctor_id: string, queue: any[]): Promise<void> {
     try {
       await this.pubsub.publish(SubscriptionEvents.WAITING_QUEUE_UPDATED, {
         waitingQueueUpdated: queue
       });
 
-      logger.info(`📢 Published waiting queue update for doctor: ${doctorId}`);
+      logger.info(`📢 Published waiting queue update for doctor: ${doctor_id}`);
     } catch (error) {
       logger.error('❌ Failed to publish waiting queue update:', error);
     }
@@ -160,7 +160,7 @@ class SubscriptionService {
         doctorStatusChanged: doctor
       });
 
-      logger.info(`📢 Published doctor status change: ${doctor.doctorId}`);
+      logger.info(`📢 Published doctor status change: ${doctor.doctor_id}`);
     } catch (error) {
       logger.error('❌ Failed to publish doctor status change:', error);
     }
@@ -175,7 +175,7 @@ class SubscriptionService {
         doctorScheduleChanged: schedule
       });
 
-      logger.info(`📢 Published doctor schedule change: ${schedule.doctorId}`);
+      logger.info(`📢 Published doctor schedule change: ${schedule.doctor_id}`);
     } catch (error) {
       logger.error('❌ Failed to publish doctor schedule change:', error);
     }
@@ -190,7 +190,7 @@ class SubscriptionService {
         doctorAvailabilityChanged: doctor
       });
 
-      logger.info(`📢 Published doctor availability change: ${doctor.doctorId}`);
+      logger.info(`📢 Published doctor availability change: ${doctor.doctor_id}`);
     } catch (error) {
       logger.error('❌ Failed to publish doctor availability change:', error);
     }
@@ -199,13 +199,13 @@ class SubscriptionService {
   /**
    * Publish doctor notification event
    */
-  async publishDoctorNotification(doctorId: string, notification: any): Promise<void> {
+  async publishDoctorNotification(doctor_id: string, notification: any): Promise<void> {
     try {
       await this.pubsub.publish(SubscriptionEvents.DOCTOR_NOTIFICATION, {
         doctorNotification: notification
       });
 
-      logger.info(`📢 Published doctor notification: ${doctorId}`);
+      logger.info(`📢 Published doctor notification: ${doctor_id}`);
     } catch (error) {
       logger.error('❌ Failed to publish doctor notification:', error);
     }
@@ -220,7 +220,7 @@ class SubscriptionService {
         patientStatusChanged: patient
       });
 
-      logger.info(`📢 Published patient status change: ${patient.patientId}`);
+      logger.info(`📢 Published patient status change: ${patient.patient_id}`);
     } catch (error) {
       logger.error('❌ Failed to publish patient status change:', error);
     }
@@ -235,7 +235,7 @@ class SubscriptionService {
         patientUpdated: patient
       });
 
-      logger.info(`📢 Published patient update: ${patient.patientId}`);
+      logger.info(`📢 Published patient update: ${patient.patient_id}`);
     } catch (error) {
       logger.error('❌ Failed to publish patient update:', error);
     }

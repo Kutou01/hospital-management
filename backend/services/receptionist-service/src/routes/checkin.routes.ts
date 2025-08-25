@@ -20,13 +20,13 @@ const checkInController = new CheckInController();
  *           schema:
  *             type: object
  *             required:
- *               - appointmentId
- *               - patientId
+ *               - appointment_id
+ *               - patient_id
  *             properties:
- *               appointmentId:
+ *               appointment_id:
  *                 type: string
  *                 description: Appointment ID
- *               patientId:
+ *               patient_id:
  *                 type: string
  *                 description: Patient ID
  *               insuranceVerified:
@@ -76,7 +76,7 @@ router.get('/queue', authMiddleware, checkInController.getQueue);
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: appointmentId
+ *         name: appointment_id
  *         required: true
  *         schema:
  *           type: string
@@ -122,9 +122,9 @@ router.put('/appointments/:appointmentId/status', authMiddleware, requireRecepti
  *           schema:
  *             type: object
  *             required:
- *               - doctorId
+ *               - doctor_id
  *             properties:
- *               doctorId:
+ *               doctor_id:
  *                 type: string
  *                 description: Doctor ID
  *               roomNumber:

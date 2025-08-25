@@ -298,7 +298,7 @@ export class OptimizedDataLoadersService {
   ): Promise<(any | Error)[]> {
     try {
       const results = await Promise.allSettled(
-        doctorIds.map((doctorId) => this.restApi.getDoctorSchedule(doctorId))
+        doctorIds.map((doctor_id) => this.restApi.getDoctorSchedule(doctor_id))
       );
 
       return results.map((result, index) => {
@@ -310,7 +310,7 @@ export class OptimizedDataLoadersService {
               ? result.reason
               : new Error("Schedule not found");
           logger.warn(
-            `Failed to load schedule for doctor ${doctorIds[index]}:`,
+            `Failed to load schedule for doctor ${doctor_id}:`,
             error
           );
           return error;
@@ -330,7 +330,7 @@ export class OptimizedDataLoadersService {
   ): Promise<(any[] | Error)[]> {
     try {
       const results = await Promise.allSettled(
-        doctorIds.map((doctorId) => this.restApi.getDoctorReviews(doctorId))
+        doctorIds.map((doctor_id) => this.restApi.getDoctorReviews(doctor_id))
       );
 
       return results.map((result, index) => {
@@ -342,7 +342,7 @@ export class OptimizedDataLoadersService {
               ? result.reason
               : new Error("Reviews not found");
           logger.warn(
-            `Failed to load reviews for doctor ${doctorIds[index]}:`,
+            `Failed to load reviews for doctor ${doctor_id}:`,
             error
           );
           return error;
@@ -391,7 +391,7 @@ export class OptimizedDataLoadersService {
   ): Promise<(any[] | Error)[]> {
     try {
       const results = await Promise.allSettled(
-        doctorIds.map((doctorId) => this.restApi.getPatients({ limit: 100 }))
+        doctorIds.map((doctor_id) => this.restApi.getPatients({ limit: 100 }))
       );
 
       return results.map((result, index) => {
@@ -403,7 +403,7 @@ export class OptimizedDataLoadersService {
               ? result.reason
               : new Error("Failed to load patients for doctor");
           logger.warn(
-            `Failed to load patients for doctor ${doctorIds[index]}:`,
+            `Failed to load patients for doctor ${doctor_id}:`,
             error
           );
           return error;
@@ -481,15 +481,15 @@ export class OptimizedDataLoadersService {
   ): Promise<(any[] | Error)[]> {
     try {
       const results = await Promise.all(
-        patientIds.map(async (patientId) => {
+        patientIds.map(async (patient_id) => {
           try {
             const response = await this.restApi.getPatientMedicalRecords({
-              patientId,
+              patient_id,
             });
             return response.success ? response.data : [];
           } catch (error) {
             return new Error(
-              `Failed to load medical records for patient ${patientId}`
+              `Failed to load medical records for patient ${patient_id}`
             );
           }
         })
@@ -505,12 +505,12 @@ export class OptimizedDataLoadersService {
   ): Promise<(any | Error)[]> {
     try {
       const results = await Promise.all(
-        appointmentIds.map(async (appointmentId) => {
+        appointmentIds.map(async (appointment_id) => {
           try {
-            const response = await this.restApi.getAppointment(appointmentId);
+            const response = await this.restApi.getAppointment(appointment_id);
             return response.success ? response.data : null;
           } catch (error) {
-            return new Error(`Failed to load appointment ${appointmentId}`);
+            return new Error(`Failed to load appointment ${appointment_id}`);
           }
         })
       );
@@ -525,16 +525,16 @@ export class OptimizedDataLoadersService {
   ): Promise<(any[] | Error)[]> {
     try {
       const results = await Promise.all(
-        doctorIds.map(async (doctorId) => {
+        doctorIds.map(async (doctor_id) => {
           try {
             const response = await this.restApi.getAppointments({
-              doctorId,
+              doctor_id,
               limit: 100,
             });
             return response.success ? response.data : [];
           } catch (error) {
             return new Error(
-              `Failed to load appointments for doctor ${doctorId}`
+              `Failed to load appointments for doctor ${doctor_id}`
             );
           }
         })
@@ -550,16 +550,16 @@ export class OptimizedDataLoadersService {
   ): Promise<(any[] | Error)[]> {
     try {
       const results = await Promise.all(
-        patientIds.map(async (patientId) => {
+        patientIds.map(async (patient_id) => {
           try {
             const response = await this.restApi.getAppointments({
-              patientId,
+              patient_id,
               limit: 100,
             });
             return response.success ? response.data : [];
           } catch (error) {
             return new Error(
-              `Failed to load appointments for patient ${patientId}`
+              `Failed to load appointments for patient ${patient_id}`
             );
           }
         })

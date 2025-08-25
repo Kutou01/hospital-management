@@ -21,9 +21,9 @@ export const medicalRecordTypeDefs = gql`
 
   # Input Types
   input MedicalRecordFilters {
-    patientId: PatientID
-    doctorId: DoctorID
-    appointmentId: UUID
+    patient_id: PatientID
+    doctor_id: DoctorID
+    appointment_id: UUID
     status: MedicalRecordStatus
     visitDateFrom: Date
     visitDateTo: Date
@@ -31,9 +31,9 @@ export const medicalRecordTypeDefs = gql`
   }
 
   input CreateMedicalRecordInput {
-    patientId: PatientID!
-    doctorId: DoctorID!
-    appointmentId: UUID
+    patient_id: PatientID!
+    doctor_id: DoctorID!
+    appointment_id: UUID
     visitDate: Date!
     chiefComplaint: String
     historyOfPresentIllness: String
@@ -73,7 +73,7 @@ export const medicalRecordTypeDefs = gql`
     weight: Float
 
     # Metadata
-    recordedBy: String!
+    recorded_by: String!
     notes: String
   }
 
@@ -106,9 +106,9 @@ export const medicalRecordTypeDefs = gql`
   # Simplified Medical Record Type
   type MedicalRecord {
     id: UUID!
-    patientId: PatientID!
-    doctorId: DoctorID!
-    appointmentId: UUID
+    patient_id: PatientID!
+    doctor_id: DoctorID!
+    appointment_id: UUID
 
     # Simplified Record Information
     visitDate: Date!
@@ -134,8 +134,8 @@ export const medicalRecordTypeDefs = gql`
     appointment: Appointment
 
     # Timestamps
-    createdAt: DateTime!
-    updatedAt: DateTime!
+    created_at: DateTime!
+    updated_at: DateTime!
   }
 
   # Simplified Basic Vital Signs (embedded in medical record)
@@ -159,7 +159,7 @@ export const medicalRecordTypeDefs = gql`
     fileSize: Int!
     description: String
     uploadedBy: String!
-    createdAt: DateTime!
+    created_at: DateTime!
   }
 
   # Connection types
@@ -190,7 +190,7 @@ export const medicalRecordTypeDefs = gql`
 
     # Doctor medical records
     doctorMedicalRecords(
-      doctorId: DoctorID!
+      doctor_id: DoctorID!
       limit: Int = 20
       offset: Int = 0
       dateFrom: Date
@@ -207,7 +207,7 @@ export const medicalRecordTypeDefs = gql`
 
     # Lab results query
     labResults(
-      patientId: PatientID!
+      patient_id: PatientID!
       testType: String
       limit: Int = 20
       offset: Int = 0
@@ -247,7 +247,7 @@ export const medicalRecordTypeDefs = gql`
   extend type Subscription {
     # Medical record updates
     medicalRecordUpdated(recordId: UUID): MedicalRecord!
-    medicalRecordCreated(patientId: PatientID): MedicalRecord!
+    medicalRecordCreated(patient_id: PatientID): MedicalRecord!
 
     # Lab result updates
     labResultAdded(recordId: UUID): LabResult!

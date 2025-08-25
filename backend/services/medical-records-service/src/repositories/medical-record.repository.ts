@@ -62,12 +62,12 @@ export class MedicalRecordRepository {
     }
   }
 
-  async findByPatientId(patientId: string): Promise<MedicalRecord[]> {
+  async findByPatientId(patient_id: string): Promise<MedicalRecord[]> {
     try {
       const { data, error } = await this.supabase
         .from("medical_records")
         .select("*")
-        .eq("patient_id", patientId)
+        .eq("patient_id", patient_id)
         .eq("status", "active")
         .order("visit_date", { ascending: false });
 
@@ -76,18 +76,18 @@ export class MedicalRecordRepository {
     } catch (error) {
       logger.error("Error fetching medical records by patient ID", {
         error,
-        patientId,
+        patient_id,
       });
       throw error;
     }
   }
 
-  async findByDoctorId(doctorId: string): Promise<MedicalRecord[]> {
+  async findByDoctorId(doctor_id: string): Promise<MedicalRecord[]> {
     try {
       const { data, error } = await this.supabase
         .from("medical_records")
         .select("*")
-        .eq("doctor_id", doctorId)
+        .eq("doctor_id", doctor_id)
         .eq("status", "active")
         .order("visit_date", { ascending: false });
 
@@ -96,7 +96,7 @@ export class MedicalRecordRepository {
     } catch (error) {
       logger.error("Error fetching medical records by doctor ID", {
         error,
-        doctorId,
+        doctor_id,
       });
       throw error;
     }
@@ -350,13 +350,13 @@ export class MedicalRecordRepository {
   }
 
   async getPrescriptionsByPatientId(
-    patientId: string
+    patient_id: string
   ): Promise<EmbeddedPrescription[]> {
     try {
       const { data, error } = await this.supabase
         .from("medical_records")
         .select("prescriptions")
-        .eq("patient_id", patientId)
+        .eq("patient_id", patient_id)
         .not("prescriptions", "is", null);
 
       if (error) throw error;
@@ -377,20 +377,20 @@ export class MedicalRecordRepository {
     } catch (error) {
       logger.error("Error fetching prescriptions by patient ID", {
         error,
-        patientId,
+        patient_id,
       });
       throw error;
     }
   }
 
   async getPrescriptionsByDoctorId(
-    doctorId: string
+    doctor_id: string
   ): Promise<EmbeddedPrescription[]> {
     try {
       const { data, error } = await this.supabase
         .from("medical_records")
         .select("prescriptions")
-        .eq("doctor_id", doctorId)
+        .eq("doctor_id", doctor_id)
         .not("prescriptions", "is", null);
 
       if (error) throw error;
@@ -411,7 +411,7 @@ export class MedicalRecordRepository {
     } catch (error) {
       logger.error("Error fetching prescriptions by doctor ID", {
         error,
-        doctorId,
+        doctor_id,
       });
       throw error;
     }

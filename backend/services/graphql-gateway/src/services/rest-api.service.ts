@@ -143,19 +143,19 @@ export class RestApiService {
   }
 
   async getDoctorSchedule(
-    doctorId: string,
+    doctor_id: string,
     date?: string
   ): Promise<StandardApiResponse> {
     const params = date ? { date } : {};
     const response = await this.client.get(
-      `/api/doctors/${doctorId}/schedule`,
+      `/api/doctors/${doctor_id}/schedule`,
       { params }
     );
     return response.data;
   }
 
-  async getDoctorStats(doctorId: string): Promise<StandardApiResponse> {
-    const response = await this.client.get(`/api/doctors/${doctorId}/stats`);
+  async getDoctorStats(doctor_id: string): Promise<StandardApiResponse> {
+    const response = await this.client.get(`/api/doctors/${doctor_id}/stats`);
     return response.data;
   }
 
@@ -210,26 +210,26 @@ export class RestApiService {
   }
 
   async getPatientMedicalSummary(
-    patientId: string
+    patient_id: string
   ): Promise<StandardApiResponse> {
     const response = await this.client.get(
-      `/api/patients/${patientId}/medical-summary`
+      `/api/patients/${patient_id}/medical-summary`
     );
     return response.data;
   }
 
-  async getPatientStats(patientId: string): Promise<StandardApiResponse> {
-    const response = await this.client.get(`/api/patients/${patientId}/stats`);
+  async getPatientStats(patient_id: string): Promise<StandardApiResponse> {
+    const response = await this.client.get(`/api/patients/${patient_id}/stats`);
     return response.data;
   }
 
   async getPatientDoctorHistory(
-    patientId: string,
-    doctorId: string,
+    patient_id: string,
+    doctor_id: string,
     limit: number
   ): Promise<StandardApiResponse> {
     const response = await this.client.get(
-      `/api/patients/${patientId}/doctors/${doctorId}/history`,
+      `/api/patients/${doctor_id}/history`,
       {
         params: { limit },
       }
@@ -275,8 +275,8 @@ export class RestApiService {
   async getAppointments(params?: {
     page?: number;
     limit?: number;
-    doctorId?: string;
-    patientId?: string;
+    doctor_id?: string;
+    patient_id?: string;
     status?: string;
     dateFrom?: string;
     dateTo?: string;
@@ -311,20 +311,20 @@ export class RestApiService {
   }
 
   async getAvailableSlots(
-    doctorId: string,
+    doctor_id: string,
     date: string
   ): Promise<StandardApiResponse> {
     const response = await this.client.get(
       `/api/appointments/available-slots`,
       {
-        params: { doctorId, date },
+        params: { doctor_id, date },
       }
     );
     return response.data;
   }
 
   async getTodayAppointments(params: {
-    doctorId?: string;
+    doctor_id?: string;
     departmentId?: string;
     status?: string;
     date: string;
@@ -336,8 +336,8 @@ export class RestApiService {
   }
 
   async getUpcomingAppointments(params: {
-    doctorId?: string;
-    patientId?: string;
+    doctor_id?: string;
+    patient_id?: string;
     days?: number;
     limit?: number;
   }): Promise<StandardApiResponse> {
@@ -348,8 +348,8 @@ export class RestApiService {
   }
 
   async getAppointmentStats(params: {
-    doctorId?: string;
-    patientId?: string;
+    doctor_id?: string;
+    patient_id?: string;
     departmentId?: string;
     dateFrom?: string;
     dateTo?: string;
@@ -458,15 +458,15 @@ export class RestApiService {
   }
 
   async getPatientMedicalRecords(params: {
-    patientId: string;
+    patient_id: string;
     limit?: number;
     offset?: number;
     dateFrom?: string;
     dateTo?: string;
   }): Promise<StandardApiResponse> {
-    const { patientId, ...queryParams } = params;
+    const { patient_id, ...queryParams } = params;
     const response = await this.client.get(
-      `/api/medical-records/patient/${patientId}`,
+      `/api/medical-records/patient/${patient_id}`,
       {
         params: queryParams,
       }
@@ -475,15 +475,15 @@ export class RestApiService {
   }
 
   async getDoctorMedicalRecords(params: {
-    doctorId: string;
+    doctor_id: string;
     limit?: number;
     offset?: number;
     dateFrom?: string;
     dateTo?: string;
   }): Promise<StandardApiResponse> {
-    const { doctorId, ...queryParams } = params;
+    const { doctor_id, ...queryParams } = params;
     const response = await this.client.get(
-      `/api/medical-records/doctor/${doctorId}`,
+      `/api/medical-records/doctor/${doctor_id}`,
       {
         params: queryParams,
       }
@@ -504,7 +504,7 @@ export class RestApiService {
   }
 
   async getVitalSignsHistory(params: {
-    patientId: string;
+    patient_id: string;
     limit?: number;
     offset?: number;
     dateFrom?: string;
@@ -517,7 +517,7 @@ export class RestApiService {
   }
 
   async getLabResults(params: {
-    patientId: string;
+    patient_id: string;
     testType?: string;
     limit?: number;
     offset?: number;

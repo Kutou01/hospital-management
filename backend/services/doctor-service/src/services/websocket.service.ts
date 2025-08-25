@@ -6,8 +6,8 @@ export interface ConnectedClient {
   id: string;
   userId?: string;
   userRole?: string;
-  doctorId?: string;
-  patientId?: string;
+  doctor_id?: string;
+  patient_id?: string;
   rooms: Set<string>;
   connectedAt: Date;
 }
@@ -106,8 +106,8 @@ export class WebSocketManager {
     });
 
     // Subscribe to doctor updates
-    socket.on('subscribe_doctor', (doctorId: string) => {
-      this.subscribeToDoctorUpdates(socket, client, doctorId);
+    socket.on('subscribe_doctor', (doctor_id: string) => {
+      this.subscribeToDoctorUpdates(socket, client, doctor_id);
     });
 
     // Subscribe to medical staff updates
@@ -141,17 +141,17 @@ export class WebSocketManager {
    */
   private handleAuthentication(socket: Socket, client: ConnectedClient, data: any): void {
     try {
-      const { userId, userRole, doctorId, patientId } = data;
+      const { userId, userRole, doctor_id, patient_id } = data;
 
       // Update client information
       client.userId = userId;
       client.userRole = userRole;
-      client.doctorId = doctorId;
-      client.patientId = patientId;
+      client.doctor_id = doctorId;
+      client.patient_id = patientId;
 
       // Auto-join relevant rooms based on role
-      if (userRole === 'doctor' && doctorId) {
-        this.joinRoom(socket, client, `doctor_${doctorId}`);
+      if (userRole === 'doctor' && doctor_id) {
+        this.joinRoom(socket, client, `doctor_${doctor_id}`);
         this.joinRoom(socket, client, 'medical_staff');
       } else if (userRole === 'admin') {
         this.joinRoom(socket, client, 'admin_dashboard');
@@ -236,16 +236,16 @@ export class WebSocketManager {
   /**
    * Subscribe to doctor updates
    */
-  private subscribeToDoctorUpdates(socket: Socket, client: ConnectedClient, doctorId: string): void {
-    const roomName = `doctor_${doctorId}`;
+  private subscribeToDoctorUpdates(socket: Socket, client: ConnectedClient, doctor_id: string): void {
+    const roomName = `doctor_${doctor_id}`;
     this.joinRoom(socket, client, roomName);
     
-    client.doctorId = doctorId;
+    client.doctor_id = doctorId;
     
     socket.emit('subscription_confirmed', {
       type: 'doctor_updates',
-      doctorId,
-      message: `Subscribed to updates for doctor: ${doctorId}`
+      doctor_id,
+      message: `Subscribed to updates for doctor: ${doctor_id}`
     });
   }
 

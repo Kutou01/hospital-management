@@ -59,23 +59,23 @@ export class PatientService {
   }
 
   // Get patient information by ID
-  async getPatientById(patientId: string): Promise<PatientData | null> {
+  async getPatientById(patient_id: string): Promise<PatientData | null> {
     try {
-      logger.info('🔄 Fetching patient via API Gateway', { patientId });
+      logger.info('🔄 Fetching patient via API Gateway', { patient_id });
 
-      const response = await this.apiGatewayClient.getPatient(patientId);
+      const response = await this.apiGatewayClient.getPatient(patient_id);
 
       if (response.success && response.data) {
-        logger.info('✅ Patient fetched successfully via API Gateway', { patientId });
+        logger.info('✅ Patient fetched successfully via API Gateway', { patient_id });
         return response.data as PatientData;
       }
 
-      logger.warn('⚠️ Patient not found via API Gateway', { patientId });
+      logger.warn('⚠️ Patient not found via API Gateway', { patient_id });
       return null;
     } catch (error) {
       logger.error('❌ Error fetching patient via API Gateway:', {
         error: error instanceof Error ? error.message : 'Unknown error',
-        patientId
+        patient_id
       });
 
       return null;
@@ -113,18 +113,18 @@ export class PatientService {
   }
 
   // Get patient statistics for a doctor (patients who have appointments with this doctor)
-  async getDoctorPatientStats(doctorId: string): Promise<PatientStats> {
+  async getDoctorPatientStats(doctor_id: string): Promise<PatientStats> {
     try {
-      logger.info('🔄 Fetching patient stats via API Gateway', { doctorId });
+      logger.info('🔄 Fetching patient stats via API Gateway', { doctor_id });
 
-      const response = await this.apiGatewayClient.getPatientStats(doctorId);
+      const response = await this.apiGatewayClient.getPatientStats(doctor_id);
 
       if (response.success && response.data) {
-        logger.info('✅ Patient stats fetched successfully via API Gateway', { doctorId });
+        logger.info('✅ Patient stats fetched successfully via API Gateway', { doctor_id });
         return response.data as PatientStats;
       }
 
-      logger.warn('⚠️ No patient stats found via API Gateway', { doctorId });
+      logger.warn('⚠️ No patient stats found via API Gateway', { doctor_id });
       return {
         total_patients: 0,
         unique_patients_this_month: 0
@@ -132,7 +132,7 @@ export class PatientService {
     } catch (error) {
       logger.error('❌ Error fetching patient stats via API Gateway:', {
         error: error instanceof Error ? error.message : 'Unknown error',
-        doctorId
+        doctor_id
       });
 
       return {
@@ -194,15 +194,15 @@ export class PatientService {
   }
 
   // Get patient count for a specific doctor (from appointments)
-  async getPatientCountForDoctor(doctorId: string): Promise<number> {
+  async getPatientCountForDoctor(doctor_id: string): Promise<number> {
     try {
-      logger.info('🔄 Fetching patient count via API Gateway', { doctorId });
+      logger.info('🔄 Fetching patient count via API Gateway', { doctor_id });
 
       // Use the patient stats endpoint which includes patient count
-      const stats = await this.getDoctorPatientStats(doctorId);
+      const stats = await this.getDoctorPatientStats(doctor_id);
 
       logger.info('✅ Patient count fetched via API Gateway', {
-        doctorId,
+        doctor_id,
         count: stats.total_patients
       });
 
@@ -210,7 +210,7 @@ export class PatientService {
     } catch (error) {
       logger.error('❌ Error fetching patient count via API Gateway:', {
         error: error instanceof Error ? error.message : 'Unknown error',
-        doctorId
+        doctor_id
       });
 
       return 0;

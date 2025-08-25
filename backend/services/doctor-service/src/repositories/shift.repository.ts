@@ -14,12 +14,12 @@ export class ShiftRepository {
     this.supabase = getSupabase();
   }
 
-  async findByDoctorId(doctorId: string, limit: number = 50, offset: number = 0): Promise<DoctorShift[]> {
+  async findByDoctorId(doctor_id: string, limit: number = 50, offset: number = 0): Promise<DoctorShift[]> {
     try {
       const { data, error } = await this.supabase
         .from('doctor_shifts')
         .select('*')
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctor_id)
         .order('shift_date', { ascending: false })
         .range(offset, offset + limit - 1);
 
@@ -27,7 +27,7 @@ export class ShiftRepository {
 
       return data?.map(this.mapSupabaseShiftToShift) || [];
     } catch (error) {
-      logger.error('Error finding shifts by doctor ID', { error, doctorId });
+      logger.error('Error finding shifts by doctor ID', { error, doctor_id });
       throw error;
     }
   }
@@ -52,12 +52,12 @@ export class ShiftRepository {
     }
   }
 
-  async findByDateRange(doctorId: string, startDate: Date, endDate: Date): Promise<DoctorShift[]> {
+  async findByDateRange(doctor_id: string, startDate: Date, endDate: Date): Promise<DoctorShift[]> {
     try {
       const { data, error } = await this.supabase
         .from('doctor_shifts')
         .select('*')
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctor_id)
         .gte('shift_date', startDate.toISOString().split('T')[0])
         .lte('shift_date', endDate.toISOString().split('T')[0])
         .order('shift_date', { ascending: true });
@@ -66,7 +66,7 @@ export class ShiftRepository {
 
       return data?.map(this.mapSupabaseShiftToShift) || [];
     } catch (error) {
-      logger.error('Error finding shifts by date range', { error, doctorId, startDate, endDate });
+      logger.error('Error finding shifts by date range', { error, doctor_id, startDate, endDate });
       throw error;
     }
   }
@@ -227,7 +227,7 @@ export class ShiftRepository {
     }
   }
 
-  async getUpcomingShifts(doctorId: string, days: number = 7): Promise<DoctorShift[]> {
+  async getUpcomingShifts(doctor_id: string, days: number = 7): Promise<DoctorShift[]> {
     try {
       const startDate = new Date();
       const endDate = new Date();
@@ -236,7 +236,7 @@ export class ShiftRepository {
       const { data, error } = await this.supabase
         .from('doctor_shifts')
         .select('*')
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctor_id)
         .gte('shift_date', startDate.toISOString().split('T')[0])
         .lte('shift_date', endDate.toISOString().split('T')[0])
         .in('status', ['scheduled', 'confirmed'])
@@ -246,7 +246,7 @@ export class ShiftRepository {
 
       return data?.map(this.mapSupabaseShiftToShift) || [];
     } catch (error) {
-      logger.error('Error getting upcoming shifts', { error, doctorId, days });
+      logger.error('Error getting upcoming shifts', { error, doctor_id, days });
       throw error;
     }
   }
@@ -278,7 +278,7 @@ export class ShiftRepository {
     }
   }
 
-  async getShiftStatistics(doctorId: string, startDate: Date, endDate: Date): Promise<{
+  async getShiftStatistics(doctor_id: string, startDate: Date, endDate: Date): Promise<{
     total_shifts: number;
     completed_shifts: number;
     cancelled_shifts: number;
@@ -286,7 +286,7 @@ export class ShiftRepository {
     total_hours: number;
   }> {
     try {
-      const shifts = await this.findByDateRange(doctorId, startDate, endDate);
+      const shifts = await this.findByDateRange(doctor_id, startDate, endDate);
 
       const stats = {
         total_shifts: shifts.length,
@@ -307,13 +307,13 @@ export class ShiftRepository {
 
       return stats;
     } catch (error) {
-      logger.error('Error getting shift statistics', { error, doctorId, startDate, endDate });
+      logger.error('Error getting shift statistics', { error, doctor_id, startDate, endDate });
       throw error;
     }
   }
 
   private async checkShiftConflicts(
-    doctorId: string,
+    doctor_id: string,
     shiftDate: Date,
     startTime: string,
     endTime: string,
@@ -323,7 +323,7 @@ export class ShiftRepository {
       let query = this.supabase
         .from('doctor_shifts')
         .select('*')
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctor_id)
         .eq('shift_date', shiftDate.toISOString().split('T')[0])
         .neq('status', 'cancelled');
 
@@ -349,7 +349,7 @@ export class ShiftRepository {
         return (newStart < existingEnd && newEnd > existingStart);
       });
     } catch (error) {
-      logger.error('Error checking shift conflicts', { error, doctorId, shiftDate, startTime, endTime });
+      logger.error('Error checking shift conflicts', { error, doctor_id, shiftDate, startTime, endTime });
       throw error;
     }
   }

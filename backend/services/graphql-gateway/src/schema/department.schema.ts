@@ -64,7 +64,7 @@ export const departmentTypeDefs = gql`
 
     # Operational Information
     status: DepartmentStatus!
-    isActive: Boolean!
+    is_active: Boolean!
     operatingHours: OperatingHours
     emergencyAvailable: Boolean!
 
@@ -76,8 +76,8 @@ export const departmentTypeDefs = gql`
     maxPatients: Int
 
     # Timestamps
-    createdAt: DateTime!
-    updatedAt: DateTime!
+    created_at: DateTime!
+    updated_at: DateTime!
 
     # Relationships
     head: Doctor # Department head
@@ -166,8 +166,8 @@ export const departmentTypeDefs = gql`
     isOccupied: Boolean!
 
     # Timestamps
-    createdAt: DateTime!
-    updatedAt: DateTime!
+    created_at: DateTime!
+    updated_at: DateTime!
   }
 
   # Equipment
@@ -198,8 +198,8 @@ export const departmentTypeDefs = gql`
     requiresCalibration: Boolean
 
     # Timestamps
-    createdAt: DateTime!
-    updatedAt: DateTime!
+    created_at: DateTime!
+    updated_at: DateTime!
   }
 
   # Department Statistics
@@ -248,9 +248,9 @@ export const departmentTypeDefs = gql`
   # Simplified Prescription
   type SimplifiedPrescription {
     id: UUID!
-    patientId: PatientID!
-    doctorId: DoctorID!
-    appointmentId: UUID
+    patient_id: PatientID!
+    doctor_id: DoctorID!
+    appointment_id: UUID
 
     # Simplified Prescription Details
     prescriptionDate: Date!
@@ -265,8 +265,8 @@ export const departmentTypeDefs = gql`
     appointment: Appointment
 
     # Timestamps
-    createdAt: DateTime!
-    updatedAt: DateTime!
+    created_at: DateTime!
+    updated_at: DateTime!
   }
 
   enum PrescriptionStatus {
@@ -286,8 +286,8 @@ export const departmentTypeDefs = gql`
   # Payment
   type Payment {
     id: UUID!
-    patientId: PatientID!
-    appointmentId: UUID
+    patient_id: PatientID!
+    appointment_id: UUID
 
     # Payment Details
     paymentNumber: String!
@@ -316,15 +316,15 @@ export const departmentTypeDefs = gql`
     appointment: Appointment
 
     # Timestamps
-    createdAt: DateTime!
-    updatedAt: DateTime!
+    created_at: DateTime!
+    updated_at: DateTime!
   }
 
   # Input Types
   input DepartmentFilters {
     search: String
     status: DepartmentStatus
-    isActive: Boolean
+    is_active: Boolean
     type: String
     floor: Int
     building: String
@@ -363,7 +363,7 @@ export const departmentTypeDefs = gql`
     emergencyAvailable: Boolean
     maxPatients: Int
     status: DepartmentStatus
-    isActive: Boolean
+    is_active: Boolean
   }
 
   input OperatingHoursInput {
@@ -429,7 +429,7 @@ export const departmentTypeDefs = gql`
     # Prescriptions
     prescription(id: UUID!): Prescription
     patientPrescriptions(
-      patientId: PatientID!
+      patient_id: PatientID!
       active: Boolean
       limit: Int = 20
       offset: Int = 0
@@ -438,7 +438,7 @@ export const departmentTypeDefs = gql`
     # Payments
     payment(id: UUID!): Payment
     patientPayments(
-      patientId: PatientID!
+      patient_id: PatientID!
       status: PaymentStatus
       limit: Int = 20
       offset: Int = 0

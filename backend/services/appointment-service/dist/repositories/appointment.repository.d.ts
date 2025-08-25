@@ -1,30 +1,31 @@
-import { Appointment, AppointmentWithDetails, CreateAppointmentDto, UpdateAppointmentDto, AppointmentSearchFilters, ConflictCheck, AppointmentStats } from '../types/appointment.types';
+import { Appointment, AppointmentSearchFilters, AppointmentStats, AppointmentWithDetails, ConflictCheck, CreateAppointmentDto, UpdateAppointmentDto } from "../types/appointment.types";
 export declare class AppointmentRepository {
     private supabase;
+    private pool;
     getAllAppointments(filters?: AppointmentSearchFilters, page?: number, limit?: number): Promise<{
         appointments: AppointmentWithDetails[];
         total: number;
     }>;
-    getAppointmentById(appointmentId: string): Promise<AppointmentWithDetails | null>;
-    getAppointmentsByDoctorId(doctorId: string, filters?: Partial<AppointmentSearchFilters>, page?: number, limit?: number): Promise<{
+    getAppointmentById(appointment_id: string): Promise<AppointmentWithDetails | null>;
+    getAppointmentsByDoctorId(doctor_id: string, filters?: Partial<AppointmentSearchFilters>, page?: number, limit?: number): Promise<{
         appointments: AppointmentWithDetails[];
         total: number;
     }>;
-    getAppointmentsByPatientId(patientId: string, filters?: Partial<AppointmentSearchFilters>, page?: number, limit?: number): Promise<{
+    getAppointmentsByPatientId(patient_id: string, filters?: Partial<AppointmentSearchFilters>, page?: number, limit?: number): Promise<{
         appointments: AppointmentWithDetails[];
         total: number;
     }>;
     createAppointment(appointmentData: CreateAppointmentDto): Promise<Appointment>;
-    updateAppointment(appointmentId: string, updateData: UpdateAppointmentDto): Promise<Appointment>;
-    cancelAppointment(appointmentId: string, reason?: string): Promise<boolean>;
-    checkConflicts(doctorId: string, appointmentDate: string, startTime: string, endTime: string, excludeAppointmentId?: string): Promise<ConflictCheck>;
-    appointmentExists(appointmentId: string): Promise<boolean>;
+    updateAppointment(appointment_id: string, updateData: UpdateAppointmentDto): Promise<Appointment>;
+    cancelAppointment(appointment_id: string, reason?: string): Promise<boolean>;
+    checkConflicts(doctor_id: string, appointmentDate: string, startTime: string, endTime: string, excludeAppointmentId?: string): Promise<ConflictCheck>;
+    appointmentExists(appointment_id: string): Promise<boolean>;
     getAppointmentStats(): Promise<AppointmentStats>;
-    getUpcomingAppointments(doctorId: string, days?: number): Promise<AppointmentWithDetails[]>;
-    getCalendarView(date: string, doctorId?: string, view?: 'day' | 'week' | 'month'): Promise<any>;
-    getWeeklySchedule(doctorId: string, startDate?: string): Promise<any>;
-    getAvailableSlots(doctorId: string, date: string, duration?: number): Promise<any[]>;
-    getDoctorAppointmentStats(doctorId: string): Promise<any>;
-    getDoctorPatientCount(doctorId: string): Promise<number>;
+    getUpcomingAppointments(doctor_id: string, days?: number): Promise<AppointmentWithDetails[]>;
+    getCalendarView(date: string, doctor_id?: string, view?: "day" | "week" | "month"): Promise<any>;
+    getWeeklySchedule(doctor_id: string, startDate?: string): Promise<any>;
+    getAvailableSlots(doctor_id: string, date: string, duration?: number): Promise<any[]>;
+    getDoctorAppointmentStats(doctor_id: string): Promise<any>;
+    getDoctorPatientCount(doctor_id: string): Promise<number>;
 }
 //# sourceMappingURL=appointment.repository.d.ts.map

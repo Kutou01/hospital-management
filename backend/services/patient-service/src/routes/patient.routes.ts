@@ -171,17 +171,17 @@ router.get(
   patientController.getPatientsWithUpcomingAppointments.bind(patientController)
 );
 
-// GET /api/patients/validate/:patientId - Validate patient ID format
+// GET /api/patients/validate/:patient_id - Validate patient ID format
 router.get('/validate/:patientId', validatePatientId, handleValidationErrors, (req: express.Request, res: express.Response) => {
   res.json({
     success: true,
     message: 'Patient ID format is valid',
-    patientId: req.params.patientId,
+    patient_id: req.params.patient_id,
     format: 'PAT-YYYYMM-XXX (Department-Based ID)'
   });
 });
 
-// GET /api/patients/count/doctor/:doctorId - Get patient count for doctor
+// GET /api/patients/count/doctor/:doctor_id - Get patient count for doctor
 router.get(
   '/count/doctor/:doctorId',
   validateDoctorId,
@@ -197,7 +197,7 @@ router.get(
   patientController.getPatientStatsForDoctor.bind(patientController)
 );
 
-// GET /api/patients/doctor/:doctorId - Get patients by doctor ID
+// GET /api/patients/doctor/:doctor_id - Get patients by doctor ID
 router.get(
   '/doctor/:doctorId',
   validateDoctorId,
@@ -228,7 +228,7 @@ router.post(
   patientController.createPatient.bind(patientController)
 );
 
-// PUT /api/patients/:patientId - Update patient
+// PUT /api/patients/:patient_id - Update patient
 router.put(
   '/:patientId',
   validateUpdatePatient,
@@ -236,7 +236,7 @@ router.put(
   patientController.updatePatient.bind(patientController)
 );
 
-// DELETE /api/patients/:patientId - Delete patient (soft delete)
+// DELETE /api/patients/:patient_id - Delete patient (soft delete)
 router.delete(
   '/:patientId',
   validatePatientId,
@@ -252,19 +252,19 @@ router.get(
   patientController.getPatientMedicalSummary.bind(patientController)
 );
 
-// GET /api/patients/:patientId - Get patient by ID
+// GET /api/patients/:patient_id - Get patient by ID
 router.get(
   '/:patientId',
   (req: express.Request, res: express.Response, next: express.NextFunction) => {
-    // Only proceed if the patientId matches the expected format
-    const patientId = req.params.patientId;
+    // Only proceed if the patient_id matches the expected format
+    const patient_id = req.params.patient_id;
     const PATIENT_ID_PATTERN = /^PAT-\d{6}-\d{3}$/;
 
-    if (!PATIENT_ID_PATTERN.test(patientId)) {
+    if (!PATIENT_ID_PATTERN.test(patient_id)) {
       return res.status(404).json({
         success: false,
         error: 'Route not found',
-        message: `Invalid patient ID format: ${patientId}`,
+        message: `Invalid patient ID format: ${patient_id}`,
         expectedFormat: 'PAT-YYYYMM-XXX'
       });
     }

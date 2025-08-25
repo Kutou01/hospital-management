@@ -75,8 +75,8 @@ class AppointmentController {
                 });
                 return;
             }
-            const { appointmentId } = req.params;
-            const appointment = await this.appointmentRepository.getAppointmentById(appointmentId);
+            const { appointment_id } = req.params;
+            const appointment = await this.appointmentRepository.getAppointmentById(appointment_id);
             if (!appointment) {
                 res.status(404).json({
                     success: false,
@@ -114,7 +114,7 @@ class AppointmentController {
                 });
                 return;
             }
-            const { doctorId } = req.params;
+            const { doctor_id } = req.params;
             const page = parseInt(req.query.page) || 1;
             const limit = parseInt(req.query.limit) || 20;
             const filters = {
@@ -122,7 +122,7 @@ class AppointmentController {
                 status: req.query.status,
                 appointment_type: req.query.appointment_type
             };
-            const { appointments, total } = await this.appointmentRepository.getAppointmentsByDoctorId(doctorId, filters, page, limit);
+            const { appointments, total } = await this.appointmentRepository.getAppointmentsByDoctorId(doctor_id, filters, page, limit);
             const response = {
                 success: true,
                 data: appointments,
@@ -158,7 +158,7 @@ class AppointmentController {
                 });
                 return;
             }
-            const { patientId } = req.params;
+            const { patient_id } = req.params;
             const page = parseInt(req.query.page) || 1;
             const limit = parseInt(req.query.limit) || 20;
             const filters = {
@@ -166,7 +166,7 @@ class AppointmentController {
                 status: req.query.status,
                 appointment_type: req.query.appointment_type
             };
-            const { appointments, total } = await this.appointmentRepository.getAppointmentsByPatientId(patientId, filters, page, limit);
+            const { appointments, total } = await this.appointmentRepository.getAppointmentsByPatientId(patient_id, filters, page, limit);
             const response = {
                 success: true,
                 data: appointments,
@@ -271,9 +271,9 @@ class AppointmentController {
                 });
                 return;
             }
-            const { appointmentId } = req.params;
+            const { appointment_id } = req.params;
             const updateData = req.body;
-            const exists = await this.appointmentRepository.appointmentExists(appointmentId);
+            const exists = await this.appointmentRepository.appointmentExists(appointment_id);
             if (!exists) {
                 res.status(404).json({
                     success: false,
@@ -283,12 +283,12 @@ class AppointmentController {
                 return;
             }
             if (updateData.appointment_date || updateData.start_time || updateData.end_time) {
-                const currentAppointment = await this.appointmentRepository.getAppointmentById(appointmentId);
+                const currentAppointment = await this.appointmentRepository.getAppointmentById(appointment_id);
                 if (currentAppointment) {
                     const checkDate = updateData.appointment_date || currentAppointment.appointment_date;
                     const checkStartTime = updateData.start_time || currentAppointment.start_time;
                     const checkEndTime = updateData.end_time || currentAppointment.end_time;
-                    const conflictCheck = await this.appointmentRepository.checkConflicts(currentAppointment.doctor_id, checkDate, checkStartTime, checkEndTime, appointmentId);
+                    const conflictCheck = await this.appointmentRepository.checkConflicts(currentAppointment.doctor_id, checkDate, checkStartTime, checkEndTime, appointment_id);
                     if (conflictCheck.has_conflict) {
                         res.status(400).json({
                             success: false,
@@ -300,7 +300,7 @@ class AppointmentController {
                     }
                 }
             }
-            const appointment = await this.appointmentRepository.updateAppointment(appointmentId, updateData);
+            const appointment = await this.appointmentRepository.updateAppointment(appointment_id, updateData);
             const response = {
                 success: true,
                 data: appointment,
@@ -331,9 +331,9 @@ class AppointmentController {
                 });
                 return;
             }
-            const { appointmentId } = req.params;
+            const { appointment_id } = req.params;
             const { reason } = req.body;
-            const exists = await this.appointmentRepository.appointmentExists(appointmentId);
+            const exists = await this.appointmentRepository.appointmentExists(appointment_id);
             if (!exists) {
                 res.status(404).json({
                     success: false,
@@ -342,7 +342,7 @@ class AppointmentController {
                 });
                 return;
             }
-            await this.appointmentRepository.cancelAppointment(appointmentId, reason);
+            await this.appointmentRepository.cancelAppointment(appointment_id, reason);
             res.json({
                 success: true,
                 message: 'Appointment cancelled successfully',
@@ -371,9 +371,9 @@ class AppointmentController {
                 });
                 return;
             }
-            const { appointmentId } = req.params;
+            const { appointment_id } = req.params;
             const { notes } = req.body;
-            const exists = await this.appointmentRepository.appointmentExists(appointmentId);
+            const exists = await this.appointmentRepository.appointmentExists(appointment_id);
             if (!exists) {
                 res.status(404).json({
                     success: false,
@@ -388,7 +388,7 @@ class AppointmentController {
             if (notes) {
                 updateData.notes = notes;
             }
-            const appointment = await this.appointmentRepository.updateAppointment(appointmentId, updateData);
+            const appointment = await this.appointmentRepository.updateAppointment(appointment_id, updateData);
             const response = {
                 success: true,
                 data: appointment,
@@ -479,9 +479,9 @@ class AppointmentController {
                 });
                 return;
             }
-            const { doctorId } = req.params;
+            const { doctor_id } = req.params;
             const days = parseInt(req.query.days) || 7;
-            const appointments = await this.appointmentRepository.getUpcomingAppointments(doctorId, days);
+            const appointments = await this.appointmentRepository.getUpcomingAppointments(doctor_id, days);
             const response = {
                 success: true,
                 data: appointments,
@@ -562,7 +562,7 @@ class AppointmentController {
     }
     async getCalendarView(req, res) {
         try {
-            const { date, doctorId, view = 'month' } = req.query;
+            const { date, doctor_id, view = 'month' } = req.query;
             if (!date) {
                 res.status(400).json({
                     success: false,
@@ -571,7 +571,7 @@ class AppointmentController {
                 });
                 return;
             }
-            const calendarData = await this.appointmentRepository.getCalendarView(date, doctorId, view);
+            const calendarData = await this.appointmentRepository.getCalendarView(date, doctor_id, view);
             const response = {
                 success: true,
                 data: calendarData,
@@ -591,9 +591,9 @@ class AppointmentController {
     }
     async getWeeklySchedule(req, res) {
         try {
-            const { doctorId } = req.params;
+            const { doctor_id } = req.params;
             const { startDate } = req.query;
-            if (!doctorId) {
+            if (!doctor_id) {
                 res.status(400).json({
                     success: false,
                     error: 'Doctor ID is required',
@@ -601,7 +601,7 @@ class AppointmentController {
                 });
                 return;
             }
-            const weeklySchedule = await this.appointmentRepository.getWeeklySchedule(doctorId, startDate);
+            const weeklySchedule = await this.appointmentRepository.getWeeklySchedule(doctor_id, startDate);
             const response = {
                 success: true,
                 data: weeklySchedule,
@@ -685,8 +685,8 @@ class AppointmentController {
                 });
                 return;
             }
-            const { doctorId } = req.params;
-            const stats = await this.appointmentRepository.getDoctorAppointmentStats(doctorId);
+            const { doctor_id } = req.params;
+            const stats = await this.appointmentRepository.getDoctorAppointmentStats(doctor_id);
             const response = {
                 success: true,
                 data: stats,
@@ -716,8 +716,8 @@ class AppointmentController {
                 });
                 return;
             }
-            const { doctorId } = req.params;
-            const patientCount = await this.appointmentRepository.getDoctorPatientCount(doctorId);
+            const { doctor_id } = req.params;
+            const patientCount = await this.appointmentRepository.getDoctorPatientCount(doctor_id);
             const response = {
                 success: true,
                 data: { total_patients: patientCount },

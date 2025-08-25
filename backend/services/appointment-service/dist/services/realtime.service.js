@@ -63,14 +63,14 @@ class AppointmentRealtimeService {
     async handleAppointmentChange(payload) {
         try {
             const { eventType, new: newRecord, old: oldRecord } = payload;
-            const appointmentId = newRecord?.appointment_id || oldRecord?.appointment_id;
+            const appointment_id = newRecord?.appointment_id || oldRecord?.appointment_id;
             logger_1.default.info('📡 Received appointment change:', {
                 eventType,
-                appointmentId
+                appointment_id
             });
             const realtimeEvent = {
                 type: eventType,
-                appointment_id: appointmentId,
+                appointment_id: appointment_id,
                 doctor_id: newRecord?.doctor_id || oldRecord?.doctor_id,
                 patient_id: newRecord?.patient_id || oldRecord?.patient_id,
                 old_status: oldRecord?.status,
@@ -94,7 +94,7 @@ class AppointmentRealtimeService {
             await this.updateCache(event);
             logger_1.default.info('✅ Appointment event processed successfully:', {
                 type: event.type,
-                appointmentId: event.appointment_id
+                appointment_id: event.appointment_id
             });
         }
         catch (error) {
@@ -214,7 +214,7 @@ class AppointmentRealtimeService {
     }
     async handleStatusChange(event) {
         logger_1.default.info('🔄 Status changed:', {
-            appointmentId: event.appointment_id,
+            appointment_id: event.appointment_id,
             from: event.old_status,
             to: event.new_status
         });

@@ -18,16 +18,16 @@ export class DoctorService {
   }
 
   // Get doctor information by ID
-  async getDoctorById(doctorId: string): Promise<DoctorInfo | null> {
+  async getDoctorById(doctor_id: string): Promise<DoctorInfo | null> {
     try {
-      logger.info('🔄 Fetching doctor info via API Gateway', { doctorId });
+      logger.info('🔄 Fetching doctor info via API Gateway', { doctor_id });
 
-      const response = await this.apiGatewayClient.getDoctor(doctorId);
+      const response = await this.apiGatewayClient.getDoctor(doctor_id);
 
       if (response.success && response.data) {
         const doctor = response.data;
 
-        logger.info('✅ Doctor info fetched successfully via API Gateway', { doctorId });
+        logger.info('✅ Doctor info fetched successfully via API Gateway', { doctor_id });
 
         return {
           doctor_id: doctor.doctor_id,
@@ -39,12 +39,12 @@ export class DoctorService {
         };
       }
 
-      logger.warn('⚠️ Doctor not found via API Gateway', { doctorId });
+      logger.warn('⚠️ Doctor not found via API Gateway', { doctor_id });
       return null;
     } catch (error) {
       logger.error('❌ Error fetching doctor info via API Gateway:', {
         error: error instanceof Error ? error.message : 'Unknown error',
-        doctorId
+        doctor_id
       });
       return null;
     }
@@ -52,27 +52,27 @@ export class DoctorService {
 
   // Check doctor availability for a specific date and time
   async checkDoctorAvailability(
-    doctorId: string,
+    doctor_id: string,
     date: string,
     startTime: string,
     endTime: string
   ): Promise<boolean> {
     try {
       logger.info('🔄 Checking doctor availability via API Gateway', {
-        doctorId,
+        doctor_id,
         date,
         startTime,
         endTime
       });
 
-      const response = await this.apiGatewayClient.getDoctorAvailability(doctorId, date);
+      const response = await this.apiGatewayClient.getDoctorAvailability(doctor_id, date);
 
       if (response.success && response.data) {
         const availability = response.data;
 
         // Check if doctor is available on this day
         if (!availability.is_available) {
-          logger.info('⚠️ Doctor not available on this date via API Gateway', { doctorId, date });
+          logger.info('⚠️ Doctor not available on this date via API Gateway', { doctor_id, date });
           return false;
         }
 
@@ -84,7 +84,7 @@ export class DoctorService {
 
         if (requestStart < workStart || requestEnd > workEnd) {
           logger.info('⚠️ Requested time outside working hours via API Gateway', {
-            doctorId,
+            doctor_id,
             requestStart,
             requestEnd,
             workStart,
@@ -104,7 +104,7 @@ export class DoctorService {
             (requestStart <= breakStart && requestEnd >= breakEnd)
           ) {
             logger.info('⚠️ Requested time conflicts with break time via API Gateway', {
-              doctorId,
+              doctor_id,
               breakStart,
               breakEnd
             });
@@ -112,16 +112,16 @@ export class DoctorService {
           }
         }
 
-        logger.info('✅ Doctor is available via API Gateway', { doctorId, date, startTime, endTime });
+        logger.info('✅ Doctor is available via API Gateway', { doctor_id, date, startTime, endTime });
         return true;
       }
 
-      logger.warn('⚠️ No availability data found via API Gateway', { doctorId, date });
+      logger.warn('⚠️ No availability data found via API Gateway', { doctor_id, date });
       return false;
     } catch (error) {
       logger.error('❌ Error checking doctor availability via API Gateway:', {
         error: error instanceof Error ? error.message : 'Unknown error',
-        doctorId,
+        doctor_id,
         date,
         startTime,
         endTime
@@ -132,34 +132,34 @@ export class DoctorService {
 
   // Get available time slots for a doctor on a specific date
   async getAvailableTimeSlots(
-    doctorId: string,
+    doctor_id: string,
     date: string,
     duration: number = 30
   ): Promise<{ start_time: string; end_time: string }[]> {
     try {
       logger.info('🔄 Fetching available time slots via API Gateway', {
-        doctorId,
+        doctor_id,
         date,
         duration
       });
 
-      const response = await this.apiGatewayClient.getDoctorTimeSlots(doctorId, date, duration);
+      const response = await this.apiGatewayClient.getDoctorTimeSlots(doctor_id, date, duration);
 
       if (response.success && response.data) {
         logger.info('✅ Time slots fetched successfully via API Gateway', {
-          doctorId,
+          doctor_id,
           date,
           slotsCount: response.data.length
         });
         return response.data;
       }
 
-      logger.warn('⚠️ No time slots found via API Gateway', { doctorId, date });
+      logger.warn('⚠️ No time slots found via API Gateway', { doctor_id, date });
       return [];
     } catch (error) {
       logger.error('❌ Error fetching time slots via API Gateway:', {
         error: error instanceof Error ? error.message : 'Unknown error',
-        doctorId,
+        doctor_id,
         date,
         duration
       });
@@ -168,24 +168,24 @@ export class DoctorService {
   }
 
   // Verify doctor exists
-  async verifyDoctorExists(doctorId: string): Promise<boolean> {
+  async verifyDoctorExists(doctor_id: string): Promise<boolean> {
     try {
-      logger.info('🔄 Verifying doctor existence via API Gateway', { doctorId });
+      logger.info('🔄 Verifying doctor existence via API Gateway', { doctor_id });
 
-      const doctor = await this.getDoctorById(doctorId);
+      const doctor = await this.getDoctorById(doctor_id);
       const exists = doctor !== null;
 
       if (exists) {
-        logger.info('✅ Doctor exists via API Gateway', { doctorId });
+        logger.info('✅ Doctor exists via API Gateway', { doctor_id });
       } else {
-        logger.warn('⚠️ Doctor does not exist via API Gateway', { doctorId });
+        logger.warn('⚠️ Doctor does not exist via API Gateway', { doctor_id });
       }
 
       return exists;
     } catch (error) {
       logger.error('❌ Error verifying doctor existence via API Gateway:', {
         error: error instanceof Error ? error.message : 'Unknown error',
-        doctorId
+        doctor_id
       });
       return false;
     }

@@ -120,7 +120,7 @@ export const authMiddleware = async (
     }
 
     // Get doctor_id if user is a doctor
-    let doctorId = null;
+    let doctor_id = null;
     if (profile.role === "doctor") {
       const { data: doctor, error: doctorError } = await supabaseAdmin
         .from("doctors")
@@ -129,7 +129,7 @@ export const authMiddleware = async (
         .single();
 
       if (!doctorError && doctor) {
-        doctorId = doctor.doctor_id;
+        doctor_id = doctor.doctor_id;
       }
     }
 
@@ -142,7 +142,7 @@ export const authMiddleware = async (
       full_name: profile.full_name,
       phone_number: profile.phone_number,
       is_active: profile.is_active,
-      doctor_id: doctorId,
+      doctor_id: doctor_id,
     };
 
     // DEBUG: Log final user object

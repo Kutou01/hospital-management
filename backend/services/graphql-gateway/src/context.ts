@@ -60,12 +60,12 @@ export interface AuthenticatedUser {
   permissions: string[];
 
   // Role-specific IDs
-  doctorId?: string;
-  patientId?: string;
+  doctor_id?: string;
+  patient_id?: string;
 
   // User details
   fullName: string;
-  isActive: boolean;
+  is_active: boolean;
   lastLoginAt?: Date;
 
   // Session info
@@ -196,10 +196,10 @@ async function authenticateUser(token: string): Promise<AuthenticatedUser> {
       email: decoded.email,
       role: decoded.role as UserRole,
       permissions: decoded.permissions || [],
-      doctorId: decoded.doctorId,
-      patientId: decoded.patientId,
+      doctor_id: decoded.doctor_id,
+      patient_id: decoded.patient_id,
       fullName: decoded.fullName || decoded.full_name || decoded.name,
-      isActive: decoded.isActive !== false,
+      is_active: decoded.is_active !== false,
       lastLoginAt: decoded.lastLoginAt
         ? new Date(decoded.lastLoginAt)
         : undefined,
@@ -214,7 +214,7 @@ async function authenticateUser(token: string): Promise<AuthenticatedUser> {
     }
 
     // Validate user is active
-    if (!user.isActive) {
+    if (!user.is_active) {
       throw new Error("User account is inactive");
     }
 
@@ -263,9 +263,9 @@ export function hasPermission(
 export function getUserEntityId(user: AuthenticatedUser): string | undefined {
   switch (user.role) {
     case UserRole.DOCTOR:
-      return user.doctorId;
+      return user.doctor_id;
     case UserRole.PATIENT:
-      return user.patientId;
+      return user.patient_id;
     default:
       return user.id;
   }

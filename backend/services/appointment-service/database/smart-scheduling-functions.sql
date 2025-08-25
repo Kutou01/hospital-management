@@ -39,11 +39,11 @@ BEGIN
   LOOP
     -- Check for existing appointments (conflicts)
     SELECT COUNT(*) INTO conflicts
-    FROM appointments 
-    WHERE doctor_id = input_doctor_id 
+    FROM appointments
+    WHERE doctor_id = input_doctor_id
       AND appointment_date = input_date
-      AND start_time <= current_time 
-      AND end_time > current_time
+      AND appointment_time <= current_time
+      AND (appointment_time + (duration_minutes || ' minutes')::INTERVAL)::TIME > current_time
       AND status NOT IN ('cancelled', 'no_show');
     
     -- Skip if there are conflicts
@@ -120,13 +120,13 @@ DECLARE
 BEGIN
   -- Check for direct time conflicts
   SELECT COUNT(*) INTO conflict_count
-  FROM appointments 
-  WHERE doctor_id = input_doctor_id 
+  FROM appointments
+  WHERE doctor_id = input_doctor_id
     AND appointment_date = input_date
     AND (
-      (start_time <= input_start_time AND end_time > input_start_time) OR
-      (start_time < input_end_time AND end_time >= input_end_time) OR
-      (start_time >= input_start_time AND end_time <= input_end_time)
+      (appointment_time <= input_start_time AND (appointment_time + (duration_minutes || ' minutes')::INTERVAL)::TIME > input_start_time) OR
+      (appointment_time < input_end_time AND (appointment_time + (duration_minutes || ' minutes')::INTERVAL)::TIME >= input_end_time) OR
+      (appointment_time >= input_start_time AND (appointment_time + (duration_minutes || ' minutes')::INTERVAL)::TIME <= input_end_time)
     )
     AND status NOT IN ('cancelled', 'no_show')
     AND (exclude_appointment_id IS NULL OR appointment_id != exclude_appointment_id);
@@ -140,9 +140,9 @@ BEGIN
       WHERE doctor_id = input_doctor_id 
         AND appointment_date = input_date
         AND (
-          (start_time <= input_start_time AND end_time > input_start_time) OR
-          (start_time < input_end_time AND end_time >= input_end_time) OR
-          (start_time >= input_start_time AND end_time <= input_end_time)
+          (appointment_time <= input_start_time AND (appointment_time + (duration_minutes || ' minutes')::INTERVAL)::TIME > input_start_time) OR
+          (appointment_time < input_end_time AND (appointment_time + (duration_minutes || ' minutes')::INTERVAL)::TIME >= input_end_time) OR
+          (appointment_time >= input_start_time AND (appointment_time + (duration_minutes || ' minutes')::INTERVAL)::TIME <= input_end_time)
         )
         AND status NOT IN ('cancelled', 'no_show')
         AND (exclude_appointment_id IS NULL OR appointment_id != exclude_appointment_id)
@@ -174,10 +174,10 @@ BEGIN
   WHERE doctor_id = input_doctor_id 
     AND appointment_date = input_date
     AND (
-      (end_time > (input_start_time - (buffer_minutes || ' minutes')::INTERVAL) AND 
-       end_time <= input_start_time) OR
-      (start_time >= input_end_time AND 
-       start_time < (input_end_time + (buffer_minutes || ' minutes')::INTERVAL))
+      ((appointment_time + (duration_minutes || ' minutes')::INTERVAL)::TIME > (input_start_time - (buffer_minutes || ' minutes')::INTERVAL) AND
+       (appointment_time + (duration_minutes || ' minutes')::INTERVAL)::TIME <= input_start_time) OR
+      (appointment_time >= input_end_time AND
+       appointment_time < (input_end_time + (buffer_minutes || ' minutes')::INTERVAL))
     )
     AND status NOT IN ('cancelled', 'no_show')
     AND (exclude_appointment_id IS NULL OR appointment_id != exclude_appointment_id);

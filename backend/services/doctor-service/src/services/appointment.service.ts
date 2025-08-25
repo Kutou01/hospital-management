@@ -53,7 +53,7 @@ export class AppointmentService {
 
   // Get doctor's appointments
   async getDoctorAppointments(
-    doctorId: string,
+    doctor_id: string,
     filters: {
       date?: string;
       status?: string;
@@ -62,13 +62,13 @@ export class AppointmentService {
     } = {}
   ): Promise<{ appointments: AppointmentData[]; pagination?: any }> {
     try {
-      logger.info('🔄 Fetching doctor appointments via API Gateway', { doctorId, filters });
+      logger.info('🔄 Fetching doctor appointments via API Gateway', { doctor_id, filters });
 
-      const response = await this.apiGatewayClient.getDoctorAppointments(doctorId, filters);
+      const response = await this.apiGatewayClient.getDoctorAppointments(doctor_id, filters);
 
       if (response.success && response.data) {
         logger.info('✅ Doctor appointments fetched successfully via API Gateway', {
-          doctorId,
+          doctor_id,
           appointmentCount: response.data.appointments?.length || 0
         });
 
@@ -78,12 +78,12 @@ export class AppointmentService {
         };
       }
 
-      logger.warn('⚠️ No appointments found via API Gateway', { doctorId });
+      logger.warn('⚠️ No appointments found via API Gateway', { doctor_id });
       return { appointments: [] };
     } catch (error) {
       logger.error('❌ Error fetching doctor appointments via API Gateway:', {
         error: error instanceof Error ? error.message : 'Unknown error',
-        doctorId,
+        doctor_id,
         filters
       });
 
@@ -93,24 +93,24 @@ export class AppointmentService {
   }
 
   // Get appointment statistics for a doctor
-  async getDoctorAppointmentStats(doctorId: string): Promise<AppointmentStats> {
+  async getDoctorAppointmentStats(doctor_id: string): Promise<AppointmentStats> {
     try {
-      logger.info('🔄 Fetching appointment stats via API Gateway', { doctorId });
+      logger.info('🔄 Fetching appointment stats via API Gateway', { doctor_id });
 
-      const response = await this.apiGatewayClient.getAppointmentStats(doctorId);
+      const response = await this.apiGatewayClient.getAppointmentStats(doctor_id);
 
       if (response.success && response.data) {
-        logger.info('✅ Appointment stats fetched successfully via API Gateway', { doctorId });
+        logger.info('✅ Appointment stats fetched successfully via API Gateway', { doctor_id });
         return response.data as AppointmentStats;
       }
 
-      logger.warn('⚠️ No appointment stats found via API Gateway', { doctorId });
+      logger.warn('⚠️ No appointment stats found via API Gateway', { doctor_id });
       // Return default stats if service is unavailable
       return this.getDefaultStats();
     } catch (error) {
       logger.error('❌ Error fetching appointment stats via API Gateway:', {
         error: error instanceof Error ? error.message : 'Unknown error',
-        doctorId
+        doctor_id
       });
 
       // Return default stats to maintain service availability
@@ -119,12 +119,12 @@ export class AppointmentService {
   }
 
   // Get total patient count for a doctor
-  async getDoctorPatientCount(doctorId: string): Promise<number> {
+  async getDoctorPatientCount(doctor_id: string): Promise<number> {
     try {
-      logger.info('🔄 Fetching patient count via API Gateway', { doctorId });
+      logger.info('🔄 Fetching patient count via API Gateway', { doctor_id });
 
       // Use appointment stats to get patient count
-      const stats = await this.getDoctorAppointmentStats(doctorId);
+      const stats = await this.getDoctorAppointmentStats(doctor_id);
 
       // Calculate unique patients from monthly stats
       const uniquePatients = stats.monthly_stats.reduce((total, month) => {
@@ -132,7 +132,7 @@ export class AppointmentService {
       }, 0);
 
       logger.info('✅ Patient count calculated via API Gateway', {
-        doctorId,
+        doctor_id,
         count: uniquePatients
       });
 
@@ -140,7 +140,7 @@ export class AppointmentService {
     } catch (error) {
       logger.error('❌ Error fetching patient count via API Gateway:', {
         error: error instanceof Error ? error.message : 'Unknown error',
-        doctorId
+        doctor_id
       });
 
       return 0;
@@ -171,17 +171,17 @@ export class AppointmentService {
   }
 
   // Get appointments for today
-  async getTodayAppointments(doctorId: string): Promise<AppointmentData[]> {
-    logger.info('🔄 Fetching today appointments via API Gateway', { doctorId });
+  async getTodayAppointments(doctor_id: string): Promise<AppointmentData[]> {
+    logger.info('🔄 Fetching today appointments via API Gateway', { doctor_id });
 
     const today = new Date().toISOString().split('T')[0];
-    const result = await this.getDoctorAppointments(doctorId, {
+    const result = await this.getDoctorAppointments(doctor_id, {
       date: today,
       limit: 100
     });
 
     logger.info('✅ Today appointments fetched via API Gateway', {
-      doctorId,
+      doctor_id,
       count: result.appointments.length
     });
 
@@ -189,16 +189,16 @@ export class AppointmentService {
   }
 
   // Get appointments for current month
-  async getMonthlyAppointments(doctorId: string): Promise<AppointmentData[]> {
+  async getMonthlyAppointments(doctor_id: string): Promise<AppointmentData[]> {
     try {
-      logger.info('🔄 Fetching monthly appointments via API Gateway', { doctorId });
+      logger.info('🔄 Fetching monthly appointments via API Gateway', { doctor_id });
 
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
       // Use the API Gateway client with date range filters
-      const result = await this.getDoctorAppointments(doctorId, {
+      const result = await this.getDoctorAppointments(doctor_id, {
         // Note: This assumes the API Gateway client supports date range filtering
         // If not, we might need to extend the client or use a different approach
         limit: 1000
@@ -211,7 +211,7 @@ export class AppointmentService {
       });
 
       logger.info('✅ Monthly appointments fetched via API Gateway', {
-        doctorId,
+        doctor_id,
         count: monthlyAppointments.length
       });
 
@@ -219,7 +219,7 @@ export class AppointmentService {
     } catch (error) {
       logger.error('❌ Error fetching monthly appointments via API Gateway:', {
         error: error instanceof Error ? error.message : 'Unknown error',
-        doctorId
+        doctor_id
       });
 
       return [];
@@ -227,14 +227,14 @@ export class AppointmentService {
   }
 
   // Get upcoming appointments
-  async getUpcomingAppointments(doctorId: string): Promise<AppointmentData[]> {
+  async getUpcomingAppointments(doctor_id: string): Promise<AppointmentData[]> {
     try {
-      logger.info('🔄 Fetching upcoming appointments via API Gateway', { doctorId });
+      logger.info('🔄 Fetching upcoming appointments via API Gateway', { doctor_id });
 
       const today = new Date().toISOString().split('T')[0];
 
       // Use API Gateway client with filters for upcoming appointments
-      const result = await this.getDoctorAppointments(doctorId, {
+      const result = await this.getDoctorAppointments(doctor_id, {
         limit: 10
       });
 
@@ -254,7 +254,7 @@ export class AppointmentService {
       });
 
       logger.info('✅ Upcoming appointments fetched via API Gateway', {
-        doctorId,
+        doctor_id,
         count: upcomingAppointments.length
       });
 
@@ -262,7 +262,7 @@ export class AppointmentService {
     } catch (error) {
       logger.error('❌ Error fetching upcoming appointments via API Gateway:', {
         error: error instanceof Error ? error.message : 'Unknown error',
-        doctorId
+        doctor_id
       });
 
       return [];
@@ -270,12 +270,12 @@ export class AppointmentService {
   }
 
   // Get recent activity
-  async getRecentActivity(doctorId: string): Promise<any[]> {
+  async getRecentActivity(doctor_id: string): Promise<any[]> {
     try {
-      logger.info('🔄 Fetching recent activity via API Gateway', { doctorId });
+      logger.info('🔄 Fetching recent activity via API Gateway', { doctor_id });
 
       // Use API Gateway client to get recent appointments
-      const result = await this.getDoctorAppointments(doctorId, {
+      const result = await this.getDoctorAppointments(doctor_id, {
         limit: 10
       });
 
@@ -295,7 +295,7 @@ export class AppointmentService {
       }));
 
       logger.info('✅ Recent activity fetched via API Gateway', {
-        doctorId,
+        doctor_id,
         count: recentActivity.length
       });
 
@@ -303,7 +303,7 @@ export class AppointmentService {
     } catch (error) {
       logger.error('❌ Error fetching recent activity via API Gateway:', {
         error: error instanceof Error ? error.message : 'Unknown error',
-        doctorId
+        doctor_id
       });
 
       return [];

@@ -1,170 +1,125 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import { createClient } from '@supabase/supabase-js';
+import { NextApiRequest, NextApiResponse } from "next";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// API Gateway configuration
+const API_GATEWAY_URL =
+  process.env.NEXT_PUBLIC_API_GATEWAY_URL || "http://localhost:3100";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method not allowed' });
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  if (req.method !== "POST") {
+    const language = req.headers["accept-language"]?.includes("en")
+      ? "en"
+      : "vi";
+    return res.status(405).json({
+      success: false,
+      error:
+        language === "vi"
+          ? "Phương thức không được phép"
+          : "Method not allowed",
+      message:
+        language === "vi"
+          ? "Chỉ hỗ trợ phương thức POST"
+          : "Only POST method is supported",
+    });
   }
 
   const { appointmentId } = req.body;
 
   if (!appointmentId) {
-    return res.status(400).json({ message: 'Appointment ID is required' });
+    const language = req.headers["accept-language"]?.includes("en")
+      ? "en"
+      : "vi";
+    return res.status(400).json({
+      success: false,
+      error:
+        language === "vi"
+          ? "Thiếu thông tin bắt buộc"
+          : "Missing required information",
+      message:
+        language === "vi"
+          ? "ID cuộc hẹn là bắt buộc"
+          : "Appointment ID is required",
+    });
   }
 
   try {
-    // Get appointment details
-    const { data: appointment, error: appointmentError } = await supabase
-      .from('appointments')
-      .select(`
-        *,
-        patients!inner(
-          patient_id,
-          profile_id,
-          profiles!inner(
-            full_name,
-            phone_number
-          )
-        ),
-        doctors!inner(
-          doctor_id,
-          profile_id,
-          profiles!inner(
-            full_name
-          )
-        )
-      `)
-      .eq('appointment_id', appointmentId)
-      .single();
-
-    if (appointmentError || !appointment) {
-      return res.status(404).json({ message: 'Appointment not found' });
+    // Get authentication token from request
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      const language = req.headers["accept-language"]?.includes("en")
+        ? "en"
+        : "vi";
+      return res.status(401).json({
+        success: false,
+        error: language === "vi" ? "Không có quyền truy cập" : "Unauthorized",
+        message:
+          language === "vi"
+            ? "Vui lòng đăng nhập để tiếp tục"
+            : "Please login to continue",
+      });
     }
 
-    // Update queue status to "called"
-    const { error: queueError } = await supabase
-      .from('appointment_queue')
-      .update({ 
-        status: 'in_progress',
-        called_at: new Date().toISOString()
-      })
-      .eq('appointment_id', appointmentId);
-
-    if (queueError) {
-      console.error('Queue update error:', queueError);
-      return res.status(500).json({ message: 'Error updating queue' });
-    }
-
-    // Update appointment status
-    const { error: updateError } = await supabase
-      .from('appointments')
-      .update({ 
-        status: 'in_progress',
-        actual_start_time: new Date().toISOString()
-      })
-      .eq('appointment_id', appointmentId);
-
-    if (updateError) {
-      console.error('Appointment update error:', updateError);
-      return res.status(500).json({ message: 'Error updating appointment' });
-    }
-
-    // Send notification to patient
-    try {
-      const patientProfileId = appointment.patients?.profile_id;
-      if (patientProfileId) {
-        await supabase
-          .from('notifications')
-          .insert({
-            user_id: patientProfileId,
-            type: 'appointment_called',
-            title: 'Đến lượt khám',
-            message: `Xin mời bệnh nhân ${appointment.patients?.profiles?.full_name} vào phòng khám bác sĩ ${appointment.doctors?.profiles?.full_name}`,
-            read_at: null,
-            created_at: new Date().toISOString()
-          });
+    // Forward call-next request to API Gateway -> Appointment Service
+    const response = await fetch(
+      `${API_GATEWAY_URL}/api/appointments/${appointmentId}/call-next`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: authHeader,
+          "Accept-Language": req.headers["accept-language"] || "vi-VN",
+        },
       }
-    } catch (notificationError) {
-      console.error('Patient notification error:', notificationError);
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      const language = req.headers["accept-language"]?.includes("en")
+        ? "en"
+        : "vi";
+      return res.status(response.status).json({
+        success: false,
+        error:
+          result.error ||
+          (language === "vi" ? "Lỗi gọi bệnh nhân" : "Call patient error"),
+        message:
+          result.message ||
+          (language === "vi"
+            ? "Không thể gọi bệnh nhân tiếp theo"
+            : "Unable to call next patient"),
+      });
     }
 
-    // Send notification to doctor
-    try {
-      const doctorProfileId = appointment.doctors?.profile_id;
-      if (doctorProfileId) {
-        await supabase
-          .from('notifications')
-          .insert({
-            user_id: doctorProfileId,
-            type: 'patient_ready',
-            title: 'Bệnh nhân sẵn sàng',
-            message: `Bệnh nhân ${appointment.patients?.profiles?.full_name} đã được gọi vào phòng khám`,
-            read_at: null,
-            created_at: new Date().toISOString()
-          });
-      }
-    } catch (notificationError) {
-      console.error('Doctor notification error:', notificationError);
-    }
-
-    // Optional: Send SMS notification (if phone number available)
-    const phoneNumber = appointment.patients?.profiles?.phone_number;
-    if (phoneNumber) {
-      try {
-        // SMS integration would go here
-        // For now, just log the action
-        console.log(`SMS would be sent to ${phoneNumber}: Đến lượt khám bệnh`);
-      } catch (smsError) {
-        console.error('SMS error:', smsError);
-      }
-    }
-
-    // Update wait times for remaining patients
-    try {
-      const { data: remainingQueue } = await supabase
-        .from('appointment_queue')
-        .select('*')
-        .eq('status', 'waiting')
-        .order('queue_position', { ascending: true });
-
-      if (remainingQueue && remainingQueue.length > 0) {
-        const updates = remainingQueue.map((item, index) => ({
-          id: item.id,
-          estimated_wait_time: (index + 1) * 15 // 15 minutes per patient
-        }));
-
-        for (const update of updates) {
-          await supabase
-            .from('appointment_queue')
-            .update({ estimated_wait_time: update.estimated_wait_time })
-            .eq('id', update.id);
-        }
-      }
-    } catch (waitTimeError) {
-      console.error('Wait time update error:', waitTimeError);
-    }
+    // Return successful response with Vietnamese language support
+    const language = req.headers["accept-language"]?.includes("en")
+      ? "en"
+      : "vi";
 
     res.status(200).json({
       success: true,
-      message: 'Patient called successfully',
-      appointment: {
-        id: appointment.appointment_id,
-        patientName: appointment.patients?.profiles?.full_name,
-        doctorName: appointment.doctors?.profiles?.full_name,
-        time: appointment.start_time
-      }
+      message:
+        language === "vi"
+          ? "Đã gọi bệnh nhân tiếp theo"
+          : "Next patient called successfully",
+      data: result.data,
     });
-
   } catch (error) {
-    console.error('Call next API error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Internal server error' 
+    console.error("Call next API error:", error);
+    const language = req.headers["accept-language"]?.includes("en")
+      ? "en"
+      : "vi";
+
+    res.status(500).json({
+      success: false,
+      error:
+        language === "vi" ? "Lỗi hệ thống nội bộ" : "Internal server error",
+      message:
+        language === "vi"
+          ? "Đã xảy ra lỗi, vui lòng thử lại"
+          : "Something went wrong, please try again",
     });
   }
 }

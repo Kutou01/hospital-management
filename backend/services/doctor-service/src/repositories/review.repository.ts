@@ -14,7 +14,7 @@ export class ReviewRepository {
     this.supabase = getSupabase();
   }
 
-  async findByDoctorId(doctorId: string, limit: number = 50, offset: number = 0): Promise<DoctorReview[]> {
+  async findByDoctorId(doctor_id: string, limit: number = 50, offset: number = 0): Promise<DoctorReview[]> {
     try {
       const { data, error } = await this.supabase
         .from('doctor_reviews')
@@ -28,7 +28,7 @@ export class ReviewRepository {
             )
           )
         `)
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctor_id)
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
 
@@ -36,17 +36,17 @@ export class ReviewRepository {
 
       return data?.map(this.mapSupabaseReviewToReview) || [];
     } catch (error) {
-      logger.error('Error finding reviews by doctor ID', { error, doctorId });
+      logger.error('Error finding reviews by doctor ID', { error, doctor_id });
       throw error;
     }
   }
 
-  async findByPatientId(patientId: string, limit: number = 50, offset: number = 0): Promise<DoctorReview[]> {
+  async findByPatientId(patient_id: string, limit: number = 50, offset: number = 0): Promise<DoctorReview[]> {
     try {
       const { data, error } = await this.supabase
         .from('doctor_reviews')
         .select('*')
-        .eq('patient_id', patientId)
+        .eq('patient_id', patient_id)
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
 
@@ -54,7 +54,7 @@ export class ReviewRepository {
 
       return data?.map(this.mapSupabaseReviewToReview) || [];
     } catch (error) {
-      logger.error('Error finding reviews by patient ID', { error, patientId });
+      logger.error('Error finding reviews by patient ID', { error, patient_id });
       throw error;
     }
   }
@@ -150,12 +150,12 @@ export class ReviewRepository {
     }
   }
 
-  async findByAppointment(appointmentId: string): Promise<DoctorReview | null> {
+  async findByAppointment(appointment_id: string): Promise<DoctorReview | null> {
     try {
       const { data, error } = await this.supabase
         .from('doctor_reviews')
         .select('*')
-        .eq('appointment_id', appointmentId)
+        .eq('appointment_id', appointment_id)
         .single();
 
       if (error) {
@@ -165,22 +165,22 @@ export class ReviewRepository {
 
       return this.mapSupabaseReviewToReview(data);
     } catch (error) {
-      logger.error('Error finding review by appointment', { error, appointmentId });
+      logger.error('Error finding review by appointment', { error, appointment_id });
       throw error;
     }
   }
 
-  async getReviewStats(doctorId: string): Promise<ReviewStats> {
+  async getReviewStats(doctor_id: string): Promise<ReviewStats> {
     try {
       // Try RPC function first
       const { data: rpcData, error: rpcError } = await this.supabase
         .rpc('get_doctor_review_stats', {
-          doctor_id_param: doctorId
+          doctor_id_param: doctor_id
         });
 
       if (!rpcError && rpcData && rpcData.length > 0) {
         const stats = rpcData[0];
-        const recentReviews = await this.findByDoctorId(doctorId, 5, 0);
+        const recentReviews = await this.findByDoctorId(doctor_id, 5, 0);
 
         return {
           total_reviews: Number(stats.total_reviews),
@@ -197,12 +197,12 @@ export class ReviewRepository {
       }
 
       // Fallback: Calculate stats manually
-      logger.warn('RPC function failed, calculating stats manually', { rpcError, doctorId });
+      logger.warn('RPC function failed, calculating stats manually', { rpcError, doctor_id });
 
       const { data: reviews, error } = await this.supabase
         .from('doctor_reviews')
         .select('rating')
-        .eq('doctor_id', doctorId);
+        .eq('doctor_id', doctor_id);
 
       if (error) throw error;
 
@@ -219,7 +219,7 @@ export class ReviewRepository {
         one_star: reviews?.filter(r => r.rating === 1).length || 0
       };
 
-      const recentReviews = await this.findByDoctorId(doctorId, 5, 0);
+      const recentReviews = await this.findByDoctorId(doctor_id, 5, 0);
 
       return {
         total_reviews: totalReviews,
@@ -228,7 +228,7 @@ export class ReviewRepository {
         recent_reviews: recentReviews
       };
     } catch (error) {
-      logger.error('Error getting review stats', { error, doctorId });
+      logger.error('Error getting review stats', { error, doctor_id });
       throw error;
     }
   }
@@ -308,12 +308,12 @@ export class ReviewRepository {
     }
   }
 
-  async getReviewsByRating(doctorId: string, rating: number, limit: number = 20): Promise<DoctorReview[]> {
+  async getReviewsByRating(doctor_id: string, rating: number, limit: number = 20): Promise<DoctorReview[]> {
     try {
       const { data, error } = await this.supabase
         .from('doctor_reviews')
         .select('*')
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctor_id)
         .eq('rating', rating)
         .order('created_at', { ascending: false })
         .limit(limit);
@@ -322,17 +322,17 @@ export class ReviewRepository {
 
       return data?.map(this.mapSupabaseReviewToReview) || [];
     } catch (error) {
-      logger.error('Error getting reviews by rating', { error, doctorId, rating });
+      logger.error('Error getting reviews by rating', { error, doctor_id, rating });
       throw error;
     }
   }
 
-  async searchReviews(doctorId: string, searchTerm: string, limit: number = 20): Promise<DoctorReview[]> {
+  async searchReviews(doctor_id: string, searchTerm: string, limit: number = 20): Promise<DoctorReview[]> {
     try {
       const { data, error } = await this.supabase
         .from('doctor_reviews')
         .select('*')
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctor_id)
         .ilike('review_text', `%${searchTerm}%`)
         .order('created_at', { ascending: false })
         .limit(limit);
@@ -341,17 +341,17 @@ export class ReviewRepository {
 
       return data?.map(this.mapSupabaseReviewToReview) || [];
     } catch (error) {
-      logger.error('Error searching reviews', { error, doctorId, searchTerm });
+      logger.error('Error searching reviews', { error, doctor_id, searchTerm });
       throw error;
     }
   }
 
-  async getVerifiedReviews(doctorId: string, limit: number = 20): Promise<DoctorReview[]> {
+  async getVerifiedReviews(doctor_id: string, limit: number = 20): Promise<DoctorReview[]> {
     try {
       const { data, error } = await this.supabase
         .from('doctor_reviews')
         .select('*')
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctor_id)
         .eq('is_verified', true)
         .order('created_at', { ascending: false })
         .limit(limit);
@@ -360,7 +360,7 @@ export class ReviewRepository {
 
       return data?.map(this.mapSupabaseReviewToReview) || [];
     } catch (error) {
-      logger.error('Error getting verified reviews', { error, doctorId });
+      logger.error('Error getting verified reviews', { error, doctor_id });
       throw error;
     }
   }

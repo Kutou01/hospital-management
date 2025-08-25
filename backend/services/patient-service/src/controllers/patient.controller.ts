@@ -86,8 +86,8 @@ export class PatientController {
         return;
       }
 
-      const { patientId } = req.params;
-      const patient = await this.patientRepository.getPatientById(patientId);
+      const { patient_id } = req.params;
+      const patient = await this.patientRepository.getPatientById(patient_id);
 
       if (!patient) {
         res.status(404).json({
@@ -174,13 +174,13 @@ export class PatientController {
         return;
       }
 
-      const { doctorId } = req.params;
-      const count = await this.patientRepository.getPatientCountForDoctor(doctorId);
+      const { doctor_id } = req.params;
+      const count = await this.patientRepository.getPatientCountForDoctor(doctor_id);
 
       const response = {
         success: true,
         data: { count },
-        message: `Found ${count} unique patients for doctor ${doctorId}`,
+        message: `Found ${doctor_id}`,
         timestamp: new Date().toISOString()
       };
 
@@ -210,16 +210,16 @@ export class PatientController {
         return;
       }
 
-      const { doctorId } = req.params;
-      logger.info(`Getting patient statistics for doctor: ${doctorId}`);
+      const { doctor_id } = req.params;
+      logger.info(`Getting patient statistics for doctor: ${doctor_id}`);
 
       // Get comprehensive patient statistics for the doctor
-      const stats = await this.patientRepository.getPatientStatsForDoctor(doctorId);
+      const stats = await this.patientRepository.getPatientStatsForDoctor(doctor_id);
 
       const response = {
         success: true,
         data: stats,
-        message: `Patient statistics retrieved for doctor ${doctorId}`,
+        message: `Patient statistics retrieved for doctor ${doctor_id}`,
         timestamp: new Date().toISOString()
       };
 
@@ -249,8 +249,8 @@ export class PatientController {
         return;
       }
 
-      const { doctorId } = req.params;
-      const patients = await this.patientRepository.getPatientsByDoctorId(doctorId);
+      const { doctor_id } = req.params;
+      const patients = await this.patientRepository.getPatientsByDoctorId(doctor_id);
 
       const response: PatientResponse = {
         success: true,
@@ -365,7 +365,7 @@ export class PatientController {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         logger.warn('Validation failed for updatePatient:', {
-          patientId: req.params.patientId,
+          patient_id: req.params.patient_id,
           errors: errors.array()
         });
         res.status(400).json({
@@ -377,10 +377,10 @@ export class PatientController {
         return;
       }
 
-      const { patientId } = req.params;
+      const { patient_id } = req.params;
 
-      // Check if patientId is provided
-      if (!patientId) {
+      // Check if patient_id is provided
+      if (!patient_id) {
         logger.warn('No patient ID provided in updatePatient');
         res.status(400).json({
           success: false,
@@ -391,10 +391,10 @@ export class PatientController {
       }
 
       const updateData: UpdatePatientDto = req.body;
-      logger.info('Updating patient:', { patientId, updateFields: Object.keys(updateData) });
+      logger.info('Updating patient:', { patient_id, updateFields: Object.keys(updateData) });
 
       // Check if patient exists
-      const exists = await this.patientRepository.patientExists(patientId);
+      const exists = await this.patientRepository.patientExists(patient_id);
       if (!exists) {
         res.status(404).json({
           success: false,
@@ -404,7 +404,7 @@ export class PatientController {
         return;
       }
 
-      const patient = await this.patientRepository.updatePatient(patientId, updateData);
+      const patient = await this.patientRepository.updatePatient(patient_id, updateData);
 
       const response: PatientResponse = {
         success: true,
@@ -439,10 +439,10 @@ export class PatientController {
         return;
       }
 
-      const { patientId } = req.params;
+      const { patient_id } = req.params;
 
       // Check if patient exists
-      const exists = await this.patientRepository.patientExists(patientId);
+      const exists = await this.patientRepository.patientExists(patient_id);
       if (!exists) {
         res.status(404).json({
           success: false,
@@ -452,7 +452,7 @@ export class PatientController {
         return;
       }
 
-      await this.patientRepository.deletePatient(patientId);
+      await this.patientRepository.deletePatient(patient_id);
 
       res.json({
         success: true,
@@ -549,9 +549,9 @@ export class PatientController {
   // ENHANCED: Get patient medical summary
   async getPatientMedicalSummary(req: Request, res: Response): Promise<void> {
     try {
-      const { patientId } = req.params;
+      const { patient_id } = req.params;
 
-      if (!patientId) {
+      if (!patient_id) {
         res.status(400).json({
           success: false,
           error: 'Patient ID is required',
@@ -560,7 +560,7 @@ export class PatientController {
         return;
       }
 
-      const summary = await this.patientRepository.getPatientMedicalSummary(patientId);
+      const summary = await this.patientRepository.getPatientMedicalSummary(patient_id);
 
       if (!summary.patient) {
         res.status(404).json({

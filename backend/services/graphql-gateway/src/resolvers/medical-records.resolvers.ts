@@ -116,19 +116,19 @@ export const medicalRecordsResolvers = {
     // Get doctor medical records
     async doctorMedicalRecords(
       _: any,
-      { doctorId, limit = 20, offset = 0, dateFrom, dateTo }: any,
+      { doctor_id, limit = 20, offset = 0, dateFrom, dateTo }: any,
       context: GraphQLContext
     ) {
       try {
         logger.debug("Fetching doctor medical records:", {
-          doctorId,
+          doctor_id,
           limit,
           offset,
           requestId: context.requestId,
         });
 
         const response = await context.restApi.getDoctorMedicalRecords({
-          doctorId,
+          doctor_id,
           limit,
           offset,
           dateFrom,
@@ -340,10 +340,10 @@ export const medicalRecordsResolvers = {
   MedicalRecord: {
     // Resolve patient using DataLoader
     async patient(parent: any, _: any, context: GraphQLContext) {
-      if (!parent.patientId) return null;
+      if (!parent.patient_id) return null;
 
       try {
-        return await context.dataloaders.patientById.load(parent.patientId);
+        return await context.dataloaders.patientById.load(parent.patient_id);
       } catch (error) {
         logger.error("Error loading medical record patient:", error);
         return null;
@@ -352,10 +352,10 @@ export const medicalRecordsResolvers = {
 
     // Resolve doctor using DataLoader
     async doctor(parent: any, _: any, context: GraphQLContext) {
-      if (!parent.doctorId) return null;
+      if (!parent.doctor_id) return null;
 
       try {
-        return await context.dataloaders.doctorById.load(parent.doctorId);
+        return await context.dataloaders.doctorById.load(parent.doctor_id);
       } catch (error) {
         logger.error("Error loading medical record doctor:", error);
         return null;
@@ -364,11 +364,11 @@ export const medicalRecordsResolvers = {
 
     // Resolve appointment using DataLoader
     async appointment(parent: any, _: any, context: GraphQLContext) {
-      if (!parent.appointmentId) return null;
+      if (!parent.appointment_id) return null;
 
       try {
         return await context.dataloaders.appointmentById.load(
-          parent.appointmentId
+          parent.appointment_id
         );
       } catch (error) {
         logger.error("Error loading medical record appointment:", error);
@@ -380,16 +380,16 @@ export const medicalRecordsResolvers = {
   // Field resolvers for VitalSigns type
   VitalSigns: {
     // Map database snake_case to GraphQL camelCase
-    bloodPressureSystolic: (parent: any) => parent.blood_pressure_systolic,
-    bloodPressureDiastolic: (parent: any) => parent.blood_pressure_diastolic,
+    bloodPressureSystolic: (parent: any) => parent.vital_signs.vital_signs.blood_pressure_systolic,
+    bloodPressureDiastolic: (parent: any) => parent.vital_signs.vital_signs.blood_pressure_diastolic,
     heartRate: (parent: any) => parent.heart_rate,
     temperature: (parent: any) => parent.temperature,
     respiratoryRate: (parent: any) => parent.respiratory_rate,
-    oxygenSaturation: (parent: any) => parent.oxygen_saturation,
+    oxygenSaturation: (parent: any) => parent.vital_signs.vital_signs.oxygen_saturation,
     height: (parent: any) => parent.height,
     weight: (parent: any) => parent.weight,
-    recordedAt: (parent: any) => parent.recorded_at,
-    recordedBy: (parent: any) => parent.recorded_by,
+    recorded_at: (parent: any) => parent.recorded_at,
+    recorded_by: (parent: any) => parent.recorded_by,
     notes: (parent: any) => parent.notes,
 
     // Calculate BMI if height and weight are available

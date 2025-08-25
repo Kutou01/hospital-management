@@ -4,103 +4,105 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppointmentRepository = void 0;
-const database_config_1 = require("../config/database.config");
 const logger_1 = __importDefault(require("@hospital/shared/dist/utils/logger"));
+const database_config_1 = require("../config/database.config");
 class AppointmentRepository {
     constructor() {
         this.supabase = database_config_1.supabaseAdmin;
+        this.pool = database_config_1.dbPool;
     }
     async getAllAppointments(filters = {}, page = 1, limit = 20) {
         try {
-            let query = this.supabase
-                .from('appointments')
-                .select('*', { count: 'exact' });
-            if (filters.doctor_id) {
-                query = query.eq('doctor_id', filters.doctor_id);
-            }
-            if (filters.patient_id) {
-                query = query.eq('patient_id', filters.patient_id);
-            }
-            if (filters.appointment_date) {
-                query = query.eq('appointment_date', filters.appointment_date);
-            }
-            if (filters.date_from) {
-                query = query.gte('appointment_date', filters.date_from);
-            }
-            if (filters.date_to) {
-                query = query.lte('appointment_date', filters.date_to);
-            }
-            if (filters.status) {
-                query = query.eq('status', filters.status);
-            }
-            if (filters.appointment_type) {
-                query = query.eq('appointment_type', filters.appointment_type);
-            }
-            if (filters.search) {
-                query = query.or(`reason.ilike.%${filters.search}%,notes.ilike.%${filters.search}%`);
-            }
-            const offset = (page - 1) * limit;
-            query = query.range(offset, offset + limit - 1);
-            query = query.order('appointment_date', { ascending: true })
-                .order('start_time', { ascending: true });
-            const { data, error, count } = await query;
-            if (error) {
-                logger_1.default.error('Error fetching appointments:', error);
-                throw new Error(`Failed to fetch appointments: ${error.message}`);
-            }
-            const transformedData = await Promise.all((data || []).map(async (appointment) => {
-                let doctor = null;
-                if (appointment.doctor_id) {
-                    const { data: doctorData } = await this.supabase
-                        .from('doctors')
-                        .select(`
+            return await this.pool.executeQuery(async (client) => {
+                let query = client.from("appointments").select("*", { count: "exact" });
+                if (filters.doctor_id) {
+                    query = query.eq("doctor_id", filters.doctor_id);
+                }
+                if (filters.patient_id) {
+                    query = query.eq("patient_id", filters.patient_id);
+                }
+                if (filters.appointment_date) {
+                    query = query.eq("appointment_date", filters.appointment_date);
+                }
+                if (filters.date_from) {
+                    query = query.gte("appointment_date", filters.date_from);
+                }
+                if (filters.date_to) {
+                    query = query.lte("appointment_date", filters.date_to);
+                }
+                if (filters.status) {
+                    query = query.eq("status", filters.status);
+                }
+                if (filters.appointment_type) {
+                    query = query.eq("appointment_type", filters.appointment_type);
+                }
+                if (filters.search) {
+                    query = query.or(`reason.ilike.%${filters.search}%,notes.ilike.%${filters.search}%`);
+                }
+                const offset = (page - 1) * limit;
+                query = query.range(offset, offset + limit - 1);
+                query = query
+                    .order("appointment_date", { ascending: true })
+                    .order("appointment_time", { ascending: true });
+                const { data, error, count } = await query;
+                if (error) {
+                    logger_1.default.error("Error fetching appointments:", error);
+                    throw new Error(`Failed to fetch appointments: ${error.message}`);
+                }
+                const transformedData = await Promise.all((data || []).map(async (appointment) => {
+                    let doctor = null;
+                    if (appointment.doctor_id) {
+                        const { data: doctorData } = await client
+                            .from("doctors")
+                            .select(`
               doctor_id,
               specialty,
               profile:profiles!profile_id (
                 full_name
               )
             `)
-                        .eq('doctor_id', appointment.doctor_id)
-                        .single();
-                    if (doctorData) {
-                        doctor = {
-                            doctor_id: doctorData.doctor_id,
-                            full_name: doctorData.profile?.full_name,
-                            specialty: doctorData.specialty
-                        };
+                            .eq("doctor_id", appointment.doctor_id)
+                            .single();
+                        if (doctorData) {
+                            doctor = {
+                                doctor_id: doctorData.doctor_id,
+                                full_name: doctorData.profile?.full_name,
+                                specialty: doctorData.specialty,
+                            };
+                        }
                     }
-                }
-                let patient = null;
-                if (appointment.patient_id) {
-                    const { data: patientData } = await this.supabase
-                        .from('patients')
-                        .select('patient_id, gender, blood_type')
-                        .eq('patient_id', appointment.patient_id)
-                        .single();
-                    if (patientData) {
-                        patient = patientData;
+                    let patient = null;
+                    if (appointment.patient_id) {
+                        const { data: patientData } = await client
+                            .from("patients")
+                            .select("patient_id, gender, blood_type")
+                            .eq("patient_id", appointment.patient_id)
+                            .single();
+                        if (patientData) {
+                            patient = patientData;
+                        }
                     }
-                }
+                    return {
+                        ...appointment,
+                        doctor,
+                        patient,
+                    };
+                }));
                 return {
-                    ...appointment,
-                    doctor,
-                    patient
+                    appointments: transformedData,
+                    total: count || 0,
                 };
-            }));
-            return {
-                appointments: transformedData,
-                total: count || 0
-            };
+            });
         }
         catch (error) {
-            logger_1.default.error('Exception in getAllAppointments:', error);
+            logger_1.default.error("Exception in getAllAppointments:", error);
             throw error;
         }
     }
-    async getAppointmentById(appointmentId) {
+    async getAppointmentById(appointment_id) {
         try {
             const { data, error } = await this.supabase
-                .from('appointments')
+                .from("appointments")
                 .select(`
           *,
           doctors!doctor_id (
@@ -124,187 +126,197 @@ class AppointmentRepository {
             )
           )
         `)
-                .eq('appointment_id', appointmentId)
+                .eq("appointment_id", appointment_id)
                 .single();
             if (error) {
-                if (error.code === 'PGRST116') {
+                if (error.code === "PGRST116") {
                     return null;
                 }
-                logger_1.default.error('Error fetching appointment by ID:', error);
+                logger_1.default.error("Error fetching appointment by ID:", error);
                 throw new Error(`Failed to fetch appointment: ${error.message}`);
             }
             const transformedData = {
                 ...data,
-                patient: data.patients ? {
-                    patient_id: data.patients.patient_id,
-                    full_name: data.patients.profile?.full_name,
-                    date_of_birth: data.patients.profile?.date_of_birth,
-                    gender: data.patients.gender,
-                    phone_number: data.patients.profile?.phone_number,
-                    email: data.patients.profile?.email
-                } : undefined,
-                doctor: data.doctors ? {
-                    doctor_id: data.doctors.doctor_id,
-                    full_name: data.doctors.profile?.full_name,
-                    specialty: data.doctors.specialty,
-                    phone_number: data.doctors.profile?.phone_number,
-                    email: data.doctors.profile?.email
-                } : undefined
+                patient: data.patients
+                    ? {
+                        patient_id: data.patients.patient_id,
+                        full_name: data.patients.profile?.full_name,
+                        date_of_birth: data.patients.profile?.date_of_birth,
+                        gender: data.patients.gender,
+                        phone_number: data.patients.profile?.phone_number,
+                        email: data.patients.profile?.email,
+                    }
+                    : undefined,
+                doctor: data.doctors
+                    ? {
+                        doctor_id: data.doctors.doctor_id,
+                        full_name: data.doctors.profile?.full_name,
+                        specialty: data.doctors.specialty,
+                        phone_number: data.doctors.profile?.phone_number,
+                        email: data.doctors.profile?.email,
+                    }
+                    : undefined,
             };
             return transformedData;
         }
         catch (error) {
-            logger_1.default.error('Exception in getAppointmentById:', error);
+            logger_1.default.error("Exception in getAppointmentById:", error);
             throw error;
         }
     }
-    async getAppointmentsByDoctorId(doctorId, filters = {}, page = 1, limit = 20) {
-        const searchFilters = { ...filters, doctor_id: doctorId };
+    async getAppointmentsByDoctorId(doctor_id, filters = {}, page = 1, limit = 20) {
+        const searchFilters = { ...filters, doctor_id: doctor_id };
         return this.getAllAppointments(searchFilters, page, limit);
     }
-    async getAppointmentsByPatientId(patientId, filters = {}, page = 1, limit = 20) {
-        const searchFilters = { ...filters, patient_id: patientId };
+    async getAppointmentsByPatientId(patient_id, filters = {}, page = 1, limit = 20) {
+        const searchFilters = { ...filters, patient_id: patient_id };
         return this.getAllAppointments(searchFilters, page, limit);
     }
     async createAppointment(appointmentData) {
         try {
-            const { data, error } = await this.supabase
-                .rpc('create_appointment', {
+            const { data, error } = await this.supabase.rpc("create_appointment", {
                 appointment_data: {
                     ...appointmentData,
-                    status: 'scheduled'
-                }
+                    status: "scheduled",
+                },
             });
             if (error) {
-                logger_1.default.error('Database function error in createAppointment:', error);
+                logger_1.default.error("Database function error in createAppointment:", error);
                 throw error;
             }
             if (!data || data.length === 0) {
-                throw new Error('Failed to create appointment - no data returned');
+                throw new Error("Failed to create appointment - no data returned");
             }
-            logger_1.default.info('Appointment created successfully via database function:', {
-                appointmentId: data[0].appointment_id
+            logger_1.default.info("Appointment created successfully via database function:", {
+                appointment_id: data[0].appointment_id,
             });
             return data[0];
         }
         catch (error) {
-            logger_1.default.error('Exception in createAppointment:', error);
+            logger_1.default.error("Exception in createAppointment:", error);
             throw error;
         }
     }
-    async updateAppointment(appointmentId, updateData) {
+    async updateAppointment(appointment_id, updateData) {
         try {
-            const { data, error } = await this.supabase
-                .rpc('update_appointment', {
-                input_appointment_id: appointmentId,
-                appointment_data: updateData
+            const { data, error } = await this.supabase.rpc("update_appointment", {
+                input_appointment_id: appointment_id,
+                appointment_data: updateData,
             });
             if (error) {
-                logger_1.default.error('Database function error in updateAppointment:', error);
+                logger_1.default.error("Database function error in updateAppointment:", error);
                 throw error;
             }
             if (!data || data.length === 0) {
-                throw new Error('Failed to update appointment - appointment not found');
+                throw new Error("Failed to update appointment - appointment not found");
             }
-            logger_1.default.info('Appointment updated successfully via database function:', {
-                appointmentId,
-                updatedFields: Object.keys(updateData)
+            logger_1.default.info("Appointment updated successfully via database function:", {
+                appointment_id,
+                updatedFields: Object.keys(updateData),
             });
             return data[0];
         }
         catch (error) {
-            logger_1.default.error('Exception in updateAppointment:', error);
+            logger_1.default.error("Exception in updateAppointment:", error);
             throw error;
         }
     }
-    async cancelAppointment(appointmentId, reason) {
+    async cancelAppointment(appointment_id, reason) {
         try {
             const updateData = {
-                status: 'cancelled',
-                updated_at: new Date().toISOString()
+                status: "cancelled",
+                updated_at: new Date().toISOString(),
             };
             if (reason) {
                 updateData.notes = reason;
             }
             const { error } = await this.supabase
-                .from('appointments')
+                .from("appointments")
                 .update(updateData)
-                .eq('appointment_id', appointmentId);
+                .eq("appointment_id", appointment_id);
             if (error) {
-                logger_1.default.error('Error cancelling appointment:', error);
+                logger_1.default.error("Error cancelling appointment:", error);
                 throw new Error(`Failed to cancel appointment: ${error.message}`);
             }
-            logger_1.default.info('Appointment cancelled successfully:', { appointmentId });
+            logger_1.default.info("Appointment cancelled successfully:", { appointment_id });
             return true;
         }
         catch (error) {
-            logger_1.default.error('Exception in cancelAppointment:', error);
+            logger_1.default.error("Exception in cancelAppointment:", error);
             throw error;
         }
     }
-    async checkConflicts(doctorId, appointmentDate, startTime, endTime, excludeAppointmentId) {
+    async checkConflicts(doctor_id, appointmentDate, startTime, endTime, excludeAppointmentId) {
         try {
             let query = this.supabase
-                .from('appointments')
-                .select('appointment_id, start_time, end_time, status')
-                .eq('doctor_id', doctorId)
-                .eq('appointment_date', appointmentDate)
-                .in('status', ['scheduled', 'confirmed', 'in_progress']);
+                .from("appointments")
+                .select("appointment_id, appointment_time, duration_minutes, status")
+                .eq("doctor_id", doctor_id)
+                .eq("appointment_date", appointmentDate)
+                .in("status", ["scheduled", "confirmed", "in_progress"]);
             if (excludeAppointmentId) {
-                query = query.neq('appointment_id', excludeAppointmentId);
+                query = query.neq("appointment_id", excludeAppointmentId);
             }
             const { data, error } = await query;
             if (error) {
-                logger_1.default.error('Error checking appointment conflicts:', error);
+                logger_1.default.error("Error checking appointment conflicts:", error);
                 throw new Error(`Failed to check conflicts: ${error.message}`);
             }
-            const conflicts = data?.filter(appointment => {
-                const existingStart = appointment.start_time;
-                const existingEnd = appointment.end_time;
-                return ((startTime >= existingStart && startTime < existingEnd) ||
-                    (endTime > existingStart && endTime <= existingEnd) ||
-                    (startTime <= existingStart && endTime >= existingEnd));
+            const conflicts = data?.filter((appointment) => {
+                const requestStartTime = new Date(`1970-01-01T${startTime}`);
+                const requestEndTime = new Date(`1970-01-01T${endTime}`);
+                const existingStartTime = new Date(`1970-01-01T${appointment.appointment_time}`);
+                const existingEndTime = new Date(`1970-01-01T${appointment.appointment_time}`);
+                existingEndTime.setMinutes(existingEndTime.getMinutes() + appointment.duration_minutes);
+                return ((requestStartTime >= existingStartTime &&
+                    requestStartTime < existingEndTime) ||
+                    (requestEndTime > existingStartTime &&
+                        requestEndTime <= existingEndTime) ||
+                    (requestStartTime <= existingStartTime &&
+                        requestEndTime >= existingEndTime));
             }) || [];
             return {
                 has_conflict: conflicts.length > 0,
                 conflicting_appointments: conflicts.length > 0 ? conflicts : undefined,
-                message: conflicts.length > 0 ? 'Time slot conflicts with existing appointment' : undefined
+                message: conflicts.length > 0
+                    ? "Time slot conflicts with existing appointment"
+                    : undefined,
             };
         }
         catch (error) {
-            logger_1.default.error('Exception in checkConflicts:', error);
+            logger_1.default.error("Exception in checkConflicts:", error);
             throw error;
         }
     }
-    async appointmentExists(appointmentId) {
+    async appointmentExists(appointment_id) {
         try {
             const { data, error } = await this.supabase
-                .from('appointments')
-                .select('appointment_id')
-                .eq('appointment_id', appointmentId)
+                .from("appointments")
+                .select("appointment_id")
+                .eq("appointment_id", appointment_id)
                 .single();
-            if (error && error.code !== 'PGRST116') {
-                logger_1.default.error('Error checking appointment existence:', error);
+            if (error && error.code !== "PGRST116") {
+                logger_1.default.error("Error checking appointment existence:", error);
                 throw new Error(`Failed to check appointment existence: ${error.message}`);
             }
             return !!data;
         }
         catch (error) {
-            logger_1.default.error('Exception in appointmentExists:', error);
+            logger_1.default.error("Exception in appointmentExists:", error);
             throw error;
         }
     }
     async getAppointmentStats() {
         try {
             const { data, error } = await this.supabase
-                .from('appointments')
-                .select('status, appointment_type, appointment_date, created_at');
+                .from("appointments")
+                .select("status, appointment_type, appointment_date, created_at");
             if (error) {
-                logger_1.default.error('Error fetching appointment stats:', error);
+                logger_1.default.error("Error fetching appointment stats:", error);
                 throw new Error(`Failed to fetch appointment stats: ${error.message}`);
             }
             const now = new Date();
-            const today = now.toISOString().split('T')[0];
+            const today = now.toISOString().split("T")[0];
             const weekStart = new Date(now.setDate(now.getDate() - now.getDay()));
             const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
             const stats = {
@@ -318,16 +330,16 @@ class AppointmentRepository {
                     in_progress: 0,
                     completed: 0,
                     cancelled: 0,
-                    no_show: 0
+                    no_show: 0,
                 },
                 byType: {
                     consultation: 0,
                     follow_up: 0,
                     emergency: 0,
-                    routine_checkup: 0
-                }
+                    routine_checkup: 0,
+                },
             };
-            data?.forEach(appointment => {
+            data?.forEach((appointment) => {
                 if (appointment.status in stats.byStatus) {
                     stats.byStatus[appointment.status]++;
                 }
@@ -349,18 +361,18 @@ class AppointmentRepository {
             return stats;
         }
         catch (error) {
-            logger_1.default.error('Exception in getAppointmentStats:', error);
+            logger_1.default.error("Exception in getAppointmentStats:", error);
             throw error;
         }
     }
-    async getUpcomingAppointments(doctorId, days = 7) {
+    async getUpcomingAppointments(doctor_id, days = 7) {
         try {
-            const today = new Date().toISOString().split('T')[0];
+            const today = new Date().toISOString().split("T")[0];
             const futureDate = new Date();
             futureDate.setDate(futureDate.getDate() + days);
-            const futureDateStr = futureDate.toISOString().split('T')[0];
+            const futureDateStr = futureDate.toISOString().split("T")[0];
             const { data, error } = await this.supabase
-                .from('appointments')
+                .from("appointments")
                 .select(`
           *,
           patients!patient_id (
@@ -374,61 +386,63 @@ class AppointmentRepository {
             )
           )
         `)
-                .eq('doctor_id', doctorId)
-                .gte('appointment_date', today)
-                .lte('appointment_date', futureDateStr)
-                .in('status', ['scheduled', 'confirmed'])
-                .order('appointment_date', { ascending: true })
-                .order('start_time', { ascending: true });
+                .eq("doctor_id", doctor_id)
+                .gte("appointment_date", today)
+                .lte("appointment_date", futureDateStr)
+                .in("status", ["scheduled", "confirmed"])
+                .order("appointment_date", { ascending: true })
+                .order("appointment_time", { ascending: true });
             if (error) {
-                logger_1.default.error('Error fetching upcoming appointments:', error);
+                logger_1.default.error("Error fetching upcoming appointments:", error);
                 throw new Error(`Failed to fetch upcoming appointments: ${error.message}`);
             }
-            const transformedData = data?.map(appointment => ({
+            const transformedData = data?.map((appointment) => ({
                 ...appointment,
-                patient: appointment.patients ? {
-                    patient_id: appointment.patients.patient_id,
-                    full_name: appointment.patients.profile?.full_name,
-                    date_of_birth: appointment.patients.profile?.date_of_birth,
-                    gender: appointment.patients.gender,
-                    phone_number: appointment.patients.profile?.phone_number,
-                    email: appointment.patients.profile?.email
-                } : undefined
+                patient: appointment.patients
+                    ? {
+                        patient_id: appointment.patients.patient_id,
+                        full_name: appointment.patients.profile?.full_name,
+                        date_of_birth: appointment.patients.profile?.date_of_birth,
+                        gender: appointment.patients.gender,
+                        phone_number: appointment.patients.profile?.phone_number,
+                        email: appointment.patients.profile?.email,
+                    }
+                    : undefined,
             })) || [];
             return transformedData;
         }
         catch (error) {
-            logger_1.default.error('Exception in getUpcomingAppointments:', error);
+            logger_1.default.error("Exception in getUpcomingAppointments:", error);
             throw error;
         }
     }
-    async getCalendarView(date, doctorId, view = 'month') {
+    async getCalendarView(date, doctor_id, view = "month") {
         try {
             let startDate;
             let endDate;
             const inputDate = new Date(date);
             switch (view) {
-                case 'day':
+                case "day":
                     startDate = date;
                     endDate = date;
                     break;
-                case 'week':
+                case "week":
                     const weekStart = new Date(inputDate);
                     weekStart.setDate(inputDate.getDate() - inputDate.getDay());
                     const weekEnd = new Date(weekStart);
                     weekEnd.setDate(weekStart.getDate() + 6);
-                    startDate = weekStart.toISOString().split('T')[0];
-                    endDate = weekEnd.toISOString().split('T')[0];
+                    startDate = weekStart.toISOString().split("T")[0];
+                    endDate = weekEnd.toISOString().split("T")[0];
                     break;
-                case 'month':
+                case "month":
                     const monthStart = new Date(inputDate.getFullYear(), inputDate.getMonth(), 1);
                     const monthEnd = new Date(inputDate.getFullYear(), inputDate.getMonth() + 1, 0);
-                    startDate = monthStart.toISOString().split('T')[0];
-                    endDate = monthEnd.toISOString().split('T')[0];
+                    startDate = monthStart.toISOString().split("T")[0];
+                    endDate = monthEnd.toISOString().split("T")[0];
                     break;
             }
             let query = this.supabase
-                .from('appointments')
+                .from("appointments")
                 .select(`
           *,
           doctors!doctor_id (
@@ -445,38 +459,44 @@ class AppointmentRepository {
             )
           )
         `)
-                .gte('appointment_date', startDate)
-                .lte('appointment_date', endDate)
-                .in('status', ['scheduled', 'confirmed', 'in_progress', 'completed']);
-            if (doctorId) {
-                query = query.eq('doctor_id', doctorId);
+                .gte("appointment_date", startDate)
+                .lte("appointment_date", endDate)
+                .in("status", ["scheduled", "confirmed", "in_progress", "completed"]);
+            if (doctor_id) {
+                query = query.eq("doctor_id", doctor_id);
             }
-            const { data, error } = await query.order('appointment_date').order('start_time');
+            const { data, error } = await query
+                .order("appointment_date")
+                .order("appointment_time");
             if (error) {
-                logger_1.default.error('Error fetching calendar view:', error);
+                logger_1.default.error("Error fetching calendar view:", error);
                 throw new Error(`Failed to fetch calendar view: ${error.message}`);
             }
             const calendar = {};
-            data?.forEach(appointment => {
+            data?.forEach((appointment) => {
                 const appointmentDate = appointment.appointment_date;
                 if (!calendar[appointmentDate]) {
                     calendar[appointmentDate] = [];
                 }
                 calendar[appointmentDate].push({
                     appointment_id: appointment.appointment_id,
-                    start_time: appointment.start_time,
-                    end_time: appointment.end_time,
+                    appointment_time: appointment.appointment_time,
+                    duration_minutes: appointment.duration_minutes,
                     status: appointment.status,
                     appointment_type: appointment.appointment_type,
-                    doctor: appointment.doctors ? {
-                        doctor_id: appointment.doctors.doctor_id,
-                        full_name: appointment.doctors.profile?.full_name,
-                        specialty: appointment.doctors.specialty
-                    } : null,
-                    patient: appointment.patients ? {
-                        patient_id: appointment.patients.patient_id,
-                        full_name: appointment.patients.profile?.full_name
-                    } : null
+                    doctor: appointment.doctors
+                        ? {
+                            doctor_id: appointment.doctors.doctor_id,
+                            full_name: appointment.doctors.profile?.full_name,
+                            specialty: appointment.doctors.specialty,
+                        }
+                        : null,
+                    patient: appointment.patients
+                        ? {
+                            patient_id: appointment.patients.patient_id,
+                            full_name: appointment.patients.profile?.full_name,
+                        }
+                        : null,
                 });
             });
             return {
@@ -484,15 +504,15 @@ class AppointmentRepository {
                 startDate,
                 endDate,
                 calendar,
-                totalAppointments: data?.length || 0
+                totalAppointments: data?.length || 0,
             };
         }
         catch (error) {
-            logger_1.default.error('Exception in getCalendarView:', error);
+            logger_1.default.error("Exception in getCalendarView:", error);
             throw error;
         }
     }
-    async getWeeklySchedule(doctorId, startDate) {
+    async getWeeklySchedule(doctor_id, startDate) {
         try {
             const weekStart = startDate ? new Date(startDate) : new Date();
             if (!startDate) {
@@ -500,10 +520,10 @@ class AppointmentRepository {
             }
             const weekEnd = new Date(weekStart);
             weekEnd.setDate(weekStart.getDate() + 6);
-            const startDateStr = weekStart.toISOString().split('T')[0];
-            const endDateStr = weekEnd.toISOString().split('T')[0];
+            const startDateStr = weekStart.toISOString().split("T")[0];
+            const endDateStr = weekEnd.toISOString().split("T")[0];
             const { data, error } = await this.supabase
-                .from('appointments')
+                .from("appointments")
                 .select(`
           *,
           patients!patient_id (
@@ -514,104 +534,118 @@ class AppointmentRepository {
             )
           )
         `)
-                .eq('doctor_id', doctorId)
-                .gte('appointment_date', startDateStr)
-                .lte('appointment_date', endDateStr)
-                .in('status', ['scheduled', 'confirmed', 'in_progress'])
-                .order('appointment_date')
-                .order('start_time');
+                .eq("doctor_id", doctor_id)
+                .gte("appointment_date", startDateStr)
+                .lte("appointment_date", endDateStr)
+                .in("status", ["scheduled", "confirmed", "in_progress"])
+                .order("appointment_date")
+                .order("appointment_time");
             if (error) {
-                logger_1.default.error('Error fetching weekly schedule:', error);
+                logger_1.default.error("Error fetching weekly schedule:", error);
                 throw new Error(`Failed to fetch weekly schedule: ${error.message}`);
             }
             const weeklySchedule = {};
-            const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const daysOfWeek = [
+                "Sunday",
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday",
+                "Saturday",
+            ];
             for (let i = 0; i < 7; i++) {
                 const currentDate = new Date(weekStart);
                 currentDate.setDate(weekStart.getDate() + i);
-                const dateStr = currentDate.toISOString().split('T')[0];
+                const dateStr = currentDate.toISOString().split("T")[0];
                 weeklySchedule[dateStr] = [];
             }
-            data?.forEach(appointment => {
+            data?.forEach((appointment) => {
                 const appointmentDate = appointment.appointment_date;
                 weeklySchedule[appointmentDate].push({
                     appointment_id: appointment.appointment_id,
-                    start_time: appointment.start_time,
-                    end_time: appointment.end_time,
+                    appointment_time: appointment.appointment_time,
+                    duration_minutes: appointment.duration_minutes,
                     status: appointment.status,
                     appointment_type: appointment.appointment_type,
                     reason: appointment.reason,
-                    patient: appointment.patients ? {
-                        patient_id: appointment.patients.patient_id,
-                        full_name: appointment.patients.profile?.full_name,
-                        phone_number: appointment.patients.profile?.phone_number
-                    } : null
+                    patient: appointment.patients
+                        ? {
+                            patient_id: appointment.patients.patient_id,
+                            full_name: appointment.patients.profile?.full_name,
+                            phone_number: appointment.patients.profile?.phone_number,
+                        }
+                        : null,
                 });
             });
             return {
-                doctorId,
+                doctor_id,
                 weekStart: startDateStr,
                 weekEnd: endDateStr,
                 schedule: weeklySchedule,
-                totalAppointments: data?.length || 0
+                totalAppointments: data?.length || 0,
             };
         }
         catch (error) {
-            logger_1.default.error('Exception in getWeeklySchedule:', error);
+            logger_1.default.error("Exception in getWeeklySchedule:", error);
             throw error;
         }
     }
-    async getAvailableSlots(doctorId, date, duration = 30) {
+    async getAvailableSlots(doctor_id, date, duration = 30) {
         try {
-            const { data, error } = await this.supabase
-                .rpc('find_optimal_time_slots', {
-                input_doctor_id: doctorId,
+            const { data, error } = await this.supabase.rpc("find_optimal_time_slots", {
+                input_doctor_id: doctor_id,
                 input_date: date,
-                duration_minutes: duration
+                duration_minutes: duration,
             });
             if (error) {
-                logger_1.default.error('Error fetching available slots:', error);
+                logger_1.default.error("Error fetching available slots:", error);
                 throw new Error(`Failed to fetch available slots: ${error.message}`);
             }
             return data || [];
         }
         catch (error) {
-            logger_1.default.error('Exception in getAvailableSlots:', error);
+            logger_1.default.error("Exception in getAvailableSlots:", error);
             throw error;
         }
     }
-    async getDoctorAppointmentStats(doctorId) {
+    async getDoctorAppointmentStats(doctor_id) {
         try {
             const now = new Date();
-            const today = now.toISOString().split('T')[0];
+            const today = now.toISOString().split("T")[0];
             const thisWeekStart = new Date(now.setDate(now.getDate() - now.getDay()));
             const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
             const { data: appointments, error } = await this.supabase
-                .from('appointments')
-                .select('appointment_id, status, appointment_type, appointment_date')
-                .eq('doctor_id', doctorId);
+                .from("appointments")
+                .select("appointment_id, status, appointment_type, appointment_date")
+                .eq("doctor_id", doctor_id);
             if (error) {
-                logger_1.default.error('Error fetching doctor appointment stats:', error);
+                logger_1.default.error("Error fetching doctor appointment stats:", error);
                 throw error;
             }
             const appointmentList = appointments || [];
             const total = appointmentList.length;
-            const todayAppointments = appointmentList.filter(a => a.appointment_date === today).length;
-            const thisWeekAppointments = appointmentList.filter(a => new Date(a.appointment_date) >= thisWeekStart).length;
-            const thisMonthAppointments = appointmentList.filter(a => new Date(a.appointment_date) >= thisMonthStart).length;
+            const todayAppointments = appointmentList.filter((a) => a.appointment_date === today).length;
+            const thisWeekAppointments = appointmentList.filter((a) => new Date(a.appointment_date) >= thisWeekStart).length;
+            const thisMonthAppointments = appointmentList.filter((a) => new Date(a.appointment_date) >= thisMonthStart).length;
             const byStatus = {
-                scheduled: appointmentList.filter(a => a.status === 'scheduled').length,
-                confirmed: appointmentList.filter(a => a.status === 'confirmed').length,
-                in_progress: appointmentList.filter(a => a.status === 'in_progress').length,
-                completed: appointmentList.filter(a => a.status === 'completed').length,
-                cancelled: appointmentList.filter(a => a.status === 'cancelled').length,
-                no_show: appointmentList.filter(a => a.status === 'no_show').length
+                scheduled: appointmentList.filter((a) => a.status === "scheduled")
+                    .length,
+                confirmed: appointmentList.filter((a) => a.status === "confirmed")
+                    .length,
+                in_progress: appointmentList.filter((a) => a.status === "in_progress")
+                    .length,
+                completed: appointmentList.filter((a) => a.status === "completed")
+                    .length,
+                cancelled: appointmentList.filter((a) => a.status === "cancelled")
+                    .length,
+                no_show: appointmentList.filter((a) => a.status === "no_show").length,
             };
             const byType = {
-                consultation: appointmentList.filter(a => a.appointment_type === 'consultation').length,
-                follow_up: appointmentList.filter(a => a.appointment_type === 'follow_up').length,
-                emergency: appointmentList.filter(a => a.appointment_type === 'emergency').length,
-                routine_checkup: appointmentList.filter(a => a.appointment_type === 'routine_checkup').length
+                consultation: appointmentList.filter((a) => a.appointment_type === "consultation").length,
+                follow_up: appointmentList.filter((a) => a.appointment_type === "follow_up").length,
+                emergency: appointmentList.filter((a) => a.appointment_type === "emergency").length,
+                routine_checkup: appointmentList.filter((a) => a.appointment_type === "routine_checkup").length,
             };
             return {
                 total_appointments: total,
@@ -619,29 +653,31 @@ class AppointmentRepository {
                 today_appointments: todayAppointments,
                 this_week_appointments: thisWeekAppointments,
                 by_status: byStatus,
-                by_type: byType
+                by_type: byType,
             };
         }
         catch (error) {
-            logger_1.default.error('Exception in getDoctorAppointmentStats:', error);
+            logger_1.default.error("Exception in getDoctorAppointmentStats:", error);
             throw error;
         }
     }
-    async getDoctorPatientCount(doctorId) {
+    async getDoctorPatientCount(doctor_id) {
         try {
             const { data: appointments, error } = await this.supabase
-                .from('appointments')
-                .select('patient_id')
-                .eq('doctor_id', doctorId);
+                .from("appointments")
+                .select("patient_id")
+                .eq("doctor_id", doctor_id);
             if (error) {
-                logger_1.default.error('Error fetching doctor patient count:', error);
+                logger_1.default.error("Error fetching doctor patient count:", error);
                 throw error;
             }
-            const uniquePatients = [...new Set((appointments || []).map(a => a.patient_id))];
+            const uniquePatients = [
+                ...new Set((appointments || []).map((a) => a.patient_id)),
+            ];
             return uniquePatients.length;
         }
         catch (error) {
-            logger_1.default.error('Exception in getDoctorPatientCount:', error);
+            logger_1.default.error("Exception in getDoctorPatientCount:", error);
             throw error;
         }
     }

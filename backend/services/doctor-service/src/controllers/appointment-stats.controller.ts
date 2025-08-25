@@ -69,7 +69,7 @@ export class AppointmentStatsController {
    */
   async getDoctorAppointmentStats(req: Request, res: Response): Promise<void> {
     try {
-      const { doctorId } = req.params;
+      const { doctor_id } = req.params;
       const { 
         period = 'week', 
         start_date,
@@ -77,7 +77,7 @@ export class AppointmentStatsController {
       } = req.query as AppointmentStatsQuery & { include_trends?: string };
 
       logger.info('📊 [AppointmentStats] Getting stats for doctor', {
-        doctorId,
+        doctor_id,
         period,
         start_date,
         include_trends
@@ -86,7 +86,7 @@ export class AppointmentStatsController {
       // 1. Lấy thống kê cơ bản từ database function
       const { data: basicStats, error: statsError } = await supabaseAdmin
         .rpc('get_doctor_appointment_stats', {
-          p_doctor_id: doctorId,
+          p_doctor_id: doctor_id,
           p_period: period,
           p_start_date: start_date || null
         });
@@ -117,17 +117,17 @@ export class AppointmentStatsController {
       // 2. Lấy dữ liệu trend theo ngày (nếu được yêu cầu)
       let weeklyData: DailyTrendData[] = [];
       if (include_trends === 'true') {
-        weeklyData = await this.getWeeklyTrendData(doctorId, period);
+        weeklyData = await this.getWeeklyTrendData(doctor_id, period);
       }
 
       // 3. Lấy thống kê so sánh tháng hiện tại vs tháng trước
-      const monthlyComparison = await this.getMonthlyComparison(doctorId);
+      const monthlyComparison = await this.getMonthlyComparison(doctor_id);
 
       // 4. Lấy phân loại appointment types
-      const appointmentTypes = await this.getAppointmentTypesBreakdown(doctorId, period);
+      const appointmentTypes = await this.getAppointmentTypesBreakdown(doctor_id, period);
 
       // 5. Tính tổng số bệnh nhân unique
-      const totalPatients = await this.getTotalUniquePatients(doctorId, period);
+      const totalPatients = await this.getTotalUniquePatients(doctor_id, period);
 
       const response: AppointmentStatsResponse = {
         // Basic stats
@@ -158,7 +158,7 @@ export class AppointmentStatsController {
       };
 
       logger.info('✅ [AppointmentStats] Successfully retrieved stats', {
-        doctorId,
+        doctor_id,
         totalAppointments: response.total_appointments,
         successRate: response.success_rate,
         trendsIncluded: weeklyData.length > 0
@@ -181,7 +181,7 @@ export class AppointmentStatsController {
   /**
    * Lấy dữ liệu trend theo tuần
    */
-  private async getWeeklyTrendData(doctorId: string, period: string): Promise<DailyTrendData[]> {
+  private async getWeeklyTrendData(doctor_id: string, period: string): Promise<DailyTrendData[]> {
     try {
       const daysBack = period === 'month' ? 30 : period === 'year' ? 365 : 7;
       const startDate = new Date();
@@ -195,7 +195,7 @@ export class AppointmentStatsController {
           patient_type,
           doctors!inner(consultation_fee)
         `)
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctor_id)
         .gte('appointment_date', startDate.toISOString().split('T')[0])
         .order('appointment_date');
 
@@ -254,7 +254,7 @@ export class AppointmentStatsController {
   /**
    * Lấy so sánh thống kê tháng hiện tại vs tháng trước
    */
-  private async getMonthlyComparison(doctorId: string) {
+  private async getMonthlyComparison(doctor_id: string) {
     try {
       const currentMonth = new Date();
       const previousMonth = new Date();
@@ -268,14 +268,14 @@ export class AppointmentStatsController {
       const { count: currentCount } = await supabaseAdmin
         .from('appointments')
         .select('*', { count: 'exact', head: true })
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctor_id)
         .gte('appointment_date', currentMonthStart.toISOString().split('T')[0]);
 
       // Previous month stats
       const { count: previousCount } = await supabaseAdmin
         .from('appointments')
         .select('*', { count: 'exact', head: true })
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctor_id)
         .gte('appointment_date', previousMonthStart.toISOString().split('T')[0])
         .lte('appointment_date', previousMonthEnd.toISOString().split('T')[0]);
 
@@ -302,7 +302,7 @@ export class AppointmentStatsController {
   /**
    * Lấy phân loại appointment types
    */
-  private async getAppointmentTypesBreakdown(doctorId: string, period: string): Promise<AppointmentTypeBreakdown[]> {
+  private async getAppointmentTypesBreakdown(doctor_id: string, period: string): Promise<AppointmentTypeBreakdown[]> {
     try {
       const daysBack = period === 'month' ? 30 : period === 'year' ? 365 : 7;
       const startDate = new Date();
@@ -311,7 +311,7 @@ export class AppointmentStatsController {
       const { data: typeData, error } = await supabaseAdmin
         .from('appointments')
         .select('appointment_type')
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctor_id)
         .gte('appointment_date', startDate.toISOString().split('T')[0]);
 
       if (error || !typeData) {
@@ -341,7 +341,7 @@ export class AppointmentStatsController {
   /**
    * Lấy tổng số bệnh nhân unique
    */
-  private async getTotalUniquePatients(doctorId: string, period: string): Promise<number> {
+  private async getTotalUniquePatients(doctor_id: string, period: string): Promise<number> {
     try {
       const daysBack = period === 'month' ? 30 : period === 'year' ? 365 : 7;
       const startDate = new Date();
@@ -350,7 +350,7 @@ export class AppointmentStatsController {
       const { data: patientData, error } = await supabaseAdmin
         .from('appointments')
         .select('patient_id')
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctor_id)
         .gte('appointment_date', startDate.toISOString().split('T')[0]);
 
       if (error || !patientData) {

@@ -61,7 +61,7 @@ router.get('/search', authMiddleware, requireReceptionistOrAdmin, patientControl
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: patientId
+ *         name: patient_id
  *         required: true
  *         schema:
  *           type: string
@@ -86,7 +86,7 @@ router.get('/:patientId', authMiddleware, patientController.getPatientDetails);
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: patientId
+ *         name: patient_id
  *         required: true
  *         schema:
  *           type: string
@@ -133,7 +133,7 @@ router.put('/:patientId/emergency-contact', authMiddleware, requireReceptionistO
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: patientId
+ *         name: patient_id
  *         required: true
  *         schema:
  *           type: string

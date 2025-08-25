@@ -6,9 +6,9 @@ import logger from '@hospital/shared/dist/utils/logger';
  * Validate doctor ID format
  */
 export const validateDoctorId = (req: Request, res: Response, next: NextFunction): void => {
-  const { doctorId } = req.params;
+  const { doctor_id } = req.params;
   
-  if (!doctorId) {
+  if (!doctor_id) {
     res.status(400).json(ResponseHelper.error(
       'Doctor ID is required',
       'MISSING_DOCTOR_ID'
@@ -18,7 +18,7 @@ export const validateDoctorId = (req: Request, res: Response, next: NextFunction
 
   // Validate doctor ID format (e.g., GENE-DOC-202506-006)
   const doctorIdPattern = /^[A-Z]{4}-DOC-\d{6}-\d{3}$/;
-  if (!doctorIdPattern.test(doctorId)) {
+  if (!doctorIdPattern.test(doctor_id)) {
     res.status(400).json(ResponseHelper.error(
       'Invalid doctor ID format. Expected format: DEPT-DOC-YYYYMM-XXX',
       'INVALID_DOCTOR_ID_FORMAT'

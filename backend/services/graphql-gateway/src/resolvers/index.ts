@@ -403,9 +403,9 @@ const baseResolvers = {
       subscribe: withFilter(
         () => pubsub.asyncIterator(["APPOINTMENT_UPDATED"]),
         (payload, variables) => {
-          if (!variables.appointmentId) return true;
+          if (!variables.appointment_id) return true;
           return (
-            payload.appointmentUpdated.appointmentId === variables.appointmentId
+            payload.appointmentUpdated.appointment_id === variables.appointment_id
           );
         }
       ),
@@ -415,10 +415,10 @@ const baseResolvers = {
       subscribe: withFilter(
         () => pubsub.asyncIterator(["APPOINTMENT_STATUS_CHANGED"]),
         (payload, variables) => {
-          if (!variables.appointmentId) return true;
+          if (!variables.appointment_id) return true;
           return (
-            payload.appointmentStatusChanged.appointmentId ===
-            variables.appointmentId
+            payload.appointmentStatusChanged.appointment_id ===
+            variables.appointment_id
           );
         }
       ),
@@ -429,7 +429,7 @@ const baseResolvers = {
         () => pubsub.asyncIterator(["DOCTOR_APPOINTMENT_UPDATED"]),
         (payload, variables) => {
           return (
-            payload.doctorAppointmentUpdated.doctorId === variables.doctorId
+            payload.doctorAppointmentUpdated.doctor_id === variables.doctor_id
           );
         }
       ),
@@ -440,7 +440,7 @@ const baseResolvers = {
         () => pubsub.asyncIterator(["PATIENT_APPOINTMENT_UPDATED"]),
         (payload, variables) => {
           return (
-            payload.patientAppointmentUpdated.patientId === variables.patientId
+            payload.patientAppointmentUpdated.patient_id === variables.patient_id
           );
         }
       ),
@@ -450,8 +450,8 @@ const baseResolvers = {
       subscribe: withFilter(
         () => pubsub.asyncIterator(["NEW_APPOINTMENT_CREATED"]),
         (payload, variables) => {
-          if (!variables.doctorId) return true;
-          return payload.newAppointmentCreated.doctorId === variables.doctorId;
+          if (!variables.doctor_id) return true;
+          return payload.newAppointmentCreated.doctor_id === variables.doctor_id;
         }
       ),
     },
@@ -460,9 +460,9 @@ const baseResolvers = {
       subscribe: withFilter(
         () => pubsub.asyncIterator(["WAITING_QUEUE_UPDATED"]),
         (payload, variables) => {
-          if (!variables.doctorId) return true;
+          if (!variables.doctor_id) return true;
           return payload.waitingQueueUpdated.some(
-            (apt: any) => apt.doctorId === variables.doctorId
+            (apt: any) => apt.doctor_id === variables.doctor_id
           );
         }
       ),
@@ -473,8 +473,8 @@ const baseResolvers = {
       subscribe: withFilter(
         () => pubsub.asyncIterator(["PATIENT_STATUS_CHANGED"]),
         (payload, variables) => {
-          if (!variables.patientId) return true;
-          return payload.patientStatusChanged.patientId === variables.patientId;
+          if (!variables.patient_id) return true;
+          return payload.patientStatusChanged.patient_id === variables.patient_id;
         }
       ),
     },
@@ -483,8 +483,8 @@ const baseResolvers = {
       subscribe: withFilter(
         () => pubsub.asyncIterator(["PATIENT_UPDATED"]),
         (payload, variables) => {
-          if (!variables.patientId) return true;
-          return payload.patientUpdated.patientId === variables.patientId;
+          if (!variables.patient_id) return true;
+          return payload.patientUpdated.patient_id === variables.patient_id;
         }
       ),
     },
@@ -494,8 +494,8 @@ const baseResolvers = {
       subscribe: withFilter(
         () => pubsub.asyncIterator(["DOCTOR_STATUS_CHANGED"]),
         (payload, variables) => {
-          if (!variables.doctorId) return true;
-          return payload.doctorStatusChanged.doctorId === variables.doctorId;
+          if (!variables.doctor_id) return true;
+          return payload.doctorStatusChanged.doctor_id === variables.doctor_id;
         }
       ),
     },
@@ -504,7 +504,7 @@ const baseResolvers = {
       subscribe: withFilter(
         () => pubsub.asyncIterator(["DOCTOR_SCHEDULE_CHANGED"]),
         (payload, variables) => {
-          return payload.doctorScheduleChanged.doctorId === variables.doctorId;
+          return payload.doctorScheduleChanged.doctor_id === variables.doctor_id;
         }
       ),
     },
@@ -513,9 +513,9 @@ const baseResolvers = {
       subscribe: withFilter(
         () => pubsub.asyncIterator(["DOCTOR_AVAILABILITY_CHANGED"]),
         (payload, variables) => {
-          if (!variables.doctorId) return true;
+          if (!variables.doctor_id) return true;
           return (
-            payload.doctorAvailabilityChanged.doctorId === variables.doctorId
+            payload.doctorAvailabilityChanged.doctor_id === variables.doctor_id
           );
         }
       ),

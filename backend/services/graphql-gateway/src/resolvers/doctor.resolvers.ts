@@ -10,7 +10,7 @@ export const doctorResolvers = {
     // Get single doctor
     async doctor(
       _: any,
-      { id, doctorId }: { id?: string; doctorId?: string },
+      { id, doctor_id }: { id?: string; doctor_id?: string },
       context: GraphQLContext
     ) {
       try {
@@ -46,7 +46,7 @@ export const doctorResolvers = {
         filters,
         limit = 20,
         offset = 0,
-        sortBy = "createdAt",
+        sortBy = "created_at",
         sortOrder = "DESC",
       }: {
         filters?: any;
@@ -186,18 +186,18 @@ export const doctorResolvers = {
     // Get doctor availability
     async doctorAvailability(
       _: any,
-      { doctorId, date }: { doctorId: string; date: string },
+      { doctor_id, date }: { doctor_id: string; date: string },
       context: GraphQLContext
     ) {
       try {
         logger.debug("Fetching doctor availability:", {
-          doctorId,
+          doctor_id,
           date,
           requestId: context.requestId,
         });
 
         const response = await context.restApi.getAvailableSlots(
-          doctorId,
+          doctor_id,
           date
         );
 
@@ -217,12 +217,12 @@ export const doctorResolvers = {
     // Get doctor statistics
     async doctorStats(
       _: any,
-      { doctorId }: { doctorId: string },
+      { doctor_id }: { doctor_id: string },
       context: GraphQLContext
     ) {
       try {
         // Use DataLoader for optimization
-        const stats = await context.dataloaders.doctorStats.load(doctorId);
+        const stats = await context.dataloaders.doctorStats.load(doctor_id);
 
         if (!stats) {
           throw new Error("Không thể lấy thống kê bác sĩ");
@@ -239,22 +239,22 @@ export const doctorResolvers = {
     async doctorReviews(
       _: any,
       {
-        doctorId,
+        doctor_id,
         limit = 10,
         offset = 0,
-      }: { doctorId: string; limit?: number; offset?: number },
+      }: { doctor_id: string; limit?: number; offset?: number },
       context: GraphQLContext
     ) {
       try {
         logger.debug("Fetching doctor reviews:", {
-          doctorId,
+          doctor_id,
           limit,
           offset,
           requestId: context.requestId,
         });
 
         const response = await context.restApi.getDoctorReviews({
-          doctorId,
+          doctor_id,
           limit,
           offset,
         });
@@ -275,18 +275,18 @@ export const doctorResolvers = {
     // Get doctor schedule (legacy support)
     async doctorSchedule(
       _: any,
-      { doctorId, date }: { doctorId: string; date?: string },
+      { doctor_id, date }: { doctor_id: string; date?: string },
       context: GraphQLContext
     ) {
       try {
         logger.debug("Fetching doctor schedule:", {
-          doctorId,
+          doctor_id,
           date,
           requestId: context.requestId,
         });
 
         const response = await context.restApi.getDoctorSchedule(
-          doctorId,
+          doctor_id,
           date
         );
 
@@ -306,18 +306,18 @@ export const doctorResolvers = {
     // Enhanced doctor schedule queries
     async doctorScheduleEnhanced(
       _: any,
-      { doctorId, weekStartDate }: { doctorId: string; weekStartDate?: string },
+      { doctor_id, weekStartDate }: { doctor_id: string; weekStartDate?: string },
       context: GraphQLContext
     ) {
       try {
         logger.debug("Fetching enhanced doctor schedule:", {
-          doctorId,
+          doctor_id,
           weekStartDate,
           requestId: context.requestId,
         });
 
         const response = await context.restApi.getDoctorScheduleEnhanced(
-          doctorId,
+          doctor_id,
           weekStartDate
         );
 
@@ -336,18 +336,18 @@ export const doctorResolvers = {
 
     async doctorWeeklyAvailability(
       _: any,
-      { doctorId, weekStartDate }: { doctorId: string; weekStartDate: string },
+      { doctor_id, weekStartDate }: { doctor_id: string; weekStartDate: string },
       context: GraphQLContext
     ) {
       try {
         logger.debug("Fetching doctor weekly availability:", {
-          doctorId,
+          doctor_id,
           weekStartDate,
           requestId: context.requestId,
         });
 
         const response = await context.restApi.getDoctorWeeklyAvailability(
-          doctorId,
+          doctor_id,
           weekStartDate
         );
 
@@ -366,18 +366,18 @@ export const doctorResolvers = {
 
     async doctorAppointmentSlots(
       _: any,
-      { doctorId, date }: { doctorId: string; date: string },
+      { doctor_id, date }: { doctor_id: string; date: string },
       context: GraphQLContext
     ) {
       try {
         logger.debug("Fetching doctor appointment slots:", {
-          doctorId,
+          doctor_id,
           date,
           requestId: context.requestId,
         });
 
         const response = await context.restApi.getDoctorAppointmentSlots(
-          doctorId,
+          doctor_id,
           date
         );
 
@@ -417,14 +417,14 @@ export const doctorResolvers = {
     // Get multiple rooms
     async rooms(
       _: any,
-      { departmentId, roomType, isActive = true, limit = 20 }: any,
+      { departmentId, roomType, is_active = true, limit = 20 }: any,
       context: GraphQLContext
     ) {
       try {
         logger.debug("Fetching rooms:", {
           departmentId,
           roomType,
-          isActive,
+          is_active,
           limit,
           requestId: context.requestId,
         });
@@ -432,7 +432,7 @@ export const doctorResolvers = {
         const response = await context.restApi.getRooms({
           departmentId,
           roomType,
-          isActive,
+          is_active,
           limit,
         });
 
@@ -507,7 +507,7 @@ export const doctorResolvers = {
         }
 
         // Check permissions (admin or the doctor themselves)
-        if (context.user.role !== "admin" && context.user.doctorId !== id) {
+        if (context.user.role !== "admin" && context.user.doctor_id !== id) {
           throw new Error("Không có quyền cập nhật thông tin bác sĩ này");
         }
 
@@ -694,7 +694,7 @@ export const doctorResolvers = {
       try {
         const appointments =
           await context.dataloaders.appointmentsByDoctor.load(
-            parent.doctorId || parent.id
+            parent.doctor_id || parent.id
           );
 
         // Apply filters
@@ -770,7 +770,7 @@ export const doctorResolvers = {
     ) {
       try {
         const reviews = await context.dataloaders.doctorReviews.load(
-          parent.doctorId || parent.id
+          parent.doctor_id || parent.id
         );
 
         // Apply pagination
@@ -816,7 +816,7 @@ export const doctorResolvers = {
     async averageRating(parent: any, _: any, context: GraphQLContext) {
       try {
         const stats = await context.dataloaders.doctorStats.load(
-          parent.doctorId || parent.id
+          parent.doctor_id || parent.id
         );
         return stats?.averageRating || 0;
       } catch (error) {
@@ -828,7 +828,7 @@ export const doctorResolvers = {
     async totalPatients(parent: any, _: any, context: GraphQLContext) {
       try {
         const stats = await context.dataloaders.doctorStats.load(
-          parent.doctorId || parent.id
+          parent.doctor_id || parent.id
         );
         return stats?.totalPatients || 0;
       } catch (error) {
@@ -840,7 +840,7 @@ export const doctorResolvers = {
     async totalAppointments(parent: any, _: any, context: GraphQLContext) {
       try {
         const stats = await context.dataloaders.doctorStats.load(
-          parent.doctorId || parent.id
+          parent.doctor_id || parent.id
         );
         return stats?.totalAppointments || 0;
       } catch (error) {
@@ -852,7 +852,7 @@ export const doctorResolvers = {
     async upcomingAppointments(parent: any, _: any, context: GraphQLContext) {
       try {
         const stats = await context.dataloaders.doctorStats.load(
-          parent.doctorId || parent.id
+          parent.doctor_id || parent.id
         );
         return stats?.upcomingAppointments || 0;
       } catch (error) {
@@ -865,7 +865,7 @@ export const doctorResolvers = {
       try {
         const today = new Date().toISOString().split("T")[0];
         const slots = await context.dataloaders.availableSlots.load(
-          `${parent.doctorId || parent.id}:${today}`
+          `${parent.doctor_id || parent.id}:${today}`
         );
         return (slots || []).some((slot: any) => slot.isAvailable);
       } catch (error) {
@@ -881,16 +881,16 @@ export const doctorResolvers = {
     serviceQuality: (parent: any) => parent.service_quality,
     isVerified: (parent: any) => parent.is_verified,
     isAnonymous: (parent: any) => parent.is_anonymous,
-    createdAt: (parent: any) => parent.created_at,
-    updatedAt: (parent: any) => parent.updated_at,
+    created_at: (parent: any) => parent.created_at,
+    updated_at: (parent: any) => parent.updated_at,
 
     // Resolve relationships using DataLoaders
     async doctor(parent: any, _: any, context: GraphQLContext) {
-      if (!parent.doctor_id && !parent.doctorId) return null;
+      if (!parent.doctor_id && !parent.doctor_id) return null;
 
       try {
-        const doctorId = parent.doctor_id || parent.doctorId;
-        return await context.dataloaders.doctorById.load(doctorId);
+        const doctor_id = parent.doctor_id || parent.doctor_id;
+        return await context.dataloaders.doctorById.load(doctor_id);
       } catch (error) {
         logger.error("Error loading review doctor:", error);
         return null;
@@ -898,11 +898,11 @@ export const doctorResolvers = {
     },
 
     async patient(parent: any, _: any, context: GraphQLContext) {
-      if (!parent.patient_id && !parent.patientId) return null;
+      if (!parent.patient_id && !parent.patient_id) return null;
 
       try {
-        const patientId = parent.patient_id || parent.patientId;
-        return await context.dataloaders.patientById.load(patientId);
+        const patient_id = parent.patient_id || parent.patient_id;
+        return await context.dataloaders.patientById.load(patient_id);
       } catch (error) {
         logger.error("Error loading review patient:", error);
         return null;
@@ -910,11 +910,11 @@ export const doctorResolvers = {
     },
 
     async appointment(parent: any, _: any, context: GraphQLContext) {
-      if (!parent.appointment_id && !parent.appointmentId) return null;
+      if (!parent.appointment_id && !parent.appointment_id) return null;
 
       try {
-        const appointmentId = parent.appointment_id || parent.appointmentId;
-        return await context.dataloaders.appointmentById.load(appointmentId);
+        const appointment_id = parent.appointment_id || parent.appointment_id;
+        return await context.dataloaders.appointmentById.load(appointment_id);
       } catch (error) {
         logger.error("Error loading review appointment:", error);
         return null;
@@ -968,19 +968,19 @@ export const doctorResolvers = {
     effectiveTo: (parent: any) => parent.effective_to,
 
     // Status
-    isActive: (parent: any) => parent.is_active,
+    is_active: (parent: any) => parent.is_active,
 
     // Timestamps
-    createdAt: (parent: any) => parent.created_at,
-    updatedAt: (parent: any) => parent.updated_at,
+    created_at: (parent: any) => parent.created_at,
+    updated_at: (parent: any) => parent.updated_at,
 
     // Resolve relationships using DataLoaders
     async doctor(parent: any, _: any, context: GraphQLContext) {
-      if (!parent.doctor_id && !parent.doctorId) return null;
+      if (!parent.doctor_id && !parent.doctor_id) return null;
 
       try {
-        const doctorId = parent.doctor_id || parent.doctorId;
-        return await context.dataloaders.doctorById.load(doctorId);
+        const doctor_id = parent.doctor_id || parent.doctor_id;
+        return await context.dataloaders.doctorById.load(doctor_id);
       } catch (error) {
         logger.error("Error loading schedule doctor:", error);
         return null;
@@ -1013,9 +1013,9 @@ export const doctorResolvers = {
     floorNumber: (parent: any) => parent.floor_number,
     dailyRate: (parent: any) => parent.daily_rate,
     equipmentIds: (parent: any) => parent.equipment_ids,
-    isActive: (parent: any) => parent.is_active,
-    createdAt: (parent: any) => parent.created_at,
-    updatedAt: (parent: any) => parent.updated_at,
+    is_active: (parent: any) => parent.is_active,
+    created_at: (parent: any) => parent.created_at,
+    updated_at: (parent: any) => parent.updated_at,
 
     // Resolve relationships using DataLoaders
     async department(parent: any, _: any, context: GraphQLContext) {

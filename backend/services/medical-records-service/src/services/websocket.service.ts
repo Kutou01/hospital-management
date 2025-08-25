@@ -109,13 +109,13 @@ export class WebSocketManager {
     });
 
     // Handle patient subscription
-    socket.on('subscribe_patient', (patientId: string) => {
-      this.handleSubscribePatient(socket, client, patientId);
+    socket.on('subscribe_patient', (patient_id: string) => {
+      this.handleSubscribePatient(socket, client, patient_id);
     });
 
     // Handle doctor subscription
-    socket.on('subscribe_doctor', (doctorId: string) => {
-      this.handleSubscribeDoctor(socket, client, doctorId);
+    socket.on('subscribe_doctor', (doctor_id: string) => {
+      this.handleSubscribeDoctor(socket, client, doctor_id);
     });
 
     // Handle ping/pong for connection health
@@ -222,16 +222,16 @@ export class WebSocketManager {
   /**
    * Handle patient subscription
    */
-  private handleSubscribePatient(socket: Socket, client: ConnectedClient, patientId: string): void {
-    const roomName = `patient_${patientId}`;
+  private handleSubscribePatient(socket: Socket, client: ConnectedClient, patient_id: string): void {
+    const roomName = `patient_${patient_id}`;
     this.handleJoinRoom(socket, client, roomName);
   }
 
   /**
    * Handle doctor subscription
    */
-  private handleSubscribeDoctor(socket: Socket, client: ConnectedClient, doctorId: string): void {
-    const roomName = `doctor_${doctorId}`;
+  private handleSubscribeDoctor(socket: Socket, client: ConnectedClient, doctor_id: string): void {
+    const roomName = `doctor_${doctor_id}`;
     this.handleJoinRoom(socket, client, roomName);
   }
 

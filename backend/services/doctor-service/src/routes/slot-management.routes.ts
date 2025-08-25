@@ -7,7 +7,7 @@ const router = express.Router();
 const slotController = new SlotManagementController();
 
 // Validation middleware
-const validateDoctorId = param('doctorId')
+const validateDoctorId = param('doctor_id')
   .notEmpty()
   .withMessage('Doctor ID is required')
   .matches(/^[A-Z]{4}-DOC-\d{6}-\d{3}$/)
@@ -53,7 +53,7 @@ const validateBulkGenerate = [
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: doctorId
+ *         name: doctor_id
  *         required: true
  *         schema:
  *           type: string
@@ -106,7 +106,7 @@ router.post(
  *     tags: [Doctor Slots]
  *     parameters:
  *       - in: path
- *         name: doctorId
+ *         name: doctor_id
  *         required: true
  *         schema:
  *           type: string
@@ -141,7 +141,7 @@ router.get(
  *     tags: [Doctor Availability]
  *     parameters:
  *       - in: path
- *         name: doctorId
+ *         name: doctor_id
  *         required: true
  *         schema:
  *           type: string
@@ -174,7 +174,7 @@ router.get(
  *     tags: [Doctor Availability]
  *     parameters:
  *       - in: path
- *         name: doctorId
+ *         name: doctor_id
  *         required: true
  *         schema:
  *           type: string

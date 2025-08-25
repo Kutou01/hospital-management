@@ -8,17 +8,17 @@ const DOCTOR_ID_PATTERN = /^[A-Z]{4}-DOC-\d{6}-\d{3}$/;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_PATTERN = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
 exports.validateAppointmentId = [
-    (0, express_validator_1.param)('appointmentId')
+    (0, express_validator_1.param)('appointment_id')
         .matches(APPOINTMENT_ID_PATTERN)
         .withMessage('Appointment ID must be in department-based format (e.g., CARD-APT-YYYYMM-XXX)')
 ];
 exports.validatePatientId = [
-    (0, express_validator_1.param)('patientId')
+    (0, express_validator_1.param)('patient_id')
         .matches(PATIENT_ID_PATTERN)
         .withMessage('Patient ID must be in format PAT-YYYYMM-XXX')
 ];
 exports.validateDoctorId = [
-    (0, express_validator_1.param)('doctorId')
+    (0, express_validator_1.param)('doctor_id')
         .matches(DOCTOR_ID_PATTERN)
         .withMessage('Doctor ID must be in department-based format (e.g., CARD-DOC-YYYYMM-XXX)')
 ];

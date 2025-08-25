@@ -11,7 +11,7 @@ const validateShiftId = [
 ];
 
 const validateDoctorId = [
-  param('doctorId').notEmpty().withMessage('Doctor ID is required')
+  param('doctor_id').notEmpty().withMessage('Doctor ID is required')
 ];
 
 const validateCreateShift = [
@@ -76,7 +76,7 @@ const validateUpdateShift = [
  *     tags: [Doctor Shifts]
  *     parameters:
  *       - in: path
- *         name: doctorId
+ *         name: doctor_id
  *         required: true
  *         schema:
  *           type: string
@@ -102,7 +102,7 @@ router.get('/doctor/:doctorId', validateDoctorId, doctorController.getDoctorShif
  *     tags: [Doctor Shifts]
  *     parameters:
  *       - in: path
- *         name: doctorId
+ *         name: doctor_id
  *         required: true
  *         schema:
  *           type: string
@@ -125,7 +125,7 @@ router.get('/doctor/:doctorId/upcoming', validateDoctorId, doctorController.getU
  *     tags: [Doctor Shifts]
  *     parameters:
  *       - in: path
- *         name: doctorId
+ *         name: doctor_id
  *         required: true
  *         schema:
  *           type: string

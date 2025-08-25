@@ -8,7 +8,7 @@ const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 // Common validations
 export const validatePatientId: ValidationChain[] = [
-  param('patientId')
+  param('patient_id')
     .notEmpty()
     .withMessage('Patient ID is required')
     .matches(PATIENT_ID_PATTERN)
@@ -22,7 +22,7 @@ export const validateProfileId: ValidationChain[] = [
 ];
 
 export const validateDoctorId: ValidationChain[] = [
-  param('doctorId')
+  param('doctor_id')
     .matches(/^[A-Z]{4}-DOC-\d{6}-\d{3}$/)
     .withMessage('Doctor ID must be in department-based format (e.g., CARD-DOC-YYYYMM-XXX)')
 ];

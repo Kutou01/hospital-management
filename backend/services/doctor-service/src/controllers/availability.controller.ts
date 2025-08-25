@@ -16,11 +16,11 @@ export class AvailabilityController {
    */
   getDoctorAvailability = async (req: Request, res: Response): Promise<void> => {
     try {
-      const { doctorId, date } = req.params;
+      const { doctor_id, date } = req.params;
       const { duration, appointment_type, include_breaks } = req.query;
 
       logger.info('🔄 [Availability] Getting doctor availability', {
-        doctorId,
+        doctor_id,
         date,
         duration,
         appointment_type,
@@ -37,7 +37,7 @@ export class AvailabilityController {
       }
 
       const query: AvailabilityQuery = {
-        doctor_id: doctorId,
+        doctor_id: doctor_id,
         date,
         duration: duration ? parseInt(duration as string) : 30,
         appointment_type: appointment_type as string,
@@ -55,7 +55,7 @@ export class AvailabilityController {
       }
 
       logger.info('✅ [Availability] Doctor availability retrieved successfully', {
-        doctorId,
+        doctor_id,
         date,
         available_slots: availability.available_slots,
         total_slots: availability.total_slots
@@ -81,11 +81,11 @@ export class AvailabilityController {
    */
   getAvailableTimeSlots = async (req: Request, res: Response): Promise<void> => {
     try {
-      const { doctorId, date } = req.params;
+      const { doctor_id, date } = req.params;
       const { duration } = req.query;
 
       logger.info('🔄 [Availability] Getting available time slots', {
-        doctorId,
+        doctor_id,
         date,
         duration
       });
@@ -101,20 +101,20 @@ export class AvailabilityController {
 
       const slotDuration = duration ? parseInt(duration as string) : 30;
       const availableSlots = await this.availabilityService.getAvailableTimeSlots(
-        doctorId, 
+        doctor_id, 
         date, 
         slotDuration
       );
 
       logger.info('✅ [Availability] Available time slots retrieved successfully', {
-        doctorId,
+        doctor_id,
         date,
         slots_count: availableSlots.length
       });
 
       res.json(ResponseHelper.success(
         {
-          doctor_id: doctorId,
+          doctor_id: doctor_id,
           date,
           slot_duration: slotDuration,
           available_slots: availableSlots,
@@ -138,11 +138,11 @@ export class AvailabilityController {
    */
   checkTimeSlotAvailability = async (req: Request, res: Response): Promise<void> => {
     try {
-      const { doctorId } = req.params;
+      const { doctor_id } = req.params;
       const { date, start_time, end_time } = req.body;
 
       logger.info('🔄 [Availability] Checking time slot availability', {
-        doctorId,
+        doctor_id,
         date,
         start_time,
         end_time
@@ -176,14 +176,14 @@ export class AvailabilityController {
       }
 
       const isAvailable = await this.availabilityService.isTimeSlotAvailable(
-        doctorId,
+        doctor_id,
         date,
         start_time,
         end_time
       );
 
       logger.info('✅ [Availability] Time slot availability checked', {
-        doctorId,
+        doctor_id,
         date,
         start_time,
         end_time,
@@ -192,7 +192,7 @@ export class AvailabilityController {
 
       res.json(ResponseHelper.success(
         {
-          doctor_id: doctorId,
+          doctor_id: doctor_id,
           date,
           start_time,
           end_time,
@@ -217,11 +217,11 @@ export class AvailabilityController {
    */
   getWeeklyAvailability = async (req: Request, res: Response): Promise<void> => {
     try {
-      const { doctorId, startDate } = req.params;
+      const { doctor_id, startDate } = req.params;
       const { duration } = req.query;
 
       logger.info('🔄 [Availability] Getting weekly availability', {
-        doctorId,
+        doctor_id,
         startDate,
         duration
       });
@@ -245,7 +245,7 @@ export class AvailabilityController {
         const dateStr = currentDate.toISOString().split('T')[0];
 
         const availability = await this.availabilityService.getDoctorAvailability({
-          doctor_id: doctorId,
+          doctor_id: doctor_id,
           date: dateStr,
           duration: slotDuration
         });
@@ -259,14 +259,14 @@ export class AvailabilityController {
       }
 
       logger.info('✅ [Availability] Weekly availability retrieved successfully', {
-        doctorId,
+        doctor_id,
         startDate,
         days_retrieved: weeklyAvailability.length
       });
 
       res.json(ResponseHelper.success(
         {
-          doctor_id: doctorId,
+          doctor_id: doctor_id,
           start_date: startDate,
           slot_duration: slotDuration,
           weekly_availability: weeklyAvailability

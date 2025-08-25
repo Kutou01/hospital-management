@@ -146,7 +146,7 @@ const baseTypeDefs = gql`
     title: String!
     message: String!
     data: String # JSON string
-    createdAt: DateTime!
+    created_at: DateTime!
   }
 
   enum NotificationType {
@@ -211,8 +211,8 @@ const baseTypeDefs = gql`
   }
 
   interface Timestamped {
-    createdAt: DateTime!
-    updatedAt: DateTime!
+    created_at: DateTime!
+    updated_at: DateTime!
   }
 
   # Vietnamese Language Support
@@ -231,7 +231,7 @@ const baseTypeDefs = gql`
     encoding: String!
     size: Int!
     url: String!
-    uploadedAt: DateTime!
+    uploaded_at: DateTime!
   }
 
   # Audit Log

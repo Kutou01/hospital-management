@@ -36,7 +36,7 @@ class NotificationService {
                 message: `Your appointment has been scheduled for ${appointment.appointment_date} at ${appointment.start_time}`
             });
             logger_1.default.info('✅ Appointment created notifications sent', {
-                appointmentId: appointment.appointment_id
+                appointment_id: appointment.appointment_id
             });
         }
         catch (error) {
@@ -71,7 +71,7 @@ class NotificationService {
                 metadata: { changes }
             });
             logger_1.default.info('✅ Appointment updated notifications sent', {
-                appointmentId: appointment.appointment_id,
+                appointment_id: appointment.appointment_id,
                 changes
             });
         }
@@ -107,7 +107,7 @@ class NotificationService {
                 metadata: { reason }
             });
             logger_1.default.info('✅ Appointment cancelled notifications sent', {
-                appointmentId: appointment.appointment_id,
+                appointment_id: appointment.appointment_id,
                 reason
             });
         }
@@ -138,7 +138,7 @@ class NotificationService {
                 metadata: { reminderType }
             });
             logger_1.default.info('✅ Appointment reminder sent', {
-                appointmentId: appointment.appointment_id,
+                appointment_id: appointment.appointment_id,
                 reminderType
             });
         }
@@ -152,7 +152,7 @@ class NotificationService {
                 type: notificationData.type,
                 recipient: notificationData.recipient,
                 message: notificationData.message,
-                appointmentId: notificationData.appointment.appointment_id
+                appointment_id: notificationData.appointment.appointment_id
             });
             await this.sendEmailNotification(notificationData);
             await this.sendInAppNotification(notificationData);

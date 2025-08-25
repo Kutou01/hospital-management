@@ -47,7 +47,7 @@ export const patientTypeDefs = gql`
   type Patient {
     # Basic Information
     id: UUID!
-    patientId: PatientID!
+    patient_id: PatientID!
     profileId: UUID!
     fullName: String!
     email: String!
@@ -78,12 +78,12 @@ export const patientTypeDefs = gql`
     insuranceExpiryDate: Date
     
     # Status
-    isActive: Boolean!
+    is_active: Boolean!
     status: PatientStatus!
     
     # Timestamps
-    createdAt: DateTime!
-    updatedAt: DateTime!
+    created_at: DateTime!
+    updated_at: DateTime!
     lastVisit: DateTime
     
     # Relationships
@@ -132,7 +132,7 @@ export const patientTypeDefs = gql`
 
   # Patient Medical Summary
   type PatientMedicalSummary {
-    patientId: PatientID!
+    patient_id: PatientID!
     totalVisits: Int!
     lastVisitDate: DateTime
     chronicConditions: [String!]!
@@ -151,7 +151,7 @@ export const patientTypeDefs = gql`
     temperature: Float
     respiratoryRate: Int
     oxygenSaturation: Float
-    recordedAt: DateTime!
+    recorded_at: DateTime!
   }
 
   type LatestLabResult {
@@ -160,12 +160,12 @@ export const patientTypeDefs = gql`
     unit: String
     normalRange: String
     status: String # NORMAL, HIGH, LOW, CRITICAL
-    recordedAt: DateTime!
+    recorded_at: DateTime!
   }
 
   # Patient Statistics
   type PatientStats {
-    patientId: PatientID!
+    patient_id: PatientID!
     totalAppointments: Int!
     completedAppointments: Int!
     cancelledAppointments: Int!
@@ -220,7 +220,7 @@ export const patientTypeDefs = gql`
   input PatientFilters {
     search: String
     status: PatientStatus
-    isActive: Boolean
+    is_active: Boolean
     gender: Gender
     ageMin: Int
     ageMax: Int
@@ -272,7 +272,7 @@ export const patientTypeDefs = gql`
     insuranceNumber: String
     insuranceProvider: String
     insuranceExpiryDate: Date
-    isActive: Boolean
+    is_active: Boolean
     status: PatientStatus
   }
 
@@ -286,7 +286,7 @@ export const patientTypeDefs = gql`
   # Queries
   extend type Query {
     # Single patient queries
-    patient(id: UUID, patientId: PatientID): Patient
+    patient(id: UUID, patient_id: PatientID): Patient
     patientByProfile(profileId: UUID!): Patient
     
     # Multiple patients queries
@@ -294,7 +294,7 @@ export const patientTypeDefs = gql`
       filters: PatientFilters
       limit: Int = 20
       offset: Int = 0
-      sortBy: String = "createdAt"
+      sortBy: String = "created_at"
       sortOrder: String = "DESC"
     ): PatientConnection!
     
@@ -307,14 +307,14 @@ export const patientTypeDefs = gql`
     ): PatientConnection!
     
     # Patient medical summary
-    patientMedicalSummary(patientId: PatientID!): PatientMedicalSummary!
+    patientMedicalSummary(patient_id: PatientID!): PatientMedicalSummary!
 
     # Patient statistics
-    patientStats(patientId: PatientID!): PatientStats!
+    patientStats(patient_id: PatientID!): PatientStats!
 
     # Patient medical records (specific to patient context)
     patientMedicalRecords(
-      patientId: PatientID!
+      patient_id: PatientID!
       limit: Int = 20
       offset: Int = 0
       dateFrom: Date
@@ -323,14 +323,14 @@ export const patientTypeDefs = gql`
 
     # Patient appointments with doctor
     patientDoctorHistory(
-      patientId: PatientID!
-      doctorId: DoctorID!
+      patient_id: PatientID!
+      doctor_id: DoctorID!
       limit: Int = 10
     ): [Appointment!]!
     
     # Patients by doctor
     doctorPatients(
-      doctorId: DoctorID!
+      doctor_id: DoctorID!
       limit: Int = 20
       offset: Int = 0
     ): PatientConnection!
@@ -381,14 +381,14 @@ export const patientTypeDefs = gql`
   # Subscriptions
   extend type Subscription {
     # Patient status changes
-    patientStatusChanged(patientId: PatientID): Patient!
-    patientUpdated(patientId: PatientID): Patient!
+    patientStatusChanged(patient_id: PatientID): Patient!
+    patientUpdated(patient_id: PatientID): Patient!
 
     # New medical records
-    patientMedicalRecordAdded(patientId: PatientID!): MedicalRecord!
+    patientMedicalRecordAdded(patient_id: PatientID!): MedicalRecord!
 
     # New prescriptions
-    patientPrescriptionAdded(patientId: PatientID!): Prescription!
+    patientPrescriptionAdded(patient_id: PatientID!): Prescription!
   }
 `;
 

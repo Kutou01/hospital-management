@@ -1,11 +1,11 @@
 "use client";
 
 import { PatientLayout } from "@/components/layout/UniversalLayout";
+import { AppointmentBookingModal } from "@/components/patient/AppointmentBookingModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { AppointmentBookingModal } from "@/components/patient/AppointmentBookingModal";
 import { appointmentsApi, patientsApi } from "@/lib/api";
 import { useEnhancedAuth } from "@/lib/auth/auth-wrapper";
 import {
@@ -319,9 +319,13 @@ export default function PatientAppointments() {
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4 text-gray-500" />
                       <span className="text-sm">
-                        {appointment.start_time && appointment.end_time
-                          ? `${appointment.start_time} - ${appointment.end_time}`
-                          : appointment.appointment_time || "Chưa xác định"}
+                        {appointment.appointment_time
+                          ? `${appointment.appointment_time}${
+                              appointment.duration_minutes
+                                ? ` (${appointment.duration_minutes} phút)`
+                                : ""
+                            }`
+                          : "Chưa xác định"}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">

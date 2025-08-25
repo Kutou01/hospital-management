@@ -6,10 +6,10 @@ const router = express.Router();
 // Get doctor's settings
 router.get('/:doctorId/settings', authenticateToken, async (req, res) => {
   try {
-    const { doctorId } = req.params;
+    const { doctor_id } = req.params;
     
     // Verify doctor exists and user has permission
-    if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctorId)) {
+    if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctor_id)) {
       return res.status(403).json({
         success: false,
         error: { message: 'Không có quyền truy cập thông tin này' }
@@ -19,7 +19,7 @@ router.get('/:doctorId/settings', authenticateToken, async (req, res) => {
     const { data: settings, error } = await supabase
       .from('doctor_settings')
       .select('*')
-      .eq('doctor_id', doctorId)
+      .eq('doctor_id', doctor_id)
       .single();
 
     if (error && error.code !== 'PGRST116') {
@@ -35,7 +35,7 @@ router.get('/:doctorId/settings', authenticateToken, async (req, res) => {
       const { data: defaultSettings, error: createError } = await supabase
         .from('doctor_settings')
         .insert({
-          doctor_id: doctorId,
+          doctor_id: doctor_id,
           notification_email: true,
           notification_sms: true,
           notification_appointment_reminder: true,
@@ -81,7 +81,7 @@ router.get('/:doctorId/settings', authenticateToken, async (req, res) => {
 // Update doctor's settings
 router.put('/:doctorId/settings', authenticateToken, requireRole(['doctor', 'admin']), async (req, res) => {
   try {
-    const { doctorId } = req.params;
+    const { doctor_id } = req.params;
     const {
       notification_email,
       notification_sms,
@@ -96,7 +96,7 @@ router.put('/:doctorId/settings', authenticateToken, requireRole(['doctor', 'adm
     } = req.body;
 
     // Verify doctor exists and user has permission
-    if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctorId)) {
+    if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctor_id)) {
       return res.status(403).json({
         success: false,
         error: { message: 'Không có quyền cập nhật thông tin này' }
@@ -119,7 +119,7 @@ router.put('/:doctorId/settings', authenticateToken, requireRole(['doctor', 'adm
     const { data: settings, error } = await supabase
       .from('doctor_settings')
       .update(updateData)
-      .eq('doctor_id', doctorId)
+      .eq('doctor_id', doctor_id)
       .select()
       .single();
 
@@ -149,10 +149,10 @@ router.put('/:doctorId/settings', authenticateToken, requireRole(['doctor', 'adm
 // Get doctor's emergency contacts
 router.get('/:doctorId/emergency-contacts', authenticateToken, async (req, res) => {
   try {
-    const { doctorId } = req.params;
+    const { doctor_id } = req.params;
     
     // Verify doctor exists and user has permission
-    if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctorId)) {
+    if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctor_id)) {
       return res.status(403).json({
         success: false,
         error: { message: 'Không có quyền truy cập thông tin này' }
@@ -162,7 +162,7 @@ router.get('/:doctorId/emergency-contacts', authenticateToken, async (req, res) 
     const { data: contacts, error } = await supabase
       .from('doctor_emergency_contacts')
       .select('*')
-      .eq('doctor_id', doctorId)
+      .eq('doctor_id', doctor_id)
       .order('is_primary', { ascending: false });
 
     if (error) {
@@ -190,11 +190,11 @@ router.get('/:doctorId/emergency-contacts', authenticateToken, async (req, res) 
 // Add emergency contact
 router.post('/:doctorId/emergency-contacts', authenticateToken, requireRole(['doctor', 'admin']), async (req, res) => {
   try {
-    const { doctorId } = req.params;
+    const { doctor_id } = req.params;
     const { contact_name, relationship, phone_number, email, address, is_primary } = req.body;
 
     // Verify doctor exists and user has permission
-    if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctorId)) {
+    if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctor_id)) {
       return res.status(403).json({
         success: false,
         error: { message: 'Không có quyền thêm thông tin này' }
@@ -214,13 +214,13 @@ router.post('/:doctorId/emergency-contacts', authenticateToken, requireRole(['do
       await supabase
         .from('doctor_emergency_contacts')
         .update({ is_primary: false })
-        .eq('doctor_id', doctorId);
+        .eq('doctor_id', doctor_id);
     }
 
     const { data: contact, error } = await supabase
       .from('doctor_emergency_contacts')
       .insert({
-        doctor_id: doctorId,
+        doctor_id: doctor_id,
         contact_name,
         relationship,
         phone_number,
@@ -257,11 +257,11 @@ router.post('/:doctorId/emergency-contacts', authenticateToken, requireRole(['do
 // Update emergency contact
 router.put('/:doctorId/emergency-contacts/:contactId', authenticateToken, requireRole(['doctor', 'admin']), async (req, res) => {
   try {
-    const { doctorId, contactId } = req.params;
+    const { doctor_id, contactId } = req.params;
     const { contact_name, relationship, phone_number, email, address, is_primary } = req.body;
 
     // Verify doctor exists and user has permission
-    if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctorId)) {
+    if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctor_id)) {
       return res.status(403).json({
         success: false,
         error: { message: 'Không có quyền cập nhật thông tin này' }
@@ -273,7 +273,7 @@ router.put('/:doctorId/emergency-contacts/:contactId', authenticateToken, requir
       await supabase
         .from('doctor_emergency_contacts')
         .update({ is_primary: false })
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctor_id)
         .neq('id', contactId);
     }
 
@@ -288,7 +288,7 @@ router.put('/:doctorId/emergency-contacts/:contactId', authenticateToken, requir
         is_primary: is_primary || false
       })
       .eq('id', contactId)
-      .eq('doctor_id', doctorId)
+      .eq('doctor_id', doctor_id)
       .select()
       .single();
 
@@ -325,10 +325,10 @@ router.put('/:doctorId/emergency-contacts/:contactId', authenticateToken, requir
 // Delete emergency contact
 router.delete('/:doctorId/emergency-contacts/:contactId', authenticateToken, requireRole(['doctor', 'admin']), async (req, res) => {
   try {
-    const { doctorId, contactId } = req.params;
+    const { doctor_id, contactId } = req.params;
 
     // Verify doctor exists and user has permission
-    if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctorId)) {
+    if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctor_id)) {
       return res.status(403).json({
         success: false,
         error: { message: 'Không có quyền xóa thông tin này' }
@@ -339,7 +339,7 @@ router.delete('/:doctorId/emergency-contacts/:contactId', authenticateToken, req
       .from('doctor_emergency_contacts')
       .delete()
       .eq('id', contactId)
-      .eq('doctor_id', doctorId);
+      .eq('doctor_id', doctor_id);
 
     if (error) {
       console.error('❌ [EmergencyContacts] Delete error:', error);

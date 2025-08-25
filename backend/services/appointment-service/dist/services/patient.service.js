@@ -10,9 +10,9 @@ class PatientService {
     constructor() {
         this.baseUrl = process.env.PATIENT_SERVICE_URL || 'http://patient-service:3003';
     }
-    async getPatientById(patientId) {
+    async getPatientById(patient_id) {
         try {
-            const response = await axios_1.default.get(`${this.baseUrl}/api/patients/${patientId}`, {
+            const response = await axios_1.default.get(`${patient_id}`, {
                 timeout: 5000,
                 headers: {
                     'Content-Type': 'application/json'
@@ -34,44 +34,44 @@ class PatientService {
         catch (error) {
             logger_1.default.error('Error fetching patient information:', {
                 error: error instanceof Error ? error.message : 'Unknown error',
-                patientId
+                patient_id
             });
             return null;
         }
     }
-    async verifyPatientExists(patientId) {
+    async verifyPatientExists(patient_id) {
         try {
-            const patient = await this.getPatientById(patientId);
+            const patient = await this.getPatientById(patient_id);
             return patient !== null;
         }
         catch (error) {
             logger_1.default.error('Error verifying patient existence:', {
                 error: error instanceof Error ? error.message : 'Unknown error',
-                patientId
+                patient_id
             });
             return false;
         }
     }
-    async getPatientAppointmentCount(patientId) {
+    async getPatientAppointmentCount(patient_id) {
         try {
             return 0;
         }
         catch (error) {
             logger_1.default.error('Error fetching patient appointment count:', {
                 error: error instanceof Error ? error.message : 'Unknown error',
-                patientId
+                patient_id
             });
             return 0;
         }
     }
-    async hasActiveAppointments(patientId) {
+    async hasActiveAppointments(patient_id) {
         try {
             return false;
         }
         catch (error) {
             logger_1.default.error('Error checking patient active appointments:', {
                 error: error instanceof Error ? error.message : 'Unknown error',
-                patientId
+                patient_id
             });
             return false;
         }

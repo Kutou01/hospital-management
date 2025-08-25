@@ -1,44 +1,46 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Doctor, CreateDoctorRequest, UpdateDoctorRequest, DoctorSearchQuery } from '@hospital/shared/dist/types/doctor.types';
-import { supabaseAdmin } from '../config/database.config';
+import { dbPool } from '../config/database.config';
 import logger from '@hospital/shared/dist/utils/logger';
 
 export class DoctorRepository {
-  private supabase: SupabaseClient;
+  // Using connection pooling for all database operations
+  // Legacy supabase client removed - all operations now use dbPool
+}
 
-  constructor() {
-    this.supabase = supabaseAdmin;
-  }
-
-  async findById(doctorId: string): Promise<Doctor | null> {
+  async findById(doctor_id: string): Promise<Doctor | null> {
     try {
-      // JOIN với profiles và departments để lấy full_name và department name
-      const { data, error } = await this.supabase
-        .from('doctors')
-        .select(`
-          *,
-          profiles!inner(
-            full_name,
-            phone_number,
-            email
-          ),
-          departments!inner(
-            name,
-            description,
-            location
-          )
-        `)
-        .eq('doctor_id', doctorId)
-        .single();
+      // Using connection pooling for healthcare-specific query
+      const data = await dbPool.executeFHIRValidation(async (client) => {
+        const { data, error } = await client
+          .from('doctors')
+          .select(`
+            *,
+            profiles!inner(
+              full_name,
+              phone_number,
+              email
+            ),
+            departments!inner(
+              name,
+              description,
+              location
+            )
+          `)
+          .eq('doctor_id', doctor_id)
+          .single();
 
-      if (error) {
-        if (error.code === 'PGRST116') {
-          // No rows returned
-          return null;
+        if (error) {
+          if (error.code === 'PGRST116') {
+            // No rows returned
+            return null;
+          }
+          logger.error('Database query error in findById:', error);
+          throw error;
         }
-        logger.error('Database query error in findById:', error);
-        return null;
-      }
+
+        return data;
+      });
 
       if (!data) {
         return null;
@@ -61,25 +63,33 @@ export class DoctorRepository {
 
       return this.mapSupabaseDoctorToDoctor(doctor);
     } catch (error) {
-      logger.error('Error finding doctor by ID', { error, doctorId });
+      logger.error('Error finding doctor by ID', { error, doctor_id });
       throw error;
     }
   }
 
   async findByProfileId(profileId: string): Promise<Doctor | null> {
     try {
-      // Use RPC function or raw SQL to get joined data
-      const { data, error } = await this.supabase
-        .rpc('get_doctor_with_profile_by_profile_id', {
-          profile_id_param: profileId
-        });
+      // Using connection pooling for database function call
+      const data = await dbPool.executeQuery(async (client) => {
+        const { data, error } = await client
+          .rpc('get_doctor_with_profile_by_profile_id', {
+            profile_id_param: profileId
+          });
 
-      if (error) {
-        logger.error('Database RPC error in findByProfileId:', error);
+        if (error) {
+          logger.error('Database RPC error in findByProfileId:', error);
+          throw error;
+        }
 
-        // Fallback: Use separate queries
-        const { data: doctorData, error: doctorError } = await this.supabase
-          .from('doctors')
+        return data;
+      });
+
+      if (!data || data.length === 0) {
+        // Fallback: Use separate queries with connection pooling
+        return await dbPool.executeQuery(async (client) => {
+          const { data: doctorData, error: doctorError } = await client
+            .from('doctors')
           .select('*')
           .eq('profile_id', profileId)
           .eq('is_active', true)
@@ -483,7 +493,7 @@ export class DoctorRepository {
       }
 
       logger.info('Doctor created successfully via database function:', {
-        doctorId: data[0].doctor_id
+        doctor_id: data[0].doctor_id
       });
 
       return this.mapSupabaseDoctorToDoctor(data[0]);
@@ -493,11 +503,11 @@ export class DoctorRepository {
     }
   }
 
-  async update(doctorId: string, doctorData: UpdateDoctorRequest): Promise<Doctor | null> {
+  async update(doctor_id: string, doctorData: UpdateDoctorRequest): Promise<Doctor | null> {
     try {
       const { data, error } = await this.supabase
         .rpc('update_doctor', {
-          input_doctor_id: doctorId,
+          input_doctor_id: doctor_id,
           doctor_data: doctorData
         });
 
@@ -514,31 +524,31 @@ export class DoctorRepository {
       }
 
       logger.info('Doctor updated successfully via database function:', {
-        doctorId,
+        doctor_id,
         updatedFields: Object.keys(doctorData)
       });
 
       return this.mapSupabaseDoctorToDoctor(data[0]);
     } catch (error) {
-      logger.error('Error updating doctor', { error, doctorId, doctorData });
+      logger.error('Error updating doctor', { error, doctor_id, doctorData });
       throw error;
     }
   }
 
-  async delete(doctorId: string): Promise<boolean> {
+  async delete(doctor_id: string): Promise<boolean> {
     try {
       const { data, error } = await this.supabase
-        .rpc('delete_doctor', { input_doctor_id: doctorId });
+        .rpc('delete_doctor', { input_doctor_id: doctor_id });
 
       if (error) {
         logger.error('Database function error in delete:', error);
         throw error;
       }
 
-      logger.info('Doctor deleted successfully via database function:', { doctorId });
+      logger.info('Doctor deleted successfully via database function:', { doctor_id });
       return data === true;
     } catch (error) {
-      logger.error('Error deleting doctor', { error, doctorId });
+      logger.error('Error deleting doctor', { error, doctor_id });
       throw error;
     }
   }
@@ -560,7 +570,7 @@ export class DoctorRepository {
     }
   }
 
-  async getDashboardStats(doctorId: string): Promise<any> {
+  async getDashboardStats(doctor_id: string): Promise<any> {
     try {
       const today = new Date().toISOString().split('T')[0];
 
@@ -568,7 +578,7 @@ export class DoctorRepository {
       const { data: appointmentStats, error: appointmentError } = await this.supabase
         .from('appointments')
         .select('status')
-        .eq('doctor_id', doctorId);
+        .eq('doctor_id', doctor_id);
 
       if (appointmentError) {
         logger.error('Error fetching appointment stats:', appointmentError);
@@ -579,7 +589,7 @@ export class DoctorRepository {
       const { data: todayAppointments, error: todayError } = await this.supabase
         .from('appointments')
         .select('appointment_id')
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctor_id)
         .eq('appointment_date', today);
 
       if (todayError) {
@@ -591,7 +601,7 @@ export class DoctorRepository {
       const { data: patientData, error: patientError } = await this.supabase
         .from('appointments')
         .select('patient_id')
-        .eq('doctor_id', doctorId);
+        .eq('doctor_id', doctor_id);
 
       if (patientError) {
         logger.error('Error fetching patient data:', patientError);
@@ -602,7 +612,7 @@ export class DoctorRepository {
       const { data: reviewData, error: reviewError } = await this.supabase
         .from('doctor_reviews')
         .select('rating')
-        .eq('doctor_id', doctorId);
+        .eq('doctor_id', doctor_id);
 
       if (reviewError) {
         logger.error('Error fetching review data:', reviewError);
@@ -627,12 +637,12 @@ export class DoctorRepository {
         averageRating: parseFloat(averageRating.toFixed(1))
       };
     } catch (error) {
-      logger.error('Error getting dashboard stats', { error, doctorId });
+      logger.error('Error getting dashboard stats', { error, doctor_id });
       throw error;
     }
   }
 
-  async getRecentAppointments(doctorId: string, limit: number = 5): Promise<any[]> {
+  async getRecentAppointments(doctor_id: string, limit: number = 5): Promise<any[]> {
     try {
       const { data, error } = await this.supabase
         .from('appointments')
@@ -640,8 +650,8 @@ export class DoctorRepository {
           appointment_id,
           patient_id,
           appointment_date,
-          start_time,
-          end_time,
+          appointment_time,
+          duration_minutes,
           status,
           appointment_type,
           reason,
@@ -653,9 +663,9 @@ export class DoctorRepository {
             )
           )
         `)
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctor_id)
         .order('appointment_date', { ascending: false })
-        .order('start_time', { ascending: false })
+        .order('appointment_time', { ascending: false })
         .limit(limit);
 
       if (error) {
@@ -668,8 +678,8 @@ export class DoctorRepository {
         patient_name: (appointment.patients as any)?.profiles?.full_name || 'Unknown Patient',
         patient_phone: (appointment.patients as any)?.profiles?.phone_number,
         appointment_date: appointment.appointment_date,
-        start_time: appointment.start_time,
-        end_time: appointment.end_time,
+        appointment_time: appointment.appointment_time,
+        duration_minutes: appointment.duration_minutes,
         status: appointment.status,
         appointment_type: appointment.appointment_type,
         reason: appointment.reason,
@@ -677,12 +687,12 @@ export class DoctorRepository {
       })) || [];
 
     } catch (error) {
-      logger.error('Error getting recent appointments', { error, doctorId });
+      logger.error('Error getting recent appointments', { error, doctor_id });
       throw error;
     }
   }
 
-  async getWeeklyStats(doctorId: string): Promise<any> {
+  async getWeeklyStats(doctor_id: string): Promise<any> {
     try {
       const today = new Date();
       const weekStart = new Date(today.setDate(today.getDate() - today.getDay()));
@@ -691,7 +701,7 @@ export class DoctorRepository {
       const { data, error } = await this.supabase
         .from('appointments')
         .select('status')
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctor_id)
         .gte('appointment_date', weekStart.toISOString().split('T')[0])
         .lte('appointment_date', weekEnd.toISOString().split('T')[0]);
 
@@ -706,12 +716,12 @@ export class DoctorRepository {
       return { appointments, revenue };
 
     } catch (error) {
-      logger.error('Error getting weekly stats', { error, doctorId });
+      logger.error('Error getting weekly stats', { error, doctor_id });
       throw error;
     }
   }
 
-  async getMonthlyStats(doctorId: string): Promise<any> {
+  async getMonthlyStats(doctor_id: string): Promise<any> {
     try {
       const today = new Date();
       const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -720,7 +730,7 @@ export class DoctorRepository {
       const { data, error } = await this.supabase
         .from('appointments')
         .select('status')
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctor_id)
         .gte('appointment_date', monthStart.toISOString().split('T')[0])
         .lte('appointment_date', monthEnd.toISOString().split('T')[0]);
 
@@ -741,7 +751,7 @@ export class DoctorRepository {
       };
 
     } catch (error) {
-      logger.error('Error getting monthly stats', { error, doctorId });
+      logger.error('Error getting monthly stats', { error, doctor_id });
       throw error;
     }
   }

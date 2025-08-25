@@ -14,29 +14,29 @@ export class ScheduleRepository {
     this.supabase = getSupabase();
   }
 
-  async findByDoctorId(doctorId: string): Promise<DoctorSchedule[]> {
+  async findByDoctorId(doctor_id: string): Promise<DoctorSchedule[]> {
     try {
       const { data, error } = await this.supabase
         .from('doctor_schedules')
         .select('*')
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctor_id)
         .order('day_of_week');
 
       if (error) throw error;
 
       return data?.map(this.mapSupabaseScheduleToSchedule) || [];
     } catch (error) {
-      logger.error('Error finding schedules by doctor ID', { error, doctorId });
+      logger.error('Error finding schedules by doctor ID', { error, doctor_id });
       throw error;
     }
   }
 
-  async findByDoctorAndDay(doctorId: string, dayOfWeek: number): Promise<DoctorSchedule | null> {
+  async findByDoctorAndDay(doctor_id: string, dayOfWeek: number): Promise<DoctorSchedule | null> {
     try {
       const { data, error } = await this.supabase
         .from('doctor_schedules')
         .select('*')
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctor_id)
         .eq('day_of_week', dayOfWeek)
         .single();
 
@@ -47,7 +47,7 @@ export class ScheduleRepository {
 
       return this.mapSupabaseScheduleToSchedule(data);
     } catch (error) {
-      logger.error('Error finding schedule by doctor and day', { error, doctorId, dayOfWeek });
+      logger.error('Error finding schedule by doctor and day', { error, doctor_id, dayOfWeek });
       throw error;
     }
   }
@@ -116,10 +116,10 @@ export class ScheduleRepository {
     }
   }
 
-  async upsertSchedule(doctorId: string, dayOfWeek: number, scheduleData: UpdateScheduleRequest): Promise<DoctorSchedule> {
+  async upsertSchedule(doctor_id: string, dayOfWeek: number, scheduleData: UpdateScheduleRequest): Promise<DoctorSchedule> {
     try {
       // Check if schedule exists
-      const existingSchedule = await this.findByDoctorAndDay(doctorId, dayOfWeek);
+      const existingSchedule = await this.findByDoctorAndDay(doctor_id, dayOfWeek);
 
       if (existingSchedule) {
         // Update existing schedule
@@ -129,7 +129,7 @@ export class ScheduleRepository {
       } else {
         // Create new schedule
         const createData: CreateScheduleRequest = {
-          doctor_id: doctorId,
+          doctor_id: doctor_id,
           day_of_week: dayOfWeek,
           start_time: scheduleData.start_time || '09:00',
           end_time: scheduleData.end_time || '17:00',
@@ -142,18 +142,18 @@ export class ScheduleRepository {
         return await this.create(createData);
       }
     } catch (error) {
-      logger.error('Error upserting schedule', { error, doctorId, dayOfWeek, scheduleData });
+      logger.error('Error upserting schedule', { error, doctor_id, dayOfWeek, scheduleData });
       throw error;
     }
   }
 
-  async getAvailability(doctorId: string, date: Date): Promise<DoctorSchedule | null> {
+  async getAvailability(doctor_id: string, date: Date): Promise<DoctorSchedule | null> {
     try {
       const dayOfWeek = date.getDay(); // 0=Sunday, 6=Saturday
 
       const { data, error } = await this.supabase
         .rpc('get_doctor_availability', {
-          doctor_id_param: doctorId,
+          doctor_id_param: doctor_id,
           check_date: date.toISOString().split('T')[0]
         });
 
@@ -163,8 +163,8 @@ export class ScheduleRepository {
 
       const availability = data[0];
       return {
-        schedule_id: `temp_${doctorId}_${dayOfWeek}`,
-        doctor_id: doctorId,
+        schedule_id: `temp_${doctor_id}`,
+        doctor_id: doctor_id,
         day_of_week: dayOfWeek,
         start_time: availability.start_time,
         end_time: availability.end_time,
@@ -177,14 +177,14 @@ export class ScheduleRepository {
         updated_at: new Date()
       };
     } catch (error) {
-      logger.error('Error getting doctor availability', { error, doctorId, date });
+      logger.error('Error getting doctor availability', { error, doctor_id, date });
       throw error;
     }
   }
 
-  async getWeeklySchedule(doctorId: string): Promise<DoctorSchedule[]> {
+  async getWeeklySchedule(doctor_id: string): Promise<DoctorSchedule[]> {
     try {
-      const schedules = await this.findByDoctorId(doctorId);
+      const schedules = await this.findByDoctorId(doctor_id);
       
       // Ensure we have all 7 days (0-6)
       const weeklySchedule: DoctorSchedule[] = [];
@@ -197,8 +197,8 @@ export class ScheduleRepository {
         } else {
           // Create default unavailable schedule for missing days
           weeklySchedule.push({
-            schedule_id: `default_${doctorId}_${day}`,
-            doctor_id: doctorId,
+            schedule_id: `default_${doctor_id}`,
+            doctor_id: doctor_id,
             day_of_week: day,
             start_time: '09:00',
             end_time: '17:00',
@@ -213,12 +213,12 @@ export class ScheduleRepository {
 
       return weeklySchedule.sort((a, b) => a.day_of_week - b.day_of_week);
     } catch (error) {
-      logger.error('Error getting weekly schedule', { error, doctorId });
+      logger.error('Error getting weekly schedule', { error, doctor_id });
       throw error;
     }
   }
 
-  async bulkUpdateSchedule(doctorId: string, schedules: UpdateScheduleRequest[]): Promise<DoctorSchedule[]> {
+  async bulkUpdateSchedule(doctor_id: string, schedules: UpdateScheduleRequest[]): Promise<DoctorSchedule[]> {
     try {
       const updatedSchedules: DoctorSchedule[] = [];
 
@@ -226,20 +226,20 @@ export class ScheduleRepository {
         const scheduleData = schedules[i];
         const dayOfWeek = scheduleData.day_of_week ?? i;
         
-        const updated = await this.upsertSchedule(doctorId, dayOfWeek, scheduleData);
+        const updated = await this.upsertSchedule(doctor_id, dayOfWeek, scheduleData);
         updatedSchedules.push(updated);
       }
 
       return updatedSchedules;
     } catch (error) {
-      logger.error('Error bulk updating schedule', { error, doctorId, schedules });
+      logger.error('Error bulk updating schedule', { error, doctor_id, schedules });
       throw error;
     }
   }
 
-  async getAvailableTimeSlots(doctorId: string, date: Date): Promise<string[]> {
+  async getAvailableTimeSlots(doctor_id: string, date: Date): Promise<string[]> {
     try {
-      const availability = await this.getAvailability(doctorId, date);
+      const availability = await this.getAvailability(doctor_id, date);
       
       if (!availability || !availability.is_available) {
         return [];
@@ -269,7 +269,7 @@ export class ScheduleRepository {
 
       return slots;
     } catch (error) {
-      logger.error('Error getting available time slots', { error, doctorId, date });
+      logger.error('Error getting available time slots', { error, doctor_id, date });
       throw error;
     }
   }
@@ -302,14 +302,14 @@ export class ScheduleRepository {
     };
   }
 
-  async getTodaySchedule(doctorId: string): Promise<any[]> {
+  async getTodaySchedule(doctor_id: string): Promise<any[]> {
     try {
       const today = new Date();
       const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
       const todayDate = today.toISOString().split('T')[0];
 
       // Get doctor's schedule for today
-      const schedule = await this.findByDoctorAndDay(doctorId, dayOfWeek);
+      const schedule = await this.findByDoctorAndDay(doctor_id, dayOfWeek);
 
       if (!schedule || !schedule.is_available) {
         return []; // Doctor not available today
@@ -333,7 +333,7 @@ export class ScheduleRepository {
             )
           )
         `)
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctor_id)
         .eq('appointment_date', todayDate);
 
       if (appointmentError) {
@@ -370,7 +370,7 @@ export class ScheduleRepository {
       return scheduleWithAppointments;
 
     } catch (error) {
-      logger.error('Error getting today schedule', { error, doctorId });
+      logger.error('Error getting today schedule', { error, doctor_id });
       throw error;
     }
   }

@@ -9,19 +9,19 @@ const TIME_PATTERN = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
 
 // Common validations
 export const validateAppointmentId: ValidationChain[] = [
-  param('appointmentId')
+  param('appointment_id')
     .matches(APPOINTMENT_ID_PATTERN)
     .withMessage('Appointment ID must be in department-based format (e.g., CARD-APT-YYYYMM-XXX)')
 ];
 
 export const validatePatientId: ValidationChain[] = [
-  param('patientId')
+  param('patient_id')
     .matches(PATIENT_ID_PATTERN)
     .withMessage('Patient ID must be in format PAT-YYYYMM-XXX')
 ];
 
 export const validateDoctorId: ValidationChain[] = [
-  param('doctorId')
+  param('doctor_id')
     .matches(DOCTOR_ID_PATTERN)
     .withMessage('Doctor ID must be in department-based format (e.g., CARD-DOC-YYYYMM-XXX)')
 ];

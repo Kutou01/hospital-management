@@ -32,7 +32,7 @@ export const DOCTOR_FULL_FRAGMENT = gql`
       dayOfWeek
       startTime
       endTime
-      isActive
+      is_active
     }
     experiences {
       id
@@ -154,13 +154,13 @@ export const GET_DOCTOR_DASHBOARD = gql`
         dayOfWeek
         startTime
         endTime
-        isActive
+        is_active
       }
       recentReviews {
         id
         rating
         comment
-        createdAt
+        created_at
         patient {
           id
           patientId
@@ -245,7 +245,7 @@ export const GET_DOCTOR_REVIEWS = gql`
             id
             rating
             comment
-            createdAt
+            created_at
             patient {
               id
               patientId

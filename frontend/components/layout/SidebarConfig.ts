@@ -1,32 +1,34 @@
-import React from 'react';
 import {
+  Activity,
   BarChart3,
-  Calendar,
-  UserCog,
-  User,
-  Building2,
   BedDouble,
+  Briefcase,
+  Building2,
+  Calendar,
+  ClipboardList,
   CreditCard,
-  Settings,
+  FileBarChart,
   FileText,
+  GitBranch,
+  Heart,
+  LayoutDashboard,
+  MessageCircle,
+  Monitor,
+  Phone,
   Pill,
   Receipt,
-  LayoutDashboard,
-  Layout,
-  Stethoscope,
-  Users,
-  Clock,
-  Activity,
-  Heart,
-  Briefcase,
   Server,
-  ClipboardList,
-  Phone,
-  MessageCircle,
-  FileBarChart,
+  Settings,
   Shield,
+  Stethoscope,
+  User,
+  UserCog,
+  Users,
+  Workflow,
+  Zap,
   type LucideIcon,
-} from 'lucide-react';
+} from "lucide-react";
+import React from "react";
 
 export interface MenuItem {
   icon: LucideIcon;
@@ -34,7 +36,7 @@ export interface MenuItem {
   href: string;
   page: string;
   badge?: string;
-  badgeVariant?: 'default' | 'secondary' | 'destructive' | 'outline';
+  badgeVariant?: "default" | "secondary" | "destructive" | "outline";
 }
 
 export interface MenuSection {
@@ -58,140 +60,184 @@ export interface SidebarConfig {
 // Admin Sidebar Configuration
 export const adminSidebarConfig: SidebarConfig = {
   branding: {
-    logo: React.createElement('div', {
-      className: 'w-8 h-8 rounded-full bg-red-600 flex items-center justify-center'
-    }, React.createElement('span', {
-      className: 'text-white font-bold'
-    }, 'A')),
-    title: 'Admin Portal',
-    subtitle: 'Hospital Management',
-    bgColor: 'bg-red-50',
-    iconColor: 'text-red-600',
+    logo: React.createElement(
+      "div",
+      {
+        className:
+          "w-8 h-8 rounded-full bg-red-600 flex items-center justify-center",
+      },
+      React.createElement(
+        "span",
+        {
+          className: "text-white font-bold",
+        },
+        "A"
+      )
+    ),
+    title: "Admin Portal",
+    subtitle: "Hospital Management",
+    bgColor: "bg-red-50",
+    iconColor: "text-red-600",
   },
   sections: [
     {
       items: [
         {
           icon: BarChart3,
-          label: 'Dashboard',
-          href: '/admin/dashboard',
-          page: 'dashboard',
+          label: "Dashboard",
+          href: "/admin/dashboard",
+          page: "dashboard",
         },
       ],
     },
     {
-      title: 'Core Management',
+      title: "Core Management",
       items: [
         {
           icon: Users,
-          label: 'Users',
-          href: '/admin/users',
-          page: 'users',
+          label: "Users",
+          href: "/admin/users",
+          page: "users",
         },
         {
           icon: Briefcase,
-          label: 'Staff',
-          href: '/admin/staff',
-          page: 'staff',
+          label: "Staff",
+          href: "/admin/staff",
+          page: "staff",
         },
         {
           icon: Calendar,
-          label: 'Appointments',
-          href: '/admin/appointments',
-          page: 'appointments',
+          label: "Appointments",
+          href: "/admin/appointments",
+          page: "appointments",
         },
         {
           icon: UserCog,
-          label: 'Doctors',
-          href: '/admin/doctors',
-          page: 'doctors',
+          label: "Doctors",
+          href: "/admin/doctors",
+          page: "doctors",
         },
         {
           icon: User,
-          label: 'Patients',
-          href: '/admin/patients',
-          page: 'patients',
+          label: "Patients",
+          href: "/admin/patients",
+          page: "patients",
         },
         {
           icon: Building2,
-          label: 'Departments',
-          href: '/admin/departments',
-          page: 'departments',
+          label: "Departments",
+          href: "/admin/departments",
+          page: "departments",
         },
         {
           icon: BedDouble,
-          label: 'Rooms',
-          href: '/admin/rooms',
-          page: 'rooms',
+          label: "Rooms",
+          href: "/admin/rooms",
+          page: "rooms",
         },
       ],
     },
     {
-      title: 'Financial',
+      title: "Financial",
       items: [
         {
           icon: CreditCard,
-          label: 'Billing',
-          href: '/admin/billing',
-          page: 'billing',
+          label: "Billing",
+          href: "/admin/billing",
+          page: "billing",
         },
         {
           icon: Receipt,
-          label: 'Payments',
-          href: '/admin/payments',
-          page: 'payments',
+          label: "Payments",
+          href: "/admin/payments",
+          page: "payments",
         },
       ],
     },
     {
-      title: 'Microservices',
+      title: "Microservices",
       items: [
         {
           icon: FileText,
-          label: 'Medical Records',
-          href: '/admin/medical-records',
-          page: 'medical-records',
+          label: "Medical Records",
+          href: "/admin/medical-records",
+          page: "medical-records",
         },
         {
           icon: Pill,
-          label: 'Prescriptions',
-          href: '/admin/prescriptions',
-          page: 'prescriptions',
+          label: "Prescriptions",
+          href: "/admin/prescriptions",
+          page: "prescriptions",
         },
         {
           icon: FileBarChart,
-          label: 'Analytics Dashboard',
-          href: '/admin/microservices-dashboard',
-          page: 'microservices-dashboard',
+          label: "Analytics Dashboard",
+          href: "/admin/microservices-dashboard",
+          page: "microservices-dashboard",
         },
       ],
     },
     {
-      title: 'System',
+      title: "Enhanced Management",
+      items: [
+        {
+          icon: Workflow,
+          label: "Workflow Orchestration",
+          href: "/admin/dashboard?tab=workflows",
+          page: "workflows",
+          badge: "New",
+          badgeVariant: "secondary",
+        },
+        {
+          icon: GitBranch,
+          label: "Saga Management",
+          href: "/admin/dashboard?tab=sagas",
+          page: "sagas",
+          badge: "New",
+          badgeVariant: "secondary",
+        },
+        {
+          icon: Monitor,
+          label: "Real-time Monitoring",
+          href: "/admin/dashboard?tab=monitoring",
+          page: "monitoring",
+          badge: "Live",
+          badgeVariant: "destructive",
+        },
+        {
+          icon: Zap,
+          label: "Advanced Analytics",
+          href: "/admin/dashboard?tab=advanced-analytics",
+          page: "advanced-analytics",
+        },
+      ],
+    },
+    {
+      title: "System",
       items: [
         {
           icon: BarChart3,
-          label: 'Analytics',
-          href: '/admin/analytics',
-          page: 'analytics',
+          label: "Analytics",
+          href: "/admin/analytics",
+          page: "analytics",
         },
         {
           icon: FileText,
-          label: 'System Logs',
-          href: '/admin/system-logs',
-          page: 'system-logs',
+          label: "System Logs",
+          href: "/admin/system-logs",
+          page: "system-logs",
         },
         {
           icon: Settings,
-          label: 'Settings',
-          href: '/admin/settings',
-          page: 'settings',
+          label: "Settings",
+          href: "/admin/settings",
+          page: "settings",
         },
         {
           icon: Server,
-          label: 'System Status',
-          href: '/admin/system-status',
-          page: 'system-status',
+          label: "System Status",
+          href: "/admin/system-status",
+          page: "system-status",
         },
       ],
     },
@@ -201,81 +247,85 @@ export const adminSidebarConfig: SidebarConfig = {
 // Doctor Sidebar Configuration - Updated for new structure
 export const doctorSidebarConfig: SidebarConfig = {
   branding: {
-    logo: React.createElement('div', {
-      className: 'p-2 bg-blue-100 rounded-lg'
-    }, React.createElement(Stethoscope, {
-      className: 'h-6 w-6 text-blue-600'
-    })),
-    title: 'Doctor Portal',
-    subtitle: 'Hospital Management',
-    bgColor: 'bg-blue-50',
-    iconColor: 'text-blue-600',
+    logo: React.createElement(
+      "div",
+      {
+        className: "p-2 bg-blue-100 rounded-lg",
+      },
+      React.createElement(Stethoscope, {
+        className: "h-6 w-6 text-blue-600",
+      })
+    ),
+    title: "Doctor Portal",
+    subtitle: "Hospital Management",
+    bgColor: "bg-blue-50",
+    iconColor: "text-blue-600",
   },
   sections: [
     {
       items: [
         {
           icon: LayoutDashboard,
-          label: 'Dashboard',
-          href: '/doctors/dashboard',
-          page: 'dashboard',
+          label: "Dashboard",
+          href: "/doctors/dashboard",
+          page: "dashboard",
         },
       ],
     },
     {
-      title: 'Core Functions',
+      title: "Core Functions",
       items: [
         {
           icon: User,
-          label: 'Hồ sơ cá nhân',
-          href: '/doctors/profile',
-          page: 'profile',
+          label: "Hồ sơ cá nhân",
+          href: "/doctors/profile",
+          page: "profile",
         },
         {
           icon: Users,
-          label: 'Quản lý bệnh nhân',
-          href: '/doctors/patients',
-          page: 'patients',
+          label: "Quản lý bệnh nhân",
+          href: "/doctors/patients",
+          page: "patients",
         },
         {
           icon: Calendar,
-          label: 'Lịch làm việc',
-          href: '/doctors/schedule',
-          page: 'schedule',
+          label: "Lịch làm việc",
+          href: "/doctors/schedule",
+          page: "schedule",
         },
         {
           icon: Pill,
-          label: 'Kê đơn thuốc',
-          href: '/doctors/prescriptions',
-          page: 'prescriptions',
+          label: "Kê đơn thuốc",
+          href: "/doctors/prescriptions",
+          page: "prescriptions",
         },
       ],
     },
     {
-      title: 'Analytics & Management',
+      title: "Analytics & Management",
       items: [
         {
           icon: BarChart3,
-          label: 'Thống kê',
-          href: '/doctors/analytics',
-          page: 'analytics',
+          label: "Thống kê",
+          href: "/doctors/analytics",
+          page: "analytics",
         },
         {
           icon: FileText,
-          label: 'Chứng chỉ',
-          href: '/doctors/certificates',
-          page: 'certificates',
+          label: "Chứng chỉ",
+          href: "/doctors/certificates",
+          page: "certificates",
         },
       ],
     },
     {
-      title: 'System',
+      title: "System",
       items: [
         {
           icon: Settings,
-          label: 'Cài đặt',
-          href: '/doctors/settings',
-          page: 'settings',
+          label: "Cài đặt",
+          href: "/doctors/settings",
+          page: "settings",
         },
       ],
     },
@@ -285,112 +335,116 @@ export const doctorSidebarConfig: SidebarConfig = {
 // Patient Sidebar Configuration
 export const patientSidebarConfig: SidebarConfig = {
   branding: {
-    logo: React.createElement('div', {
-      className: 'p-2 bg-blue-100 rounded-lg'
-    }, React.createElement(Heart, {
-      className: 'h-6 w-6 text-blue-600'
-    })),
-    title: 'Patient Portal',
-    subtitle: 'Hospital Management',
-    bgColor: 'bg-blue-50',
-    iconColor: 'text-blue-600',
+    logo: React.createElement(
+      "div",
+      {
+        className: "p-2 bg-blue-100 rounded-lg",
+      },
+      React.createElement(Heart, {
+        className: "h-6 w-6 text-blue-600",
+      })
+    ),
+    title: "Patient Portal",
+    subtitle: "Hospital Management",
+    bgColor: "bg-blue-50",
+    iconColor: "text-blue-600",
   },
   sections: [
     {
       items: [
         {
           icon: LayoutDashboard,
-          label: 'Dashboard',
-          href: '/patient/dashboard',
-          page: 'dashboard',
+          label: "Dashboard",
+          href: "/patient/dashboard",
+          page: "dashboard",
         },
       ],
     },
     {
-      title: 'My Care',
+      title: "My Care",
       items: [
         {
           icon: Calendar,
-          label: 'Appointments',
-          href: '/patient/appointments',
-          page: 'appointments',
+          label: "Appointments",
+          href: "/patient/appointments",
+          page: "appointments",
         },
         {
           icon: FileText,
-          label: 'Medical Records',
-          href: '/patient/medical-records',
-          page: 'medical-records',
+          label: "Medical Records",
+          href: "/patient/medical-records",
+          page: "medical-records",
         },
         {
           icon: Pill,
-          label: 'Prescriptions',
-          href: '/patient/prescriptions',
-          page: 'prescriptions',
+          label: "Prescriptions",
+          href: "/patient/prescriptions",
+          page: "prescriptions",
         },
         {
           icon: Activity,
-          label: 'Lab Results',
-          href: '/patient/lab-results',
-          page: 'lab-results',
+          label: "Lab Results",
+          href: "/patient/lab-results",
+          page: "lab-results",
         },
       ],
     },
     {
-      title: 'Health Management',
+      title: "Health Management",
       items: [
         {
           icon: Heart,
-          label: 'Health Metrics',
-          href: '/patient/health-metrics',
-          page: 'health-metrics',
+          label: "Health Metrics",
+          href: "/patient/health-metrics",
+          page: "health-metrics",
         },
         {
           icon: ClipboardList,
-          label: 'Health History',
-          href: '/patient/health-history',
-          page: 'health-history',
+          label: "Health History",
+          href: "/patient/health-history",
+          page: "health-history",
         },
       ],
     },
     {
-      title: 'Communication',
+      title: "Communication",
       items: [
         {
           icon: MessageCircle,
-          label: 'Messages',
-          href: '/patient/messages',
-          page: 'messages',
-          badge: '1',
-          badgeVariant: 'secondary',
+          label: "Messages",
+          href: "/patient/messages",
+          page: "messages",
+          badge: "1",
+          badgeVariant: "secondary",
         },
         {
           icon: Phone,
-          label: 'Telemedicine',
-          href: '/patient/telemedicine',
-          page: 'telemedicine',
+          label: "Telemedicine",
+          href: "/patient/telemedicine",
+          page: "telemedicine",
         },
       ],
     },
     {
-      title: 'Financial',
+      title: "Financial",
       items: [
         {
           icon: CreditCard,
-          label: 'Payment History',
-          href: '/patient/payment/history',
-          page: 'payment',
+          label: "Payment History",
+          href: "/patient/payment/history",
+          page: "payment",
         },
         {
           icon: Receipt,
-          label: 'Billing',
-          href: '/patient/billing',
-          page: 'billing',
+          label: "Billing",
+          href: "/patient/billing",
+          page: "billing",
         },
         {
           icon: Shield,
-          label: 'Insurance',
-          href: '/patient/insurance',
-          page: 'insurance',
+          label: "Insurance",
+          href: "/patient/insurance",
+          page: "insurance",
         },
       ],
     },
@@ -398,9 +452,9 @@ export const patientSidebarConfig: SidebarConfig = {
       items: [
         {
           icon: Settings,
-          label: 'Settings',
-          href: '/patient/settings',
-          page: 'settings',
+          label: "Settings",
+          href: "/patient/settings",
+          page: "settings",
         },
       ],
     },
@@ -410,11 +464,11 @@ export const patientSidebarConfig: SidebarConfig = {
 // Helper function to get sidebar config by role
 export function getSidebarConfig(role: string): SidebarConfig {
   switch (role.toLowerCase()) {
-    case 'admin':
+    case "admin":
       return adminSidebarConfig;
-    case 'doctor':
+    case "doctor":
       return doctorSidebarConfig;
-    case 'patient':
+    case "patient":
       return patientSidebarConfig;
     default:
       return patientSidebarConfig; // Default fallback

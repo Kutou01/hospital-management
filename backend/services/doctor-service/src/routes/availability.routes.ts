@@ -16,7 +16,7 @@ const availabilityController = new AvailabilityController();
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: doctorId
+ *         name: doctor_id
  *         required: true
  *         schema:
  *           type: string
@@ -70,7 +70,7 @@ router.get(
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: doctorId
+ *         name: doctor_id
  *         required: true
  *         schema:
  *           type: string
@@ -111,7 +111,7 @@ router.get(
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: doctorId
+ *         name: doctor_id
  *         required: true
  *         schema:
  *           type: string
@@ -162,7 +162,7 @@ router.post(
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: doctorId
+ *         name: doctor_id
  *         required: true
  *         schema:
  *           type: string

@@ -102,9 +102,9 @@ export class PatientController {
         return;
       }
 
-      const { patientId } = req.params;
+      const { patient_id } = req.params;
 
-      if (!patientId) {
+      if (!patient_id) {
         res.status(400).json({
           success: false,
           error: { message: 'Mã bệnh nhân là bắt buộc' }
@@ -134,7 +134,7 @@ export class PatientController {
             avatar_url
           )
         `)
-        .eq('patient_id', patientId)
+        .eq('patient_id', patient_id)
         .single();
 
       if (error) {
@@ -162,7 +162,7 @@ export class PatientController {
             specialty
           )
         `)
-        .eq('patient_id', patientId)
+        .eq('patient_id', patient_id)
         .order('appointment_date', { ascending: false })
         .limit(5);
 
@@ -178,7 +178,7 @@ export class PatientController {
             appointment_time
           )
         `)
-        .eq('patient_id', patientId)
+        .eq('patient_id', patient_id)
         .order('check_in_time', { ascending: false })
         .limit(5);
 
@@ -210,10 +210,10 @@ export class PatientController {
         return;
       }
 
-      const { patientId } = req.params;
+      const { patient_id } = req.params;
       const { emergency_contact } = req.body;
 
-      if (!patientId || !emergency_contact) {
+      if (!patient_id || !emergency_contact) {
         res.status(400).json({
           success: false,
           error: { message: 'Mã bệnh nhân và thông tin liên hệ khẩn cấp là bắt buộc' }
@@ -227,7 +227,7 @@ export class PatientController {
           emergency_contact,
           updated_at: new Date().toISOString()
         })
-        .eq('patient_id', patientId);
+        .eq('patient_id', patient_id);
 
       if (error) {
         logger.error('Error updating emergency contact:', error);
@@ -262,10 +262,10 @@ export class PatientController {
         return;
       }
 
-      const { patientId } = req.params;
+      const { patient_id } = req.params;
       const { insurance_info } = req.body;
 
-      if (!patientId || !insurance_info) {
+      if (!patient_id || !insurance_info) {
         res.status(400).json({
           success: false,
           error: { message: 'Mã bệnh nhân và thông tin bảo hiểm là bắt buộc' }
@@ -279,7 +279,7 @@ export class PatientController {
           insurance_info,
           updated_at: new Date().toISOString()
         })
-        .eq('patient_id', patientId);
+        .eq('patient_id', patient_id);
 
       if (error) {
         logger.error('Error updating insurance info:', error);

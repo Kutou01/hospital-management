@@ -335,8 +335,13 @@ export default function DoctorAppointments() {
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-gray-500" />
                         <span className="text-sm">
-                          {appointment.start_time}
-                          {appointment.end_time && ` - ${appointment.end_time}`}
+                          {appointment.appointment_time ||
+                            appointment.start_time}
+                          {appointment.duration_minutes &&
+                            ` (${appointment.duration_minutes} phút)`}
+                          {appointment.end_time &&
+                            !appointment.duration_minutes &&
+                            ` - ${appointment.end_time}`}
                         </span>
                       </div>
                       {appointment.patient_phone && (

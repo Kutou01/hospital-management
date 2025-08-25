@@ -11,7 +11,7 @@ export const appointmentResolvers = {
     // Get single appointment
     async appointment(
       _: any,
-      { id, appointmentId }: { id?: string; appointmentId?: string },
+      { id, appointment_id }: { id?: string; appointment_id?: string },
       context: GraphQLContext
     ) {
       try {
@@ -111,12 +111,12 @@ export const appointmentResolvers = {
     // Get today's appointments
     async todayAppointments(
       _: any,
-      { doctorId, departmentId, status }: any,
+      { doctor_id, departmentId, status }: any,
       context: GraphQLContext
     ) {
       try {
         logger.debug("Fetching today appointments:", {
-          doctorId,
+          doctor_id,
           departmentId,
           status,
           requestId: context.requestId,
@@ -124,7 +124,7 @@ export const appointmentResolvers = {
 
         const today = new Date().toISOString().split("T")[0];
         const response = await context.restApi.getTodayAppointments({
-          doctorId,
+          doctor_id,
           departmentId,
           status,
           date: today,
@@ -147,21 +147,21 @@ export const appointmentResolvers = {
     // Get upcoming appointments
     async upcomingAppointments(
       _: any,
-      { doctorId, patientId, days = 7, limit = 20 }: any,
+      { doctor_id, patient_id, days = 7, limit = 20 }: any,
       context: GraphQLContext
     ) {
       try {
         logger.debug("Fetching upcoming appointments:", {
-          doctorId,
-          patientId,
+          doctor_id,
+          patient_id,
           days,
           limit,
           requestId: context.requestId,
         });
 
         const response = await context.restApi.getUpcomingAppointments({
-          doctorId,
-          patientId,
+          doctor_id,
+          patient_id,
           days,
           limit,
         });
@@ -187,21 +187,21 @@ export const appointmentResolvers = {
     async availableSlots(
       _: any,
       {
-        doctorId,
+        doctor_id,
         date,
         duration = 30,
-      }: { doctorId: string; date: string; duration: number },
+      }: { doctor_id: string; date: string; duration: number },
       context: GraphQLContext
     ) {
       try {
         logger.debug("Fetching available slots:", {
-          doctorId,
+          doctor_id,
           date,
           duration,
           requestId: context.requestId,
         });
 
-        const cacheKey = `${doctorId}:${date}`;
+        const cacheKey = `${doctor_id}`;
         const slots = await context.dataloaders.availableSlots.load(cacheKey);
 
         // Filter slots by duration if needed
@@ -215,20 +215,20 @@ export const appointmentResolvers = {
     // Get appointment statistics
     async appointmentStats(
       _: any,
-      { doctorId, patientId, departmentId, dateFrom, dateTo }: any,
+      { doctor_id, patient_id, departmentId, dateFrom, dateTo }: any,
       context: GraphQLContext
     ) {
       try {
         logger.debug("Fetching appointment stats:", {
-          doctorId,
-          patientId,
+          doctor_id,
+          patient_id,
           departmentId,
           requestId: context.requestId,
         });
 
         const response = await context.restApi.getAppointmentStats({
-          doctorId,
-          patientId,
+          doctor_id,
+          patient_id,
           departmentId,
           dateFrom,
           dateTo,
@@ -275,7 +275,7 @@ export const appointmentResolvers = {
         }
 
         logger.info("Appointment created successfully:", {
-          appointmentId: response.data.appointmentId,
+          appointment_id: response.data.appointment_id,
         });
         return response.data;
       } catch (error) {
@@ -309,7 +309,7 @@ export const appointmentResolvers = {
           );
         }
 
-        logger.info("Appointment updated successfully:", { appointmentId: id });
+        logger.info("Appointment updated successfully:", { appointment_id: id });
         return response.data;
       } catch (error) {
         logger.error("Error updating appointment:", error);
@@ -330,7 +330,7 @@ export const appointmentResolvers = {
         });
 
         const response = await context.restApi.cancelAppointment(
-          input.appointmentId,
+          input.appointment_id,
           input.reason || "Hủy cuộc hẹn"
         );
 
@@ -345,7 +345,7 @@ export const appointmentResolvers = {
         }
 
         logger.info("Appointment cancelled successfully:", {
-          appointmentId: input.appointmentId,
+          appointment_id: input.appointment_id,
         });
         return response.data;
       } catch (error) {
@@ -379,7 +379,7 @@ export const appointmentResolvers = {
         }
 
         logger.info("Appointment confirmed successfully:", {
-          appointmentId: id,
+          appointment_id: id,
         });
         return response.data;
       } catch (error) {
@@ -401,7 +401,7 @@ export const appointmentResolvers = {
         });
 
         const response = await context.restApi.rescheduleAppointment(
-          input.appointmentId,
+          input.appointment_id,
           {
             newDate: input.newDate,
             newTime: input.newTime,
@@ -419,7 +419,7 @@ export const appointmentResolvers = {
         }
 
         logger.info("Appointment rescheduled successfully:", {
-          appointmentId: input.appointmentId,
+          appointment_id: input.appointment_id,
         });
         return response.data;
       } catch (error) {
@@ -484,7 +484,7 @@ export const appointmentResolvers = {
         }
 
         logger.info("Appointment completed successfully:", {
-          appointmentId: id,
+          appointment_id: id,
         });
         return response.data;
       } catch (error) {
@@ -507,10 +507,10 @@ export const appointmentResolvers = {
 
     // Resolve doctor using DataLoader
     async doctor(parent: any, _: any, context: GraphQLContext) {
-      if (!parent.doctorId) return null;
+      if (!parent.doctor_id) return null;
 
       try {
-        return await context.dataloaders.doctorById.load(parent.doctorId);
+        return await context.dataloaders.doctorById.load(parent.doctor_id);
       } catch (error) {
         logger.error("Error loading appointment doctor:", error);
         return null;
@@ -519,10 +519,10 @@ export const appointmentResolvers = {
 
     // Resolve patient using DataLoader
     async patient(parent: any, _: any, context: GraphQLContext) {
-      if (!parent.patientId) return null;
+      if (!parent.patient_id) return null;
 
       try {
-        return await context.dataloaders.patientById.load(parent.patientId);
+        return await context.dataloaders.patientById.load(parent.patient_id);
       } catch (error) {
         logger.error("Error loading appointment patient:", error);
         return null;

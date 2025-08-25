@@ -46,7 +46,7 @@ router.get(
   appointmentController.getAvailableTimeSlots.bind(appointmentController)
 );
 
-// GET /api/appointments/doctor/:doctorId - Get appointments by doctor ID
+// GET /api/appointments/doctor/:doctor_id - Get appointments by doctor ID
 router.get(
   '/doctor/:doctorId',
   validateDoctorId,
@@ -74,14 +74,14 @@ router.get(
   appointmentController.getDoctorPatientCount.bind(appointmentController)
 );
 
-// GET /api/appointments/patient/:patientId - Get appointments by patient ID
+// GET /api/appointments/patient/:patient_id - Get appointments by patient ID
 router.get(
   '/patient/:patientId',
   validatePatientId,
   appointmentController.getAppointmentsByPatientId.bind(appointmentController)
 );
 
-// GET /api/appointments/:appointmentId - Get appointment by ID
+// GET /api/appointments/:appointment_id - Get appointment by ID
 router.get(
   '/:appointmentId',
   validateAppointmentId,
@@ -95,7 +95,7 @@ router.post(
   appointmentController.createAppointment.bind(appointmentController)
 );
 
-// PUT /api/appointments/:appointmentId - Update appointment
+// PUT /api/appointments/:appointment_id - Update appointment
 router.put(
   '/:appointmentId',
   validateUpdateAppointment,
@@ -109,7 +109,7 @@ router.post(
   appointmentController.confirmAppointment.bind(appointmentController)
 );
 
-// DELETE /api/appointments/:appointmentId - Cancel appointment
+// DELETE /api/appointments/:appointment_id - Cancel appointment
 router.delete(
   '/:appointmentId',
   validateAppointmentId,

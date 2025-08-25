@@ -29,13 +29,13 @@ export const validateReceptionistProfile: ValidationChain[] = [
 
 // Check-in validation
 export const validateCheckIn: ValidationChain[] = [
-  body('appointmentId')
+  body('appointment_id')
     .notEmpty()
     .withMessage('Mã lịch hẹn là bắt buộc')
     .matches(/^APT-\d{6}-\d{3}$/)
     .withMessage('Mã lịch hẹn không hợp lệ'),
   
-  body('patientId')
+  body('patient_id')
     .notEmpty()
     .withMessage('Mã bệnh nhân là bắt buộc')
     .matches(/^PAT-\d{6}-\d{3}$/)
@@ -59,7 +59,7 @@ export const validateCheckIn: ValidationChain[] = [
 
 // Appointment notes validation
 export const validateAppointmentNotes: ValidationChain[] = [
-  param('appointmentId')
+  param('appointment_id')
     .matches(/^APT-\d{6}-\d{3}$/)
     .withMessage('Mã lịch hẹn không hợp lệ'),
   
@@ -76,7 +76,7 @@ export const validateAppointmentNotes: ValidationChain[] = [
 
 // Reschedule appointment validation
 export const validateRescheduleAppointment: ValidationChain[] = [
-  param('appointmentId')
+  param('appointment_id')
     .matches(/^APT-\d{6}-\d{3}$/)
     .withMessage('Mã lịch hẹn không hợp lệ'),
   
@@ -106,7 +106,7 @@ export const validateRescheduleAppointment: ValidationChain[] = [
 
 // Cancel appointment validation
 export const validateCancelAppointment: ValidationChain[] = [
-  param('appointmentId')
+  param('appointment_id')
     .matches(/^APT-\d{6}-\d{3}$/)
     .withMessage('Mã lịch hẹn không hợp lệ'),
   
@@ -146,14 +146,14 @@ export const validatePatientSearch: ValidationChain[] = [
 
 // Patient details validation
 export const validatePatientDetails: ValidationChain[] = [
-  param('patientId')
+  param('patient_id')
     .matches(/^PAT-\d{6}-\d{3}$/)
     .withMessage('Mã bệnh nhân không hợp lệ'),
 ];
 
 // Emergency contact validation
 export const validateEmergencyContact: ValidationChain[] = [
-  param('patientId')
+  param('patient_id')
     .matches(/^PAT-\d{6}-\d{3}$/)
     .withMessage('Mã bệnh nhân không hợp lệ'),
   
@@ -176,7 +176,7 @@ export const validateEmergencyContact: ValidationChain[] = [
 
 // Insurance info validation
 export const validateInsuranceInfo: ValidationChain[] = [
-  param('patientId')
+  param('patient_id')
     .matches(/^PAT-\d{6}-\d{3}$/)
     .withMessage('Mã bệnh nhân không hợp lệ'),
   
@@ -236,7 +236,7 @@ export const validateReportsQuery: ValidationChain[] = [
 
 // Call next patient validation
 export const validateCallNextPatient: ValidationChain[] = [
-  body('doctorId')
+  body('doctor_id')
     .notEmpty()
     .withMessage('Mã bác sĩ là bắt buộc')
     .matches(/^[A-Z]{4}-DOC-\d{6}-\d{3}$/)
@@ -250,7 +250,7 @@ export const validateCallNextPatient: ValidationChain[] = [
 
 // Appointment status update validation
 export const validateAppointmentStatusUpdate: ValidationChain[] = [
-  param('appointmentId')
+  param('appointment_id')
     .matches(/^APT-\d{6}-\d{3}$/)
     .withMessage('Mã lịch hẹn không hợp lệ'),
   

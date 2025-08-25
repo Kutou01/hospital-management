@@ -6,10 +6,10 @@ const router = express.Router();
 // Get doctor's work schedule
 router.get('/:doctorId/schedule', authenticateToken, async (req, res) => {
   try {
-    const { doctorId } = req.params;
+    const { doctor_id } = req.params;
     
     // Verify doctor exists and user has permission
-    if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctorId)) {
+    if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctor_id)) {
       return res.status(403).json({
         success: false,
         error: { message: 'Không có quyền truy cập thông tin này' }
@@ -19,7 +19,7 @@ router.get('/:doctorId/schedule', authenticateToken, async (req, res) => {
     const { data: schedules, error } = await supabase
       .from('doctor_work_schedules')
       .select('*')
-      .eq('doctor_id', doctorId)
+      .eq('doctor_id', doctor_id)
       .eq('is_active', true)
       .order('day_of_week');
 
@@ -48,11 +48,11 @@ router.get('/:doctorId/schedule', authenticateToken, async (req, res) => {
 // Update doctor's work schedule
 router.put('/:doctorId/schedule', authenticateToken, requireRole(['doctor', 'admin']), async (req, res) => {
   try {
-    const { doctorId } = req.params;
+    const { doctor_id } = req.params;
     const { schedules } = req.body;
 
     // Verify doctor exists and user has permission
-    if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctorId)) {
+    if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctor_id)) {
       return res.status(403).json({
         success: false,
         error: { message: 'Không có quyền cập nhật thông tin này' }
@@ -86,7 +86,7 @@ router.put('/:doctorId/schedule', authenticateToken, requireRole(['doctor', 'adm
     const { error: deleteError } = await supabase
       .from('doctor_work_schedules')
       .delete()
-      .eq('doctor_id', doctorId);
+      .eq('doctor_id', doctor_id);
 
     if (deleteError) {
       console.error('❌ [Schedule] Delete error:', deleteError);
@@ -98,7 +98,7 @@ router.put('/:doctorId/schedule', authenticateToken, requireRole(['doctor', 'adm
 
     // Insert new schedules
     const scheduleData = schedules.map(schedule => ({
-      doctor_id: doctorId,
+      doctor_id: doctor_id,
       day_of_week: schedule.day_of_week,
       start_time: schedule.start_time,
       end_time: schedule.end_time,
@@ -139,17 +139,17 @@ router.put('/:doctorId/schedule', authenticateToken, requireRole(['doctor', 'adm
 // Get today's schedule - Development mode (no auth required)
 router.get('/:doctorId/schedule/today', async (req, res) => {
   try {
-    const { doctorId } = req.params;
+    const { doctor_id } = req.params;
     const today = new Date();
     const dayOfWeek = today.getDay(); // 0 = Sunday, 6 = Saturday
 
     // Skip authentication in development mode
-    console.log('🔍 [TodaySchedule] Getting schedule for doctor:', doctorId);
+    console.log('🔍 [TodaySchedule] Getting schedule for doctor:', doctor_id);
 
     const { data: schedule, error } = await supabase
       .from('doctor_work_schedules')
       .select('*')
-      .eq('doctor_id', doctorId)
+      .eq('doctor_id', doctor_id)
       .eq('day_of_week', dayOfWeek)
       .eq('is_active', true)
       .single();
@@ -167,7 +167,7 @@ router.get('/:doctorId/schedule/today', async (req, res) => {
     const { data: stats, error: statsError } = await supabase
       .from('doctor_statistics')
       .select('*')
-      .eq('doctor_id', doctorId)
+      .eq('doctor_id', doctor_id)
       .eq('stat_date', todayStr)
       .single();
 
@@ -197,11 +197,11 @@ router.get('/:doctorId/schedule/today', async (req, res) => {
 // Get doctor's appointment statistics
 router.get('/:doctorId/appointments/stats', authenticateToken, async (req, res) => {
   try {
-    const { doctorId } = req.params;
+    const { doctor_id } = req.params;
     const { period = 'month' } = req.query; // day, week, month, year
 
     // Verify doctor exists and user has permission
-    if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctorId)) {
+    if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctor_id)) {
       return res.status(403).json({
         success: false,
         error: { message: 'Không có quyền truy cập thông tin này' }
@@ -230,7 +230,7 @@ router.get('/:doctorId/appointments/stats', authenticateToken, async (req, res) 
     const { data: appointments, error } = await supabase
       .from('appointments')
       .select('appointment_id, status, appointment_date, appointment_time')
-      .eq('doctor_id', doctorId)
+      .eq('doctor_id', doctor_id)
       .gte('appointment_date', startDate.toISOString().split('T')[0])
       .lte('appointment_date', now.toISOString().split('T')[0]);
 

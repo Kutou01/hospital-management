@@ -75,8 +75,8 @@ export class DoctorController {
 
   async getDoctorById(req: Request, res: Response): Promise<void> {
     try {
-      const { doctorId } = req.params;
-      const doctor = await this.doctorRepository.findById(doctorId);
+      const { doctor_id } = req.params;
+      const doctor = await this.doctorRepository.findById(doctor_id);
 
       if (!doctor) {
         res.status(404).json({
@@ -93,7 +93,7 @@ export class DoctorController {
     } catch (error) {
       logger.error("Error fetching doctor by ID", {
         error,
-        doctorId: req.params.doctorId,
+        doctor_id: req.params.doctor_id,
       });
       res.status(500).json({
         success: false,
@@ -367,8 +367,8 @@ export class DoctorController {
         return;
       }
 
-      const { doctorId } = req.params;
-      const doctor = await this.doctorRepository.update(doctorId, req.body);
+      const { doctor_id } = req.params;
+      const doctor = await this.doctorRepository.update(doctor_id, req.body);
 
       if (!doctor) {
         res.status(404).json({
@@ -386,7 +386,7 @@ export class DoctorController {
     } catch (error) {
       logger.error("Error updating doctor", {
         error,
-        doctorId: req.params.doctorId,
+        doctor_id: req.params.doctor_id,
         body: req.body,
       });
       res.status(500).json({
@@ -399,8 +399,8 @@ export class DoctorController {
 
   async deleteDoctor(req: Request, res: Response): Promise<void> {
     try {
-      const { doctorId } = req.params;
-      const success = await this.doctorRepository.delete(doctorId);
+      const { doctor_id } = req.params;
+      const success = await this.doctorRepository.delete(doctor_id);
 
       if (!success) {
         res.status(404).json({
@@ -417,7 +417,7 @@ export class DoctorController {
     } catch (error) {
       logger.error("Error deleting doctor", {
         error,
-        doctorId: req.params.doctorId,
+        doctor_id: req.params.doctor_id,
       });
       res.status(500).json({
         success: false,
@@ -433,8 +433,8 @@ export class DoctorController {
 
   async getDoctorSchedule(req: Request, res: Response): Promise<void> {
     try {
-      const { doctorId } = req.params;
-      const schedule = await this.scheduleRepository.findByDoctorId(doctorId);
+      const { doctor_id } = req.params;
+      const schedule = await this.scheduleRepository.findByDoctorId(doctor_id);
 
       res.json({
         success: true,
@@ -443,7 +443,7 @@ export class DoctorController {
     } catch (error) {
       logger.error("Error fetching doctor schedule", {
         error,
-        doctorId: req.params.doctorId,
+        doctor_id: req.params.doctor_id,
       });
       res.status(500).json({
         success: false,
@@ -455,13 +455,13 @@ export class DoctorController {
 
   async getTodaySchedule(req: Request, res: Response): Promise<void> {
     try {
-      const { doctorId } = req.params;
+      const { doctor_id } = req.params;
       const today = new Date();
       const dayOfWeek = today.getDay(); // 0 = Sunday, 6 = Saturday
 
       // Get today's schedule from weekly schedule
       const weeklySchedule =
-        await this.scheduleRepository.getWeeklySchedule(doctorId);
+        await this.scheduleRepository.getWeeklySchedule(doctor_id);
       const todaySchedule = weeklySchedule.filter(
         (slot: any) => slot.day_of_week === dayOfWeek
       );
@@ -473,7 +473,7 @@ export class DoctorController {
     } catch (error) {
       logger.error("Error fetching today schedule", {
         error,
-        doctorId: req.params.doctorId,
+        doctor_id: req.params.doctor_id,
       });
       res.status(500).json({
         success: false,
@@ -485,9 +485,9 @@ export class DoctorController {
 
   async getWeeklySchedule(req: Request, res: Response): Promise<void> {
     try {
-      const { doctorId } = req.params;
+      const { doctor_id } = req.params;
       const schedule =
-        await this.scheduleRepository.getWeeklySchedule(doctorId);
+        await this.scheduleRepository.getWeeklySchedule(doctor_id);
 
       res.json({
         success: true,
@@ -496,7 +496,7 @@ export class DoctorController {
     } catch (error) {
       logger.error("Error fetching weekly schedule", {
         error,
-        doctorId: req.params.doctorId,
+        doctor_id: req.params.doctor_id,
       });
       res.status(500).json({
         success: false,
@@ -518,11 +518,11 @@ export class DoctorController {
         return;
       }
 
-      const { doctorId } = req.params;
+      const { doctor_id } = req.params;
       const { schedules } = req.body; // Array of schedule updates
 
       const updatedSchedules = await this.scheduleRepository.bulkUpdateSchedule(
-        doctorId,
+        doctor_id,
         schedules
       );
 
@@ -534,7 +534,7 @@ export class DoctorController {
     } catch (error) {
       logger.error("Error updating schedule", {
         error,
-        doctorId: req.params.doctorId,
+        doctor_id: req.params.doctor_id,
         body: req.body,
       });
       res.status(500).json({
@@ -547,7 +547,7 @@ export class DoctorController {
 
   async getAvailability(req: Request, res: Response): Promise<void> {
     try {
-      const { doctorId } = req.params;
+      const { doctor_id } = req.params;
       const { date } = req.query;
 
       if (!date) {
@@ -560,7 +560,7 @@ export class DoctorController {
 
       const checkDate = new Date(date as string);
       const availability = await this.scheduleRepository.getAvailability(
-        doctorId,
+        doctor_id,
         checkDate
       );
 
@@ -571,7 +571,7 @@ export class DoctorController {
     } catch (error) {
       logger.error("Error fetching availability", {
         error,
-        doctorId: req.params.doctorId,
+        doctor_id: req.params.doctor_id,
         date: req.query.date,
       });
       res.status(500).json({
@@ -584,7 +584,7 @@ export class DoctorController {
 
   async getAvailableTimeSlots(req: Request, res: Response): Promise<void> {
     try {
-      const { doctorId } = req.params;
+      const { doctor_id } = req.params;
       const { date } = req.query;
 
       if (!date) {
@@ -597,7 +597,7 @@ export class DoctorController {
 
       const checkDate = new Date(date as string);
       const timeSlots = await this.scheduleRepository.getAvailableTimeSlots(
-        doctorId,
+        doctor_id,
         checkDate
       );
 
@@ -608,7 +608,7 @@ export class DoctorController {
     } catch (error) {
       logger.error("Error fetching available time slots", {
         error,
-        doctorId: req.params.doctorId,
+        doctor_id: req.params.doctor_id,
         date: req.query.date,
       });
       res.status(500).json({
@@ -625,13 +625,13 @@ export class DoctorController {
 
   async getDoctorReviews(req: Request, res: Response): Promise<void> {
     try {
-      const { doctorId } = req.params;
+      const { doctor_id } = req.params;
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
       const offset = (page - 1) * limit;
 
       const reviews = await this.reviewRepository.findByDoctorId(
-        doctorId,
+        doctor_id,
         limit,
         offset
       );
@@ -648,7 +648,7 @@ export class DoctorController {
     } catch (error) {
       logger.error("Error fetching doctor reviews", {
         error,
-        doctorId: req.params.doctorId,
+        doctor_id: req.params.doctor_id,
       });
       res.status(500).json({
         success: false,
@@ -660,8 +660,8 @@ export class DoctorController {
 
   async getReviewStats(req: Request, res: Response): Promise<void> {
     try {
-      const { doctorId } = req.params;
-      const stats = await this.reviewRepository.getReviewStats(doctorId);
+      const { doctor_id } = req.params;
+      const stats = await this.reviewRepository.getReviewStats(doctor_id);
 
       res.json({
         success: true,
@@ -670,7 +670,7 @@ export class DoctorController {
     } catch (error) {
       logger.error("Error fetching review stats", {
         error,
-        doctorId: req.params.doctorId,
+        doctor_id: req.params.doctor_id,
       });
       res.status(500).json({
         success: false,
@@ -686,13 +686,13 @@ export class DoctorController {
 
   async getDoctorShifts(req: Request, res: Response): Promise<void> {
     try {
-      const { doctorId } = req.params;
+      const { doctor_id } = req.params;
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
       const offset = (page - 1) * limit;
 
       const shifts = await this.shiftRepository.findByDoctorId(
-        doctorId,
+        doctor_id,
         limit,
         offset
       );
@@ -709,7 +709,7 @@ export class DoctorController {
     } catch (error) {
       logger.error("Error fetching doctor shifts", {
         error,
-        doctorId: req.params.doctorId,
+        doctor_id: req.params.doctor_id,
       });
       res.status(500).json({
         success: false,
@@ -721,11 +721,11 @@ export class DoctorController {
 
   async getUpcomingShifts(req: Request, res: Response): Promise<void> {
     try {
-      const { doctorId } = req.params;
+      const { doctor_id } = req.params;
       const days = parseInt(req.query.days as string) || 7;
 
       const shifts = await this.shiftRepository.getUpcomingShifts(
-        doctorId,
+        doctor_id,
         days
       );
 
@@ -736,7 +736,7 @@ export class DoctorController {
     } catch (error) {
       logger.error("Error fetching upcoming shifts", {
         error,
-        doctorId: req.params.doctorId,
+        doctor_id: req.params.doctor_id,
       });
       res.status(500).json({
         success: false,
@@ -850,7 +850,7 @@ export class DoctorController {
 
   async getShiftStatistics(req: Request, res: Response): Promise<void> {
     try {
-      const { doctorId } = req.params;
+      const { doctor_id } = req.params;
       const { startDate, endDate } = req.query;
 
       if (!startDate || !endDate) {
@@ -862,7 +862,7 @@ export class DoctorController {
       }
 
       const stats = await this.shiftRepository.getShiftStatistics(
-        doctorId,
+        doctor_id,
         new Date(startDate as string),
         new Date(endDate as string)
       );
@@ -874,7 +874,7 @@ export class DoctorController {
     } catch (error) {
       logger.error("Error fetching shift statistics", {
         error,
-        doctorId: req.params.doctorId,
+        doctor_id: req.params.doctor_id,
       });
       res.status(500).json({
         success: false,
@@ -890,17 +890,17 @@ export class DoctorController {
 
   async getDoctorExperiences(req: Request, res: Response): Promise<void> {
     try {
-      const { doctorId } = req.params;
+      const { doctor_id } = req.params;
       const { type } = req.query;
 
       let experiences;
       if (type) {
         experiences = await this.experienceRepository.findByType(
-          doctorId,
+          doctor_id,
           type as any
         );
       } else {
-        experiences = await this.experienceRepository.findByDoctorId(doctorId);
+        experiences = await this.experienceRepository.findByDoctorId(doctor_id);
       }
 
       res.json({
@@ -910,7 +910,7 @@ export class DoctorController {
     } catch (error) {
       logger.error("Error fetching doctor experiences", {
         error,
-        doctorId: req.params.doctorId,
+        doctor_id: req.params.doctor_id,
       });
       res.status(500).json({
         success: false,
@@ -922,9 +922,9 @@ export class DoctorController {
 
   async getExperienceTimeline(req: Request, res: Response): Promise<void> {
     try {
-      const { doctorId } = req.params;
+      const { doctor_id } = req.params;
       const timeline =
-        await this.experienceRepository.getExperienceTimeline(doctorId);
+        await this.experienceRepository.getExperienceTimeline(doctor_id);
 
       res.json({
         success: true,
@@ -933,7 +933,7 @@ export class DoctorController {
     } catch (error) {
       logger.error("Error fetching experience timeline", {
         error,
-        doctorId: req.params.doctorId,
+        doctor_id: req.params.doctor_id,
       });
       res.status(500).json({
         success: false,
@@ -945,9 +945,9 @@ export class DoctorController {
 
   async getTotalExperience(req: Request, res: Response): Promise<void> {
     try {
-      const { doctorId } = req.params;
+      const { doctor_id } = req.params;
       const totalExperience =
-        await this.experienceRepository.calculateTotalExperience(doctorId);
+        await this.experienceRepository.calculateTotalExperience(doctor_id);
 
       res.json({
         success: true,
@@ -956,7 +956,7 @@ export class DoctorController {
     } catch (error) {
       logger.error("Error calculating total experience", {
         error,
-        doctorId: req.params.doctorId,
+        doctor_id: req.params.doctor_id,
       });
       res.status(500).json({
         success: false,
@@ -1076,10 +1076,10 @@ export class DoctorController {
 
   async getDoctorProfile(req: Request, res: Response): Promise<void> {
     try {
-      const { doctorId } = req.params;
+      const { doctor_id } = req.params;
 
       // Get basic doctor info
-      const doctor = await this.doctorRepository.findById(doctorId);
+      const doctor = await this.doctorRepository.findById(doctor_id);
       if (!doctor) {
         res.status(404).json({
           success: false,
@@ -1091,10 +1091,10 @@ export class DoctorController {
       // Get additional profile data
       const [schedule, reviewStats, experiences, upcomingShifts] =
         await Promise.all([
-          this.scheduleRepository.getWeeklySchedule(doctorId),
-          this.reviewRepository.getReviewStats(doctorId),
-          this.experienceRepository.findByDoctorId(doctorId),
-          this.shiftRepository.getUpcomingShifts(doctorId, 7),
+          this.scheduleRepository.getWeeklySchedule(doctor_id),
+          this.reviewRepository.getReviewStats(doctor_id),
+          this.experienceRepository.findByDoctorId(doctor_id),
+          this.shiftRepository.getUpcomingShifts(doctor_id, 7),
         ]);
 
       const profile = {
@@ -1112,7 +1112,7 @@ export class DoctorController {
     } catch (error) {
       logger.error("Error fetching doctor profile", {
         error,
-        doctorId: req.params.doctorId,
+        doctor_id: req.params.doctor_id,
       });
       res.status(500).json({
         success: false,
@@ -1128,11 +1128,11 @@ export class DoctorController {
 
   async getDoctorAppointments(req: Request, res: Response): Promise<void> {
     try {
-      const { doctorId } = req.params;
+      const { doctor_id } = req.params;
       const { date, status, page = 1, limit = 10 } = req.query;
 
       // Verify doctor exists
-      const doctor = await this.doctorRepository.findById(doctorId);
+      const doctor = await this.doctorRepository.findById(doctor_id);
       if (!doctor) {
         res.status(404).json({
           success: false,
@@ -1143,7 +1143,7 @@ export class DoctorController {
 
       // Get appointments from Appointment Service
       const appointmentResult =
-        await this.appointmentService.getDoctorAppointments(doctorId, {
+        await this.appointmentService.getDoctorAppointments(doctor_id, {
           date: date as string,
           status: status as string,
           page: Number(page),
@@ -1195,7 +1195,7 @@ export class DoctorController {
     } catch (error) {
       logger.error("Error fetching doctor appointments", {
         error,
-        doctorId: req.params.doctorId,
+        doctor_id: req.params.doctor_id,
       });
       res.status(500).json({
         success: false,
@@ -1207,10 +1207,10 @@ export class DoctorController {
 
   async getDoctorStats(req: Request, res: Response): Promise<void> {
     try {
-      const { doctorId } = req.params;
+      const { doctor_id } = req.params;
 
       // Verify doctor exists
-      const doctor = await this.doctorRepository.findById(doctorId);
+      const doctor = await this.doctorRepository.findById(doctor_id);
       if (!doctor) {
         res.status(404).json({
           success: false,
@@ -1229,13 +1229,13 @@ export class DoctorController {
         patientCount,
         patientStats,
       ] = await Promise.allSettled([
-        this.reviewRepository.getReviewStats(doctorId),
-        this.appointmentService.getDoctorAppointmentStats(doctorId),
-        this.experienceRepository.calculateTotalExperience(doctorId),
-        this.appointmentService.getTodayAppointments(doctorId),
-        this.appointmentService.getMonthlyAppointments(doctorId),
-        this.patientService.getPatientCountForDoctor(doctorId),
-        this.patientService.getDoctorPatientStats(doctorId),
+        this.reviewRepository.getReviewStats(doctor_id),
+        this.appointmentService.getDoctorAppointmentStats(doctor_id),
+        this.experienceRepository.calculateTotalExperience(doctor_id),
+        this.appointmentService.getTodayAppointments(doctor_id),
+        this.appointmentService.getMonthlyAppointments(doctor_id),
+        this.patientService.getPatientCountForDoctor(doctor_id),
+        this.patientService.getDoctorPatientStats(doctor_id),
       ]);
 
       // Extract results safely
@@ -1320,7 +1320,7 @@ export class DoctorController {
     } catch (error) {
       logger.error("Error fetching doctor stats", {
         error,
-        doctorId: req.params.doctorId,
+        doctor_id: req.params.doctor_id,
       });
       res.status(500).json({
         success: false,
@@ -1559,7 +1559,7 @@ export class DoctorController {
         return;
       }
 
-      const doctorId = doctor.doctor_id;
+      const doctor_id = doctor.doctor_id;
 
       // Get all dashboard data in parallel for optimal performance
       const [
@@ -1570,12 +1570,12 @@ export class DoctorController {
         weeklyStats,
         monthlyStats,
       ] = await Promise.allSettled([
-        this.doctorRepository.getDashboardStats(doctorId),
-        this.scheduleRepository.getTodaySchedule(doctorId),
-        this.doctorRepository.getRecentAppointments(doctorId, 5),
-        this.reviewRepository.getReviewStats(doctorId),
-        this.doctorRepository.getWeeklyStats(doctorId),
-        this.doctorRepository.getMonthlyStats(doctorId),
+        this.doctorRepository.getDashboardStats(doctor_id),
+        this.scheduleRepository.getTodaySchedule(doctor_id),
+        this.doctorRepository.getRecentAppointments(doctor_id, 5),
+        this.reviewRepository.getReviewStats(doctor_id),
+        this.doctorRepository.getWeeklyStats(doctor_id),
+        this.doctorRepository.getMonthlyStats(doctor_id),
       ]);
 
       // Process results and handle errors gracefully

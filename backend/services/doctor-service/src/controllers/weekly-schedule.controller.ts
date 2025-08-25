@@ -55,11 +55,11 @@ export class WeeklyScheduleController {
    */
   async getWeeklySchedule(req: Request, res: Response): Promise<void> {
     try {
-      const { doctorId } = req.params;
+      const { doctor_id } = req.params;
       const { date } = req.query;
 
       logger.info('📅 [WeeklySchedule] Getting weekly schedule', {
-        doctorId,
+        doctor_id,
         date
       });
 
@@ -76,7 +76,7 @@ export class WeeklyScheduleController {
       const { data: doctor, error: doctorError } = await supabaseAdmin
         .from('doctors')
         .select('doctor_id, full_name')
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctor_id)
         .single();
 
       if (doctorError || !doctor) {
@@ -92,7 +92,7 @@ export class WeeklyScheduleController {
       const { data: schedules, error: scheduleError } = await supabaseAdmin
         .from('doctor_schedules')
         .select('*')
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctor_id)
         .eq('is_available', true)
         .order('day_of_week');
 
@@ -120,7 +120,7 @@ export class WeeklyScheduleController {
             profiles!inner(full_name)
           )
         `)
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctor_id)
         .gte('appointment_date', weekStart.toISOString().split('T')[0])
         .lte('appointment_date', weekEnd.toISOString().split('T')[0])
         .in('status', ['scheduled', 'confirmed', 'in_progress']);
@@ -192,7 +192,7 @@ export class WeeklyScheduleController {
       const response: WeeklyScheduleResponse = {
         week_start: weekStart.toISOString().split('T')[0],
         week_end: weekEnd.toISOString().split('T')[0],
-        doctor_id: doctorId,
+        doctor_id: doctor_id,
         doctor_name: doctor.full_name,
         daily_schedules: dailySchedules,
         summary: {
@@ -205,7 +205,7 @@ export class WeeklyScheduleController {
       };
 
       logger.info('✅ [WeeklySchedule] Successfully generated weekly schedule', {
-        doctorId,
+        doctor_id,
         weekStart: response.week_start,
         weekEnd: response.week_end,
         workingDays: totalWorkingDays,
@@ -276,7 +276,7 @@ export class WeeklyScheduleController {
       });
 
       let status: TimeSlot['status'] = 'available';
-      let appointmentId: string | undefined;
+      let appointment_id: string | undefined;
       let patientName: string | undefined;
       let appointmentType: string | undefined;
 
@@ -284,7 +284,7 @@ export class WeeklyScheduleController {
         status = 'break';
       } else if (appointment) {
         status = 'booked';
-        appointmentId = appointment.appointment_id;
+        appointment_id = appointment.appointment_id;
         patientName = appointment.patients?.profiles?.full_name;
         appointmentType = appointment.appointment_type;
       }
@@ -293,7 +293,7 @@ export class WeeklyScheduleController {
         start_time: slotStartStr,
         end_time: slotEndStr,
         status,
-        appointment_id: appointmentId,
+        appointment_id: appointment_id,
         patient_name: patientName,
         appointment_type: appointmentType
       });

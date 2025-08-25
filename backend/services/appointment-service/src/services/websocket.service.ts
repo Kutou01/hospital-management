@@ -1,13 +1,13 @@
-import { Server as SocketIOServer, Socket } from 'socket.io';
-import { Server as HttpServer } from 'http';
-import logger from '@hospital/shared/dist/utils/logger';
+import logger from "@hospital/shared/dist/utils/logger";
+import { Server as HttpServer } from "http";
+import { Socket, Server as SocketIOServer } from "socket.io";
 
 export interface ConnectedClient {
   id: string;
   userId?: string;
   userRole?: string;
-  doctorId?: string;
-  patientId?: string;
+  doctor_id?: string;
+  patient_id?: string;
   rooms: Set<string>;
   connectedAt: Date;
 }
@@ -23,7 +23,7 @@ export class WebSocketManager {
   async initialize(httpServer?: HttpServer): Promise<void> {
     try {
       if (!httpServer) {
-        logger.warn('⚠️ No HTTP server provided for WebSocket initialization');
+        logger.warn("⚠️ No HTTP server provided for WebSocket initialization");
         this.isInitialized = false;
         return;
       }
@@ -32,18 +32,20 @@ export class WebSocketManager {
         cors: {
           origin: process.env.FRONTEND_URL || "http://localhost:3000",
           methods: ["GET", "POST"],
-          credentials: true
+          credentials: true,
         },
-        transports: ['websocket', 'polling'],
-        allowEIO3: true
+        transports: ["websocket", "polling"],
+        allowEIO3: true,
       });
 
       this.setupEventHandlers();
       this.isInitialized = true;
 
-      logger.info('✅ WebSocket Manager initialized successfully on HTTP server');
+      logger.info(
+        "✅ WebSocket Manager initialized successfully on HTTP server"
+      );
     } catch (error) {
-      logger.error('❌ Failed to initialize WebSocket Manager:', error);
+      logger.error("❌ Failed to initialize WebSocket Manager:", error);
       this.isInitialized = false;
       throw error;
     }
@@ -55,7 +57,7 @@ export class WebSocketManager {
   private setupEventHandlers(): void {
     if (!this.io) return;
 
-    this.io.on('connection', (socket: Socket) => {
+    this.io.on("connection", (socket: Socket) => {
       this.handleConnection(socket);
     });
   }
@@ -64,13 +66,13 @@ export class WebSocketManager {
    * Handle new WebSocket connection
    */
   private handleConnection(socket: Socket): void {
-    logger.info('🔌 New WebSocket connection:', socket.id);
+    logger.info("🔌 New WebSocket connection:", socket.id);
 
     // Create client record
     const client: ConnectedClient = {
       id: socket.id,
       rooms: new Set(),
-      connectedAt: new Date()
+      connectedAt: new Date(),
     };
 
     this.clients.set(socket.id, client);
@@ -79,10 +81,10 @@ export class WebSocketManager {
     this.setupSocketHandlers(socket, client);
 
     // Send welcome message
-    socket.emit('connected', {
-      message: 'Connected to Appointment Service',
+    socket.emit("connected", {
+      message: "Connected to Appointment Service",
       clientId: socket.id,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 
@@ -91,194 +93,219 @@ export class WebSocketManager {
    */
   private setupSocketHandlers(socket: Socket, client: ConnectedClient): void {
     // Authentication
-    socket.on('authenticate', (data) => {
+    socket.on("authenticate", (data) => {
       this.handleAuthentication(socket, client, data);
     });
 
     // Join specific rooms
-    socket.on('join_room', (roomName: string) => {
+    socket.on("join_room", (roomName: string) => {
       this.joinRoom(socket, client, roomName);
     });
 
     // Leave specific rooms
-    socket.on('leave_room', (roomName: string) => {
+    socket.on("leave_room", (roomName: string) => {
       this.leaveRoom(socket, client, roomName);
     });
 
     // Subscribe to doctor appointments
-    socket.on('subscribe_doctor', (doctorId: string) => {
-      this.subscribeToDoctorAppointments(socket, client, doctorId);
+    socket.on("subscribe_doctor", (doctor_id: string) => {
+      this.subscribeToDoctorAppointments(socket, client, doctor_id);
     });
 
     // Subscribe to patient appointments
-    socket.on('subscribe_patient', (patientId: string) => {
-      this.subscribeToPatientAppointments(socket, client, patientId);
+    socket.on("subscribe_patient", (patient_id: string) => {
+      this.subscribeToPatientAppointments(socket, client, patient_id);
     });
 
     // Subscribe to date-specific appointments
-    socket.on('subscribe_date', (date: string) => {
+    socket.on("subscribe_date", (date: string) => {
       this.subscribeToDateAppointments(socket, client, date);
     });
 
     // Handle disconnection
-    socket.on('disconnect', (reason) => {
+    socket.on("disconnect", (reason) => {
       this.handleDisconnection(socket, client, reason);
     });
 
     // Handle errors
-    socket.on('error', (error) => {
-      logger.error('❌ WebSocket error for client:', socket.id, error);
+    socket.on("error", (error) => {
+      logger.error("❌ WebSocket error for client:", socket.id, error);
     });
   }
 
   /**
    * Handle client authentication
    */
-  private handleAuthentication(socket: Socket, client: ConnectedClient, data: any): void {
+  private handleAuthentication(
+    socket: Socket,
+    client: ConnectedClient,
+    data: any
+  ): void {
     try {
-      const { userId, userRole, doctorId, patientId } = data;
+      const { userId, userRole, doctor_id, patient_id } = data;
 
       // Update client information
       client.userId = userId;
       client.userRole = userRole;
-      client.doctorId = doctorId;
-      client.patientId = patientId;
+      client.doctor_id = doctor_id;
+      client.patient_id = patient_id;
 
       // Auto-join relevant rooms based on role
-      if (userRole === 'doctor' && doctorId) {
-        this.joinRoom(socket, client, `doctor_${doctorId}`);
-      } else if (userRole === 'patient' && patientId) {
-        this.joinRoom(socket, client, `patient_${patientId}`);
+      if (userRole === "doctor" && doctor_id) {
+        this.joinRoom(socket, client, `doctor_${doctor_id}`);
+      } else if (userRole === "patient" && patient_id) {
+        this.joinRoom(socket, client, `patient_${patient_id}`);
       }
 
-      socket.emit('authenticated', {
+      socket.emit("authenticated", {
         success: true,
-        message: 'Authentication successful',
+        message: "Authentication successful",
         clientInfo: {
           userId,
           userRole,
-          rooms: Array.from(client.rooms)
-        }
+          rooms: Array.from(client.rooms),
+        },
       });
 
-      logger.info('✅ Client authenticated:', {
+      logger.info("✅ Client authenticated:", {
         socketId: socket.id,
         userId,
-        userRole
+        userRole,
       });
-
     } catch (error) {
-      socket.emit('authentication_error', {
+      socket.emit("authentication_error", {
         success: false,
-        message: 'Authentication failed',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        message: "Authentication failed",
+        error: error instanceof Error ? error.message : "Unknown error",
       });
 
-      logger.error('❌ Authentication failed for client:', socket.id, error);
+      logger.error("❌ Authentication failed for client:", socket.id, error);
     }
   }
 
   /**
    * Join a room
    */
-  private joinRoom(socket: Socket, client: ConnectedClient, roomName: string): void {
+  private joinRoom(
+    socket: Socket,
+    client: ConnectedClient,
+    roomName: string
+  ): void {
     try {
       socket.join(roomName);
       client.rooms.add(roomName);
 
-      socket.emit('room_joined', {
+      socket.emit("room_joined", {
         room: roomName,
-        message: `Joined room: ${roomName}`
+        message: `Joined room: ${roomName}`,
       });
 
-      logger.info('📥 Client joined room:', {
+      logger.info("📥 Client joined room:", {
         socketId: socket.id,
-        room: roomName
+        room: roomName,
       });
-
     } catch (error) {
-      logger.error('❌ Error joining room:', error);
+      logger.error("❌ Error joining room:", error);
     }
   }
 
   /**
    * Leave a room
    */
-  private leaveRoom(socket: Socket, client: ConnectedClient, roomName: string): void {
+  private leaveRoom(
+    socket: Socket,
+    client: ConnectedClient,
+    roomName: string
+  ): void {
     try {
       socket.leave(roomName);
       client.rooms.delete(roomName);
 
-      socket.emit('room_left', {
+      socket.emit("room_left", {
         room: roomName,
-        message: `Left room: ${roomName}`
+        message: `Left room: ${roomName}`,
       });
 
-      logger.info('📤 Client left room:', {
+      logger.info("📤 Client left room:", {
         socketId: socket.id,
-        room: roomName
+        room: roomName,
       });
-
     } catch (error) {
-      logger.error('❌ Error leaving room:', error);
+      logger.error("❌ Error leaving room:", error);
     }
   }
 
   /**
    * Subscribe to doctor appointments
    */
-  private subscribeToDoctorAppointments(socket: Socket, client: ConnectedClient, doctorId: string): void {
-    const roomName = `doctor_${doctorId}`;
+  private subscribeToDoctorAppointments(
+    socket: Socket,
+    client: ConnectedClient,
+    doctor_id: string
+  ): void {
+    const roomName = `doctor_${doctor_id}`;
     this.joinRoom(socket, client, roomName);
-    
-    client.doctorId = doctorId;
-    
-    socket.emit('subscription_confirmed', {
-      type: 'doctor_appointments',
-      doctorId,
-      message: `Subscribed to appointments for doctor: ${doctorId}`
+
+    client.doctor_id = doctor_id;
+
+    socket.emit("subscription_confirmed", {
+      type: "doctor_appointments",
+      doctor_id,
+      message: `Subscribed to appointments for doctor: ${doctor_id}`,
     });
   }
 
   /**
    * Subscribe to patient appointments
    */
-  private subscribeToPatientAppointments(socket: Socket, client: ConnectedClient, patientId: string): void {
-    const roomName = `patient_${patientId}`;
+  private subscribeToPatientAppointments(
+    socket: Socket,
+    client: ConnectedClient,
+    patient_id: string
+  ): void {
+    const roomName = `patient_${patient_id}`;
     this.joinRoom(socket, client, roomName);
-    
-    client.patientId = patientId;
-    
-    socket.emit('subscription_confirmed', {
-      type: 'patient_appointments',
-      patientId,
-      message: `Subscribed to appointments for patient: ${patientId}`
+
+    client.patient_id = patient_id;
+
+    socket.emit("subscription_confirmed", {
+      type: "patient_appointments",
+      patient_id,
+      message: `Subscribed to appointments for patient: ${patient_id}`,
     });
   }
 
   /**
    * Subscribe to date-specific appointments
    */
-  private subscribeToDateAppointments(socket: Socket, client: ConnectedClient, date: string): void {
+  private subscribeToDateAppointments(
+    socket: Socket,
+    client: ConnectedClient,
+    date: string
+  ): void {
     const roomName = `date_${date}`;
     this.joinRoom(socket, client, roomName);
-    
-    socket.emit('subscription_confirmed', {
-      type: 'date_appointments',
+
+    socket.emit("subscription_confirmed", {
+      type: "date_appointments",
       date,
-      message: `Subscribed to appointments for date: ${date}`
+      message: `Subscribed to appointments for date: ${date}`,
     });
   }
 
   /**
    * Handle client disconnection
    */
-  private handleDisconnection(socket: Socket, client: ConnectedClient, reason: string): void {
-    logger.info('🔌 Client disconnected:', {
+  private handleDisconnection(
+    socket: Socket,
+    client: ConnectedClient,
+    reason: string
+  ): void {
+    logger.info("🔌 Client disconnected:", {
       socketId: socket.id,
       userId: client.userId,
       reason,
-      connectedDuration: Date.now() - client.connectedAt.getTime()
+      connectedDuration: Date.now() - client.connectedAt.getTime(),
     });
 
     // Remove client from tracking
@@ -290,7 +317,7 @@ export class WebSocketManager {
    */
   public broadcastToAll(event: string, data: any): void {
     if (!this.io || !this.isInitialized) {
-      logger.warn('⚠️ WebSocket not initialized - skipping broadcast');
+      logger.warn("⚠️ WebSocket not initialized - skipping broadcast");
       return;
     }
 
@@ -298,15 +325,15 @@ export class WebSocketManager {
       this.io.emit(event, {
         ...data,
         broadcast: true,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
-      logger.info('📡 Broadcast to all clients:', {
+      logger.info("📡 Broadcast to all clients:", {
         event,
-        clientCount: this.clients.size
+        clientCount: this.clients.size,
       });
     } catch (error) {
-      logger.error('❌ Error broadcasting to all clients:', error);
+      logger.error("❌ Error broadcasting to all clients:", error);
     }
   }
 
@@ -315,7 +342,7 @@ export class WebSocketManager {
    */
   public broadcastToRoom(roomName: string, event: string, data: any): void {
     if (!this.io || !this.isInitialized) {
-      logger.warn('⚠️ WebSocket not initialized - skipping room broadcast');
+      logger.warn("⚠️ WebSocket not initialized - skipping room broadcast");
       return;
     }
 
@@ -323,15 +350,15 @@ export class WebSocketManager {
       this.io.to(roomName).emit(event, {
         ...data,
         room: roomName,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
-      logger.info('📡 Broadcast to room:', {
+      logger.info("📡 Broadcast to room:", {
         room: roomName,
-        event
+        event,
       });
     } catch (error) {
-      logger.error('❌ Error broadcasting to room:', error);
+      logger.error("❌ Error broadcasting to room:", error);
     }
   }
 
@@ -340,7 +367,7 @@ export class WebSocketManager {
    */
   public sendToClient(clientId: string, event: string, data: any): void {
     if (!this.io || !this.isInitialized) {
-      logger.warn('⚠️ WebSocket not initialized - skipping client message');
+      logger.warn("⚠️ WebSocket not initialized - skipping client message");
       return;
     }
 
@@ -348,15 +375,15 @@ export class WebSocketManager {
       this.io.to(clientId).emit(event, {
         ...data,
         direct: true,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
-      logger.info('📡 Direct message to client:', {
+      logger.info("📡 Direct message to client:", {
         clientId,
-        event
+        event,
       });
     } catch (error) {
-      logger.error('❌ Error sending message to client:', error);
+      logger.error("❌ Error sending message to client:", error);
     }
   }
 
@@ -371,7 +398,7 @@ export class WebSocketManager {
    * Get clients in specific room
    */
   public getClientsInRoom(roomName: string): ConnectedClient[] {
-    return Array.from(this.clients.values()).filter(client => 
+    return Array.from(this.clients.values()).filter((client) =>
       client.rooms.has(roomName)
     );
   }
@@ -396,9 +423,9 @@ export class WebSocketManager {
       this.clients.clear();
       this.isInitialized = false;
 
-      logger.info('✅ WebSocket Manager disconnected');
+      logger.info("✅ WebSocket Manager disconnected");
     } catch (error) {
-      logger.error('❌ Error disconnecting WebSocket Manager:', error);
+      logger.error("❌ Error disconnecting WebSocket Manager:", error);
     }
   }
 }

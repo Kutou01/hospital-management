@@ -97,17 +97,17 @@ export class AppointmentRealtimeService {
       const { eventType, new: newRecord, old: oldRecord } = payload;
 
       // Type-safe access to record properties
-      const appointmentId = (newRecord as any)?.appointment_id || (oldRecord as any)?.appointment_id;
+      const appointment_id = (newRecord as any)?.appointment_id || (oldRecord as any)?.appointment_id;
 
       logger.info('📡 Received appointment change:', {
         eventType,
-        appointmentId
+        appointment_id
       });
 
       // Create standardized event with type-safe access
       const realtimeEvent: AppointmentRealtimeEvent = {
         type: eventType as 'INSERT' | 'UPDATE' | 'DELETE',
-        appointment_id: appointmentId,
+        appointment_id: appointment_id,
         doctor_id: (newRecord as any)?.doctor_id || (oldRecord as any)?.doctor_id,
         patient_id: (newRecord as any)?.patient_id || (oldRecord as any)?.patient_id,
         old_status: (oldRecord as any)?.status,
@@ -145,7 +145,7 @@ export class AppointmentRealtimeService {
 
       logger.info('✅ Appointment event processed successfully:', {
         type: event.type,
-        appointmentId: event.appointment_id
+        appointment_id: event.appointment_id
       });
 
     } catch (error) {
@@ -331,7 +331,7 @@ export class AppointmentRealtimeService {
    */
   private async handleStatusChange(event: AppointmentRealtimeEvent): Promise<void> {
     logger.info('🔄 Status changed:', {
-      appointmentId: event.appointment_id,
+      appointment_id: event.appointment_id,
       from: event.old_status,
       to: event.new_status
     });

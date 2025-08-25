@@ -1,10 +1,10 @@
-import { Server as HttpServer } from 'http';
+import { Server as HttpServer } from "http";
 export interface ConnectedClient {
     id: string;
     userId?: string;
     userRole?: string;
-    doctorId?: string;
-    patientId?: string;
+    doctor_id?: string;
+    patient_id?: string;
     rooms: Set<string>;
     connectedAt: Date;
 }

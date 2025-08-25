@@ -6,11 +6,11 @@ const router = express.Router();
 // Get doctor's reviews and ratings
 router.get('/:doctorId/reviews', authenticateToken, async (req, res) => {
   try {
-    const { doctorId } = req.params;
+    const { doctor_id } = req.params;
     const { page = 1, limit = 10, rating_filter } = req.query;
     
     // Verify doctor exists and user has permission
-    if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctorId)) {
+    if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctor_id)) {
       return res.status(403).json({
         success: false,
         error: { message: 'Không có quyền truy cập thông tin này' }
@@ -28,7 +28,7 @@ router.get('/:doctorId/reviews', authenticateToken, async (req, res) => {
           )
         )
       `)
-      .eq('doctor_id', doctorId)
+      .eq('doctor_id', doctor_id)
       .order('review_date', { ascending: false });
 
     // Apply rating filter if provided
@@ -56,7 +56,7 @@ router.get('/:doctorId/reviews', authenticateToken, async (req, res) => {
     const { data: stats, error: statsError } = await supabase
       .from('doctor_reviews')
       .select('rating')
-      .eq('doctor_id', doctorId);
+      .eq('doctor_id', doctor_id);
 
     if (statsError) {
       console.error('❌ [Reviews] Stats error:', statsError);
@@ -105,10 +105,10 @@ router.get('/:doctorId/reviews', authenticateToken, async (req, res) => {
 // Get review summary for doctor
 router.get('/:doctorId/reviews/summary', authenticateToken, async (req, res) => {
   try {
-    const { doctorId } = req.params;
+    const { doctor_id } = req.params;
     
     // Verify doctor exists and user has permission
-    if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctorId)) {
+    if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctor_id)) {
       return res.status(403).json({
         success: false,
         error: { message: 'Không có quyền truy cập thông tin này' }
@@ -119,7 +119,7 @@ router.get('/:doctorId/reviews/summary', authenticateToken, async (req, res) => 
     const { data: reviews, error } = await supabase
       .from('doctor_reviews')
       .select('rating, review_date')
-      .eq('doctor_id', doctorId);
+      .eq('doctor_id', doctor_id);
 
     if (error) {
       console.error('❌ [ReviewsSummary] Database error:', error);

@@ -55,7 +55,7 @@ router.get('/today', authMiddleware, requireReceptionistOrAdmin, appointmentCont
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: appointmentId
+ *         name: appointment_id
  *         required: true
  *         schema:
  *           type: string
@@ -93,7 +93,7 @@ router.put('/:appointmentId/notes', authMiddleware, requireReceptionistOrAdmin, 
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: appointmentId
+ *         name: appointment_id
  *         required: true
  *         schema:
  *           type: string
@@ -141,7 +141,7 @@ router.put('/:appointmentId/reschedule', authMiddleware, requireReceptionistOrAd
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: appointmentId
+ *         name: appointment_id
  *         required: true
  *         schema:
  *           type: string

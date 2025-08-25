@@ -39,9 +39,9 @@ export const appointmentTypeDefs = gql`
   type Appointment {
     # Basic Information
     id: UUID!
-    appointmentId: AppointmentID!
-    doctorId: DoctorID!
-    patientId: PatientID!
+    appointment_id: AppointmentID!
+    doctor_id: DoctorID!
+    patient_id: PatientID!
     
     # Scheduling Information
     scheduledDate: Date!
@@ -77,8 +77,8 @@ export const appointmentTypeDefs = gql`
     cancellationReason: String
     
     # Timestamps
-    createdAt: DateTime!
-    updatedAt: DateTime!
+    created_at: DateTime!
+    updated_at: DateTime!
     
     # Relationships
     doctor: Doctor!
@@ -105,7 +105,7 @@ export const appointmentTypeDefs = gql`
     endTime: DateTime!
     duration: Int!
     isAvailable: Boolean!
-    doctorId: DoctorID!
+    doctor_id: DoctorID!
     room: Room
     maxAppointments: Int
     currentAppointments: Int
@@ -130,7 +130,7 @@ export const appointmentTypeDefs = gql`
   # Daily Schedule
   type DailySchedule {
     date: Date!
-    doctorId: DoctorID!
+    doctor_id: DoctorID!
     appointments: [Appointment!]!
     availableSlots: [AppointmentSlot!]!
     totalSlots: Int!
@@ -161,8 +161,8 @@ export const appointmentTypeDefs = gql`
 
   # Input Types
   input AppointmentFilters {
-    doctorId: DoctorID
-    patientId: PatientID
+    doctor_id: DoctorID
+    patient_id: PatientID
     departmentId: UUID
     status: AppointmentStatus
     type: AppointmentType
@@ -176,8 +176,8 @@ export const appointmentTypeDefs = gql`
   }
 
   input CreateAppointmentInput {
-    doctorId: DoctorID!
-    patientId: PatientID!
+    doctor_id: DoctorID!
+    patient_id: PatientID!
     scheduledDate: Date!
     scheduledTime: Time!
     duration: Int = 30
@@ -203,20 +203,20 @@ export const appointmentTypeDefs = gql`
   }
 
   input RescheduleAppointmentInput {
-    appointmentId: AppointmentID!
+    appointment_id: AppointmentID!
     newDate: Date!
     newTime: Time!
     reason: String
   }
 
   input CancelAppointmentInput {
-    appointmentId: AppointmentID!
+    appointment_id: AppointmentID!
     reason: String!
     refundRequested: Boolean = false
   }
 
   input CheckInInput {
-    appointmentId: AppointmentID!
+    appointment_id: AppointmentID!
     actualArrivalTime: DateTime
     symptoms: [String!]
     notes: String
@@ -225,7 +225,7 @@ export const appointmentTypeDefs = gql`
   # Queries
   extend type Query {
     # Single appointment queries
-    appointment(id: UUID, appointmentId: AppointmentID): Appointment
+    appointment(id: UUID, appointment_id: AppointmentID): Appointment
     
     # Multiple appointments queries
     appointments(
@@ -238,29 +238,29 @@ export const appointmentTypeDefs = gql`
     
     # Today's appointments
     todayAppointments(
-      doctorId: DoctorID
+      doctor_id: DoctorID
       departmentId: UUID
       status: AppointmentStatus
     ): [Appointment!]!
     
     # Upcoming appointments
     upcomingAppointments(
-      doctorId: DoctorID
-      patientId: PatientID
+      doctor_id: DoctorID
+      patient_id: PatientID
       days: Int = 7
       limit: Int = 20
     ): [Appointment!]!
     
     # Available slots
     availableSlots(
-      doctorId: DoctorID!
+      doctor_id: DoctorID!
       date: Date!
       duration: Int = 30
     ): [AppointmentSlot!]!
     
     # Doctor's daily schedule
     doctorDailySchedule(
-      doctorId: DoctorID!
+      doctor_id: DoctorID!
       date: Date!
     ): DailySchedule!
     
@@ -275,20 +275,20 @@ export const appointmentTypeDefs = gql`
     # Appointment statistics
     appointmentStats(
       date: Date
-      doctorId: DoctorID
+      doctor_id: DoctorID
       departmentId: UUID
     ): AppointmentStats!
     
     # Patient appointment history
     patientAppointmentHistory(
-      patientId: PatientID!
+      patient_id: PatientID!
       limit: Int = 20
       offset: Int = 0
     ): AppointmentConnection!
     
     # Doctor appointment history
     doctorAppointmentHistory(
-      doctorId: DoctorID!
+      doctor_id: DoctorID!
       dateFrom: Date
       dateTo: Date
       limit: Int = 20
@@ -297,7 +297,7 @@ export const appointmentTypeDefs = gql`
     
     # Conflicting appointments
     conflictingAppointments(
-      doctorId: DoctorID!
+      doctor_id: DoctorID!
       date: Date!
       startTime: Time!
       endTime: Time!
@@ -305,7 +305,7 @@ export const appointmentTypeDefs = gql`
     
     # Waiting queue
     waitingQueue(
-      doctorId: DoctorID
+      doctor_id: DoctorID
       departmentId: UUID
       date: Date
     ): [Appointment!]!
@@ -343,8 +343,8 @@ export const appointmentTypeDefs = gql`
     
     # Emergency appointment
     createEmergencyAppointment(
-      doctorId: DoctorID!
-      patientId: PatientID!
+      doctor_id: DoctorID!
+      patient_id: PatientID!
       reason: String!
       priority: AppointmentPriority = EMERGENCY
     ): Appointment!
@@ -361,27 +361,27 @@ export const appointmentTypeDefs = gql`
   # Subscriptions
   extend type Subscription {
     # Appointment updates
-    appointmentUpdated(appointmentId: AppointmentID): Appointment!
-    appointmentStatusChanged(appointmentId: AppointmentID): Appointment!
+    appointmentUpdated(appointment_id: AppointmentID): Appointment!
+    appointmentStatusChanged(appointment_id: AppointmentID): Appointment!
     
     # Doctor appointments
-    doctorAppointmentUpdated(doctorId: DoctorID!): Appointment!
-    doctorScheduleChanged(doctorId: DoctorID!): DailySchedule!
+    doctorAppointmentUpdated(doctor_id: DoctorID!): Appointment!
+    doctorScheduleChanged(doctor_id: DoctorID!): DailySchedule!
     
     # Patient appointments
-    patientAppointmentUpdated(patientId: PatientID!): Appointment!
+    patientAppointmentUpdated(patient_id: PatientID!): Appointment!
     
     # Department appointments
     departmentAppointmentUpdated(departmentId: UUID!): Appointment!
     
     # Real-time queue updates
-    waitingQueueUpdated(doctorId: DoctorID): [Appointment!]!
+    waitingQueueUpdated(doctor_id: DoctorID): [Appointment!]!
     
     # New appointments
-    newAppointmentCreated(doctorId: DoctorID): Appointment!
+    newAppointmentCreated(doctor_id: DoctorID): Appointment!
     
     # Appointment reminders
-    appointmentReminder(patientId: PatientID): Appointment!
+    appointmentReminder(patient_id: PatientID): Appointment!
   }
 `;
 

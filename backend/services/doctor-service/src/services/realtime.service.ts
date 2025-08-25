@@ -166,16 +166,16 @@ export class DoctorRealtimeService {
   private async handleDoctorChange(payload: RealtimePostgresChangesPayload<any>): Promise<void> {
     try {
       const { eventType, new: newRecord, old: oldRecord } = payload;
-      const doctorId = (newRecord as any)?.doctor_id || (oldRecord as any)?.doctor_id;
+      const doctor_id = (newRecord as any)?.doctor_id || (oldRecord as any)?.doctor_id;
       
       logger.info('📡 Received doctor change:', {
         eventType,
-        doctorId
+        doctor_id
       });
 
       const realtimeEvent: DoctorRealtimeEvent = {
         type: eventType as 'INSERT' | 'UPDATE' | 'DELETE',
-        doctor_id: doctorId,
+        doctor_id: doctor_id,
         profile_id: (newRecord as any)?.profile_id || (oldRecord as any)?.profile_id,
         old_status: (oldRecord as any)?.availability_status,
         new_status: (newRecord as any)?.availability_status,
@@ -206,15 +206,15 @@ export class DoctorRealtimeService {
       });
 
       // Find associated doctor
-      const doctorId = await this.findDoctorByProfileId(profileId);
-      if (!doctorId) {
+      const doctor_id = await this.findDoctorByProfileId(profileId);
+      if (!doctor_id) {
         logger.warn('⚠️ No doctor found for profile:', profileId);
         return;
       }
 
       const realtimeEvent: DoctorRealtimeEvent = {
         type: eventType as 'INSERT' | 'UPDATE' | 'DELETE',
-        doctor_id: doctorId,
+        doctor_id: doctor_id,
         profile_id: profileId,
         old_status: (oldRecord as any)?.status,
         new_status: (newRecord as any)?.status,
@@ -237,16 +237,16 @@ export class DoctorRealtimeService {
   private async handleShiftChange(payload: RealtimePostgresChangesPayload<any>): Promise<void> {
     try {
       const { eventType, new: newRecord, old: oldRecord } = payload;
-      const doctorId = (newRecord as any)?.doctor_id || (oldRecord as any)?.doctor_id;
+      const doctor_id = (newRecord as any)?.doctor_id || (oldRecord as any)?.doctor_id;
       
       logger.info('📡 Received doctor shift change:', {
         eventType,
-        doctorId
+        doctor_id
       });
 
       const realtimeEvent: DoctorRealtimeEvent = {
         type: eventType as 'INSERT' | 'UPDATE' | 'DELETE',
-        doctor_id: doctorId,
+        doctor_id: doctor_id,
         old_status: (oldRecord as any)?.status,
         new_status: (newRecord as any)?.status,
         availability_updated: false,
@@ -268,16 +268,16 @@ export class DoctorRealtimeService {
   private async handleExperienceChange(payload: RealtimePostgresChangesPayload<any>): Promise<void> {
     try {
       const { eventType, new: newRecord, old: oldRecord } = payload;
-      const doctorId = (newRecord as any)?.doctor_id || (oldRecord as any)?.doctor_id;
+      const doctor_id = (newRecord as any)?.doctor_id || (oldRecord as any)?.doctor_id;
 
       logger.info('📡 Received doctor experience change:', {
         eventType,
-        doctorId
+        doctor_id
       });
 
       const realtimeEvent: DoctorRealtimeEvent = {
         type: eventType as 'INSERT' | 'UPDATE' | 'DELETE',
-        doctor_id: doctorId,
+        doctor_id: doctor_id,
         old_status: (oldRecord as any)?.status,
         new_status: (newRecord as any)?.status,
         availability_updated: false,
@@ -312,7 +312,7 @@ export class DoctorRealtimeService {
 
       logger.info('✅ Doctor event processed successfully:', {
         type: event.type,
-        doctorId: event.doctor_id
+        doctor_id: event.doctor_id
       });
 
     } catch (error) {

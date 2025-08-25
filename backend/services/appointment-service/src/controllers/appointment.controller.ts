@@ -94,8 +94,8 @@ export class AppointmentController {
         return;
       }
 
-      const { appointmentId } = req.params;
-      const appointment = await this.appointmentRepository.getAppointmentById(appointmentId);
+      const { appointment_id } = req.params;
+      const appointment = await this.appointmentRepository.getAppointmentById(appointment_id);
 
       if (!appointment) {
         res.status(404).json({
@@ -138,7 +138,7 @@ export class AppointmentController {
         return;
       }
 
-      const { doctorId } = req.params;
+      const { doctor_id } = req.params;
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
 
@@ -149,7 +149,7 @@ export class AppointmentController {
       };
 
       const { appointments, total } = await this.appointmentRepository.getAppointmentsByDoctorId(
-        doctorId, 
+        doctor_id, 
         filters, 
         page, 
         limit
@@ -193,7 +193,7 @@ export class AppointmentController {
         return;
       }
 
-      const { patientId } = req.params;
+      const { patient_id } = req.params;
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
 
@@ -204,7 +204,7 @@ export class AppointmentController {
       };
 
       const { appointments, total } = await this.appointmentRepository.getAppointmentsByPatientId(
-        patientId, 
+        patient_id, 
         filters, 
         page, 
         limit
@@ -342,11 +342,11 @@ export class AppointmentController {
         return;
       }
 
-      const { appointmentId } = req.params;
+      const { appointment_id } = req.params;
       const updateData: UpdateAppointmentDto = req.body;
 
       // Check if appointment exists
-      const exists = await this.appointmentRepository.appointmentExists(appointmentId);
+      const exists = await this.appointmentRepository.appointmentExists(appointment_id);
       if (!exists) {
         res.status(404).json({
           success: false,
@@ -358,7 +358,7 @@ export class AppointmentController {
 
       // If updating time, check for conflicts
       if (updateData.appointment_date || updateData.start_time || updateData.end_time) {
-        const currentAppointment = await this.appointmentRepository.getAppointmentById(appointmentId);
+        const currentAppointment = await this.appointmentRepository.getAppointmentById(appointment_id);
         if (currentAppointment) {
           const checkDate = updateData.appointment_date || currentAppointment.appointment_date;
           const checkStartTime = updateData.start_time || currentAppointment.start_time;
@@ -369,7 +369,7 @@ export class AppointmentController {
             checkDate,
             checkStartTime,
             checkEndTime,
-            appointmentId
+            appointment_id
           );
 
           if (conflictCheck.has_conflict) {
@@ -384,7 +384,7 @@ export class AppointmentController {
         }
       }
 
-      const appointment = await this.appointmentRepository.updateAppointment(appointmentId, updateData);
+      const appointment = await this.appointmentRepository.updateAppointment(appointment_id, updateData);
 
       const response: AppointmentResponse = {
         success: true,
@@ -419,11 +419,11 @@ export class AppointmentController {
         return;
       }
 
-      const { appointmentId } = req.params;
+      const { appointment_id } = req.params;
       const { reason } = req.body;
 
       // Check if appointment exists
-      const exists = await this.appointmentRepository.appointmentExists(appointmentId);
+      const exists = await this.appointmentRepository.appointmentExists(appointment_id);
       if (!exists) {
         res.status(404).json({
           success: false,
@@ -433,7 +433,7 @@ export class AppointmentController {
         return;
       }
 
-      await this.appointmentRepository.cancelAppointment(appointmentId, reason);
+      await this.appointmentRepository.cancelAppointment(appointment_id, reason);
 
       res.json({
         success: true,
@@ -465,11 +465,11 @@ export class AppointmentController {
         return;
       }
 
-      const { appointmentId } = req.params;
+      const { appointment_id } = req.params;
       const { notes } = req.body;
 
       // Check if appointment exists
-      const exists = await this.appointmentRepository.appointmentExists(appointmentId);
+      const exists = await this.appointmentRepository.appointmentExists(appointment_id);
       if (!exists) {
         res.status(404).json({
           success: false,
@@ -487,7 +487,7 @@ export class AppointmentController {
         updateData.notes = notes;
       }
 
-      const appointment = await this.appointmentRepository.updateAppointment(appointmentId, updateData);
+      const appointment = await this.appointmentRepository.updateAppointment(appointment_id, updateData);
 
       const response: AppointmentResponse = {
         success: true,
@@ -594,10 +594,10 @@ export class AppointmentController {
         return;
       }
 
-      const { doctorId } = req.params;
+      const { doctor_id } = req.params;
       const days = parseInt(req.query.days as string) || 7;
 
-      const appointments = await this.appointmentRepository.getUpcomingAppointments(doctorId, days);
+      const appointments = await this.appointmentRepository.getUpcomingAppointments(doctor_id, days);
 
       const response: AppointmentResponse = {
         success: true,
@@ -692,7 +692,7 @@ export class AppointmentController {
   // Get calendar view for appointments
   async getCalendarView(req: Request, res: Response): Promise<void> {
     try {
-      const { date, doctorId, view = 'month' } = req.query;
+      const { date, doctor_id, view = 'month' } = req.query;
 
       if (!date) {
         res.status(400).json({
@@ -705,7 +705,7 @@ export class AppointmentController {
 
       const calendarData = await this.appointmentRepository.getCalendarView(
         date as string,
-        doctorId as string,
+        doctor_id as string,
         view as 'day' | 'week' | 'month'
       );
 
@@ -730,10 +730,10 @@ export class AppointmentController {
   // Get weekly schedule for a doctor
   async getWeeklySchedule(req: Request, res: Response): Promise<void> {
     try {
-      const { doctorId } = req.params;
+      const { doctor_id } = req.params;
       const { startDate } = req.query;
 
-      if (!doctorId) {
+      if (!doctor_id) {
         res.status(400).json({
           success: false,
           error: 'Doctor ID is required',
@@ -743,7 +743,7 @@ export class AppointmentController {
       }
 
       const weeklySchedule = await this.appointmentRepository.getWeeklySchedule(
-        doctorId,
+        doctor_id,
         startDate as string
       );
 
@@ -850,10 +850,10 @@ export class AppointmentController {
         return;
       }
 
-      const { doctorId } = req.params;
+      const { doctor_id } = req.params;
 
       // Get appointment statistics
-      const stats = await this.appointmentRepository.getDoctorAppointmentStats(doctorId);
+      const stats = await this.appointmentRepository.getDoctorAppointmentStats(doctor_id);
 
       const response: AppointmentResponse = {
         success: true,
@@ -888,10 +888,10 @@ export class AppointmentController {
         return;
       }
 
-      const { doctorId } = req.params;
+      const { doctor_id } = req.params;
 
       // Get unique patient count for doctor
-      const patientCount = await this.appointmentRepository.getDoctorPatientCount(doctorId);
+      const patientCount = await this.appointmentRepository.getDoctorPatientCount(doctor_id);
 
       const response = {
         success: true,

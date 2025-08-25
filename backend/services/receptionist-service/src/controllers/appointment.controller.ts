@@ -105,10 +105,10 @@ export class AppointmentController {
         return;
       }
 
-      const { appointmentId } = req.params;
+      const { appointment_id } = req.params;
       const { receptionist_notes, insurance_verified } = req.body;
 
-      if (!appointmentId) {
+      if (!appointment_id) {
         res.status(400).json({
           success: false,
           error: { message: 'Mã lịch hẹn là bắt buộc' }
@@ -130,7 +130,7 @@ export class AppointmentController {
       const { error } = await supabaseAdmin
         .from('appointments')
         .update(updateData)
-        .eq('appointment_id', appointmentId);
+        .eq('appointment_id', appointment_id);
 
       if (error) {
         logger.error('Error updating appointment notes:', error);
@@ -165,10 +165,10 @@ export class AppointmentController {
         return;
       }
 
-      const { appointmentId } = req.params;
+      const { appointment_id } = req.params;
       const { new_date, new_time, reason } = req.body;
 
-      if (!appointmentId || !new_date || !new_time) {
+      if (!appointment_id || !new_date || !new_time) {
         res.status(400).json({
           success: false,
           error: { message: 'Mã lịch hẹn, ngày mới và giờ mới là bắt buộc' }
@@ -182,7 +182,7 @@ export class AppointmentController {
         .select('doctor_id')
         .eq('appointment_date', new_date)
         .eq('appointment_time', new_time)
-        .neq('appointment_id', appointmentId)
+        .neq('appointment_id', appointment_id)
         .single();
 
       if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
@@ -212,7 +212,7 @@ export class AppointmentController {
           receptionist_notes: reason ? `Đổi lịch: ${reason}` : 'Đổi lịch bởi lễ tân',
           updated_at: new Date().toISOString()
         })
-        .eq('appointment_id', appointmentId);
+        .eq('appointment_id', appointment_id);
 
       if (updateError) {
         logger.error('Error rescheduling appointment:', updateError);
@@ -247,10 +247,10 @@ export class AppointmentController {
         return;
       }
 
-      const { appointmentId } = req.params;
+      const { appointment_id } = req.params;
       const { reason } = req.body;
 
-      if (!appointmentId) {
+      if (!appointment_id) {
         res.status(400).json({
           success: false,
           error: { message: 'Mã lịch hẹn là bắt buộc' }
@@ -265,7 +265,7 @@ export class AppointmentController {
           receptionist_notes: reason ? `Hủy lịch: ${reason}` : 'Hủy lịch bởi lễ tân',
           updated_at: new Date().toISOString()
         })
-        .eq('appointment_id', appointmentId);
+        .eq('appointment_id', appointment_id);
 
       if (error) {
         logger.error('Error cancelling appointment:', error);

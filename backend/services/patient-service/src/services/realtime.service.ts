@@ -121,17 +121,17 @@ export class PatientRealtimeService {
       const { eventType, new: newRecord, old: oldRecord } = payload;
       
       // Type-safe access to record properties
-      const patientId = (newRecord as any)?.patient_id || (oldRecord as any)?.patient_id;
+      const patient_id = (newRecord as any)?.patient_id || (oldRecord as any)?.patient_id;
       
       logger.info('📡 Received patient change:', {
         eventType,
-        patientId
+        patient_id
       });
 
       // Create standardized event with type-safe access
       const realtimeEvent: PatientRealtimeEvent = {
         type: eventType as 'INSERT' | 'UPDATE' | 'DELETE',
-        patient_id: patientId,
+        patient_id: patient_id,
         profile_id: (newRecord as any)?.profile_id || (oldRecord as any)?.profile_id,
         old_status: (oldRecord as any)?.status,
         new_status: (newRecord as any)?.status,
@@ -164,12 +164,12 @@ export class PatientRealtimeService {
       });
 
       // Find associated patient
-      const patientId = await this.findPatientByProfileId(profileId);
+      const patient_id = await this.findPatientByProfileId(profileId);
       
-      if (patientId) {
+      if (patient_id) {
         const realtimeEvent: PatientRealtimeEvent = {
           type: eventType as 'INSERT' | 'UPDATE' | 'DELETE',
-          patient_id: patientId,
+          patient_id: patient_id,
           profile_id: profileId,
           timestamp: new Date().toISOString()
         };
@@ -201,7 +201,7 @@ export class PatientRealtimeService {
 
       logger.info('✅ Patient event processed successfully:', {
         type: event.type,
-        patientId: event.patient_id
+        patient_id: event.patient_id
       });
 
     } catch (error) {

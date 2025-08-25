@@ -62,7 +62,7 @@ export class NotificationService {
       });
 
       logger.info('✅ Appointment created notifications sent', {
-        appointmentId: appointment.appointment_id
+        appointment_id: appointment.appointment_id
       });
     } catch (error) {
       logger.error('❌ Error sending appointment created notifications:', error);
@@ -109,7 +109,7 @@ export class NotificationService {
       });
 
       logger.info('✅ Appointment updated notifications sent', {
-        appointmentId: appointment.appointment_id,
+        appointment_id: appointment.appointment_id,
         changes
       });
     } catch (error) {
@@ -157,7 +157,7 @@ export class NotificationService {
       });
 
       logger.info('✅ Appointment cancelled notifications sent', {
-        appointmentId: appointment.appointment_id,
+        appointment_id: appointment.appointment_id,
         reason
       });
     } catch (error) {
@@ -199,7 +199,7 @@ export class NotificationService {
       });
 
       logger.info('✅ Appointment reminder sent', {
-        appointmentId: appointment.appointment_id,
+        appointment_id: appointment.appointment_id,
         reminderType
       });
     } catch (error) {
@@ -223,7 +223,7 @@ export class NotificationService {
         type: notificationData.type,
         recipient: notificationData.recipient,
         message: notificationData.message,
-        appointmentId: notificationData.appointment.appointment_id
+        appointment_id: notificationData.appointment.appointment_id
       });
 
       // Simulate notification sending

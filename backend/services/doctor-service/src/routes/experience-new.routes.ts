@@ -6,10 +6,10 @@ const router = express.Router();
 // Get doctor's work experiences
 router.get('/:doctorId/experience', authenticateToken, async (req, res) => {
   try {
-    const { doctorId } = req.params;
+    const { doctor_id } = req.params;
 
     // Verify doctor exists and user has permission
-    if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctorId)) {
+    if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctor_id)) {
       return res.status(403).json({
         success: false,
         error: { message: 'Không có quyền truy cập thông tin này' }
@@ -19,7 +19,7 @@ router.get('/:doctorId/experience', authenticateToken, async (req, res) => {
     const { data: experiences, error } = await supabase
       .from('doctor_work_experiences')
       .select('*')
-      .eq('doctor_id', doctorId)
+      .eq('doctor_id', doctor_id)
       .order('start_date', { ascending: false });
 
     if (error) {
@@ -47,10 +47,10 @@ router.get('/:doctorId/experience', authenticateToken, async (req, res) => {
 // Get doctor's work experiences
 router.get('/:doctorId/experience', authenticateToken, async (req, res) => {
   try {
-    const { doctorId } = req.params;
+    const { doctor_id } = req.params;
     
     // Verify doctor exists and user has permission
-    if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctorId)) {
+    if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctor_id)) {
       return res.status(403).json({
         success: false,
         error: { message: 'Không có quyền truy cập thông tin này' }
@@ -60,7 +60,7 @@ router.get('/:doctorId/experience', authenticateToken, async (req, res) => {
     const { data: experiences, error } = await supabase
       .from('doctor_work_experiences')
       .select('*')
-      .eq('doctor_id', doctorId)
+      .eq('doctor_id', doctor_id)
       .order('start_date', { ascending: false });
 
     if (error) {
@@ -88,11 +88,11 @@ router.get('/:doctorId/experience', authenticateToken, async (req, res) => {
 // Add new work experience
 router.post('/:doctorId/experience', authenticateToken, requireRole(['doctor', 'admin']), async (req, res) => {
   try {
-    const { doctorId } = req.params;
+    const { doctor_id } = req.params;
     const { hospital_name, position, department, start_date, end_date, description, achievements, is_current } = req.body;
 
     // Verify doctor exists and user has permission
-    if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctorId)) {
+    if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctor_id)) {
       return res.status(403).json({
         success: false,
         error: { message: 'Không có quyền thêm thông tin này' }
@@ -112,13 +112,13 @@ router.post('/:doctorId/experience', authenticateToken, requireRole(['doctor', '
       await supabase
         .from('doctor_work_experiences')
         .update({ is_current: false })
-        .eq('doctor_id', doctorId);
+        .eq('doctor_id', doctor_id);
     }
 
     const { data: experience, error } = await supabase
       .from('doctor_work_experiences')
       .insert({
-        doctor_id: doctorId,
+        doctor_id: doctor_id,
         hospital_name,
         position,
         department,
@@ -157,11 +157,11 @@ router.post('/:doctorId/experience', authenticateToken, requireRole(['doctor', '
 // Update work experience
 router.put('/:doctorId/experience/:experienceId', authenticateToken, requireRole(['doctor', 'admin']), async (req, res) => {
   try {
-    const { doctorId, experienceId } = req.params;
+    const { doctor_id, experienceId } = req.params;
     const { hospital_name, position, department, start_date, end_date, description, achievements, is_current } = req.body;
 
     // Verify doctor exists and user has permission
-    if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctorId)) {
+    if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctor_id)) {
       return res.status(403).json({
         success: false,
         error: { message: 'Không có quyền cập nhật thông tin này' }
@@ -173,7 +173,7 @@ router.put('/:doctorId/experience/:experienceId', authenticateToken, requireRole
       await supabase
         .from('doctor_work_experiences')
         .update({ is_current: false })
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctor_id)
         .neq('id', experienceId);
     }
 
@@ -190,7 +190,7 @@ router.put('/:doctorId/experience/:experienceId', authenticateToken, requireRole
         is_current: is_current || false
       })
       .eq('id', experienceId)
-      .eq('doctor_id', doctorId)
+      .eq('doctor_id', doctor_id)
       .select()
       .single();
 
@@ -227,10 +227,10 @@ router.put('/:doctorId/experience/:experienceId', authenticateToken, requireRole
 // Delete work experience
 router.delete('/:doctorId/experience/:experienceId', authenticateToken, requireRole(['doctor', 'admin']), async (req, res) => {
   try {
-    const { doctorId, experienceId } = req.params;
+    const { doctor_id, experienceId } = req.params;
 
     // Verify doctor exists and user has permission
-    if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctorId)) {
+    if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctor_id)) {
       return res.status(403).json({
         success: false,
         error: { message: 'Không có quyền xóa thông tin này' }
@@ -241,7 +241,7 @@ router.delete('/:doctorId/experience/:experienceId', authenticateToken, requireR
       .from('doctor_work_experiences')
       .delete()
       .eq('id', experienceId)
-      .eq('doctor_id', doctorId);
+      .eq('doctor_id', doctor_id);
 
     if (error) {
       console.error('❌ [Experience] Delete error:', error);

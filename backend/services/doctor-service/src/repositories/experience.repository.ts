@@ -13,19 +13,19 @@ export class ExperienceRepository {
     this.supabase = getSupabase();
   }
 
-  async findByDoctorId(doctorId: string): Promise<DoctorExperience[]> {
+  async findByDoctorId(doctor_id: string): Promise<DoctorExperience[]> {
     try {
       const { data, error } = await this.supabase
         .from('doctor_experiences')
         .select('*')
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctor_id)
         .order('start_date', { ascending: false });
 
       if (error) throw error;
 
       return data?.map(this.mapSupabaseExperienceToExperience) || [];
     } catch (error) {
-      logger.error('Error finding experiences by doctor ID', { error, doctorId });
+      logger.error('Error finding experiences by doctor ID', { error, doctor_id });
       throw error;
     }
   }
@@ -50,12 +50,12 @@ export class ExperienceRepository {
     }
   }
 
-  async findByType(doctorId: string, experienceType: 'work' | 'education' | 'certification' | 'research'): Promise<DoctorExperience[]> {
+  async findByType(doctor_id: string, experienceType: 'work' | 'education' | 'certification' | 'research'): Promise<DoctorExperience[]> {
     try {
       const { data, error } = await this.supabase
         .from('doctor_experiences')
         .select('*')
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctor_id)
         .eq('experience_type', experienceType)
         .order('start_date', { ascending: false });
 
@@ -63,17 +63,17 @@ export class ExperienceRepository {
 
       return data?.map(this.mapSupabaseExperienceToExperience) || [];
     } catch (error) {
-      logger.error('Error finding experiences by type', { error, doctorId, experienceType });
+      logger.error('Error finding experiences by type', { error, doctor_id, experienceType });
       throw error;
     }
   }
 
-  async findCurrent(doctorId: string): Promise<DoctorExperience[]> {
+  async findCurrent(doctor_id: string): Promise<DoctorExperience[]> {
     try {
       const { data, error } = await this.supabase
         .from('doctor_experiences')
         .select('*')
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctor_id)
         .eq('is_current', true)
         .order('start_date', { ascending: false });
 
@@ -81,7 +81,7 @@ export class ExperienceRepository {
 
       return data?.map(this.mapSupabaseExperienceToExperience) || [];
     } catch (error) {
-      logger.error('Error finding current experiences', { error, doctorId });
+      logger.error('Error finding current experiences', { error, doctor_id });
       throw error;
     }
   }
@@ -169,30 +169,30 @@ export class ExperienceRepository {
     }
   }
 
-  async getWorkExperience(doctorId: string): Promise<DoctorExperience[]> {
-    return this.findByType(doctorId, 'work');
+  async getWorkExperience(doctor_id: string): Promise<DoctorExperience[]> {
+    return this.findByType(doctor_id, 'work');
   }
 
-  async getEducation(doctorId: string): Promise<DoctorExperience[]> {
-    return this.findByType(doctorId, 'education');
+  async getEducation(doctor_id: string): Promise<DoctorExperience[]> {
+    return this.findByType(doctor_id, 'education');
   }
 
-  async getCertifications(doctorId: string): Promise<DoctorExperience[]> {
-    return this.findByType(doctorId, 'certification');
+  async getCertifications(doctor_id: string): Promise<DoctorExperience[]> {
+    return this.findByType(doctor_id, 'certification');
   }
 
-  async getResearch(doctorId: string): Promise<DoctorExperience[]> {
-    return this.findByType(doctorId, 'research');
+  async getResearch(doctor_id: string): Promise<DoctorExperience[]> {
+    return this.findByType(doctor_id, 'research');
   }
 
-  async calculateTotalExperience(doctorId: string): Promise<{
+  async calculateTotalExperience(doctor_id: string): Promise<{
     total_years: number;
     work_years: number;
     education_years: number;
     current_positions: DoctorExperience[];
   }> {
     try {
-      const experiences = await this.findByDoctorId(doctorId);
+      const experiences = await this.findByDoctorId(doctor_id);
       const currentDate = new Date();
 
       let totalYears = 0;
@@ -221,14 +221,14 @@ export class ExperienceRepository {
         current_positions: currentPositions
       };
     } catch (error) {
-      logger.error('Error calculating total experience', { error, doctorId });
+      logger.error('Error calculating total experience', { error, doctor_id });
       throw error;
     }
   }
 
-  async getExperienceTimeline(doctorId: string): Promise<DoctorExperience[]> {
+  async getExperienceTimeline(doctor_id: string): Promise<DoctorExperience[]> {
     try {
-      const experiences = await this.findByDoctorId(doctorId);
+      const experiences = await this.findByDoctorId(doctor_id);
       
       // Sort by start date (most recent first)
       return experiences.sort((a, b) => {
@@ -237,17 +237,17 @@ export class ExperienceRepository {
         return dateB.getTime() - dateA.getTime();
       });
     } catch (error) {
-      logger.error('Error getting experience timeline', { error, doctorId });
+      logger.error('Error getting experience timeline', { error, doctor_id });
       throw error;
     }
   }
 
-  async searchExperiences(doctorId: string, searchTerm: string): Promise<DoctorExperience[]> {
+  async searchExperiences(doctor_id: string, searchTerm: string): Promise<DoctorExperience[]> {
     try {
       const { data, error } = await this.supabase
         .from('doctor_experiences')
         .select('*')
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctor_id)
         .or(`institution_name.ilike.%${searchTerm}%,position.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
         .order('start_date', { ascending: false });
 
@@ -255,17 +255,17 @@ export class ExperienceRepository {
 
       return data?.map(this.mapSupabaseExperienceToExperience) || [];
     } catch (error) {
-      logger.error('Error searching experiences', { error, doctorId, searchTerm });
+      logger.error('Error searching experiences', { error, doctor_id, searchTerm });
       throw error;
     }
   }
 
-  async getExperiencesByDateRange(doctorId: string, startDate: Date, endDate: Date): Promise<DoctorExperience[]> {
+  async getExperiencesByDateRange(doctor_id: string, startDate: Date, endDate: Date): Promise<DoctorExperience[]> {
     try {
       const { data, error } = await this.supabase
         .from('doctor_experiences')
         .select('*')
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctor_id)
         .gte('start_date', startDate.toISOString().split('T')[0])
         .lte('start_date', endDate.toISOString().split('T')[0])
         .order('start_date', { ascending: false });
@@ -274,13 +274,13 @@ export class ExperienceRepository {
 
       return data?.map(this.mapSupabaseExperienceToExperience) || [];
     } catch (error) {
-      logger.error('Error getting experiences by date range', { error, doctorId, startDate, endDate });
+      logger.error('Error getting experiences by date range', { error, doctor_id, startDate, endDate });
       throw error;
     }
   }
 
   private async updateCurrentStatus(
-    doctorId: string, 
+    doctor_id: string, 
     experienceType: string, 
     isCurrent: boolean, 
     excludeId?: string
@@ -289,7 +289,7 @@ export class ExperienceRepository {
       let query = this.supabase
         .from('doctor_experiences')
         .update({ is_current: isCurrent })
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctor_id)
         .eq('experience_type', experienceType);
 
       if (excludeId) {
@@ -300,7 +300,7 @@ export class ExperienceRepository {
 
       if (error) throw error;
     } catch (error) {
-      logger.error('Error updating current status', { error, doctorId, experienceType, isCurrent });
+      logger.error('Error updating current status', { error, doctor_id, experienceType, isCurrent });
       throw error;
     }
   }

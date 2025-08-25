@@ -15,7 +15,7 @@ const VALID_STATUSES = ['active', 'inactive', 'on_leave'];
 const VALID_GENDERS = ['male', 'female', 'other'];
 
 export const validateDoctorId = [
-  param('doctorId')
+  param('doctor_id')
     .matches(DOCTOR_ID_PATTERN)
     .withMessage('Doctor ID must be in format DEPT-DOC-YYYYMM-XXX (e.g., CARD-DOC-202506-001)')
 ];
@@ -228,8 +228,8 @@ export const validateLanguagesArray = (languages: any): boolean => {
   );
 };
 
-export const validateDoctorIdFormat = (doctorId: string): boolean => {
-  return DOCTOR_ID_PATTERN.test(doctorId);
+export const validateDoctorIdFormat = (doctor_id: string): boolean => {
+  return DOCTOR_ID_PATTERN.test(doctor_id);
 };
 
 export const validateLicenseNumberFormat = (licenseNumber: string): boolean => {

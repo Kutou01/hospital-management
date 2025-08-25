@@ -21,14 +21,14 @@ export class CheckInController {
       }
 
       const {
-        appointmentId,
-        patientId,
+        appointment_id,
+        patient_id,
         insuranceVerified = false,
         documentsComplete = true,
         notes = ''
       } = req.body;
 
-      if (!appointmentId || !patientId) {
+      if (!appointment_id || !patient_id) {
         res.status(400).json({
           success: false,
           error: { message: 'Mã lịch hẹn và mã bệnh nhân là bắt buộc' }
@@ -37,8 +37,8 @@ export class CheckInController {
       }
 
       const checkInData = {
-        patient_id: patientId,
-        appointment_id: appointmentId,
+        patient_id: patient_id,
+        appointment_id: appointment_id,
         receptionist_id: req.user.receptionist_id || req.user.id,
         check_in_time: new Date().toISOString(),
         insurance_verified: insuranceVerified,
@@ -100,10 +100,10 @@ export class CheckInController {
         return;
       }
 
-      const { appointmentId } = req.params;
+      const { appointment_id } = req.params;
       const { status, notes } = req.body;
 
-      if (!appointmentId || !status) {
+      if (!appointment_id || !status) {
         res.status(400).json({
           success: false,
           error: { message: 'Mã lịch hẹn và trạng thái là bắt buộc' }
@@ -139,9 +139,9 @@ export class CheckInController {
         return;
       }
 
-      const { doctorId, roomNumber } = req.body;
+      const { doctor_id, roomNumber } = req.body;
 
-      if (!doctorId) {
+      if (!doctor_id) {
         res.status(400).json({
           success: false,
           error: { message: 'Mã bác sĩ là bắt buộc' }
@@ -153,7 +153,7 @@ export class CheckInController {
       const queue = await this.receptionistRepository.getQueue();
       const nextPatient = queue.find(item => 
         item.status === 'checked_in' && 
-        item.appointment_id.includes(doctorId) // This is a simplified check
+        item.appointment_id.includes(doctor_id) // This is a simplified check
       );
 
       if (!nextPatient) {

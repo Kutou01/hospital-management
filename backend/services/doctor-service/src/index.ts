@@ -8,6 +8,7 @@ import {
   createVersioningMiddleware,
   responseTransformMiddleware,
 } from "@hospital/shared/dist/middleware/versioning.middleware";
+import advancedICD10Routes from "@hospital/shared/dist/routes/advanced-icd10.routes";
 import logger from "@hospital/shared/dist/utils/logger";
 import {
   EnhancedResponseHelper,
@@ -15,6 +16,11 @@ import {
   addRequestId,
   globalErrorHandler,
 } from "@hospital/shared/dist/utils/response-helpers";
+import {
+  createConnectionPoolHealthCheck,
+  createConnectionPoolMetrics,
+  createConnectionPoolStressTest,
+} from "@hospital/shared/src/middleware/connection-pool-health";
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
@@ -23,6 +29,7 @@ import morgan from "morgan";
 import availabilityRoutes from "./routes/availability.routes";
 import doctorRoutes from "./routes/doctor.routes";
 import experienceRoutes from "./routes/experience.routes";
+import healthcareRoutes from "./routes/healthcare.routes";
 import reviewsRoutes from "./routes/reviews.routes";
 import scheduleRoutes from "./routes/schedule.routes";
 import settingsRoutes from "./routes/settings.routes";
@@ -84,6 +91,20 @@ app.get("/health", (req, res) => {
   res.json(healthCheck);
 });
 
+// Connection Pool Health Check Endpoints
+app.get(
+  "/health/connection-pool",
+  createConnectionPoolHealthCheck("doctor-service")
+);
+app.get(
+  "/metrics/connection-pool",
+  createConnectionPoolMetrics("doctor-service")
+);
+app.get(
+  "/test/connection-pool/stress",
+  createConnectionPoolStressTest("doctor-service")
+);
+
 // Prometheus metrics endpoint
 app.get("/metrics", (req, res) => {
   const metrics = `
@@ -125,12 +146,14 @@ app.use("/api/doctors", (req, res, next) => {
 
 // API Routes - Mount routes in correct order to avoid conflicts
 app.use("/api/doctors", doctorRoutes); // Mount doctor routes first (has specific routes like /by-profile)
-app.use("/api/doctors", scheduleRoutes); // Mount schedule routes after (has /:doctorId patterns)
+app.use("/api/doctors", scheduleRoutes); // Mount schedule routes after (has /:doctor_id patterns)
 app.use("/api/doctors", availabilityRoutes); // Mount availability routes
 app.use("/api/doctors", slotManagementRoutes); // Mount slot management routes
 app.use("/api/doctors", reviewsRoutes);
 app.use("/api/doctors", settingsRoutes);
 app.use("/api/doctors", experienceRoutes); // Mount experience routes under /api/doctors
+app.use("/api/doctors", healthcareRoutes); // Mount healthcare routes (FHIR & ICD-10)
+app.use("/api/icd10", advancedICD10Routes); // Mount advanced ICD-10 routes
 app.use("/api/shifts", shiftRoutes);
 // REMOVED: Duplicate /api/experiences route - use /api/doctors/:id/experiences instead
 

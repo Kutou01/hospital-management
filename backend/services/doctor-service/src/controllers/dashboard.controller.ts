@@ -85,16 +85,16 @@ export class DashboardController {
    */
   async getDoctorProfileDashboard(req: Request, res: Response): Promise<void> {
     try {
-      const { doctorId } = req.params;
+      const { doctor_id } = req.params;
       const startTime = Date.now();
 
       logger.info('🏥 [Dashboard] Getting complete profile dashboard', {
-        doctorId,
+        doctor_id,
         timestamp: new Date().toISOString()
       });
 
       // 1. Lấy thông tin cơ bản của bác sĩ
-      const doctorInfo = await this.getDoctorBasicInfo(doctorId);
+      const doctorInfo = await this.getDoctorBasicInfo(doctor_id);
       if (!doctorInfo) {
         res.status(404).json({
           success: false,
@@ -111,11 +111,11 @@ export class DashboardController {
         performanceMetrics,
         quickMetrics
       ] = await Promise.allSettled([
-        this.getAppointmentStatsData(doctorId),
-        this.getWeeklyScheduleData(doctorId),
-        this.getRecentReviewsData(doctorId),
-        this.getPerformanceMetrics(doctorId),
-        this.getQuickMetrics(doctorId)
+        this.getAppointmentStatsData(doctor_id),
+        this.getWeeklyScheduleData(doctor_id),
+        this.getRecentReviewsData(doctor_id),
+        this.getPerformanceMetrics(doctor_id),
+        this.getQuickMetrics(doctor_id)
       ]);
 
       // 3. Xử lý kết quả và handle errors gracefully
@@ -183,7 +183,7 @@ export class DashboardController {
       const loadTime = Date.now() - startTime;
 
       logger.info('✅ [Dashboard] Profile dashboard loaded successfully', {
-        doctorId,
+        doctor_id,
         doctorName: doctorInfo.full_name,
         loadTime: `${loadTime}ms`,
         dataQuality: {
@@ -215,7 +215,7 @@ export class DashboardController {
   /**
    * Lấy thông tin cơ bản của bác sĩ
    */
-  private async getDoctorBasicInfo(doctorId: string): Promise<DoctorBasicInfo | null> {
+  private async getDoctorBasicInfo(doctor_id: string): Promise<DoctorBasicInfo | null> {
     try {
       const { data: doctor, error } = await supabaseAdmin
         .from('doctors')
@@ -241,7 +241,7 @@ export class DashboardController {
             department_name
           )
         `)
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctor_id)
         .single();
 
       if (error || !doctor) {
@@ -278,10 +278,10 @@ export class DashboardController {
   /**
    * Lấy dữ liệu appointment stats
    */
-  private async getAppointmentStatsData(doctorId: string): Promise<any> {
+  private async getAppointmentStatsData(doctor_id: string): Promise<any> {
     // Simulate request object for the controller
     const mockReq = {
-      params: { doctorId },
+      params: { doctor_id },
       query: { period: 'week', include_trends: 'true' }
     } as any;
 
@@ -304,9 +304,9 @@ export class DashboardController {
   /**
    * Lấy dữ liệu weekly schedule
    */
-  private async getWeeklyScheduleData(doctorId: string): Promise<any> {
+  private async getWeeklyScheduleData(doctor_id: string): Promise<any> {
     const mockReq = {
-      params: { doctorId },
+      params: { doctor_id },
       query: {}
     } as any;
 
@@ -329,9 +329,9 @@ export class DashboardController {
   /**
    * Lấy dữ liệu recent reviews
    */
-  private async getRecentReviewsData(doctorId: string): Promise<any> {
+  private async getRecentReviewsData(doctor_id: string): Promise<any> {
     const mockReq = {
-      params: { doctorId },
+      params: { doctor_id },
       query: { page: 1, limit: 5, sort: 'newest' }
     } as any;
 
@@ -354,13 +354,13 @@ export class DashboardController {
   /**
    * Lấy performance metrics
    */
-  private async getPerformanceMetrics(doctorId: string): Promise<PerformanceMetrics> {
+  private async getPerformanceMetrics(doctor_id: string): Promise<PerformanceMetrics> {
     try {
       // Lấy metrics từ database hoặc tính toán
       const { data: metrics, error } = await supabaseAdmin
         .from('doctor_performance_metrics')
         .select('*')
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctor_id)
         .gte('metric_date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
         .order('metric_date', { ascending: false })
         .limit(1)
@@ -403,7 +403,7 @@ export class DashboardController {
   /**
    * Lấy quick metrics cho dashboard
    */
-  private async getQuickMetrics(doctorId: string): Promise<any> {
+  private async getQuickMetrics(doctor_id: string): Promise<any> {
     try {
       const today = new Date().toISOString().split('T')[0];
       
@@ -411,7 +411,7 @@ export class DashboardController {
       const { count: appointmentsToday } = await supabaseAdmin
         .from('appointments')
         .select('*', { count: 'exact', head: true })
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctor_id)
         .eq('appointment_date', today);
 
       // Next appointment
@@ -422,7 +422,7 @@ export class DashboardController {
           start_time,
           patients!inner(profiles!inner(full_name))
         `)
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctor_id)
         .eq('appointment_date', today)
         .eq('status', 'scheduled')
         .gte('start_time', new Date().toTimeString().split(' ')[0])

@@ -11,7 +11,7 @@ const validateExperienceId = [
 ];
 
 const validateDoctorId = [
-  param('doctorId').notEmpty().withMessage('Doctor ID is required')
+  param('doctor_id').notEmpty().withMessage('Doctor ID is required')
 ];
 
 const validateCreateExperience = [
@@ -73,7 +73,7 @@ const validateUpdateExperience = [
  *     tags: [Doctor Experiences]
  *     parameters:
  *       - in: path
- *         name: doctorId
+ *         name: doctor_id
  *         required: true
  *         schema:
  *           type: string
@@ -99,7 +99,7 @@ router.get('/:doctorId/experience', validateDoctorId, doctorController.getDoctor
  *     tags: [Doctor Experiences]
  *     parameters:
  *       - in: path
- *         name: doctorId
+ *         name: doctor_id
  *         required: true
  *         schema:
  *           type: string
@@ -117,7 +117,7 @@ router.get('/doctor/:doctorId/timeline', validateDoctorId, doctorController.getE
  *     tags: [Doctor Experiences]
  *     parameters:
  *       - in: path
- *         name: doctorId
+ *         name: doctor_id
  *         required: true
  *         schema:
  *           type: string

@@ -11,7 +11,7 @@ export class SlotManagementController {
    */
   async generateDoctorSlots(req: Request, res: Response): Promise<void> {
     try {
-      const { doctorId } = req.params;
+      const { doctor_id } = req.params;
       const { startDate, endDate } = req.body;
 
       // Validate input
@@ -48,7 +48,7 @@ export class SlotManagementController {
       const { data: doctor, error: doctorError } = await this.supabase
         .from('doctors')
         .select('doctor_id, full_name')
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctor_id)
         .single();
 
       if (doctorError || !doctor) {
@@ -62,7 +62,7 @@ export class SlotManagementController {
       // Generate slots using database function
       const { data: results, error } = await this.supabase
         .rpc('generate_doctor_appointment_slots_enhanced', {
-          input_doctor_id: doctorId,
+          input_doctor_id: doctor_id,
           start_date: startDate,
           end_date: endDate
         });
@@ -85,7 +85,7 @@ export class SlotManagementController {
         success: true,
         message: `Đã tạo ${totalSlots} slot cho ${processedDays} ngày`,
         data: {
-          doctor_id: doctorId,
+          doctor_id: doctor_id,
           doctor_name: doctor.full_name,
           start_date: startDate,
           end_date: endDate,
@@ -113,7 +113,7 @@ export class SlotManagementController {
    */
   async getAvailableSlots(req: Request, res: Response): Promise<void> {
     try {
-      const { doctorId } = req.params;
+      const { doctor_id } = req.params;
       const { date } = req.query;
 
       if (!date) {
@@ -127,7 +127,7 @@ export class SlotManagementController {
       // Get available slots using database function
       const { data: slots, error } = await this.supabase
         .rpc('get_doctor_available_slots', {
-          input_doctor_id: doctorId,
+          input_doctor_id: doctor_id,
           input_date: date
         });
 
@@ -143,7 +143,7 @@ export class SlotManagementController {
       res.json({
         success: true,
         data: {
-          doctor_id: doctorId,
+          doctor_id: doctor_id,
           date: date,
           available_slots: slots || [],
           total_available: slots?.length || 0
@@ -165,7 +165,7 @@ export class SlotManagementController {
    */
   async getWeeklyAvailability(req: Request, res: Response): Promise<void> {
     try {
-      const { doctorId } = req.params;
+      const { doctor_id } = req.params;
       const { startDate } = req.query;
 
       const weekStart = startDate ? new Date(startDate as string) : new Date();
@@ -180,7 +180,7 @@ export class SlotManagementController {
       // Get weekly availability using database function
       const { data: availability, error } = await this.supabase
         .rpc('get_doctor_weekly_availability', {
-          input_doctor_id: doctorId,
+          input_doctor_id: doctor_id,
           week_start_date: weekStartStr
         });
 
@@ -196,7 +196,7 @@ export class SlotManagementController {
       res.json({
         success: true,
         data: {
-          doctor_id: doctorId,
+          doctor_id: doctor_id,
           week_start: weekStartStr,
           week_end: new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           weekly_schedule: availability || []
@@ -280,7 +280,7 @@ export class SlotManagementController {
    */
   async checkAvailability(req: Request, res: Response): Promise<void> {
     try {
-      const { doctorId } = req.params;
+      const { doctor_id } = req.params;
       const { date, time, duration = 30 } = req.query;
 
       if (!date || !time) {
@@ -294,7 +294,7 @@ export class SlotManagementController {
       // Check availability using database function
       const { data: isAvailable, error } = await this.supabase
         .rpc('check_doctor_availability', {
-          input_doctor_id: doctorId,
+          input_doctor_id: doctor_id,
           input_date: date,
           input_start_time: time,
           input_duration: parseInt(duration as string)
@@ -312,7 +312,7 @@ export class SlotManagementController {
       res.json({
         success: true,
         data: {
-          doctor_id: doctorId,
+          doctor_id: doctor_id,
           date: date,
           time: time,
           duration: duration,

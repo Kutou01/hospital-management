@@ -53,11 +53,11 @@ const validateCreateVitalSigns = [
     .isISO8601()
     .withMessage("Valid recorded date is required"),
   body("temperature").optional().isNumeric(),
-  body("blood_pressure_systolic").optional().isInt({ min: 0, max: 300 }),
-  body("blood_pressure_diastolic").optional().isInt({ min: 0, max: 200 }),
+  body("vital_signs.blood_pressure_systolic").optional().isInt({ min: 0, max: 300 }),
+  body("vital_signs.blood_pressure_diastolic").optional().isInt({ min: 0, max: 200 }),
   body("heart_rate").optional().isInt({ min: 0, max: 300 }),
   body("respiratory_rate").optional().isInt({ min: 0, max: 100 }),
-  body("oxygen_saturation").optional().isFloat({ min: 0, max: 100 }),
+  body("vital_signs.oxygen_saturation").optional().isFloat({ min: 0, max: 100 }),
   body("weight").optional().isFloat({ min: 0 }),
   body("height").optional().isFloat({ min: 0 }),
   body("notes").optional().isString(),
@@ -125,11 +125,11 @@ const validateUpdatePrescription = [
 ];
 
 const validatePatientId = [
-  param("patientId").notEmpty().withMessage("Patient ID is required"),
+  param("patient_id").notEmpty().withMessage("Patient ID is required"),
 ];
 
 const validateDoctorId = [
-  param("doctorId").notEmpty().withMessage("Doctor ID is required"),
+  param("doctor_id").notEmpty().withMessage("Doctor ID is required"),
 ];
 
 // Medical Records routes

@@ -51,7 +51,7 @@ const validateUpdateDoctor = [
 ];
 
 const validateDoctorId = [
-  param("doctorId").notEmpty().withMessage("Doctor ID is required"),
+  param("doctor_id").notEmpty().withMessage("Doctor ID is required"),
 ];
 
 const validateDepartmentId = [
@@ -196,7 +196,7 @@ router.get(
 );
 
 // =====================================================
-// REAL-TIME FEATURES (Must be before /:doctorId routes)
+// REAL-TIME FEATURES (Must be before /:doctor_id routes)
 // =====================================================
 
 /**
@@ -259,7 +259,7 @@ router.get(
 );
 
 // =====================================================
-// AUTHENTICATED DOCTOR DASHBOARD ROUTES (Must be before /:doctorId routes)
+// AUTHENTICATED DOCTOR DASHBOARD ROUTES (Must be before /:doctor_id routes)
 // =====================================================
 
 /**
@@ -403,7 +403,7 @@ router.get(
  *     tags: [Doctors]
  *     parameters:
  *       - in: path
- *         name: doctorId
+ *         name: doctor_id
  *         required: true
  *         schema:
  *           type: string
@@ -492,7 +492,7 @@ router.post(
  *     tags: [Doctors]
  *     parameters:
  *       - in: path
- *         name: doctorId
+ *         name: doctor_id
  *         required: true
  *         schema:
  *           type: string
@@ -517,7 +517,7 @@ router.put(
  *     tags: [Doctors]
  *     parameters:
  *       - in: path
- *         name: doctorId
+ *         name: doctor_id
  *         required: true
  *         schema:
  *           type: string
@@ -545,7 +545,7 @@ router.delete(
  *     tags: [Doctors]
  *     parameters:
  *       - in: path
- *         name: doctorId
+ *         name: doctor_id
  *         required: true
  *         schema:
  *           type: string
@@ -569,7 +569,7 @@ router.get(
  *     tags: [Doctor Profile]
  *     parameters:
  *       - in: path
- *         name: doctorId
+ *         name: doctor_id
  *         required: true
  *         schema:
  *           type: string
@@ -597,7 +597,7 @@ router.get(
  *     tags: [Doctor Schedule]
  *     parameters:
  *       - in: path
- *         name: doctorId
+ *         name: doctor_id
  *         required: true
  *         schema:
  *           type: string
@@ -619,7 +619,7 @@ router.get(
  *     tags: [Doctor Schedule]
  *     parameters:
  *       - in: path
- *         name: doctorId
+ *         name: doctor_id
  *         required: true
  *         schema:
  *           type: string
@@ -652,7 +652,7 @@ router.get(
  *     tags: [Doctor Schedule]
  *     parameters:
  *       - in: path
- *         name: doctorId
+ *         name: doctor_id
  *         required: true
  *         schema:
  *           type: string
@@ -685,7 +685,7 @@ router.put(
  *     tags: [Doctor Schedule]
  *     parameters:
  *       - in: path
- *         name: doctorId
+ *         name: doctor_id
  *         required: true
  *         schema:
  *           type: string
@@ -713,7 +713,7 @@ router.get(
  *     tags: [Doctor Schedule]
  *     parameters:
  *       - in: path
- *         name: doctorId
+ *         name: doctor_id
  *         required: true
  *         schema:
  *           type: string
@@ -745,7 +745,7 @@ router.get(
  *     tags: [Doctor Reviews]
  *     parameters:
  *       - in: path
- *         name: doctorId
+ *         name: doctor_id
  *         required: true
  *         schema:
  *           type: string
@@ -796,7 +796,7 @@ router.get(
  *     tags: [Doctor Reviews]
  *     parameters:
  *       - in: path
- *         name: doctorId
+ *         name: doctor_id
  *         required: true
  *         schema:
  *           type: string
@@ -822,7 +822,7 @@ router.get(
  *     tags: [Doctor Appointments]
  *     parameters:
  *       - in: path
- *         name: doctorId
+ *         name: doctor_id
  *         required: true
  *         schema:
  *           type: string
@@ -867,7 +867,7 @@ router.get(
  *     tags: [Doctor Statistics]
  *     parameters:
  *       - in: path
- *         name: doctorId
+ *         name: doctor_id
  *         required: true
  *         schema:
  *           type: string
@@ -895,7 +895,7 @@ router.get(
  *     tags: [Doctor Experience]
  *     parameters:
  *       - in: path
- *         name: doctorId
+ *         name: doctor_id
  *         required: true
  *         schema:
  *           type: string
@@ -925,7 +925,7 @@ router.get(
  *     tags: [Doctor Statistics]
  *     parameters:
  *       - in: path
- *         name: doctorId
+ *         name: doctor_id
  *         required: true
  *         schema:
  *           type: string

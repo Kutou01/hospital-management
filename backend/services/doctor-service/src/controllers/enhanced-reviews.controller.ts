@@ -61,7 +61,7 @@ export class EnhancedReviewsController {
    */
   async getDoctorReviews(req: Request, res: Response): Promise<void> {
     try {
-      const { doctorId } = req.params;
+      const { doctor_id } = req.params;
       const { 
         page = 1, 
         limit = 10, 
@@ -75,7 +75,7 @@ export class EnhancedReviewsController {
       const offset = (pageNum - 1) * limitNum;
 
       logger.info('📝 [EnhancedReviews] Getting reviews for doctor', {
-        doctorId,
+        doctor_id,
         page: pageNum,
         limit: limitNum,
         sort,
@@ -87,7 +87,7 @@ export class EnhancedReviewsController {
       let countQuery = supabaseAdmin
         .from('doctor_reviews')
         .select('*', { count: 'exact', head: true })
-        .eq('doctor_id', doctorId);
+        .eq('doctor_id', doctor_id);
 
       if (rating_filter) {
         countQuery = countQuery.eq('rating', parseInt(rating_filter as string));
@@ -131,7 +131,7 @@ export class EnhancedReviewsController {
             appointment_type
           )
         `)
-        .eq('doctor_id', doctorId);
+        .eq('doctor_id', doctor_id);
 
       // Apply filters
       if (rating_filter) {
@@ -174,7 +174,7 @@ export class EnhancedReviewsController {
       }
 
       // 3. Lấy thống kê tổng quan
-      const summary = await this.getReviewSummary(doctorId);
+      const summary = await this.getReviewSummary(doctor_id);
 
       // 4. Format reviews data
       const reviews: ReviewData[] = (reviewsData || []).map(review => ({
@@ -207,7 +207,7 @@ export class EnhancedReviewsController {
       };
 
       logger.info('✅ [EnhancedReviews] Successfully retrieved reviews', {
-        doctorId,
+        doctor_id,
         reviewCount: reviews.length,
         totalReviews: totalReviews || 0,
         averageRating: summary.average_rating
@@ -230,13 +230,13 @@ export class EnhancedReviewsController {
   /**
    * Lấy thống kê tổng quan về reviews
    */
-  private async getReviewSummary(doctorId: string): Promise<ReviewSummary> {
+  private async getReviewSummary(doctor_id: string): Promise<ReviewSummary> {
     try {
       // 1. Lấy tất cả reviews để tính thống kê
       const { data: allReviews, error } = await supabaseAdmin
         .from('doctor_reviews')
         .select('rating, review_date, is_verified, doctor_response')
-        .eq('doctor_id', doctorId);
+        .eq('doctor_id', doctor_id);
 
       if (error || !allReviews) {
         logger.error('❌ [ReviewSummary] Error getting all reviews:', error);

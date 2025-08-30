@@ -81,18 +81,18 @@ class SubscriptionService {
                 appointmentUpdated: appointment
             });
             // Also publish to doctor-specific channel
-            if (appointment.doctorId) {
+            if (appointment.doctor_id) {
                 await this.pubsub.publish(SubscriptionEvents.DOCTOR_APPOINTMENT_UPDATED, {
                     doctorAppointmentUpdated: appointment
                 });
             }
             // Also publish to patient-specific channel
-            if (appointment.patientId) {
+            if (appointment.patient_id) {
                 await this.pubsub.publish(SubscriptionEvents.PATIENT_APPOINTMENT_UPDATED, {
                     patientAppointmentUpdated: appointment
                 });
             }
-            logger_1.default.info(`📢 Published appointment update: ${appointment.appointmentId}`);
+            logger_1.default.info(`📢 Published appointment update: ${appointment.appointment_id}`);
         }
         catch (error) {
             logger_1.default.error('❌ Failed to publish appointment update:', error);
@@ -106,7 +106,7 @@ class SubscriptionService {
             await this.pubsub.publish(SubscriptionEvents.APPOINTMENT_STATUS_CHANGED, {
                 appointmentStatusChanged: appointment
             });
-            logger_1.default.info(`📢 Published appointment status change: ${appointment.appointmentId} -> ${appointment.status}`);
+            logger_1.default.info(`📢 Published appointment status change: ${appointment.appointment_id} -> ${appointment.status}`);
         }
         catch (error) {
             logger_1.default.error('❌ Failed to publish appointment status change:', error);
@@ -120,7 +120,7 @@ class SubscriptionService {
             await this.pubsub.publish(SubscriptionEvents.NEW_APPOINTMENT_CREATED, {
                 newAppointmentCreated: appointment
             });
-            logger_1.default.info(`📢 Published new appointment: ${appointment.appointmentId}`);
+            logger_1.default.info(`📢 Published new appointment: ${appointment.appointment_id}`);
         }
         catch (error) {
             logger_1.default.error('❌ Failed to publish new appointment:', error);
@@ -129,12 +129,12 @@ class SubscriptionService {
     /**
      * Publish waiting queue update event
      */
-    async publishWaitingQueueUpdate(doctorId, queue) {
+    async publishWaitingQueueUpdate(doctor_id, queue) {
         try {
             await this.pubsub.publish(SubscriptionEvents.WAITING_QUEUE_UPDATED, {
                 waitingQueueUpdated: queue
             });
-            logger_1.default.info(`📢 Published waiting queue update for doctor: ${doctorId}`);
+            logger_1.default.info(`📢 Published waiting queue update for doctor: ${doctor_id}`);
         }
         catch (error) {
             logger_1.default.error('❌ Failed to publish waiting queue update:', error);
@@ -148,7 +148,7 @@ class SubscriptionService {
             await this.pubsub.publish(SubscriptionEvents.DOCTOR_STATUS_CHANGED, {
                 doctorStatusChanged: doctor
             });
-            logger_1.default.info(`📢 Published doctor status change: ${doctor.doctorId}`);
+            logger_1.default.info(`📢 Published doctor status change: ${doctor.doctor_id}`);
         }
         catch (error) {
             logger_1.default.error('❌ Failed to publish doctor status change:', error);
@@ -162,7 +162,7 @@ class SubscriptionService {
             await this.pubsub.publish(SubscriptionEvents.DOCTOR_SCHEDULE_CHANGED, {
                 doctorScheduleChanged: schedule
             });
-            logger_1.default.info(`📢 Published doctor schedule change: ${schedule.doctorId}`);
+            logger_1.default.info(`📢 Published doctor schedule change: ${schedule.doctor_id}`);
         }
         catch (error) {
             logger_1.default.error('❌ Failed to publish doctor schedule change:', error);
@@ -176,7 +176,7 @@ class SubscriptionService {
             await this.pubsub.publish(SubscriptionEvents.DOCTOR_AVAILABILITY_CHANGED, {
                 doctorAvailabilityChanged: doctor
             });
-            logger_1.default.info(`📢 Published doctor availability change: ${doctor.doctorId}`);
+            logger_1.default.info(`📢 Published doctor availability change: ${doctor.doctor_id}`);
         }
         catch (error) {
             logger_1.default.error('❌ Failed to publish doctor availability change:', error);
@@ -185,12 +185,12 @@ class SubscriptionService {
     /**
      * Publish doctor notification event
      */
-    async publishDoctorNotification(doctorId, notification) {
+    async publishDoctorNotification(doctor_id, notification) {
         try {
             await this.pubsub.publish(SubscriptionEvents.DOCTOR_NOTIFICATION, {
                 doctorNotification: notification
             });
-            logger_1.default.info(`📢 Published doctor notification: ${doctorId}`);
+            logger_1.default.info(`📢 Published doctor notification: ${doctor_id}`);
         }
         catch (error) {
             logger_1.default.error('❌ Failed to publish doctor notification:', error);
@@ -204,7 +204,7 @@ class SubscriptionService {
             await this.pubsub.publish(SubscriptionEvents.PATIENT_STATUS_CHANGED, {
                 patientStatusChanged: patient
             });
-            logger_1.default.info(`📢 Published patient status change: ${patient.patientId}`);
+            logger_1.default.info(`📢 Published patient status change: ${patient.patient_id}`);
         }
         catch (error) {
             logger_1.default.error('❌ Failed to publish patient status change:', error);
@@ -218,7 +218,7 @@ class SubscriptionService {
             await this.pubsub.publish(SubscriptionEvents.PATIENT_UPDATED, {
                 patientUpdated: patient
             });
-            logger_1.default.info(`📢 Published patient update: ${patient.patientId}`);
+            logger_1.default.info(`📢 Published patient update: ${patient.patient_id}`);
         }
         catch (error) {
             logger_1.default.error('❌ Failed to publish patient update:', error);

@@ -11,9 +11,9 @@ const context_1 = require("../context");
 exports.appointmentResolvers = {
     Query: {
         // Get single appointment
-        async appointment(_, { id, appointmentId }, context) {
+        async appointment(_, { id, appointment_id }, context) {
             try {
-                const identifier = id || appointmentId;
+                const identifier = id || appointment_id;
                 if (!identifier) {
                     throw new Error(context_1.contextUtils.translate(context, "appointment.errors.missing_identifier"));
                 }
@@ -77,17 +77,17 @@ exports.appointmentResolvers = {
             }
         },
         // Get today's appointments
-        async todayAppointments(_, { doctorId, departmentId, status }, context) {
+        async todayAppointments(_, { doctor_id, departmentId, status }, context) {
             try {
                 shared_1.logger.debug("Fetching today appointments:", {
-                    doctorId,
+                    doctor_id,
                     departmentId,
                     status,
                     requestId: context.requestId,
                 });
                 const today = new Date().toISOString().split("T")[0];
                 const response = await context.restApi.getTodayAppointments({
-                    doctorId,
+                    doctor_id,
                     departmentId,
                     status,
                     date: today,
@@ -104,18 +104,18 @@ exports.appointmentResolvers = {
             }
         },
         // Get upcoming appointments
-        async upcomingAppointments(_, { doctorId, patientId, days = 7, limit = 20 }, context) {
+        async upcomingAppointments(_, { doctor_id, patient_id, days = 7, limit = 20 }, context) {
             try {
                 shared_1.logger.debug("Fetching upcoming appointments:", {
-                    doctorId,
-                    patientId,
+                    doctor_id,
+                    patient_id,
                     days,
                     limit,
                     requestId: context.requestId,
                 });
                 const response = await context.restApi.getUpcomingAppointments({
-                    doctorId,
-                    patientId,
+                    doctor_id,
+                    patient_id,
                     days,
                     limit,
                 });
@@ -131,15 +131,15 @@ exports.appointmentResolvers = {
             }
         },
         // Get available slots
-        async availableSlots(_, { doctorId, date, duration = 30, }, context) {
+        async availableSlots(_, { doctor_id, date, duration = 30, }, context) {
             try {
                 shared_1.logger.debug("Fetching available slots:", {
-                    doctorId,
+                    doctor_id,
                     date,
                     duration,
                     requestId: context.requestId,
                 });
-                const cacheKey = `${doctorId}:${date}`;
+                const cacheKey = `${doctor_id}`;
                 const slots = await context.dataloaders.availableSlots.load(cacheKey);
                 // Filter slots by duration if needed
                 return slots.filter((slot) => slot.duration >= duration);
@@ -150,17 +150,17 @@ exports.appointmentResolvers = {
             }
         },
         // Get appointment statistics
-        async appointmentStats(_, { doctorId, patientId, departmentId, dateFrom, dateTo }, context) {
+        async appointmentStats(_, { doctor_id, patient_id, departmentId, dateFrom, dateTo }, context) {
             try {
                 shared_1.logger.debug("Fetching appointment stats:", {
-                    doctorId,
-                    patientId,
+                    doctor_id,
+                    patient_id,
                     departmentId,
                     requestId: context.requestId,
                 });
                 const response = await context.restApi.getAppointmentStats({
-                    doctorId,
-                    patientId,
+                    doctor_id,
+                    patient_id,
                     departmentId,
                     dateFrom,
                     dateTo,
@@ -191,7 +191,7 @@ exports.appointmentResolvers = {
                         context_1.contextUtils.translate(context, "appointment.errors.create_failed"));
                 }
                 shared_1.logger.info("Appointment created successfully:", {
-                    appointmentId: response.data.appointmentId,
+                    appointment_id: response.data.appointment_id,
                 });
                 return response.data;
             }
@@ -213,7 +213,9 @@ exports.appointmentResolvers = {
                     throw new Error(response.error?.message ||
                         context_1.contextUtils.translate(context, "appointment.errors.update_failed"));
                 }
-                shared_1.logger.info("Appointment updated successfully:", { appointmentId: id });
+                shared_1.logger.info("Appointment updated successfully:", {
+                    appointment_id: id,
+                });
                 return response.data;
             }
             catch (error) {
@@ -228,13 +230,13 @@ exports.appointmentResolvers = {
                     input,
                     requestId: context.requestId,
                 });
-                const response = await context.restApi.cancelAppointment(input.appointmentId, input.reason || "Hủy cuộc hẹn");
+                const response = await context.restApi.cancelAppointment(input.appointment_id, input.reason || "Hủy cuộc hẹn");
                 if (!response.success) {
                     throw new Error(response.error?.message ||
                         context_1.contextUtils.translate(context, "appointment.errors.cancel_failed"));
                 }
                 shared_1.logger.info("Appointment cancelled successfully:", {
-                    appointmentId: input.appointmentId,
+                    appointment_id: input.appointment_id,
                 });
                 return response.data;
             }
@@ -256,7 +258,7 @@ exports.appointmentResolvers = {
                         context_1.contextUtils.translate(context, "appointment.errors.confirm_failed"));
                 }
                 shared_1.logger.info("Appointment confirmed successfully:", {
-                    appointmentId: id,
+                    appointment_id: id,
                 });
                 return response.data;
             }
@@ -272,7 +274,7 @@ exports.appointmentResolvers = {
                     input,
                     requestId: context.requestId,
                 });
-                const response = await context.restApi.rescheduleAppointment(input.appointmentId, {
+                const response = await context.restApi.rescheduleAppointment(input.appointment_id, {
                     newDate: input.newDate,
                     newTime: input.newTime,
                 });
@@ -281,7 +283,7 @@ exports.appointmentResolvers = {
                         context_1.contextUtils.translate(context, "appointment.errors.reschedule_failed"));
                 }
                 shared_1.logger.info("Appointment rescheduled successfully:", {
-                    appointmentId: input.appointmentId,
+                    appointment_id: input.appointment_id,
                 });
                 return response.data;
             }
@@ -290,25 +292,22 @@ exports.appointmentResolvers = {
                 throw error;
             }
         },
-        // Check in appointment
+        // Check in appointment - DELEGATED to Receptionist Service
         async checkInAppointment(_, { id }, context) {
             try {
-                shared_1.logger.debug("Checking in appointment:", {
+                shared_1.logger.debug("Delegating check-in to Receptionist Service:", {
                     id,
                     requestId: context.requestId,
                 });
-                const response = await context.restApi.checkInAppointment(id);
-                if (!response.success) {
-                    throw new Error(response.error?.message ||
-                        context_1.contextUtils.translate(context, "appointment.errors.checkin_failed"));
-                }
-                shared_1.logger.info("Appointment checked in successfully:", {
-                    appointmentId: id,
-                });
-                return response.data;
+                // TODO: Call Receptionist Service API for check-in
+                // This ensures proper queue management and receptionist workflow
+                // For now, return error to indicate delegation needed
+                throw new Error(context_1.contextUtils.translate(context, "appointment.errors.checkin_delegated_to_receptionist") || "Check-in operations are handled by Receptionist Service");
+                // Future implementation should call:
+                // const response = await context.restApi.receptionistCheckIn(id);
             }
             catch (error) {
-                shared_1.logger.error("Error checking in appointment:", error);
+                shared_1.logger.error("Error in check-in delegation:", error);
                 throw error;
             }
         },
@@ -326,7 +325,7 @@ exports.appointmentResolvers = {
                         context_1.contextUtils.translate(context, "appointment.errors.complete_failed"));
                 }
                 shared_1.logger.info("Appointment completed successfully:", {
-                    appointmentId: id,
+                    appointment_id: id,
                 });
                 return response.data;
             }
@@ -348,10 +347,10 @@ exports.appointmentResolvers = {
         },
         // Resolve doctor using DataLoader
         async doctor(parent, _, context) {
-            if (!parent.doctorId)
+            if (!parent.doctor_id)
                 return null;
             try {
-                return await context.dataloaders.doctorById.load(parent.doctorId);
+                return await context.dataloaders.doctorById.load(parent.doctor_id);
             }
             catch (error) {
                 shared_1.logger.error("Error loading appointment doctor:", error);
@@ -360,10 +359,10 @@ exports.appointmentResolvers = {
         },
         // Resolve patient using DataLoader
         async patient(parent, _, context) {
-            if (!parent.patientId)
+            if (!parent.patient_id)
                 return null;
             try {
-                return await context.dataloaders.patientById.load(parent.patientId);
+                return await context.dataloaders.patientById.load(parent.patient_id);
             }
             catch (error) {
                 shared_1.logger.error("Error loading appointment patient:", error);

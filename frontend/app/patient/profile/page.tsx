@@ -1,40 +1,42 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useSearchParams } from "next/navigation"
+import { RoleBasedLayout } from "@/components/layout/RoleBasedLayout";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
-  User,
-  Mail,
-  Phone,
-  MapPin,
-  Calendar,
-  Heart,
-  Activity,
-  FileText,
-  Edit,
-  Save,
-  X,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { appointmentsApi } from "@/lib/api/appointments";
+import { availabilityApi } from "@/lib/api/availability";
+import { doctorsApi } from "@/lib/api/doctors";
+import { patientsApi } from "@/lib/api/patients";
+import { useEnhancedAuth } from "@/lib/auth/auth-wrapper";
+import {
   AlertCircle,
-  Shield,
-  Clock,
-  Stethoscope,
+  Calendar,
   CheckCircle,
-  Star
-} from "lucide-react"
-import { RoleBasedLayout } from "@/components/layout/RoleBasedLayout"
-import { ProfessionalProfile } from "@/components/profile/ProfessionalProfile"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useEnhancedAuth } from "@/lib/auth/auth-wrapper"
-import { patientsApi } from "@/lib/api/patients"
-import { doctorsApi } from "@/lib/api/doctors"
-import { appointmentsApi } from "@/lib/api/appointments"
-import { toast } from "react-hot-toast"
+  Clock,
+  Edit,
+  Heart,
+  Phone,
+  Save,
+  Shield,
+  Star,
+  Stethoscope,
+  User,
+  X,
+} from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
 
 interface Doctor {
   doctor_id: string;
@@ -66,18 +68,20 @@ interface PatientData {
 }
 
 export default function PatientProfile() {
-  const { user, loading } = useEnhancedAuth()
-  const searchParams = useSearchParams()
-  const action = searchParams.get('action')
+  const { user, loading } = useEnhancedAuth();
+  const searchParams = useSearchParams();
+  const action = searchParams.get("action");
 
-  const [activeTab, setActiveTab] = useState(action === 'booking' ? 'booking' : 'profile')
-  const [isEditing, setIsEditing] = useState(false)
-  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null)
-  const [bookingSuccess, setBookingSuccess] = useState(false)
-  const [bookingLoading, setBookingLoading] = useState(false)
-  const [patientData, setPatientData] = useState<PatientData | null>(null)
-  const [doctors, setDoctors] = useState<Doctor[]>([])
-  const [isLoadingData, setIsLoadingData] = useState(true)
+  const [activeTab, setActiveTab] = useState(
+    action === "booking" ? "booking" : "profile"
+  );
+  const [isEditing, setIsEditing] = useState(false);
+  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
+  const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [patientData, setPatientData] = useState<PatientData | null>(null);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(true);
 
   const [formData, setFormData] = useState({
     full_name: "",
@@ -90,37 +94,37 @@ export default function PatientProfile() {
     emergency_contact_phone: "",
     blood_type: "",
     allergies: "",
-    medical_history: ""
-  })
+    medical_history: "",
+  });
 
   const [bookingForm, setBookingForm] = useState({
-    appointmentDate: '',
-    appointmentTime: '',
-    reason: '',
-    symptoms: '',
-    notes: ''
-  })
+    appointmentDate: "",
+    appointmentTime: "",
+    reason: "",
+    symptoms: "",
+    notes: "",
+  });
 
   // TODO: Integrate with real doctor reviews and ratings data
   // TODO: Integrate with real appointment availability data
 
   // Load patient data and doctors when user is available
   useEffect(() => {
-    if (user && user.role === 'patient' && user.profile_id) {
-      loadPatientData()
-      loadDoctors()
+    if (user && user.role === "patient" && user.profile_id) {
+      loadPatientData();
+      loadDoctors();
     }
-  }, [user])
+  }, [user]);
 
   const loadPatientData = async () => {
     try {
-      setIsLoadingData(true)
-      if (!user?.profile_id) return
+      setIsLoadingData(true);
+      if (!user?.profile_id) return;
 
-      const response = await patientsApi.getByProfileId(user.profile_id)
+      const response = await patientsApi.getByProfileId(user.profile_id);
       if (response.success && response.data) {
-        const patient = response.data
-        setPatientData(patient)
+        const patient = response.data;
+        setPatientData(patient);
 
         // Initialize form data with real patient data
         setFormData({
@@ -129,65 +133,78 @@ export default function PatientProfile() {
           phone_number: patient.phone_number || user.phone_number || "",
           date_of_birth: patient.date_of_birth || "",
           gender: patient.gender || "",
-          address: typeof patient.address === 'string' ? patient.address : JSON.stringify(patient.address) || "",
+          address:
+            typeof patient.address === "string"
+              ? patient.address
+              : JSON.stringify(patient.address) || "",
           emergency_contact_name: patient.emergency_contact?.name || "",
           emergency_contact_phone: patient.emergency_contact?.phone || "",
           blood_type: patient.blood_type || "",
-          allergies: Array.isArray(patient.allergies) ? patient.allergies.join(', ') : patient.allergies || "",
-          medical_history: patient.medical_history || ""
-        })
+          allergies: Array.isArray(patient.allergies)
+            ? patient.allergies.join(", ")
+            : patient.allergies || "",
+          medical_history: patient.medical_history || "",
+        });
       } else {
-        toast.error('Không thể tải thông tin bệnh nhân')
+        toast.error("Không thể tải thông tin bệnh nhân");
       }
     } catch (error) {
-      console.error('Error loading patient data:', error)
-      toast.error('Lỗi khi tải thông tin bệnh nhân')
+      console.error("Error loading patient data:", error);
+      toast.error("Lỗi khi tải thông tin bệnh nhân");
     } finally {
-      setIsLoadingData(false)
+      setIsLoadingData(false);
     }
-  }
+  };
 
   const loadDoctors = async () => {
     try {
-      const response = await doctorsApi.getAll()
+      const response = await doctorsApi.getAll();
       if (response.success && response.data) {
-        setDoctors(response.data)
+        setDoctors(response.data);
 
         // Load selected doctor for booking
-        const selectedDoctorId = localStorage.getItem('selectedDoctorId')
+        const selectedDoctorId = localStorage.getItem("selectedDoctorId");
         if (selectedDoctorId) {
-          const doctor = response.data.find(d => d.doctor_id === selectedDoctorId)
+          const doctor = response.data.find(
+            (d) => d.doctor_id === selectedDoctorId
+          );
           if (doctor) {
-            setSelectedDoctor(doctor)
+            setSelectedDoctor(doctor);
           }
         }
       }
     } catch (error) {
-      console.error('Error loading doctors:', error)
+      console.error("Error loading doctors:", error);
     }
-  }
+  };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({
+  const handleInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
-    }))
-  }
+      [name]: value,
+    }));
+  };
 
-  const handleBookingInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setBookingForm(prev => ({
+  const handleBookingInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setBookingForm((prev) => ({
       ...prev,
-      [name]: value
-    }))
-  }
+      [name]: value,
+    }));
+  };
 
   const handleSave = async () => {
     try {
       if (!patientData?.patient_id) {
-        toast.error('Không tìm thấy thông tin bệnh nhân')
-        return
+        toast.error("Không tìm thấy thông tin bệnh nhân");
+        return;
       }
 
       // Prepare update data
@@ -200,27 +217,33 @@ export default function PatientProfile() {
         address: formData.address,
         emergency_contact: {
           name: formData.emergency_contact_name,
-          phone: formData.emergency_contact_phone
+          phone: formData.emergency_contact_phone,
         },
         medical_history: formData.medical_history,
-        allergies: formData.allergies.split(',').map(a => a.trim()).filter(a => a)
-      }
+        allergies: formData.allergies
+          .split(",")
+          .map((a) => a.trim())
+          .filter((a) => a),
+      };
 
-      const response = await patientsApi.update(patientData.patient_id, updateData)
+      const response = await patientsApi.update(
+        patientData.patient_id,
+        updateData
+      );
 
       if (response.success) {
-        toast.success('Cập nhật thông tin thành công')
-        setIsEditing(false)
+        toast.success("Cập nhật thông tin thành công");
+        setIsEditing(false);
         // Reload patient data
-        loadPatientData()
+        loadPatientData();
       } else {
-        toast.error('Không thể cập nhật thông tin')
+        toast.error("Không thể cập nhật thông tin");
       }
     } catch (error) {
-      console.error('Error saving profile:', error)
-      toast.error('Lỗi khi cập nhật thông tin')
+      console.error("Error saving profile:", error);
+      toast.error("Lỗi khi cập nhật thông tin");
     }
-  }
+  };
 
   const handleCancel = () => {
     // Reset form data to original values
@@ -231,58 +254,107 @@ export default function PatientProfile() {
         phone_number: patientData.phone_number || user?.phone_number || "",
         date_of_birth: patientData.date_of_birth || "",
         gender: patientData.gender || "",
-        address: typeof patientData.address === 'string' ? patientData.address : JSON.stringify(patientData.address) || "",
+        address:
+          typeof patientData.address === "string"
+            ? patientData.address
+            : JSON.stringify(patientData.address) || "",
         emergency_contact_name: patientData.emergency_contact?.name || "",
         emergency_contact_phone: patientData.emergency_contact?.phone || "",
         blood_type: patientData.blood_type || "",
-        allergies: Array.isArray(patientData.allergies) ? patientData.allergies.join(', ') : patientData.allergies || "",
-        medical_history: patientData.medical_history || ""
-      })
+        allergies: Array.isArray(patientData.allergies)
+          ? patientData.allergies.join(", ")
+          : patientData.allergies || "",
+        medical_history: patientData.medical_history || "",
+      });
     }
-    setIsEditing(false)
-  }
+    setIsEditing(false);
+  };
 
   const handleBookingSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!selectedDoctor || !patientData) return
+    e.preventDefault();
+    if (!selectedDoctor || !patientData) return;
 
     // Validate required fields
-    if (!bookingForm.appointmentDate || !bookingForm.appointmentTime || !bookingForm.reason) {
-      toast.error('Vui lòng điền đầy đủ thông tin bắt buộc.')
-      return
+    if (
+      !bookingForm.appointmentDate ||
+      !bookingForm.appointmentTime ||
+      !bookingForm.reason
+    ) {
+      toast.error("Vui lòng điền đầy đủ thông tin bắt buộc.");
+      return;
     }
 
-    setBookingLoading(true)
+    setBookingLoading(true);
 
     try {
-      // Create appointment
+      console.log("🔄 Starting appointment booking process...");
+
+      // Step 1: Check availability before creating appointment
+      const [hours, minutes] = bookingForm.appointmentTime.split(":");
+      const startTime = `${hours}:${minutes}`;
+      const endTime = `${String(
+        parseInt(hours) + (parseInt(minutes) + 30) / 60
+      ).padStart(2, "0")}:${String((parseInt(minutes) + 30) % 60).padStart(
+        2,
+        "0"
+      )}`;
+
+      console.log("🔍 Checking availability for:", {
+        doctor: selectedDoctor.doctor_id,
+        date: bookingForm.appointmentDate,
+        time: `${startTime} - ${endTime}`,
+      });
+
+      const availabilityCheck = await availabilityApi.checkTimeSlotAvailability(
+        selectedDoctor.doctor_id,
+        {
+          date: bookingForm.appointmentDate,
+          start_time: startTime,
+          end_time: endTime,
+        }
+      );
+
+      if (!availabilityCheck.success || !availabilityCheck.data?.available) {
+        console.error("❌ Time slot no longer available");
+        toast.error(
+          "Xin lỗi, khung giờ này đã được đặt bởi người khác. Vui lòng chọn giờ khác!"
+        );
+        return;
+      }
+
+      console.log("✅ Time slot confirmed available");
+
+      // Step 2: Create appointment
       const appointmentData = {
         patient_id: patientData.patient_id,
         doctor_id: selectedDoctor.doctor_id,
         appointment_date: bookingForm.appointmentDate,
         appointment_time: bookingForm.appointmentTime,
         treatment_description: bookingForm.reason,
-        status: 'Scheduled'
-      }
+        status: "Scheduled",
+      };
 
-      const response = await appointmentsApi.create(appointmentData)
+      console.log("📝 Creating appointment...", appointmentData);
+      const response = await appointmentsApi.create(appointmentData);
 
       if (response.success) {
         // Clear selected doctor from localStorage
-        localStorage.removeItem('selectedDoctorId')
+        localStorage.removeItem("selectedDoctorId");
 
-        setBookingSuccess(true)
-        toast.success('Đặt lịch khám thành công!')
+        setBookingSuccess(true);
+        toast.success("Đặt lịch khám thành công!");
+        console.log("✅ Appointment created successfully");
       } else {
-        toast.error('Không thể đặt lịch khám. Vui lòng thử lại.')
+        console.error("❌ Failed to create appointment:", response.error);
+        toast.error("Không thể đặt lịch khám. Vui lòng thử lại.");
       }
     } catch (error) {
-      console.error('Error booking appointment:', error)
-      toast.error('Lỗi khi đặt lịch khám. Vui lòng thử lại.')
+      console.error("💥 Error booking appointment:", error);
+      toast.error("Lỗi khi đặt lịch khám. Vui lòng thử lại.");
     } finally {
-      setBookingLoading(false)
+      setBookingLoading(false);
     }
-  }
+  };
 
   if (loading || isLoadingData) {
     return (
@@ -291,20 +363,22 @@ export default function PatientProfile() {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
       </RoleBasedLayout>
-    )
+    );
   }
 
-  if (!user || user.role !== 'patient') {
+  if (!user || user.role !== "patient") {
     return (
       <RoleBasedLayout>
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <p className="text-gray-600">Access denied. Patient role required.</p>
+            <p className="text-gray-600">
+              Access denied. Patient role required.
+            </p>
           </div>
         </div>
       </RoleBasedLayout>
-    )
+    );
   }
 
   if (bookingSuccess) {
@@ -314,7 +388,9 @@ export default function PatientProfile() {
           <Card className="shadow-lg">
             <CardContent className="p-8">
               <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-green-700 mb-4">Đặt lịch thành công!</h2>
+              <h2 className="text-2xl font-bold text-green-700 mb-4">
+                Đặt lịch thành công!
+              </h2>
               <div className="bg-green-50 p-4 rounded-lg mb-6 text-left">
                 <p className="text-green-800 mb-2">
                   <strong>Bác sĩ:</strong> {selectedDoctor?.name}
@@ -341,8 +417,8 @@ export default function PatientProfile() {
               <div className="space-y-3">
                 <Button
                   onClick={() => {
-                    setBookingSuccess(false)
-                    setActiveTab('profile')
+                    setBookingSuccess(false);
+                    setActiveTab("profile");
                   }}
                   className="w-full bg-blue-600 hover:bg-blue-700"
                 >
@@ -350,7 +426,7 @@ export default function PatientProfile() {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => window.location.href = '/doctors'}
+                  onClick={() => (window.location.href = "/doctors")}
                   className="w-full"
                 >
                   Đặt lịch khám khác
@@ -360,7 +436,7 @@ export default function PatientProfile() {
           </Card>
         </div>
       </RoleBasedLayout>
-    )
+    );
   }
 
   return (
@@ -370,22 +446,22 @@ export default function PatientProfile() {
         <div className="border-b border-gray-200">
           <nav className="-mb-px flex space-x-8">
             <button
-              onClick={() => setActiveTab('profile')}
+              onClick={() => setActiveTab("profile")}
               className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'profile'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                activeTab === "profile"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
               }`}
             >
               <User className="inline-block w-5 h-5 mr-2" />
               Hồ sơ cá nhân
             </button>
             <button
-              onClick={() => setActiveTab('booking')}
+              onClick={() => setActiveTab("booking")}
               className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'booking'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                activeTab === "booking"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
               }`}
             >
               <Calendar className="inline-block w-5 h-5 mr-2" />
@@ -396,24 +472,32 @@ export default function PatientProfile() {
       </div>
 
       {/* Profile Tab */}
-      {activeTab === 'profile' && (
+      {activeTab === "profile" && (
         <>
           {/* Header */}
           <div className="mb-6">
             <div className="flex justify-between items-center">
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">My Profile</h2>
-                <p className="text-gray-600">Manage your personal and medical information</p>
+                <p className="text-gray-600">
+                  Manage your personal and medical information
+                </p>
               </div>
               <div className="flex gap-2">
                 {!isEditing ? (
-                  <Button onClick={() => setIsEditing(true)} className="bg-blue-600 hover:bg-blue-700">
+                  <Button
+                    onClick={() => setIsEditing(true)}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
                     <Edit className="h-4 w-4 mr-2" />
                     Edit Profile
                   </Button>
                 ) : (
                   <>
-                    <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">
+                    <Button
+                      onClick={handleSave}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
                       <Save className="h-4 w-4 mr-2" />
                       Save Changes
                     </Button>
@@ -450,7 +534,9 @@ export default function PatientProfile() {
                           onChange={handleInputChange}
                         />
                       ) : (
-                        <p className="mt-1 text-sm text-gray-900">{formData.full_name}</p>
+                        <p className="mt-1 text-sm text-gray-900">
+                          {formData.full_name}
+                        </p>
                       )}
                     </div>
                     <div>
@@ -464,7 +550,9 @@ export default function PatientProfile() {
                           onChange={handleInputChange}
                         />
                       ) : (
-                        <p className="mt-1 text-sm text-gray-900">{formData.email}</p>
+                        <p className="mt-1 text-sm text-gray-900">
+                          {formData.email}
+                        </p>
                       )}
                     </div>
                     <div>
@@ -477,7 +565,9 @@ export default function PatientProfile() {
                           onChange={handleInputChange}
                         />
                       ) : (
-                        <p className="mt-1 text-sm text-gray-900">{formData.phone_number}</p>
+                        <p className="mt-1 text-sm text-gray-900">
+                          {formData.phone_number}
+                        </p>
                       )}
                     </div>
                     <div>
@@ -491,7 +581,9 @@ export default function PatientProfile() {
                           onChange={handleInputChange}
                         />
                       ) : (
-                        <p className="mt-1 text-sm text-gray-900">{formData.date_of_birth}</p>
+                        <p className="mt-1 text-sm text-gray-900">
+                          {formData.date_of_birth}
+                        </p>
                       )}
                     </div>
                     <div>
@@ -510,7 +602,9 @@ export default function PatientProfile() {
                           <option value="Other">Other</option>
                         </select>
                       ) : (
-                        <p className="mt-1 text-sm text-gray-900">{formData.gender}</p>
+                        <p className="mt-1 text-sm text-gray-900">
+                          {formData.gender}
+                        </p>
                       )}
                     </div>
                     <div>
@@ -534,7 +628,9 @@ export default function PatientProfile() {
                           <option value="O-">O-</option>
                         </select>
                       ) : (
-                        <p className="mt-1 text-sm text-gray-900">{formData.blood_type}</p>
+                        <p className="mt-1 text-sm text-gray-900">
+                          {formData.blood_type}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -549,7 +645,9 @@ export default function PatientProfile() {
                         rows={2}
                       />
                     ) : (
-                      <p className="mt-1 text-sm text-gray-900">{formData.address}</p>
+                      <p className="mt-1 text-sm text-gray-900">
+                        {formData.address}
+                      </p>
                     )}
                   </div>
                 </CardContent>
@@ -566,7 +664,9 @@ export default function PatientProfile() {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="emergency_contact_name">Contact Name</Label>
+                      <Label htmlFor="emergency_contact_name">
+                        Contact Name
+                      </Label>
                       {isEditing ? (
                         <Input
                           id="emergency_contact_name"
@@ -575,11 +675,15 @@ export default function PatientProfile() {
                           onChange={handleInputChange}
                         />
                       ) : (
-                        <p className="mt-1 text-sm text-gray-900">{formData.emergency_contact_name}</p>
+                        <p className="mt-1 text-sm text-gray-900">
+                          {formData.emergency_contact_name}
+                        </p>
                       )}
                     </div>
                     <div>
-                      <Label htmlFor="emergency_contact_phone">Contact Phone</Label>
+                      <Label htmlFor="emergency_contact_phone">
+                        Contact Phone
+                      </Label>
                       {isEditing ? (
                         <Input
                           id="emergency_contact_phone"
@@ -588,7 +692,9 @@ export default function PatientProfile() {
                           onChange={handleInputChange}
                         />
                       ) : (
-                        <p className="mt-1 text-sm text-gray-900">{formData.emergency_contact_phone}</p>
+                        <p className="mt-1 text-sm text-gray-900">
+                          {formData.emergency_contact_phone}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -616,7 +722,9 @@ export default function PatientProfile() {
                         placeholder="List any known allergies..."
                       />
                     ) : (
-                      <p className="mt-1 text-sm text-gray-900">{formData.allergies || "No known allergies"}</p>
+                      <p className="mt-1 text-sm text-gray-900">
+                        {formData.allergies || "No known allergies"}
+                      </p>
                     )}
                   </div>
                   <div>
@@ -631,7 +739,10 @@ export default function PatientProfile() {
                         placeholder="Describe your medical history..."
                       />
                     ) : (
-                      <p className="mt-1 text-sm text-gray-900">{formData.medical_history || "No significant medical history"}</p>
+                      <p className="mt-1 text-sm text-gray-900">
+                        {formData.medical_history ||
+                          "No significant medical history"}
+                      </p>
                     )}
                   </div>
                 </CardContent>
@@ -651,16 +762,28 @@ export default function PatientProfile() {
                 <CardContent>
                   <div className="space-y-3">
                     <div>
-                      <span className="text-sm font-medium text-gray-600">Provider</span>
-                      <p className="text-sm text-gray-900">{patientData.insurance_info.provider}</p>
+                      <span className="text-sm font-medium text-gray-600">
+                        Provider
+                      </span>
+                      <p className="text-sm text-gray-900">
+                        {patientData.insurance_info.provider}
+                      </p>
                     </div>
                     <div>
-                      <span className="text-sm font-medium text-gray-600">Policy Number</span>
-                      <p className="text-sm text-gray-900">{patientData.insurance_info.policy_number}</p>
+                      <span className="text-sm font-medium text-gray-600">
+                        Policy Number
+                      </span>
+                      <p className="text-sm text-gray-900">
+                        {patientData.insurance_info.policy_number}
+                      </p>
                     </div>
                     <div>
-                      <span className="text-sm font-medium text-gray-600">Expiry Date</span>
-                      <p className="text-sm text-gray-900">{patientData.insurance_info.expiry_date}</p>
+                      <span className="text-sm font-medium text-gray-600">
+                        Expiry Date
+                      </span>
+                      <p className="text-sm text-gray-900">
+                        {patientData.insurance_info.expiry_date}
+                      </p>
                     </div>
                   </div>
                 </CardContent>
@@ -677,8 +800,13 @@ export default function PatientProfile() {
                 <CardContent>
                   <div className="space-y-3">
                     {patientData.recent_visits.map((visit, index) => (
-                      <div key={index} className="border-b border-gray-100 pb-2 last:border-b-0">
-                        <p className="text-sm font-medium text-gray-900">{visit.date}</p>
+                      <div
+                        key={index}
+                        className="border-b border-gray-100 pb-2 last:border-b-0"
+                      >
+                        <p className="text-sm font-medium text-gray-900">
+                          {visit.date}
+                        </p>
                         <p className="text-sm text-gray-600">{visit.doctor}</p>
                         <p className="text-xs text-gray-500">{visit.reason}</p>
                       </div>
@@ -695,19 +823,33 @@ export default function PatientProfile() {
                 <CardContent>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Account Status</span>
-                      <Badge className="bg-green-100 text-green-800">Active</Badge>
+                      <span className="text-sm text-gray-600">
+                        Account Status
+                      </span>
+                      <Badge className="bg-green-100 text-green-800">
+                        Active
+                      </Badge>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Email Verified</span>
-                      <Badge className="bg-green-100 text-green-800">Verified</Badge>
+                      <span className="text-sm text-gray-600">
+                        Email Verified
+                      </span>
+                      <Badge className="bg-green-100 text-green-800">
+                        Verified
+                      </Badge>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Phone Verified</span>
-                      <Badge className="bg-green-100 text-green-800">Verified</Badge>
+                      <span className="text-sm text-gray-600">
+                        Phone Verified
+                      </span>
+                      <Badge className="bg-green-100 text-green-800">
+                        Verified
+                      </Badge>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Member Since</span>
+                      <span className="text-sm text-gray-600">
+                        Member Since
+                      </span>
                       <span className="text-sm text-gray-900">Mar 2023</span>
                     </div>
                   </div>
@@ -719,7 +861,7 @@ export default function PatientProfile() {
       )}
 
       {/* Booking Tab */}
-      {activeTab === 'booking' && (
+      {activeTab === "booking" && (
         <div className="space-y-6">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">Đặt lịch khám</h2>
@@ -737,29 +879,41 @@ export default function PatientProfile() {
                   <div>
                     <h3 className="font-bold text-lg">{selectedDoctor.name}</h3>
                     <p className="text-gray-600">{selectedDoctor.title}</p>
-                    <p className="text-blue-600 font-medium">{selectedDoctor.specialty}</p>
+                    <p className="text-blue-600 font-medium">
+                      {selectedDoctor.specialty}
+                    </p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-gray-600">Kinh nghiệm:</span>
-                    <span className="font-bold text-gray-900 ml-2">{selectedDoctor.experience}</span>
+                    <span className="font-bold text-gray-900 ml-2">
+                      {selectedDoctor.experience}
+                    </span>
                   </div>
                   <div>
                     <span className="text-gray-600">Đánh giá:</span>
                     <div className="inline-flex items-center ml-2">
                       <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                      <span className="font-bold text-gray-900 ml-1">{selectedDoctor.rating}</span>
-                      <span className="text-gray-500 ml-1">({selectedDoctor.reviews})</span>
+                      <span className="font-bold text-gray-900 ml-1">
+                        {selectedDoctor.rating}
+                      </span>
+                      <span className="text-gray-500 ml-1">
+                        ({selectedDoctor.reviews})
+                      </span>
                     </div>
                   </div>
                   <div>
                     <span className="text-gray-600">Phí khám:</span>
-                    <span className="font-bold text-blue-600 ml-2">{selectedDoctor.consultationFee}</span>
+                    <span className="font-bold text-blue-600 ml-2">
+                      {selectedDoctor.consultationFee}
+                    </span>
                   </div>
                   <div>
                     <span className="text-gray-600">Lịch gần nhất:</span>
-                    <span className="font-bold text-green-600 ml-2">{selectedDoctor.nextAvailable}</span>
+                    <span className="font-bold text-green-600 ml-2">
+                      {selectedDoctor.nextAvailable}
+                    </span>
                   </div>
                 </div>
               </CardContent>
@@ -782,7 +936,7 @@ export default function PatientProfile() {
                       type="date"
                       value={bookingForm.appointmentDate}
                       onChange={handleBookingInputChange}
-                      min={new Date().toISOString().split('T')[0]}
+                      min={new Date().toISOString().split("T")[0]}
                       required
                     />
                   </div>
@@ -791,7 +945,12 @@ export default function PatientProfile() {
                     <Label htmlFor="appointmentTime">Giờ khám *</Label>
                     <Select
                       value={bookingForm.appointmentTime}
-                      onValueChange={(value) => setBookingForm({...bookingForm, appointmentTime: value})}
+                      onValueChange={(value) =>
+                        setBookingForm({
+                          ...bookingForm,
+                          appointmentTime: value,
+                        })
+                      }
                       required
                     >
                       <SelectTrigger>
@@ -872,7 +1031,7 @@ export default function PatientProfile() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => window.location.href = '/doctors'}
+                    onClick={() => (window.location.href = "/doctors")}
                     className="px-8"
                   >
                     Chọn bác sĩ khác
@@ -886,10 +1045,14 @@ export default function PatientProfile() {
             <Card className="border-dashed border-2 border-gray-300">
               <CardContent className="p-8 text-center">
                 <Stethoscope className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Chưa chọn bác sĩ</h3>
-                <p className="text-gray-600 mb-4">Vui lòng chọn bác sĩ để đặt lịch khám</p>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Chưa chọn bác sĩ
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  Vui lòng chọn bác sĩ để đặt lịch khám
+                </p>
                 <Button
-                  onClick={() => window.location.href = '/doctors'}
+                  onClick={() => (window.location.href = "/doctors")}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
                   Chọn bác sĩ
@@ -900,5 +1063,5 @@ export default function PatientProfile() {
         </div>
       )}
     </RoleBasedLayout>
-  )
+  );
 }

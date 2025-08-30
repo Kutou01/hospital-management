@@ -28,7 +28,7 @@ interface AppointmentStats {
 export declare class AppointmentService {
     private apiGatewayClient;
     constructor();
-    getDoctorAppointments(doctorId: string, filters?: {
+    getDoctorAppointments(doctor_id: string, filters?: {
         date?: string;
         status?: string;
         page?: number;
@@ -37,13 +37,13 @@ export declare class AppointmentService {
         appointments: AppointmentData[];
         pagination?: any;
     }>;
-    getDoctorAppointmentStats(doctorId: string): Promise<AppointmentStats>;
-    getDoctorPatientCount(doctorId: string): Promise<number>;
+    getDoctorAppointmentStats(doctor_id: string): Promise<AppointmentStats>;
+    getDoctorPatientCount(doctor_id: string): Promise<number>;
     isServiceAvailable(): Promise<boolean>;
-    getTodayAppointments(doctorId: string): Promise<AppointmentData[]>;
-    getMonthlyAppointments(doctorId: string): Promise<AppointmentData[]>;
-    getUpcomingAppointments(doctorId: string): Promise<AppointmentData[]>;
-    getRecentActivity(doctorId: string): Promise<any[]>;
+    getTodayAppointments(doctor_id: string): Promise<AppointmentData[]>;
+    getMonthlyAppointments(doctor_id: string): Promise<AppointmentData[]>;
+    getUpcomingAppointments(doctor_id: string): Promise<AppointmentData[]>;
+    getRecentActivity(doctor_id: string): Promise<any[]>;
     private getDefaultStats;
 }
 export {};

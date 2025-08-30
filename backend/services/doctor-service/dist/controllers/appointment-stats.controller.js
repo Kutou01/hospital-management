@@ -9,17 +9,17 @@ const logger_1 = __importDefault(require("@hospital/shared/dist/utils/logger"));
 class AppointmentStatsController {
     async getDoctorAppointmentStats(req, res) {
         try {
-            const { doctorId } = req.params;
+            const { doctor_id } = req.params;
             const { period = 'week', start_date, include_trends = 'true' } = req.query;
             logger_1.default.info('📊 [AppointmentStats] Getting stats for doctor', {
-                doctorId,
+                doctor_id,
                 period,
                 start_date,
                 include_trends
             });
             const { data: basicStats, error: statsError } = await database_config_1.supabaseAdmin
                 .rpc('get_doctor_appointment_stats', {
-                p_doctor_id: doctorId,
+                p_doctor_id: doctor_id,
                 p_period: period,
                 p_start_date: start_date || null
             });
@@ -46,11 +46,11 @@ class AppointmentStatsController {
             };
             let weeklyData = [];
             if (include_trends === 'true') {
-                weeklyData = await this.getWeeklyTrendData(doctorId, period);
+                weeklyData = await this.getWeeklyTrendData(doctor_id, period);
             }
-            const monthlyComparison = await this.getMonthlyComparison(doctorId);
-            const appointmentTypes = await this.getAppointmentTypesBreakdown(doctorId, period);
-            const totalPatients = await this.getTotalUniquePatients(doctorId, period);
+            const monthlyComparison = await this.getMonthlyComparison(doctor_id);
+            const appointmentTypes = await this.getAppointmentTypesBreakdown(doctor_id, period);
+            const totalPatients = await this.getTotalUniquePatients(doctor_id, period);
             const response = {
                 total_appointments: Number(stats.total_appointments) || 0,
                 completed_appointments: Number(stats.completed_appointments) || 0,
@@ -70,7 +70,7 @@ class AppointmentStatsController {
                 period_end: stats.period_end
             };
             logger_1.default.info('✅ [AppointmentStats] Successfully retrieved stats', {
-                doctorId,
+                doctor_id,
                 totalAppointments: response.total_appointments,
                 successRate: response.success_rate,
                 trendsIncluded: weeklyData.length > 0
@@ -88,7 +88,7 @@ class AppointmentStatsController {
             });
         }
     }
-    async getWeeklyTrendData(doctorId, period) {
+    async getWeeklyTrendData(doctor_id, period) {
         try {
             const daysBack = period === 'month' ? 30 : period === 'year' ? 365 : 7;
             const startDate = new Date();
@@ -101,7 +101,7 @@ class AppointmentStatsController {
           patient_type,
           doctors!inner(consultation_fee)
         `)
-                .eq('doctor_id', doctorId)
+                .eq('doctor_id', doctor_id)
                 .gte('appointment_date', startDate.toISOString().split('T')[0])
                 .order('appointment_date');
             if (error) {
@@ -147,7 +147,7 @@ class AppointmentStatsController {
             return [];
         }
     }
-    async getMonthlyComparison(doctorId) {
+    async getMonthlyComparison(doctor_id) {
         try {
             const currentMonth = new Date();
             const previousMonth = new Date();
@@ -158,12 +158,12 @@ class AppointmentStatsController {
             const { count: currentCount } = await database_config_1.supabaseAdmin
                 .from('appointments')
                 .select('*', { count: 'exact', head: true })
-                .eq('doctor_id', doctorId)
+                .eq('doctor_id', doctor_id)
                 .gte('appointment_date', currentMonthStart.toISOString().split('T')[0]);
             const { count: previousCount } = await database_config_1.supabaseAdmin
                 .from('appointments')
                 .select('*', { count: 'exact', head: true })
-                .eq('doctor_id', doctorId)
+                .eq('doctor_id', doctor_id)
                 .gte('appointment_date', previousMonthStart.toISOString().split('T')[0])
                 .lte('appointment_date', previousMonthEnd.toISOString().split('T')[0]);
             const growthPercentage = previousCount && previousCount > 0
@@ -184,7 +184,7 @@ class AppointmentStatsController {
             };
         }
     }
-    async getAppointmentTypesBreakdown(doctorId, period) {
+    async getAppointmentTypesBreakdown(doctor_id, period) {
         try {
             const daysBack = period === 'month' ? 30 : period === 'year' ? 365 : 7;
             const startDate = new Date();
@@ -192,7 +192,7 @@ class AppointmentStatsController {
             const { data: typeData, error } = await database_config_1.supabaseAdmin
                 .from('appointments')
                 .select('appointment_type')
-                .eq('doctor_id', doctorId)
+                .eq('doctor_id', doctor_id)
                 .gte('appointment_date', startDate.toISOString().split('T')[0]);
             if (error || !typeData) {
                 return [];
@@ -214,7 +214,7 @@ class AppointmentStatsController {
             return [];
         }
     }
-    async getTotalUniquePatients(doctorId, period) {
+    async getTotalUniquePatients(doctor_id, period) {
         try {
             const daysBack = period === 'month' ? 30 : period === 'year' ? 365 : 7;
             const startDate = new Date();
@@ -222,7 +222,7 @@ class AppointmentStatsController {
             const { data: patientData, error } = await database_config_1.supabaseAdmin
                 .from('appointments')
                 .select('patient_id')
-                .eq('doctor_id', doctorId)
+                .eq('doctor_id', doctor_id)
                 .gte('appointment_date', startDate.toISOString().split('T')[0]);
             if (error || !patientData) {
                 return 0;

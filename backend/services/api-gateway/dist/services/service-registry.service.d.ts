@@ -1,7 +1,7 @@
 export interface ServiceInfo {
     name: string;
     url: string;
-    status: 'healthy' | 'unhealthy' | 'unknown';
+    status: "healthy" | "unhealthy" | "unknown";
     lastHealthCheck: Date;
     responseTime?: number;
     version?: string;

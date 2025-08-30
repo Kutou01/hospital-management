@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Request, Response } from "express";
 export declare class DoctorController {
     private doctorRepository;
     private scheduleRepository;

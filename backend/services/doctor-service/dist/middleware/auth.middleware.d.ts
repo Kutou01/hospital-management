@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { NextFunction, Request, Response } from "express";
 interface AuthenticatedRequest extends Request {
     user?: {
         id: string;

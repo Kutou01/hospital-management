@@ -50,15 +50,15 @@ exports.departmentResolvers = {
                     phoneNumber: data.phone_number,
                     email: data.email,
                     status: data.is_active ? "ACTIVE" : "INACTIVE",
-                    isActive: data.is_active,
+                    is_active: data.is_active,
                     emergencyAvailable: data.emergency_available || false,
                     totalRooms: data.total_rooms || 0,
                     availableRooms: data.available_rooms || 0,
                     totalBeds: data.total_beds || 0,
                     availableBeds: data.available_beds || 0,
                     maxPatients: data.max_patients || 100,
-                    createdAt: data.created_at,
-                    updatedAt: data.updated_at,
+                    created_at: data.created_at,
+                    updated_at: data.updated_at,
                     currentPatients: 0, // TODO: Calculate from appointments
                     todayAppointments: 0, // TODO: Calculate from appointments
                     availabilityRate: 100.0, // TODO: Calculate
@@ -90,8 +90,8 @@ exports.departmentResolvers = {
                 if (filters.search) {
                     query = query.or(`department_name.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
                 }
-                if (filters.isActive !== undefined) {
-                    query = query.eq("is_active", filters.isActive);
+                if (filters.is_active !== undefined) {
+                    query = query.eq("is_active", filters.is_active);
                 }
                 if (filters.type) {
                     query = query.eq("type", filters.type);
@@ -137,15 +137,15 @@ exports.departmentResolvers = {
                     phoneNumber: dept.phone_number,
                     email: dept.email,
                     status: dept.is_active ? "ACTIVE" : "INACTIVE",
-                    isActive: dept.is_active,
+                    is_active: dept.is_active,
                     emergencyAvailable: dept.emergency_available || false,
                     totalRooms: dept.total_rooms || 0,
                     availableRooms: dept.available_rooms || 0,
                     totalBeds: dept.total_beds || 0,
                     availableBeds: dept.available_beds || 0,
                     maxPatients: dept.max_patients || 100,
-                    createdAt: dept.created_at,
-                    updatedAt: dept.updated_at,
+                    created_at: dept.created_at,
+                    updated_at: dept.updated_at,
                     currentPatients: 0, // TODO: Calculate from appointments
                     todayAppointments: 0, // TODO: Calculate from appointments
                     availabilityRate: 100.0, // TODO: Calculate

@@ -1,6 +1,6 @@
-import DataLoader from 'dataloader';
-import { RestApiService } from '../services/rest-api.service';
-import logger from '@hospital/shared/dist/utils/logger';
+import logger from "@hospital/shared/dist/utils/logger";
+import DataLoader from "dataloader";
+import { RestApiService } from "../services/rest-api.service";
 
 /**
  * DataLoader factory for N+1 query optimization
@@ -16,7 +16,7 @@ export function createDataLoaders(restApi: RestApiService) {
       {
         cacheKeyFn: (key) => `doctor:${key}`,
         maxBatchSize: 100,
-        batchScheduleFn: (callback) => setTimeout(callback, 10)
+        batchScheduleFn: (callback) => setTimeout(callback, 10),
       }
     ),
 
@@ -26,7 +26,7 @@ export function createDataLoaders(restApi: RestApiService) {
       },
       {
         cacheKeyFn: (key) => `doctors_by_dept:${key}`,
-        maxBatchSize: 50
+        maxBatchSize: 50,
       }
     ),
 
@@ -38,7 +38,7 @@ export function createDataLoaders(restApi: RestApiService) {
       {
         cacheKeyFn: (key) => `patient:${key}`,
         maxBatchSize: 100,
-        batchScheduleFn: (callback) => setTimeout(callback, 10)
+        batchScheduleFn: (callback) => setTimeout(callback, 10),
       }
     ),
 
@@ -49,7 +49,7 @@ export function createDataLoaders(restApi: RestApiService) {
       },
       {
         cacheKeyFn: (key) => `appointment:${key}`,
-        maxBatchSize: 100
+        maxBatchSize: 100,
       }
     ),
 
@@ -59,7 +59,7 @@ export function createDataLoaders(restApi: RestApiService) {
       },
       {
         cacheKeyFn: (key) => `appointments_by_doctor:${key}`,
-        maxBatchSize: 50
+        maxBatchSize: 50,
       }
     ),
 
@@ -69,7 +69,7 @@ export function createDataLoaders(restApi: RestApiService) {
       },
       {
         cacheKeyFn: (key) => `appointments_by_patient:${key}`,
-        maxBatchSize: 50
+        maxBatchSize: 50,
       }
     ),
 
@@ -80,18 +80,21 @@ export function createDataLoaders(restApi: RestApiService) {
       },
       {
         cacheKeyFn: (key) => `department:${key}`,
-        maxBatchSize: 50
+        maxBatchSize: 50,
       }
     ),
 
     // Medical Record DataLoaders
     medicalRecordsByPatient: new DataLoader<string, any[]>(
       async (patientIds: readonly string[]) => {
-        return batchLoadMedicalRecordsByPatient(restApi, Array.from(patientIds));
+        return batchLoadMedicalRecordsByPatient(
+          restApi,
+          Array.from(patientIds)
+        );
       },
       {
         cacheKeyFn: (key) => `medical_records_by_patient:${key}`,
-        maxBatchSize: 50
+        maxBatchSize: 50,
       }
     ),
 
@@ -103,7 +106,7 @@ export function createDataLoaders(restApi: RestApiService) {
       {
         cacheKeyFn: (key) => `doctor_stats:${key}`,
         maxBatchSize: 50,
-        cache: true
+        cache: true,
       }
     ),
 
@@ -114,7 +117,7 @@ export function createDataLoaders(restApi: RestApiService) {
       },
       {
         cacheKeyFn: (key) => `doctor_reviews:${key}`,
-        maxBatchSize: 50
+        maxBatchSize: 50,
       }
     ),
 
@@ -126,27 +129,30 @@ export function createDataLoaders(restApi: RestApiService) {
       },
       {
         cacheKeyFn: (key) => `available_slots:${key}`,
-        maxBatchSize: 20
+        maxBatchSize: 20,
       }
-    )
+    ),
   };
 }
 
 /**
  * Batch load doctors by IDs
  */
-async function batchLoadDoctors(restApi: RestApiService, ids: string[]): Promise<any[]> {
+async function batchLoadDoctors(
+  restApi: RestApiService,
+  ids: string[]
+): Promise<any[]> {
   try {
-    logger.debug('Batch loading doctors:', { ids, count: ids.length });
-    
+    logger.debug("Batch loading doctors:", { ids, count: ids.length });
+
     // Create batch requests for each doctor
-    const requests = ids.map(id => ({
-      method: 'GET' as const,
-      url: `/api/doctors/${id}`
+    const requests = ids.map((id) => ({
+      method: "GET" as const,
+      url: `/api/doctors/${id}`,
     }));
-    
+
     const responses = await restApi.batchRequest(requests);
-    
+
     // Map responses back to the original order
     return responses.map((response, index) => {
       if (response.success) {
@@ -157,7 +163,7 @@ async function batchLoadDoctors(restApi: RestApiService, ids: string[]): Promise
       }
     });
   } catch (error) {
-    logger.error('Batch load doctors error:', error);
+    logger.error("Batch load doctors error:", error);
     return ids.map(() => null);
   }
 }
@@ -165,28 +171,37 @@ async function batchLoadDoctors(restApi: RestApiService, ids: string[]): Promise
 /**
  * Batch load doctors by department
  */
-async function batchLoadDoctorsByDepartment(restApi: RestApiService, departmentIds: string[]): Promise<any[][]> {
+async function batchLoadDoctorsByDepartment(
+  restApi: RestApiService,
+  departmentIds: string[]
+): Promise<any[][]> {
   try {
-    logger.debug('Batch loading doctors by department:', { departmentIds, count: departmentIds.length });
-    
-    const requests = departmentIds.map(departmentId => ({
-      method: 'GET' as const,
-      url: '/api/doctors',
-      params: { departmentId, limit: 100 }
+    logger.debug("Batch loading doctors by department:", {
+      departmentIds,
+      count: departmentIds.length,
+    });
+
+    const requests = departmentIds.map((departmentId) => ({
+      method: "GET" as const,
+      url: "/api/doctors",
+      params: { departmentId, limit: 100 },
     }));
-    
+
     const responses = await restApi.batchRequest(requests);
-    
+
     return responses.map((response, index) => {
       if (response.success && Array.isArray(response.data)) {
         return response.data;
       } else {
-        logger.warn(`Failed to load doctors for department ${departmentIds[index]}:`, response.error);
+        logger.warn(
+          `Failed to load doctors for department ${departmentIds[index]}:`,
+          response.error
+        );
         return [];
       }
     });
   } catch (error) {
-    logger.error('Batch load doctors by department error:', error);
+    logger.error("Batch load doctors by department error:", error);
     return departmentIds.map(() => []);
   }
 }
@@ -194,17 +209,20 @@ async function batchLoadDoctorsByDepartment(restApi: RestApiService, departmentI
 /**
  * Batch load patients by IDs
  */
-async function batchLoadPatients(restApi: RestApiService, ids: string[]): Promise<any[]> {
+async function batchLoadPatients(
+  restApi: RestApiService,
+  ids: string[]
+): Promise<any[]> {
   try {
-    logger.debug('Batch loading patients:', { ids, count: ids.length });
-    
-    const requests = ids.map(id => ({
-      method: 'GET' as const,
-      url: `/api/patients/${id}`
+    logger.debug("Batch loading patients:", { ids, count: ids.length });
+
+    const requests = ids.map((id) => ({
+      method: "GET" as const,
+      url: `/api/patients/${id}`,
     }));
-    
+
     const responses = await restApi.batchRequest(requests);
-    
+
     return responses.map((response, index) => {
       if (response.success) {
         return response.data;
@@ -214,7 +232,7 @@ async function batchLoadPatients(restApi: RestApiService, ids: string[]): Promis
       }
     });
   } catch (error) {
-    logger.error('Batch load patients error:', error);
+    logger.error("Batch load patients error:", error);
     return ids.map(() => null);
   }
 }
@@ -222,27 +240,33 @@ async function batchLoadPatients(restApi: RestApiService, ids: string[]): Promis
 /**
  * Batch load appointments by IDs
  */
-async function batchLoadAppointments(restApi: RestApiService, ids: string[]): Promise<any[]> {
+async function batchLoadAppointments(
+  restApi: RestApiService,
+  ids: string[]
+): Promise<any[]> {
   try {
-    logger.debug('Batch loading appointments:', { ids, count: ids.length });
-    
-    const requests = ids.map(id => ({
-      method: 'GET' as const,
-      url: `/api/appointments/${id}`
+    logger.debug("Batch loading appointments:", { ids, count: ids.length });
+
+    const requests = ids.map((id) => ({
+      method: "GET" as const,
+      url: `/api/appointments/${id}`,
     }));
-    
+
     const responses = await restApi.batchRequest(requests);
-    
+
     return responses.map((response, index) => {
       if (response.success) {
         return response.data;
       } else {
-        logger.warn(`Failed to load appointment ${ids[index]}:`, response.error);
+        logger.warn(
+          `Failed to load appointment ${ids[index]}:`,
+          response.error
+        );
         return null;
       }
     });
   } catch (error) {
-    logger.error('Batch load appointments error:', error);
+    logger.error("Batch load appointments error:", error);
     return ids.map(() => null);
   }
 }
@@ -250,28 +274,37 @@ async function batchLoadAppointments(restApi: RestApiService, ids: string[]): Pr
 /**
  * Batch load appointments by doctor
  */
-async function batchLoadAppointmentsByDoctor(restApi: RestApiService, doctorIds: string[]): Promise<any[][]> {
+async function batchLoadAppointmentsByDoctor(
+  restApi: RestApiService,
+  doctorIds: string[]
+): Promise<any[][]> {
   try {
-    logger.debug('Batch loading appointments by doctor:', { doctorIds, count: doctorIds.length });
-    
-    const requests = doctorIds.map(doctor_id => ({
-      method: 'GET' as const,
-      url: '/api/appointments',
-      params: { doctor_id, limit: 100 }
+    logger.debug("Batch loading appointments by doctor:", {
+      doctorIds,
+      count: doctorIds.length,
+    });
+
+    const requests = doctorIds.map((doctor_id) => ({
+      method: "GET" as const,
+      url: "/api/appointments",
+      params: { doctor_id, limit: 100 },
     }));
-    
+
     const responses = await restApi.batchRequest(requests);
-    
+
     return responses.map((response, index) => {
       if (response.success && Array.isArray(response.data)) {
         return response.data;
       } else {
-        logger.warn(`Failed to load appointments for doctor ${doctor_id}:`, response.error);
+        logger.warn(
+          `Failed to load appointments for doctor ${doctorIds[index]}:`,
+          response.error
+        );
         return [];
       }
     });
   } catch (error) {
-    logger.error('Batch load appointments by doctor error:', error);
+    logger.error("Batch load appointments by doctor error:", error);
     return doctorIds.map(() => []);
   }
 }
@@ -279,28 +312,37 @@ async function batchLoadAppointmentsByDoctor(restApi: RestApiService, doctorIds:
 /**
  * Batch load appointments by patient
  */
-async function batchLoadAppointmentsByPatient(restApi: RestApiService, patientIds: string[]): Promise<any[][]> {
+async function batchLoadAppointmentsByPatient(
+  restApi: RestApiService,
+  patientIds: string[]
+): Promise<any[][]> {
   try {
-    logger.debug('Batch loading appointments by patient:', { patientIds, count: patientIds.length });
-    
-    const requests = patientIds.map(patient_id => ({
-      method: 'GET' as const,
-      url: '/api/appointments',
-      params: { patient_id, limit: 100 }
+    logger.debug("Batch loading appointments by patient:", {
+      patientIds,
+      count: patientIds.length,
+    });
+
+    const requests = patientIds.map((patient_id) => ({
+      method: "GET" as const,
+      url: "/api/appointments",
+      params: { patient_id, limit: 100 },
     }));
-    
+
     const responses = await restApi.batchRequest(requests);
-    
+
     return responses.map((response, index) => {
       if (response.success && Array.isArray(response.data)) {
         return response.data;
       } else {
-        logger.warn(`Failed to load appointments for patient ${patient_id}:`, response.error);
+        logger.warn(
+          `Failed to load appointments for patient ${patientIds[index]}:`,
+          response.error
+        );
         return [];
       }
     });
   } catch (error) {
-    logger.error('Batch load appointments by patient error:', error);
+    logger.error("Batch load appointments by patient error:", error);
     return patientIds.map(() => []);
   }
 }
@@ -308,17 +350,20 @@ async function batchLoadAppointmentsByPatient(restApi: RestApiService, patientId
 /**
  * Batch load departments by IDs
  */
-async function batchLoadDepartments(restApi: RestApiService, ids: string[]): Promise<any[]> {
+async function batchLoadDepartments(
+  restApi: RestApiService,
+  ids: string[]
+): Promise<any[]> {
   try {
-    logger.debug('Batch loading departments:', { ids, count: ids.length });
-    
-    const requests = ids.map(id => ({
-      method: 'GET' as const,
-      url: `/api/departments/${id}`
+    logger.debug("Batch loading departments:", { ids, count: ids.length });
+
+    const requests = ids.map((id) => ({
+      method: "GET" as const,
+      url: `/api/departments/${id}`,
     }));
-    
+
     const responses = await restApi.batchRequest(requests);
-    
+
     return responses.map((response, index) => {
       if (response.success) {
         return response.data;
@@ -328,7 +373,7 @@ async function batchLoadDepartments(restApi: RestApiService, ids: string[]): Pro
       }
     });
   } catch (error) {
-    logger.error('Batch load departments error:', error);
+    logger.error("Batch load departments error:", error);
     return ids.map(() => null);
   }
 }
@@ -336,28 +381,37 @@ async function batchLoadDepartments(restApi: RestApiService, ids: string[]): Pro
 /**
  * Batch load medical records by patient
  */
-async function batchLoadMedicalRecordsByPatient(restApi: RestApiService, patientIds: string[]): Promise<any[][]> {
+async function batchLoadMedicalRecordsByPatient(
+  restApi: RestApiService,
+  patientIds: string[]
+): Promise<any[][]> {
   try {
-    logger.debug('Batch loading medical records by patient:', { patientIds, count: patientIds.length });
-    
-    const requests = patientIds.map(patient_id => ({
-      method: 'GET' as const,
-      url: '/api/medical-records',
-      params: { patient_id, limit: 50 }
+    logger.debug("Batch loading medical records by patient:", {
+      patientIds,
+      count: patientIds.length,
+    });
+
+    const requests = patientIds.map((patient_id) => ({
+      method: "GET" as const,
+      url: "/api/medical-records",
+      params: { patient_id, limit: 50 },
     }));
-    
+
     const responses = await restApi.batchRequest(requests);
-    
+
     return responses.map((response, index) => {
       if (response.success && Array.isArray(response.data)) {
         return response.data;
       } else {
-        logger.warn(`Failed to load medical records for patient ${patient_id}:`, response.error);
+        logger.warn(
+          `Failed to load medical records for patient ${patientIds[index]}:`,
+          response.error
+        );
         return [];
       }
     });
   } catch (error) {
-    logger.error('Batch load medical records by patient error:', error);
+    logger.error("Batch load medical records by patient error:", error);
     return patientIds.map(() => []);
   }
 }
@@ -365,27 +419,36 @@ async function batchLoadMedicalRecordsByPatient(restApi: RestApiService, patient
 /**
  * Batch load doctor statistics
  */
-async function batchLoadDoctorStats(restApi: RestApiService, doctorIds: string[]): Promise<any[]> {
+async function batchLoadDoctorStats(
+  restApi: RestApiService,
+  doctorIds: string[]
+): Promise<any[]> {
   try {
-    logger.debug('Batch loading doctor stats:', { doctorIds, count: doctorIds.length });
-    
-    const requests = doctorIds.map(doctor_id => ({
-      method: 'GET' as const,
-      url: `/api/doctors/${doctor_id}/stats`
+    logger.debug("Batch loading doctor stats:", {
+      doctorIds,
+      count: doctorIds.length,
+    });
+
+    const requests = doctorIds.map((doctor_id) => ({
+      method: "GET" as const,
+      url: `/api/doctors/${doctor_id}/stats`,
     }));
-    
+
     const responses = await restApi.batchRequest(requests);
-    
+
     return responses.map((response, index) => {
       if (response.success) {
         return response.data;
       } else {
-        logger.warn(`Failed to load stats for doctor ${doctor_id}:`, response.error);
+        logger.warn(
+          `Failed to load stats for doctor ${doctorIds[index]}:`,
+          response.error
+        );
         return null;
       }
     });
   } catch (error) {
-    logger.error('Batch load doctor stats error:', error);
+    logger.error("Batch load doctor stats error:", error);
     return doctorIds.map(() => null);
   }
 }
@@ -393,28 +456,37 @@ async function batchLoadDoctorStats(restApi: RestApiService, doctorIds: string[]
 /**
  * Batch load doctor reviews
  */
-async function batchLoadDoctorReviews(restApi: RestApiService, doctorIds: string[]): Promise<any[][]> {
+async function batchLoadDoctorReviews(
+  restApi: RestApiService,
+  doctorIds: string[]
+): Promise<any[][]> {
   try {
-    logger.debug('Batch loading doctor reviews:', { doctorIds, count: doctorIds.length });
-    
-    const requests = doctorIds.map(doctor_id => ({
-      method: 'GET' as const,
+    logger.debug("Batch loading doctor reviews:", {
+      doctorIds,
+      count: doctorIds.length,
+    });
+
+    const requests = doctorIds.map((doctor_id) => ({
+      method: "GET" as const,
       url: `/api/doctors/${doctor_id}/reviews`,
-      params: { limit: 20 }
+      params: { limit: 20 },
     }));
-    
+
     const responses = await restApi.batchRequest(requests);
-    
+
     return responses.map((response, index) => {
       if (response.success && Array.isArray(response.data)) {
         return response.data;
       } else {
-        logger.warn(`Failed to load reviews for doctor ${doctor_id}:`, response.error);
+        logger.warn(
+          `Failed to load reviews for doctor ${doctorIds[index]}:`,
+          response.error
+        );
         return [];
       }
     });
   } catch (error) {
-    logger.error('Batch load doctor reviews error:', error);
+    logger.error("Batch load doctor reviews error:", error);
     return doctorIds.map(() => []);
   }
 }
@@ -422,31 +494,40 @@ async function batchLoadDoctorReviews(restApi: RestApiService, doctorIds: string
 /**
  * Batch load available slots
  */
-async function batchLoadAvailableSlots(restApi: RestApiService, keys: string[]): Promise<any[][]> {
+async function batchLoadAvailableSlots(
+  restApi: RestApiService,
+  keys: string[]
+): Promise<any[][]> {
   try {
-    logger.debug('Batch loading available slots:', { keys, count: keys.length });
-    
-    const requests = keys.map(key => {
-      const [doctor_id, date] = key.split(':');
+    logger.debug("Batch loading available slots:", {
+      keys,
+      count: keys.length,
+    });
+
+    const requests = keys.map((key) => {
+      const [doctor_id, date] = key.split(":");
       return {
-        method: 'GET' as const,
-        url: '/api/appointments/available-slots',
-        params: { doctor_id, date }
+        method: "GET" as const,
+        url: "/api/appointments/available-slots",
+        params: { doctor_id, date },
       };
     });
-    
+
     const responses = await restApi.batchRequest(requests);
-    
+
     return responses.map((response, index) => {
       if (response.success && Array.isArray(response.data)) {
         return response.data;
       } else {
-        logger.warn(`Failed to load available slots for ${keys[index]}:`, response.error);
+        logger.warn(
+          `Failed to load available slots for ${keys[index]}:`,
+          response.error
+        );
         return [];
       }
     });
   } catch (error) {
-    logger.error('Batch load available slots error:', error);
+    logger.error("Batch load available slots error:", error);
     return keys.map(() => []);
   }
 }

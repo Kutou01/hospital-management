@@ -91,83 +91,41 @@ async function createContext({ req, res, connectionParams, }) {
 }
 /**
  * Authenticate user from JWT token
+ * Updated to use only JWT_SECRET (Auth Service tokens)
  */
 async function authenticateUser(token) {
     try {
-        // Try Supabase JWT verification first
-        let decoded;
-        let isSupabaseToken = false;
-        try {
-            // Verify with Supabase JWT secret
-            const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET;
-            if (supabaseJwtSecret) {
-                decoded = jsonwebtoken_1.default.verify(token, supabaseJwtSecret);
-                isSupabaseToken = true;
-                logger_1.default.debug("Verified Supabase JWT token");
-            }
+        // Use only JWT_SECRET for Auth Service tokens
+        const jwtSecret = process.env.JWT_SECRET;
+        if (!jwtSecret) {
+            throw new Error("JWT_SECRET not configured");
         }
-        catch (supabaseError) {
-            logger_1.default.debug("Not a Supabase token, trying custom JWT secret");
-        }
-        // Fallback to custom JWT secret if Supabase verification failed
-        if (!decoded) {
-            const jwtSecret = process.env.JWT_SECRET;
-            if (!jwtSecret) {
-                throw new Error("Neither SUPABASE_JWT_SECRET nor JWT_SECRET configured");
-            }
-            decoded = jsonwebtoken_1.default.verify(token, jwtSecret);
-            logger_1.default.debug("Verified custom JWT token");
-        }
-        // Extract user information from token
-        let user;
-        if (isSupabaseToken) {
-            // Handle Supabase JWT format
-            const userMetadata = decoded.user_metadata || {};
-            const appMetadata = decoded.app_metadata || {};
-            user = {
-                id: decoded.sub,
-                profileId: userMetadata.profileId,
-                email: decoded.email,
-                role: (userMetadata.role || appMetadata.role || "patient"),
-                permissions: userMetadata.permissions || appMetadata.permissions || [],
-                doctorId: userMetadata.doctorId || appMetadata.doctorId,
-                patientId: userMetadata.patientId || appMetadata.patientId,
-                fullName: userMetadata.full_name || userMetadata.fullName || decoded.email,
-                isActive: userMetadata.isActive !== false,
-                lastLoginAt: decoded.last_sign_in_at
-                    ? new Date(decoded.last_sign_in_at)
-                    : undefined,
-                sessionId: decoded.session_id,
-                tokenIssuedAt: new Date(decoded.iat * 1000),
-                tokenExpiresAt: new Date(decoded.exp * 1000),
-            };
-        }
-        else {
-            // Handle custom JWT format
-            user = {
-                id: decoded.sub || decoded.userId,
-                profileId: decoded.profileId,
-                email: decoded.email,
-                role: decoded.role,
-                permissions: decoded.permissions || [],
-                doctorId: decoded.doctorId,
-                patientId: decoded.patientId,
-                fullName: decoded.fullName || decoded.name,
-                isActive: decoded.isActive !== false,
-                lastLoginAt: decoded.lastLoginAt
-                    ? new Date(decoded.lastLoginAt)
-                    : undefined,
-                sessionId: decoded.sessionId,
-                tokenIssuedAt: new Date(decoded.iat * 1000),
-                tokenExpiresAt: new Date(decoded.exp * 1000),
-            };
-        }
+        const decoded = jsonwebtoken_1.default.verify(token, jwtSecret);
+        logger_1.default.debug("Verified Auth Service JWT token");
+        // Extract user information from Auth Service JWT token
+        const user = {
+            id: decoded.id || decoded.sub || decoded.userId,
+            profileId: decoded.profileId,
+            email: decoded.email,
+            role: decoded.role,
+            permissions: decoded.permissions || [],
+            doctor_id: decoded.doctor_id,
+            patient_id: decoded.patient_id,
+            fullName: decoded.fullName || decoded.full_name || decoded.name,
+            is_active: decoded.is_active !== false,
+            lastLoginAt: decoded.lastLoginAt
+                ? new Date(decoded.lastLoginAt)
+                : undefined,
+            sessionId: decoded.sessionId,
+            tokenIssuedAt: new Date(decoded.iat * 1000),
+            tokenExpiresAt: new Date(decoded.exp * 1000),
+        };
         // Validate token expiration
         if (user.tokenExpiresAt < new Date()) {
             throw new Error("Token expired");
         }
         // Validate user is active
-        if (!user.isActive) {
+        if (!user.is_active) {
             throw new Error("User account is inactive");
         }
         return user;
@@ -206,9 +164,9 @@ function hasPermission(user, requiredPermission) {
 function getUserEntityId(user) {
     switch (user.role) {
         case UserRole.DOCTOR:
-            return user.doctorId;
+            return user.doctor_id;
         case UserRole.PATIENT:
-            return user.patientId;
+            return user.patient_id;
         default:
             return user.id;
     }

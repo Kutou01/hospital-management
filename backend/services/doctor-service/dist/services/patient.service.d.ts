@@ -40,12 +40,12 @@ interface PatientStats {
 export declare class PatientService {
     private apiGatewayClient;
     constructor();
-    getPatientById(patientId: string): Promise<PatientData | null>;
+    getPatientById(patient_id: string): Promise<PatientData | null>;
     getPatientsByIds(patientIds: string[]): Promise<PatientData[]>;
-    getDoctorPatientStats(doctorId: string): Promise<PatientStats>;
+    getDoctorPatientStats(doctor_id: string): Promise<PatientStats>;
     isServiceAvailable(): Promise<boolean>;
     searchPatients(query: string, limit?: number): Promise<PatientData[]>;
-    getPatientCountForDoctor(doctorId: string): Promise<number>;
+    getPatientCountForDoctor(doctor_id: string): Promise<number>;
 }
 export {};
 //# sourceMappingURL=patient.service.d.ts.map

@@ -6,9 +6,9 @@ import { GraphQLContext } from "../context";
  */
 export declare const appointmentResolvers: {
     Query: {
-        appointment(_: any, { id, appointmentId }: {
+        appointment(_: any, { id, appointment_id }: {
             id?: string;
-            appointmentId?: string;
+            appointment_id?: string;
         }, context: GraphQLContext): Promise<any>;
         appointments(_: any, { filters, limit, offset, sortBy, sortOrder, }: any, context: GraphQLContext): Promise<{
             edges: any;
@@ -20,14 +20,14 @@ export declare const appointmentResolvers: {
             };
             totalCount: any;
         }>;
-        todayAppointments(_: any, { doctorId, departmentId, status }: any, context: GraphQLContext): Promise<any>;
-        upcomingAppointments(_: any, { doctorId, patientId, days, limit }: any, context: GraphQLContext): Promise<any>;
-        availableSlots(_: any, { doctorId, date, duration, }: {
-            doctorId: string;
+        todayAppointments(_: any, { doctor_id, departmentId, status }: any, context: GraphQLContext): Promise<any>;
+        upcomingAppointments(_: any, { doctor_id, patient_id, days, limit }: any, context: GraphQLContext): Promise<any>;
+        availableSlots(_: any, { doctor_id, date, duration, }: {
+            doctor_id: string;
             date: string;
             duration: number;
         }, context: GraphQLContext): Promise<any[]>;
-        appointmentStats(_: any, { doctorId, patientId, departmentId, dateFrom, dateTo }: any, context: GraphQLContext): Promise<any>;
+        appointmentStats(_: any, { doctor_id, patient_id, departmentId, dateFrom, dateTo }: any, context: GraphQLContext): Promise<any>;
     };
     Mutation: {
         createAppointment(_: any, { input }: {
@@ -48,7 +48,7 @@ export declare const appointmentResolvers: {
         }, context: GraphQLContext): Promise<any>;
         checkInAppointment(_: any, { id }: {
             id: string;
-        }, context: GraphQLContext): Promise<any>;
+        }, context: GraphQLContext): Promise<never>;
         completeAppointment(_: any, { id, notes }: {
             id: string;
             notes?: string;

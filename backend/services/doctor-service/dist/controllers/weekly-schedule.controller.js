@@ -9,10 +9,10 @@ const logger_1 = __importDefault(require("@hospital/shared/dist/utils/logger"));
 class WeeklyScheduleController {
     async getWeeklySchedule(req, res) {
         try {
-            const { doctorId } = req.params;
+            const { doctor_id } = req.params;
             const { date } = req.query;
             logger_1.default.info('📅 [WeeklySchedule] Getting weekly schedule', {
-                doctorId,
+                doctor_id,
                 date
             });
             const targetDate = date ? new Date(date) : new Date();
@@ -24,7 +24,7 @@ class WeeklyScheduleController {
             const { data: doctor, error: doctorError } = await database_config_1.supabaseAdmin
                 .from('doctors')
                 .select('doctor_id, full_name')
-                .eq('doctor_id', doctorId)
+                .eq('doctor_id', doctor_id)
                 .single();
             if (doctorError || !doctor) {
                 logger_1.default.error('❌ [WeeklySchedule] Doctor not found:', doctorError);
@@ -37,7 +37,7 @@ class WeeklyScheduleController {
             const { data: schedules, error: scheduleError } = await database_config_1.supabaseAdmin
                 .from('doctor_schedules')
                 .select('*')
-                .eq('doctor_id', doctorId)
+                .eq('doctor_id', doctor_id)
                 .eq('is_available', true)
                 .order('day_of_week');
             if (scheduleError) {
@@ -62,7 +62,7 @@ class WeeklyScheduleController {
             profiles!inner(full_name)
           )
         `)
-                .eq('doctor_id', doctorId)
+                .eq('doctor_id', doctor_id)
                 .gte('appointment_date', weekStart.toISOString().split('T')[0])
                 .lte('appointment_date', weekEnd.toISOString().split('T')[0])
                 .in('status', ['scheduled', 'confirmed', 'in_progress']);
@@ -117,7 +117,7 @@ class WeeklyScheduleController {
             const response = {
                 week_start: weekStart.toISOString().split('T')[0],
                 week_end: weekEnd.toISOString().split('T')[0],
-                doctor_id: doctorId,
+                doctor_id: doctor_id,
                 doctor_name: doctor.full_name,
                 daily_schedules: dailySchedules,
                 summary: {
@@ -129,7 +129,7 @@ class WeeklyScheduleController {
                 }
             };
             logger_1.default.info('✅ [WeeklySchedule] Successfully generated weekly schedule', {
-                doctorId,
+                doctor_id,
                 weekStart: response.week_start,
                 weekEnd: response.week_end,
                 workingDays: totalWorkingDays,
@@ -181,7 +181,7 @@ class WeeklyScheduleController {
                 return aptStart === currentTime;
             });
             let status = 'available';
-            let appointmentId;
+            let appointment_id;
             let patientName;
             let appointmentType;
             if (isBreakTime) {
@@ -189,7 +189,7 @@ class WeeklyScheduleController {
             }
             else if (appointment) {
                 status = 'booked';
-                appointmentId = appointment.appointment_id;
+                appointment_id = appointment.appointment_id;
                 patientName = appointment.patients?.profiles?.full_name;
                 appointmentType = appointment.appointment_type;
             }
@@ -197,7 +197,7 @@ class WeeklyScheduleController {
                 start_time: slotStartStr,
                 end_time: slotEndStr,
                 status,
-                appointment_id: appointmentId,
+                appointment_id: appointment_id,
                 patient_name: patientName,
                 appointment_type: appointmentType
             });

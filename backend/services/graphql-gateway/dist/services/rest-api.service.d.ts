@@ -57,8 +57,8 @@ export declare class RestApiService {
     createDoctor(data: any): Promise<StandardApiResponse>;
     updateDoctor(id: string, data: any): Promise<StandardApiResponse>;
     deleteDoctor(id: string): Promise<StandardApiResponse>;
-    getDoctorSchedule(doctorId: string, date?: string): Promise<StandardApiResponse>;
-    getDoctorStats(doctorId: string): Promise<StandardApiResponse>;
+    getDoctorSchedule(doctor_id: string, date?: string): Promise<StandardApiResponse>;
+    getDoctorStats(doctor_id: string): Promise<StandardApiResponse>;
     /**
      * Patient Service API calls
      */
@@ -79,9 +79,9 @@ export declare class RestApiService {
         offset?: number;
         [key: string]: any;
     }): Promise<StandardApiResponse>;
-    getPatientMedicalSummary(patientId: string): Promise<StandardApiResponse>;
-    getPatientStats(patientId: string): Promise<StandardApiResponse>;
-    getPatientDoctorHistory(patientId: string, doctorId: string, limit: number): Promise<StandardApiResponse>;
+    getPatientMedicalSummary(patient_id: string): Promise<StandardApiResponse>;
+    getPatientStats(patient_id: string): Promise<StandardApiResponse>;
+    getPatientDoctorHistory(patient_id: string, doctor_id: string, limit: number): Promise<StandardApiResponse>;
     activatePatient(id: string): Promise<StandardApiResponse>;
     deactivatePatient(id: string): Promise<StandardApiResponse>;
     updatePatientMedicalInfo(id: string, medicalInfo: any): Promise<StandardApiResponse>;
@@ -92,8 +92,8 @@ export declare class RestApiService {
     getAppointments(params?: {
         page?: number;
         limit?: number;
-        doctorId?: string;
-        patientId?: string;
+        doctor_id?: string;
+        patient_id?: string;
         status?: string;
         dateFrom?: string;
         dateTo?: string;
@@ -102,22 +102,22 @@ export declare class RestApiService {
     createAppointment(data: any): Promise<StandardApiResponse>;
     updateAppointment(id: string, data: any): Promise<StandardApiResponse>;
     cancelAppointment(id: string, reason: string): Promise<StandardApiResponse>;
-    getAvailableSlots(doctorId: string, date: string): Promise<StandardApiResponse>;
+    getAvailableSlots(doctor_id: string, date: string): Promise<StandardApiResponse>;
     getTodayAppointments(params: {
-        doctorId?: string;
+        doctor_id?: string;
         departmentId?: string;
         status?: string;
         date: string;
     }): Promise<StandardApiResponse>;
     getUpcomingAppointments(params: {
-        doctorId?: string;
-        patientId?: string;
+        doctor_id?: string;
+        patient_id?: string;
         days?: number;
         limit?: number;
     }): Promise<StandardApiResponse>;
     getAppointmentStats(params: {
-        doctorId?: string;
-        patientId?: string;
+        doctor_id?: string;
+        patient_id?: string;
         departmentId?: string;
         dateFrom?: string;
         dateTo?: string;
@@ -156,14 +156,14 @@ export declare class RestApiService {
     updateMedicalRecord(id: string, data: any): Promise<StandardApiResponse>;
     deleteMedicalRecord(id: string): Promise<StandardApiResponse>;
     getPatientMedicalRecords(params: {
-        patientId: string;
+        patient_id: string;
         limit?: number;
         offset?: number;
         dateFrom?: string;
         dateTo?: string;
     }): Promise<StandardApiResponse>;
     getDoctorMedicalRecords(params: {
-        doctorId: string;
+        doctor_id: string;
         limit?: number;
         offset?: number;
         dateFrom?: string;
@@ -176,14 +176,14 @@ export declare class RestApiService {
         [key: string]: any;
     }): Promise<StandardApiResponse>;
     getVitalSignsHistory(params: {
-        patientId: string;
+        patient_id: string;
         limit?: number;
         offset?: number;
         dateFrom?: string;
         dateTo?: string;
     }): Promise<StandardApiResponse>;
     getLabResults(params: {
-        patientId: string;
+        patient_id: string;
         testType?: string;
         limit?: number;
         offset?: number;

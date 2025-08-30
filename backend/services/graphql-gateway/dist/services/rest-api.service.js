@@ -84,13 +84,13 @@ class RestApiService {
         const response = await this.client.delete(`/api/doctors/${id}`);
         return response.data;
     }
-    async getDoctorSchedule(doctorId, date) {
+    async getDoctorSchedule(doctor_id, date) {
         const params = date ? { date } : {};
-        const response = await this.client.get(`/api/doctors/${doctorId}/schedule`, { params });
+        const response = await this.client.get(`/api/doctors/${doctor_id}/schedule`, { params });
         return response.data;
     }
-    async getDoctorStats(doctorId) {
-        const response = await this.client.get(`/api/doctors/${doctorId}/stats`);
+    async getDoctorStats(doctor_id) {
+        const response = await this.client.get(`/api/doctors/${doctor_id}/stats`);
         return response.data;
     }
     /**
@@ -124,16 +124,16 @@ class RestApiService {
         const response = await this.client.get("/api/patients/search", { params });
         return response.data;
     }
-    async getPatientMedicalSummary(patientId) {
-        const response = await this.client.get(`/api/patients/${patientId}/medical-summary`);
+    async getPatientMedicalSummary(patient_id) {
+        const response = await this.client.get(`/api/patients/${patient_id}/medical-summary`);
         return response.data;
     }
-    async getPatientStats(patientId) {
-        const response = await this.client.get(`/api/patients/${patientId}/stats`);
+    async getPatientStats(patient_id) {
+        const response = await this.client.get(`/api/patients/${patient_id}/stats`);
         return response.data;
     }
-    async getPatientDoctorHistory(patientId, doctorId, limit) {
-        const response = await this.client.get(`/api/patients/${patientId}/doctors/${doctorId}/history`, {
+    async getPatientDoctorHistory(patient_id, doctor_id, limit) {
+        const response = await this.client.get(`/api/patients/${doctor_id}/history`, {
             params: { limit },
         });
         return response.data;
@@ -179,9 +179,9 @@ class RestApiService {
         });
         return response.data;
     }
-    async getAvailableSlots(doctorId, date) {
+    async getAvailableSlots(doctor_id, date) {
         const response = await this.client.get(`/api/appointments/available-slots`, {
-            params: { doctorId, date },
+            params: { doctor_id, date },
         });
         return response.data;
     }
@@ -262,15 +262,15 @@ class RestApiService {
         return response.data;
     }
     async getPatientMedicalRecords(params) {
-        const { patientId, ...queryParams } = params;
-        const response = await this.client.get(`/api/medical-records/patient/${patientId}`, {
+        const { patient_id, ...queryParams } = params;
+        const response = await this.client.get(`/api/medical-records/patient/${patient_id}`, {
             params: queryParams,
         });
         return response.data;
     }
     async getDoctorMedicalRecords(params) {
-        const { doctorId, ...queryParams } = params;
-        const response = await this.client.get(`/api/medical-records/doctor/${doctorId}`, {
+        const { doctor_id, ...queryParams } = params;
+        const response = await this.client.get(`/api/medical-records/doctor/${doctor_id}`, {
             params: queryParams,
         });
         return response.data;

@@ -6,9 +6,9 @@ import { GraphQLContext } from "../context";
  */
 export declare const patientResolvers: {
     Query: {
-        patient(_: any, { id, patientId }: {
+        patient(_: any, { id, patient_id }: {
             id?: string;
-            patientId?: string;
+            patient_id?: string;
         }, context: GraphQLContext): Promise<any>;
         patientByProfile(_: any, { profileId }: {
             profileId: string;
@@ -33,18 +33,18 @@ export declare const patientResolvers: {
             };
             totalCount: any;
         }>;
-        patientMedicalSummary(_: any, { patientId }: {
-            patientId: string;
+        patientMedicalSummary(_: any, { patient_id }: {
+            patient_id: string;
         }, context: GraphQLContext): Promise<any>;
-        patientStats(_: any, { patientId }: {
-            patientId: string;
+        patientStats(_: any, { patient_id }: {
+            patient_id: string;
         }, context: GraphQLContext): Promise<any>;
-        patientDoctorHistory(_: any, { patientId, doctorId, limit, }: {
-            patientId: string;
-            doctorId: string;
+        patientDoctorHistory(_: any, { patient_id, doctor_id, limit, }: {
+            patient_id: string;
+            doctor_id: string;
             limit: number;
         }, context: GraphQLContext): Promise<any>;
-        patientMedicalRecords(_: any, { patientId, limit, offset, dateFrom, dateTo }: any, context: GraphQLContext): Promise<{
+        patientMedicalRecords(_: any, { patient_id, limit, offset, dateFrom, dateTo }: any, context: GraphQLContext): Promise<{
             edges: any;
             pageInfo: {
                 hasNextPage: boolean;

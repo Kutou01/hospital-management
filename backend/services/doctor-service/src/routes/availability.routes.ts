@@ -1,6 +1,6 @@
-import { authenticateToken } from "@hospital/shared/dist/middleware/auth.middleware";
 import express from "express";
 import { AvailabilityController } from "../controllers/availability.controller";
+import { authenticateToken } from "../middleware/auth.middleware";
 import { validateDoctorId } from "../middleware/validation.middleware";
 
 const router = express.Router();

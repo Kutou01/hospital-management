@@ -9,8 +9,8 @@ const auth_middleware_1 = require("../middleware/auth.middleware");
 const router = express_1.default.Router();
 router.get('/:doctorId/settings', auth_middleware_1.authenticateToken, async (req, res) => {
     try {
-        const { doctorId } = req.params;
-        if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctorId)) {
+        const { doctor_id } = req.params;
+        if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctor_id)) {
             return res.status(403).json({
                 success: false,
                 error: { message: 'Không có quyền truy cập thông tin này' }
@@ -19,7 +19,7 @@ router.get('/:doctorId/settings', auth_middleware_1.authenticateToken, async (re
         const { data: settings, error } = await database_config_1.supabase
             .from('doctor_settings')
             .select('*')
-            .eq('doctor_id', doctorId)
+            .eq('doctor_id', doctor_id)
             .single();
         if (error && error.code !== 'PGRST116') {
             console.error('❌ [Settings] Database error:', error);
@@ -32,7 +32,7 @@ router.get('/:doctorId/settings', auth_middleware_1.authenticateToken, async (re
             const { data: defaultSettings, error: createError } = await database_config_1.supabase
                 .from('doctor_settings')
                 .insert({
-                doctor_id: doctorId,
+                doctor_id: doctor_id,
                 notification_email: true,
                 notification_sms: true,
                 notification_appointment_reminder: true,
@@ -73,9 +73,9 @@ router.get('/:doctorId/settings', auth_middleware_1.authenticateToken, async (re
 });
 router.put('/:doctorId/settings', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requireRole)(['doctor', 'admin']), async (req, res) => {
     try {
-        const { doctorId } = req.params;
+        const { doctor_id } = req.params;
         const { notification_email, notification_sms, notification_appointment_reminder, notification_patient_review, privacy_show_phone, privacy_show_email, privacy_show_experience, language_preference, timezone, theme_preference } = req.body;
-        if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctorId)) {
+        if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctor_id)) {
             return res.status(403).json({
                 success: false,
                 error: { message: 'Không có quyền cập nhật thông tin này' }
@@ -105,7 +105,7 @@ router.put('/:doctorId/settings', auth_middleware_1.authenticateToken, (0, auth_
         const { data: settings, error } = await database_config_1.supabase
             .from('doctor_settings')
             .update(updateData)
-            .eq('doctor_id', doctorId)
+            .eq('doctor_id', doctor_id)
             .select()
             .single();
         if (error) {
@@ -131,8 +131,8 @@ router.put('/:doctorId/settings', auth_middleware_1.authenticateToken, (0, auth_
 });
 router.get('/:doctorId/emergency-contacts', auth_middleware_1.authenticateToken, async (req, res) => {
     try {
-        const { doctorId } = req.params;
-        if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctorId)) {
+        const { doctor_id } = req.params;
+        if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctor_id)) {
             return res.status(403).json({
                 success: false,
                 error: { message: 'Không có quyền truy cập thông tin này' }
@@ -141,7 +141,7 @@ router.get('/:doctorId/emergency-contacts', auth_middleware_1.authenticateToken,
         const { data: contacts, error } = await database_config_1.supabase
             .from('doctor_emergency_contacts')
             .select('*')
-            .eq('doctor_id', doctorId)
+            .eq('doctor_id', doctor_id)
             .order('is_primary', { ascending: false });
         if (error) {
             console.error('❌ [EmergencyContacts] Database error:', error);
@@ -165,9 +165,9 @@ router.get('/:doctorId/emergency-contacts', auth_middleware_1.authenticateToken,
 });
 router.post('/:doctorId/emergency-contacts', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requireRole)(['doctor', 'admin']), async (req, res) => {
     try {
-        const { doctorId } = req.params;
+        const { doctor_id } = req.params;
         const { contact_name, relationship, phone_number, email, address, is_primary } = req.body;
-        if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctorId)) {
+        if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctor_id)) {
             return res.status(403).json({
                 success: false,
                 error: { message: 'Không có quyền thêm thông tin này' }
@@ -183,12 +183,12 @@ router.post('/:doctorId/emergency-contacts', auth_middleware_1.authenticateToken
             await database_config_1.supabase
                 .from('doctor_emergency_contacts')
                 .update({ is_primary: false })
-                .eq('doctor_id', doctorId);
+                .eq('doctor_id', doctor_id);
         }
         const { data: contact, error } = await database_config_1.supabase
             .from('doctor_emergency_contacts')
             .insert({
-            doctor_id: doctorId,
+            doctor_id: doctor_id,
             contact_name,
             relationship,
             phone_number,
@@ -221,9 +221,9 @@ router.post('/:doctorId/emergency-contacts', auth_middleware_1.authenticateToken
 });
 router.put('/:doctorId/emergency-contacts/:contactId', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requireRole)(['doctor', 'admin']), async (req, res) => {
     try {
-        const { doctorId, contactId } = req.params;
+        const { doctor_id, contactId } = req.params;
         const { contact_name, relationship, phone_number, email, address, is_primary } = req.body;
-        if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctorId)) {
+        if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctor_id)) {
             return res.status(403).json({
                 success: false,
                 error: { message: 'Không có quyền cập nhật thông tin này' }
@@ -233,7 +233,7 @@ router.put('/:doctorId/emergency-contacts/:contactId', auth_middleware_1.authent
             await database_config_1.supabase
                 .from('doctor_emergency_contacts')
                 .update({ is_primary: false })
-                .eq('doctor_id', doctorId)
+                .eq('doctor_id', doctor_id)
                 .neq('id', contactId);
         }
         const { data: contact, error } = await database_config_1.supabase
@@ -247,7 +247,7 @@ router.put('/:doctorId/emergency-contacts/:contactId', auth_middleware_1.authent
             is_primary: is_primary || false
         })
             .eq('id', contactId)
-            .eq('doctor_id', doctorId)
+            .eq('doctor_id', doctor_id)
             .select()
             .single();
         if (error) {
@@ -279,8 +279,8 @@ router.put('/:doctorId/emergency-contacts/:contactId', auth_middleware_1.authent
 });
 router.delete('/:doctorId/emergency-contacts/:contactId', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requireRole)(['doctor', 'admin']), async (req, res) => {
     try {
-        const { doctorId, contactId } = req.params;
-        if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctorId)) {
+        const { doctor_id, contactId } = req.params;
+        if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctor_id)) {
             return res.status(403).json({
                 success: false,
                 error: { message: 'Không có quyền xóa thông tin này' }
@@ -290,7 +290,7 @@ router.delete('/:doctorId/emergency-contacts/:contactId', auth_middleware_1.auth
             .from('doctor_emergency_contacts')
             .delete()
             .eq('id', contactId)
-            .eq('doctor_id', doctorId);
+            .eq('doctor_id', doctor_id);
         if (error) {
             console.error('❌ [EmergencyContacts] Delete error:', error);
             return res.status(500).json({

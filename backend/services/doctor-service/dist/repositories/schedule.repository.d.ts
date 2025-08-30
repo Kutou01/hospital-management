@@ -2,20 +2,20 @@ import { DoctorSchedule, CreateScheduleRequest, UpdateScheduleRequest } from '@h
 export declare class ScheduleRepository {
     private supabase;
     constructor();
-    findByDoctorId(doctorId: string): Promise<DoctorSchedule[]>;
-    findByDoctorAndDay(doctorId: string, dayOfWeek: number): Promise<DoctorSchedule | null>;
+    findByDoctorId(doctor_id: string): Promise<DoctorSchedule[]>;
+    findByDoctorAndDay(doctor_id: string, dayOfWeek: number): Promise<DoctorSchedule | null>;
     create(scheduleData: CreateScheduleRequest): Promise<DoctorSchedule>;
     update(scheduleId: string, scheduleData: UpdateScheduleRequest): Promise<DoctorSchedule | null>;
     delete(scheduleId: string): Promise<boolean>;
-    upsertSchedule(doctorId: string, dayOfWeek: number, scheduleData: UpdateScheduleRequest): Promise<DoctorSchedule>;
-    getAvailability(doctorId: string, date: Date): Promise<DoctorSchedule | null>;
-    getWeeklySchedule(doctorId: string): Promise<DoctorSchedule[]>;
-    bulkUpdateSchedule(doctorId: string, schedules: UpdateScheduleRequest[]): Promise<DoctorSchedule[]>;
-    getAvailableTimeSlots(doctorId: string, date: Date): Promise<string[]>;
+    upsertSchedule(doctor_id: string, dayOfWeek: number, scheduleData: UpdateScheduleRequest): Promise<DoctorSchedule>;
+    getAvailability(doctor_id: string, date: Date): Promise<DoctorSchedule | null>;
+    getWeeklySchedule(doctor_id: string): Promise<DoctorSchedule[]>;
+    bulkUpdateSchedule(doctor_id: string, schedules: UpdateScheduleRequest[]): Promise<DoctorSchedule[]>;
+    getAvailableTimeSlots(doctor_id: string, date: Date): Promise<string[]>;
     private timeStringToMinutes;
     private minutesToTimeString;
     private mapSupabaseScheduleToSchedule;
-    getTodaySchedule(doctorId: string): Promise<any[]>;
+    getTodaySchedule(doctor_id: string): Promise<any[]>;
     private generateTimeSlotsForSchedule;
 }
 //# sourceMappingURL=schedule.repository.d.ts.map

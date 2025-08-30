@@ -9,8 +9,8 @@ const auth_middleware_1 = require("../middleware/auth.middleware");
 const router = express_1.default.Router();
 router.get('/:doctorId/experience', auth_middleware_1.authenticateToken, async (req, res) => {
     try {
-        const { doctorId } = req.params;
-        if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctorId)) {
+        const { doctor_id } = req.params;
+        if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctor_id)) {
             return res.status(403).json({
                 success: false,
                 error: { message: 'Không có quyền truy cập thông tin này' }
@@ -19,7 +19,7 @@ router.get('/:doctorId/experience', auth_middleware_1.authenticateToken, async (
         const { data: experiences, error } = await database_config_1.supabase
             .from('doctor_work_experiences')
             .select('*')
-            .eq('doctor_id', doctorId)
+            .eq('doctor_id', doctor_id)
             .order('start_date', { ascending: false });
         if (error) {
             console.error('❌ [Experience] Database error:', error);
@@ -43,8 +43,8 @@ router.get('/:doctorId/experience', auth_middleware_1.authenticateToken, async (
 });
 router.get('/:doctorId/experience', auth_middleware_1.authenticateToken, async (req, res) => {
     try {
-        const { doctorId } = req.params;
-        if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctorId)) {
+        const { doctor_id } = req.params;
+        if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctor_id)) {
             return res.status(403).json({
                 success: false,
                 error: { message: 'Không có quyền truy cập thông tin này' }
@@ -53,7 +53,7 @@ router.get('/:doctorId/experience', auth_middleware_1.authenticateToken, async (
         const { data: experiences, error } = await database_config_1.supabase
             .from('doctor_work_experiences')
             .select('*')
-            .eq('doctor_id', doctorId)
+            .eq('doctor_id', doctor_id)
             .order('start_date', { ascending: false });
         if (error) {
             console.error('❌ [Experience] Database error:', error);
@@ -77,9 +77,9 @@ router.get('/:doctorId/experience', auth_middleware_1.authenticateToken, async (
 });
 router.post('/:doctorId/experience', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requireRole)(['doctor', 'admin']), async (req, res) => {
     try {
-        const { doctorId } = req.params;
+        const { doctor_id } = req.params;
         const { hospital_name, position, department, start_date, end_date, description, achievements, is_current } = req.body;
-        if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctorId)) {
+        if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctor_id)) {
             return res.status(403).json({
                 success: false,
                 error: { message: 'Không có quyền thêm thông tin này' }
@@ -95,12 +95,12 @@ router.post('/:doctorId/experience', auth_middleware_1.authenticateToken, (0, au
             await database_config_1.supabase
                 .from('doctor_work_experiences')
                 .update({ is_current: false })
-                .eq('doctor_id', doctorId);
+                .eq('doctor_id', doctor_id);
         }
         const { data: experience, error } = await database_config_1.supabase
             .from('doctor_work_experiences')
             .insert({
-            doctor_id: doctorId,
+            doctor_id: doctor_id,
             hospital_name,
             position,
             department,
@@ -135,9 +135,9 @@ router.post('/:doctorId/experience', auth_middleware_1.authenticateToken, (0, au
 });
 router.put('/:doctorId/experience/:experienceId', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requireRole)(['doctor', 'admin']), async (req, res) => {
     try {
-        const { doctorId, experienceId } = req.params;
+        const { doctor_id, experienceId } = req.params;
         const { hospital_name, position, department, start_date, end_date, description, achievements, is_current } = req.body;
-        if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctorId)) {
+        if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctor_id)) {
             return res.status(403).json({
                 success: false,
                 error: { message: 'Không có quyền cập nhật thông tin này' }
@@ -147,7 +147,7 @@ router.put('/:doctorId/experience/:experienceId', auth_middleware_1.authenticate
             await database_config_1.supabase
                 .from('doctor_work_experiences')
                 .update({ is_current: false })
-                .eq('doctor_id', doctorId)
+                .eq('doctor_id', doctor_id)
                 .neq('id', experienceId);
         }
         const { data: experience, error } = await database_config_1.supabase
@@ -163,7 +163,7 @@ router.put('/:doctorId/experience/:experienceId', auth_middleware_1.authenticate
             is_current: is_current || false
         })
             .eq('id', experienceId)
-            .eq('doctor_id', doctorId)
+            .eq('doctor_id', doctor_id)
             .select()
             .single();
         if (error) {
@@ -195,8 +195,8 @@ router.put('/:doctorId/experience/:experienceId', auth_middleware_1.authenticate
 });
 router.delete('/:doctorId/experience/:experienceId', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requireRole)(['doctor', 'admin']), async (req, res) => {
     try {
-        const { doctorId, experienceId } = req.params;
-        if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctorId)) {
+        const { doctor_id, experienceId } = req.params;
+        if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctor_id)) {
             return res.status(403).json({
                 success: false,
                 error: { message: 'Không có quyền xóa thông tin này' }
@@ -206,7 +206,7 @@ router.delete('/:doctorId/experience/:experienceId', auth_middleware_1.authentic
             .from('doctor_work_experiences')
             .delete()
             .eq('id', experienceId)
-            .eq('doctor_id', doctorId);
+            .eq('doctor_id', doctor_id);
         if (error) {
             console.error('❌ [Experience] Delete error:', error);
             return res.status(500).json({

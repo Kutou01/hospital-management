@@ -200,7 +200,7 @@ class OptimizedDataLoadersService {
      */
     async batchLoadDoctorSchedules(doctorIds) {
         try {
-            const results = await Promise.allSettled(doctorIds.map((doctorId) => this.restApi.getDoctorSchedule(doctorId)));
+            const results = await Promise.allSettled(doctorIds.map((doctor_id) => this.restApi.getDoctorSchedule(doctor_id)));
             return results.map((result, index) => {
                 if (result.status === "fulfilled" && result.value.success) {
                     return result.value.data;
@@ -224,7 +224,7 @@ class OptimizedDataLoadersService {
      */
     async batchLoadDoctorReviews(doctorIds) {
         try {
-            const results = await Promise.allSettled(doctorIds.map((doctorId) => this.restApi.getDoctorReviews(doctorId)));
+            const results = await Promise.allSettled(doctorIds.map((doctor_id) => this.restApi.getDoctorReviews(doctor_id)));
             return results.map((result, index) => {
                 if (result.status === "fulfilled" && result.value.success) {
                     return result.value.data || [];
@@ -272,7 +272,7 @@ class OptimizedDataLoadersService {
      */
     async batchLoadPatientsByDoctor(doctorIds) {
         try {
-            const results = await Promise.allSettled(doctorIds.map((doctorId) => this.restApi.getPatients({ limit: 100 })));
+            const results = await Promise.allSettled(doctorIds.map((doctor_id) => this.restApi.getPatients({ limit: 100 })));
             return results.map((result, index) => {
                 if (result.status === "fulfilled" && result.value.success) {
                     return result.value.data || [];
@@ -346,15 +346,15 @@ class OptimizedDataLoadersService {
     // Missing batch load methods - placeholder implementations
     async batchLoadPatientMedicalRecords(patientIds) {
         try {
-            const results = await Promise.all(patientIds.map(async (patientId) => {
+            const results = await Promise.all(patientIds.map(async (patient_id) => {
                 try {
                     const response = await this.restApi.getPatientMedicalRecords({
-                        patientId,
+                        patient_id,
                     });
                     return response.success ? response.data : [];
                 }
                 catch (error) {
-                    return new Error(`Failed to load medical records for patient ${patientId}`);
+                    return new Error(`Failed to load medical records for patient ${patient_id}`);
                 }
             }));
             return results;
@@ -365,13 +365,13 @@ class OptimizedDataLoadersService {
     }
     async batchLoadAppointments(appointmentIds) {
         try {
-            const results = await Promise.all(appointmentIds.map(async (appointmentId) => {
+            const results = await Promise.all(appointmentIds.map(async (appointment_id) => {
                 try {
-                    const response = await this.restApi.getAppointment(appointmentId);
+                    const response = await this.restApi.getAppointment(appointment_id);
                     return response.success ? response.data : null;
                 }
                 catch (error) {
-                    return new Error(`Failed to load appointment ${appointmentId}`);
+                    return new Error(`Failed to load appointment ${appointment_id}`);
                 }
             }));
             return results;
@@ -382,16 +382,16 @@ class OptimizedDataLoadersService {
     }
     async batchLoadAppointmentsByDoctor(doctorIds) {
         try {
-            const results = await Promise.all(doctorIds.map(async (doctorId) => {
+            const results = await Promise.all(doctorIds.map(async (doctor_id) => {
                 try {
                     const response = await this.restApi.getAppointments({
-                        doctorId,
+                        doctor_id,
                         limit: 100,
                     });
                     return response.success ? response.data : [];
                 }
                 catch (error) {
-                    return new Error(`Failed to load appointments for doctor ${doctorId}`);
+                    return new Error(`Failed to load appointments for doctor ${doctor_id}`);
                 }
             }));
             return results;
@@ -402,16 +402,16 @@ class OptimizedDataLoadersService {
     }
     async batchLoadAppointmentsByPatient(patientIds) {
         try {
-            const results = await Promise.all(patientIds.map(async (patientId) => {
+            const results = await Promise.all(patientIds.map(async (patient_id) => {
                 try {
                     const response = await this.restApi.getAppointments({
-                        patientId,
+                        patient_id,
                         limit: 100,
                     });
                     return response.success ? response.data : [];
                 }
                 catch (error) {
-                    return new Error(`Failed to load appointments for patient ${patientId}`);
+                    return new Error(`Failed to load appointments for patient ${patient_id}`);
                 }
             }));
             return results;

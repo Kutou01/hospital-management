@@ -677,6 +677,22 @@ export function createApp(): express.Application {
     })
   );
 
+  // ICD-10 Healthcare Routes - ENABLED (Proxy to Doctor Service)
+  app.use(
+    "/api/icd10",
+    createProxyMiddleware({
+      target: process.env.DOCTOR_SERVICE_URL || "http://doctor-service:3002",
+      changeOrigin: true,
+      pathRewrite: {
+        "^/api/icd10": "/api/icd10",
+      },
+      onError: (err: any, req: any, res: any) => {
+        console.error("ICD-10 Service Proxy Error:", err);
+        res.status(503).json({ error: "ICD-10 service unavailable" });
+      },
+    })
+  );
+
   // Root endpoint
   app.get("/", (req, res) => {
     res.json({

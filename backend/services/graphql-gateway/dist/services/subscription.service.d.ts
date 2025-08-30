@@ -56,7 +56,7 @@ declare class SubscriptionService {
     /**
      * Publish waiting queue update event
      */
-    publishWaitingQueueUpdate(doctorId: string, queue: any[]): Promise<void>;
+    publishWaitingQueueUpdate(doctor_id: string, queue: any[]): Promise<void>;
     /**
      * Publish doctor status change event
      */
@@ -72,7 +72,7 @@ declare class SubscriptionService {
     /**
      * Publish doctor notification event
      */
-    publishDoctorNotification(doctorId: string, notification: any): Promise<void>;
+    publishDoctorNotification(doctor_id: string, notification: any): Promise<void>;
     /**
      * Publish patient status change event
      */

@@ -10,12 +10,12 @@ class ShiftRepository {
     constructor() {
         this.supabase = (0, database_config_1.getSupabase)();
     }
-    async findByDoctorId(doctorId, limit = 50, offset = 0) {
+    async findByDoctorId(doctor_id, limit = 50, offset = 0) {
         try {
             const { data, error } = await this.supabase
                 .from('doctor_shifts')
                 .select('*')
-                .eq('doctor_id', doctorId)
+                .eq('doctor_id', doctor_id)
                 .order('shift_date', { ascending: false })
                 .range(offset, offset + limit - 1);
             if (error)
@@ -23,7 +23,7 @@ class ShiftRepository {
             return data?.map(this.mapSupabaseShiftToShift) || [];
         }
         catch (error) {
-            logger_1.default.error('Error finding shifts by doctor ID', { error, doctorId });
+            logger_1.default.error('Error finding shifts by doctor ID', { error, doctor_id });
             throw error;
         }
     }
@@ -46,12 +46,12 @@ class ShiftRepository {
             throw error;
         }
     }
-    async findByDateRange(doctorId, startDate, endDate) {
+    async findByDateRange(doctor_id, startDate, endDate) {
         try {
             const { data, error } = await this.supabase
                 .from('doctor_shifts')
                 .select('*')
-                .eq('doctor_id', doctorId)
+                .eq('doctor_id', doctor_id)
                 .gte('shift_date', startDate.toISOString().split('T')[0])
                 .lte('shift_date', endDate.toISOString().split('T')[0])
                 .order('shift_date', { ascending: true });
@@ -60,7 +60,7 @@ class ShiftRepository {
             return data?.map(this.mapSupabaseShiftToShift) || [];
         }
         catch (error) {
-            logger_1.default.error('Error finding shifts by date range', { error, doctorId, startDate, endDate });
+            logger_1.default.error('Error finding shifts by date range', { error, doctor_id, startDate, endDate });
             throw error;
         }
     }
@@ -196,7 +196,7 @@ class ShiftRepository {
             throw error;
         }
     }
-    async getUpcomingShifts(doctorId, days = 7) {
+    async getUpcomingShifts(doctor_id, days = 7) {
         try {
             const startDate = new Date();
             const endDate = new Date();
@@ -204,7 +204,7 @@ class ShiftRepository {
             const { data, error } = await this.supabase
                 .from('doctor_shifts')
                 .select('*')
-                .eq('doctor_id', doctorId)
+                .eq('doctor_id', doctor_id)
                 .gte('shift_date', startDate.toISOString().split('T')[0])
                 .lte('shift_date', endDate.toISOString().split('T')[0])
                 .in('status', ['scheduled', 'confirmed'])
@@ -214,7 +214,7 @@ class ShiftRepository {
             return data?.map(this.mapSupabaseShiftToShift) || [];
         }
         catch (error) {
-            logger_1.default.error('Error getting upcoming shifts', { error, doctorId, days });
+            logger_1.default.error('Error getting upcoming shifts', { error, doctor_id, days });
             throw error;
         }
     }
@@ -241,9 +241,9 @@ class ShiftRepository {
             throw error;
         }
     }
-    async getShiftStatistics(doctorId, startDate, endDate) {
+    async getShiftStatistics(doctor_id, startDate, endDate) {
         try {
-            const shifts = await this.findByDateRange(doctorId, startDate, endDate);
+            const shifts = await this.findByDateRange(doctor_id, startDate, endDate);
             const stats = {
                 total_shifts: shifts.length,
                 completed_shifts: shifts.filter(s => s.status === 'completed').length,
@@ -261,16 +261,16 @@ class ShiftRepository {
             return stats;
         }
         catch (error) {
-            logger_1.default.error('Error getting shift statistics', { error, doctorId, startDate, endDate });
+            logger_1.default.error('Error getting shift statistics', { error, doctor_id, startDate, endDate });
             throw error;
         }
     }
-    async checkShiftConflicts(doctorId, shiftDate, startTime, endTime, excludeShiftId) {
+    async checkShiftConflicts(doctor_id, shiftDate, startTime, endTime, excludeShiftId) {
         try {
             let query = this.supabase
                 .from('doctor_shifts')
                 .select('*')
-                .eq('doctor_id', doctorId)
+                .eq('doctor_id', doctor_id)
                 .eq('shift_date', shiftDate.toISOString().split('T')[0])
                 .neq('status', 'cancelled');
             if (excludeShiftId) {
@@ -289,7 +289,7 @@ class ShiftRepository {
             });
         }
         catch (error) {
-            logger_1.default.error('Error checking shift conflicts', { error, doctorId, shiftDate, startTime, endTime });
+            logger_1.default.error('Error checking shift conflicts', { error, doctor_id, shiftDate, startTime, endTime });
             throw error;
         }
     }

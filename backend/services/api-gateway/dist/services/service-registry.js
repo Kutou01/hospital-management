@@ -20,8 +20,9 @@ class ServiceRegistry {
         this.registerService("appointment-service", process.env.APPOINTMENT_SERVICE_URL || "http://appointment-service:3004");
         this.registerService("department-service", process.env.DEPARTMENT_SERVICE_URL || "http://department-service:3005");
         this.registerService("medical-records-service", process.env.MEDICAL_RECORDS_SERVICE_URL ||
-            "http://medical-records-service:3006");
-        this.registerService("prescription-service", process.env.PRESCRIPTION_SERVICE_URL || "http://prescription-service:3007");
+            "http://medical-records-service:3007" // Updated port to 3007 (merged with prescription service)
+        );
+        // REMOVED: prescription-service - merged into medical-records-service
         this.registerService("payment-service", process.env.PAYMENT_SERVICE_URL || "http://payment-service:3009");
         // Note: Room management is handled by department-service, no separate room-service
         this.registerService("notification-service", process.env.NOTIFICATION_SERVICE_URL || "http://notification-service:3011");

@@ -10,7 +10,7 @@ class ReviewRepository {
     constructor() {
         this.supabase = (0, database_config_1.getSupabase)();
     }
-    async findByDoctorId(doctorId, limit = 50, offset = 0) {
+    async findByDoctorId(doctor_id, limit = 50, offset = 0) {
         try {
             const { data, error } = await this.supabase
                 .from('doctor_reviews')
@@ -24,7 +24,7 @@ class ReviewRepository {
             )
           )
         `)
-                .eq('doctor_id', doctorId)
+                .eq('doctor_id', doctor_id)
                 .order('created_at', { ascending: false })
                 .range(offset, offset + limit - 1);
             if (error)
@@ -32,16 +32,16 @@ class ReviewRepository {
             return data?.map(this.mapSupabaseReviewToReview) || [];
         }
         catch (error) {
-            logger_1.default.error('Error finding reviews by doctor ID', { error, doctorId });
+            logger_1.default.error('Error finding reviews by doctor ID', { error, doctor_id });
             throw error;
         }
     }
-    async findByPatientId(patientId, limit = 50, offset = 0) {
+    async findByPatientId(patient_id, limit = 50, offset = 0) {
         try {
             const { data, error } = await this.supabase
                 .from('doctor_reviews')
                 .select('*')
-                .eq('patient_id', patientId)
+                .eq('patient_id', patient_id)
                 .order('created_at', { ascending: false })
                 .range(offset, offset + limit - 1);
             if (error)
@@ -49,7 +49,7 @@ class ReviewRepository {
             return data?.map(this.mapSupabaseReviewToReview) || [];
         }
         catch (error) {
-            logger_1.default.error('Error finding reviews by patient ID', { error, patientId });
+            logger_1.default.error('Error finding reviews by patient ID', { error, patient_id });
             throw error;
         }
     }
@@ -138,12 +138,12 @@ class ReviewRepository {
             throw error;
         }
     }
-    async findByAppointment(appointmentId) {
+    async findByAppointment(appointment_id) {
         try {
             const { data, error } = await this.supabase
                 .from('doctor_reviews')
                 .select('*')
-                .eq('appointment_id', appointmentId)
+                .eq('appointment_id', appointment_id)
                 .single();
             if (error) {
                 if (error.code === 'PGRST116')
@@ -153,19 +153,19 @@ class ReviewRepository {
             return this.mapSupabaseReviewToReview(data);
         }
         catch (error) {
-            logger_1.default.error('Error finding review by appointment', { error, appointmentId });
+            logger_1.default.error('Error finding review by appointment', { error, appointment_id });
             throw error;
         }
     }
-    async getReviewStats(doctorId) {
+    async getReviewStats(doctor_id) {
         try {
             const { data: rpcData, error: rpcError } = await this.supabase
                 .rpc('get_doctor_review_stats', {
-                doctor_id_param: doctorId
+                doctor_id_param: doctor_id
             });
             if (!rpcError && rpcData && rpcData.length > 0) {
                 const stats = rpcData[0];
-                const recentReviews = await this.findByDoctorId(doctorId, 5, 0);
+                const recentReviews = await this.findByDoctorId(doctor_id, 5, 0);
                 return {
                     total_reviews: Number(stats.total_reviews),
                     average_rating: Number(stats.average_rating),
@@ -179,11 +179,11 @@ class ReviewRepository {
                     recent_reviews: recentReviews
                 };
             }
-            logger_1.default.warn('RPC function failed, calculating stats manually', { rpcError, doctorId });
+            logger_1.default.warn('RPC function failed, calculating stats manually', { rpcError, doctor_id });
             const { data: reviews, error } = await this.supabase
                 .from('doctor_reviews')
                 .select('rating')
-                .eq('doctor_id', doctorId);
+                .eq('doctor_id', doctor_id);
             if (error)
                 throw error;
             const totalReviews = reviews?.length || 0;
@@ -197,7 +197,7 @@ class ReviewRepository {
                 two_star: reviews?.filter(r => r.rating === 2).length || 0,
                 one_star: reviews?.filter(r => r.rating === 1).length || 0
             };
-            const recentReviews = await this.findByDoctorId(doctorId, 5, 0);
+            const recentReviews = await this.findByDoctorId(doctor_id, 5, 0);
             return {
                 total_reviews: totalReviews,
                 average_rating: Number(averageRating.toFixed(2)),
@@ -206,7 +206,7 @@ class ReviewRepository {
             };
         }
         catch (error) {
-            logger_1.default.error('Error getting review stats', { error, doctorId });
+            logger_1.default.error('Error getting review stats', { error, doctor_id });
             throw error;
         }
     }
@@ -274,12 +274,12 @@ class ReviewRepository {
             throw error;
         }
     }
-    async getReviewsByRating(doctorId, rating, limit = 20) {
+    async getReviewsByRating(doctor_id, rating, limit = 20) {
         try {
             const { data, error } = await this.supabase
                 .from('doctor_reviews')
                 .select('*')
-                .eq('doctor_id', doctorId)
+                .eq('doctor_id', doctor_id)
                 .eq('rating', rating)
                 .order('created_at', { ascending: false })
                 .limit(limit);
@@ -288,16 +288,16 @@ class ReviewRepository {
             return data?.map(this.mapSupabaseReviewToReview) || [];
         }
         catch (error) {
-            logger_1.default.error('Error getting reviews by rating', { error, doctorId, rating });
+            logger_1.default.error('Error getting reviews by rating', { error, doctor_id, rating });
             throw error;
         }
     }
-    async searchReviews(doctorId, searchTerm, limit = 20) {
+    async searchReviews(doctor_id, searchTerm, limit = 20) {
         try {
             const { data, error } = await this.supabase
                 .from('doctor_reviews')
                 .select('*')
-                .eq('doctor_id', doctorId)
+                .eq('doctor_id', doctor_id)
                 .ilike('review_text', `%${searchTerm}%`)
                 .order('created_at', { ascending: false })
                 .limit(limit);
@@ -306,16 +306,16 @@ class ReviewRepository {
             return data?.map(this.mapSupabaseReviewToReview) || [];
         }
         catch (error) {
-            logger_1.default.error('Error searching reviews', { error, doctorId, searchTerm });
+            logger_1.default.error('Error searching reviews', { error, doctor_id, searchTerm });
             throw error;
         }
     }
-    async getVerifiedReviews(doctorId, limit = 20) {
+    async getVerifiedReviews(doctor_id, limit = 20) {
         try {
             const { data, error } = await this.supabase
                 .from('doctor_reviews')
                 .select('*')
-                .eq('doctor_id', doctorId)
+                .eq('doctor_id', doctor_id)
                 .eq('is_verified', true)
                 .order('created_at', { ascending: false })
                 .limit(limit);
@@ -324,7 +324,7 @@ class ReviewRepository {
             return data?.map(this.mapSupabaseReviewToReview) || [];
         }
         catch (error) {
-            logger_1.default.error('Error getting verified reviews', { error, doctorId });
+            logger_1.default.error('Error getting verified reviews', { error, doctor_id });
             throw error;
         }
     }

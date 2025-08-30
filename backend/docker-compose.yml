@@ -23,6 +23,7 @@ services:
       - BILLING_SERVICE_URL=http://billing-service:3008
       - PAYMENT_SERVICE_URL=http://payment-service:3009
       - NOTIFICATION_SERVICE_URL=http://notification-service:3011
+      - FILE_SERVICE_URL=http://file-service:3107
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
       - SUPABASE_URL=${SUPABASE_URL}
@@ -93,6 +94,7 @@ services:
       # REMOVED: PRESCRIPTION_SERVICE_URL - merged into medical-records-service
       - PAYMENT_SERVICE_URL=http://payment-service:3009
       - NOTIFICATION_SERVICE_URL=http://notification-service:3011
+      - FILE_SERVICE_URL=http://file-service:3107
       - GRAPHQL_GATEWAY_URL=http://graphql-gateway:3200
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
@@ -481,25 +483,39 @@ services:
       - core
       - full
 
-  # # File Storage Service
-  # file-storage-service:
-  #   build: ./services/file-storage-service
-  #   ports:
-  #     - "3016:3016"
-  #   environment:
-  #     - NODE_ENV=development
-  #     - SUPABASE_URL=${SUPABASE_URL}
-  #     - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-  #     - REDIS_URL=redis://redis:6379
-  #     - AUTH_SERVICE_URL=http://auth-service:3001
-  #     - UPLOAD_PATH=/app/uploads
-  #     - MAX_FILE_SIZE=10485760
-  #   depends_on:
-  #     - redis
-  #   volumes:
-  #     - file_uploads:/app/uploads
-  #   networks:
-  #     - hospital-network
+  # File Management Service - ENABLED (Medical Documents)
+  file-service:
+    build:
+      context: .
+      dockerfile: ./services/file-service/Dockerfile
+    ports:
+      - "3107:3107"
+    environment:
+      - NODE_ENV=development
+      - PORT=3107
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_STORAGE_BUCKET=documents
+      - FRONTEND_URL=http://localhost:3000
+      - VIRUS_SCAN_ENABLED=false
+    depends_on:
+      - redis
+      - rabbitmq
+    networks:
+      - hospital-network
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.75"
+        reservations:
+          memory: 256M
+          cpus: "0.5"
+    profiles:
+      - core
+      - full
 
   # # Audit & Logging Service
   # audit-service:

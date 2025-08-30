@@ -1,20 +1,21 @@
-import { Patient, PatientWithProfile, CreatePatientDto, UpdatePatientDto, PatientSearchFilters } from '../types/patient.types';
+import { CreatePatientDto, Patient, PatientSearchFilters, PatientWithProfile, UpdatePatientDto } from "../types/patient.types";
 export declare class PatientRepository {
     private supabase;
+    private pool;
     private calculateAge;
     getAllPatients(filters?: PatientSearchFilters, page?: number, limit?: number): Promise<{
         patients: PatientWithProfile[];
         total: number;
     }>;
     private getAllPatientsDirectQuery;
-    getPatientById(patientId: string): Promise<PatientWithProfile | null>;
+    getPatientById(patient_id: string): Promise<PatientWithProfile | null>;
     getPatientByProfileId(profileId: string): Promise<PatientWithProfile | null>;
-    getPatientsByDoctorId(doctorId: string): Promise<PatientWithProfile[]>;
+    getPatientsByDoctorId(doctor_id: string): Promise<PatientWithProfile[]>;
     verifyProfileExists(profileId: string): Promise<boolean>;
     createPatient(patientData: CreatePatientDto): Promise<Patient>;
-    updatePatient(patientId: string, updateData: UpdatePatientDto): Promise<Patient>;
-    deletePatient(patientId: string): Promise<boolean>;
-    patientExists(patientId: string): Promise<boolean>;
+    updatePatient(patient_id: string, updateData: UpdatePatientDto): Promise<Patient>;
+    deletePatient(patient_id: string): Promise<boolean>;
+    patientExists(patient_id: string): Promise<boolean>;
     getPatientStats(): Promise<{
         total: number;
         active: number;
@@ -28,7 +29,7 @@ export declare class PatientRepository {
     }>;
     searchPatients(searchTerm: string, limit?: number): Promise<PatientWithProfile[]>;
     getPatientsWithUpcomingAppointments(): Promise<PatientWithProfile[]>;
-    getPatientMedicalSummary(patientId: string): Promise<{
+    getPatientMedicalSummary(patient_id: string): Promise<{
         patient: PatientWithProfile | null;
         appointmentCount: number;
         lastAppointment: string | null;
@@ -36,7 +37,7 @@ export declare class PatientRepository {
         allergies: string[];
         currentMedications: any;
     }>;
-    getPatientCountForDoctor(doctorId: string): Promise<number>;
-    getPatientStatsForDoctor(doctorId: string): Promise<any>;
+    getPatientCountForDoctor(doctor_id: string): Promise<number>;
+    getPatientStatsForDoctor(doctor_id: string): Promise<any>;
 }
 //# sourceMappingURL=patient.repository.d.ts.map

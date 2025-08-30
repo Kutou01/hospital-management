@@ -11,9 +11,9 @@ const context_1 = require("../context");
 exports.patientResolvers = {
     Query: {
         // Get single patient
-        async patient(_, { id, patientId }, context) {
+        async patient(_, { id, patient_id }, context) {
             try {
-                const identifier = id || patientId;
+                const identifier = id || patient_id;
                 if (!identifier) {
                     throw new Error(context_1.contextUtils.translate(context, "patient.errors.missing_identifier"));
                 }
@@ -53,7 +53,7 @@ exports.patientResolvers = {
             }
         },
         // Get multiple patients with filters
-        async patients(_, { filters, limit = 20, offset = 0, sortBy = "createdAt", sortOrder = "DESC", }, context) {
+        async patients(_, { filters, limit = 20, offset = 0, sortBy = "created_at", sortOrder = "DESC", }, context) {
             try {
                 shared_1.logger.debug("Fetching patients:", {
                     filters,
@@ -139,13 +139,13 @@ exports.patientResolvers = {
             }
         },
         // Get patient medical summary
-        async patientMedicalSummary(_, { patientId }, context) {
+        async patientMedicalSummary(_, { patient_id }, context) {
             try {
                 shared_1.logger.debug("Fetching patient medical summary:", {
-                    patientId,
+                    patient_id,
                     requestId: context.requestId,
                 });
-                const response = await context.restApi.getPatientMedicalSummary(patientId);
+                const response = await context.restApi.getPatientMedicalSummary(patient_id);
                 if (!response.success) {
                     throw new Error(response.error?.message ||
                         context_1.contextUtils.translate(context, "patient.errors.medical_summary_failed"));
@@ -158,13 +158,13 @@ exports.patientResolvers = {
             }
         },
         // Get patient statistics
-        async patientStats(_, { patientId }, context) {
+        async patientStats(_, { patient_id }, context) {
             try {
                 shared_1.logger.debug("Fetching patient stats:", {
-                    patientId,
+                    patient_id,
                     requestId: context.requestId,
                 });
-                const response = await context.restApi.getPatientStats(patientId);
+                const response = await context.restApi.getPatientStats(patient_id);
                 if (!response.success) {
                     throw new Error(response.error?.message ||
                         context_1.contextUtils.translate(context, "patient.errors.stats_failed"));
@@ -177,15 +177,15 @@ exports.patientResolvers = {
             }
         },
         // Get patient-doctor history
-        async patientDoctorHistory(_, { patientId, doctorId, limit = 10, }, context) {
+        async patientDoctorHistory(_, { patient_id, doctor_id, limit = 10, }, context) {
             try {
                 shared_1.logger.debug("Fetching patient-doctor history:", {
-                    patientId,
-                    doctorId,
+                    patient_id,
+                    doctor_id,
                     limit,
                     requestId: context.requestId,
                 });
-                const response = await context.restApi.getPatientDoctorHistory(patientId, doctorId, limit);
+                const response = await context.restApi.getPatientDoctorHistory(patient_id, doctor_id, limit);
                 if (!response.success) {
                     throw new Error(response.error?.message ||
                         context_1.contextUtils.translate(context, "patient.errors.history_failed"));
@@ -198,16 +198,16 @@ exports.patientResolvers = {
             }
         },
         // Get patient medical records
-        async patientMedicalRecords(_, { patientId, limit = 20, offset = 0, dateFrom, dateTo }, context) {
+        async patientMedicalRecords(_, { patient_id, limit = 20, offset = 0, dateFrom, dateTo }, context) {
             try {
                 shared_1.logger.debug("Fetching patient medical records:", {
-                    patientId,
+                    patient_id,
                     limit,
                     offset,
                     requestId: context.requestId,
                 });
                 const response = await context.restApi.getPatientMedicalRecords({
-                    patientId,
+                    patient_id,
                     limit,
                     offset,
                     dateFrom,
@@ -255,7 +255,7 @@ exports.patientResolvers = {
                         context_1.contextUtils.translate(context, "patient.errors.create_failed"));
                 }
                 shared_1.logger.info("Patient created successfully:", {
-                    patientId: response.data.patientId,
+                    patient_id: response.data.patient_id,
                 });
                 return response.data;
             }
@@ -277,7 +277,7 @@ exports.patientResolvers = {
                     throw new Error(response.error?.message ||
                         context_1.contextUtils.translate(context, "patient.errors.update_failed"));
                 }
-                shared_1.logger.info("Patient updated successfully:", { patientId: id });
+                shared_1.logger.info("Patient updated successfully:", { patient_id: id });
                 return response.data;
             }
             catch (error) {
@@ -294,7 +294,7 @@ exports.patientResolvers = {
                     throw new Error(response.error?.message ||
                         context_1.contextUtils.translate(context, "patient.errors.delete_failed"));
                 }
-                shared_1.logger.info("Patient deleted successfully:", { patientId: id });
+                shared_1.logger.info("Patient deleted successfully:", { patient_id: id });
                 return true;
             }
             catch (error) {
@@ -314,7 +314,7 @@ exports.patientResolvers = {
                     throw new Error(response.error?.message ||
                         context_1.contextUtils.translate(context, "patient.errors.activate_failed"));
                 }
-                shared_1.logger.info("Patient activated successfully:", { patientId: id });
+                shared_1.logger.info("Patient activated successfully:", { patient_id: id });
                 return response.data;
             }
             catch (error) {
@@ -334,7 +334,7 @@ exports.patientResolvers = {
                     throw new Error(response.error?.message ||
                         context_1.contextUtils.translate(context, "patient.errors.deactivate_failed"));
                 }
-                shared_1.logger.info("Patient deactivated successfully:", { patientId: id });
+                shared_1.logger.info("Patient deactivated successfully:", { patient_id: id });
                 return response.data;
             }
             catch (error) {
@@ -363,7 +363,7 @@ exports.patientResolvers = {
                         context_1.contextUtils.translate(context, "patient.errors.medical_update_failed"));
                 }
                 shared_1.logger.info("Patient medical info updated successfully:", {
-                    patientId: id,
+                    patient_id: id,
                 });
                 return response.data;
             }
@@ -391,7 +391,7 @@ exports.patientResolvers = {
                         context_1.contextUtils.translate(context, "patient.errors.insurance_update_failed"));
                 }
                 shared_1.logger.info("Patient insurance updated successfully:", {
-                    patientId: id,
+                    patient_id: id,
                 });
                 return response.data;
             }
@@ -427,7 +427,7 @@ exports.patientResolvers = {
         // Resolve appointments using DataLoader
         async appointments(parent, { status, dateFrom, dateTo, limit = 10, offset = 0 }, context) {
             try {
-                const appointments = await context.dataloaders.appointmentsByPatient.load(parent.patientId || parent.id);
+                const appointments = await context.dataloaders.appointmentsByPatient.load(parent.patient_id || parent.id);
                 // Apply filters
                 let filteredAppointments = appointments || [];
                 if (status) {
@@ -476,7 +476,7 @@ exports.patientResolvers = {
         // Resolve medical records using DataLoader
         async medicalRecords(parent, { limit = 10, offset = 0, dateFrom, dateTo }, context) {
             try {
-                const medicalRecords = await context.dataloaders.medicalRecordsByPatient.load(parent.patientId || parent.id);
+                const medicalRecords = await context.dataloaders.medicalRecordsByPatient.load(parent.patient_id || parent.id);
                 // Apply date filters
                 let filteredRecords = medicalRecords || [];
                 if (dateFrom) {
@@ -522,7 +522,7 @@ exports.patientResolvers = {
         // Computed fields
         async totalAppointments(parent, _, context) {
             try {
-                const appointments = await context.dataloaders.appointmentsByPatient.load(parent.patientId || parent.id);
+                const appointments = await context.dataloaders.appointmentsByPatient.load(parent.patient_id || parent.id);
                 return appointments ? appointments.length : 0;
             }
             catch (error) {
@@ -532,7 +532,7 @@ exports.patientResolvers = {
         },
         async upcomingAppointments(parent, _, context) {
             try {
-                const appointments = await context.dataloaders.appointmentsByPatient.load(parent.patientId || parent.id);
+                const appointments = await context.dataloaders.appointmentsByPatient.load(parent.patient_id || parent.id);
                 if (!appointments)
                     return 0;
                 const now = new Date();
@@ -545,7 +545,7 @@ exports.patientResolvers = {
         },
         async completedAppointments(parent, _, context) {
             try {
-                const appointments = await context.dataloaders.appointmentsByPatient.load(parent.patientId || parent.id);
+                const appointments = await context.dataloaders.appointmentsByPatient.load(parent.patient_id || parent.id);
                 if (!appointments)
                     return 0;
                 return appointments.filter((apt) => apt.status === "COMPLETED")
@@ -558,7 +558,7 @@ exports.patientResolvers = {
         },
         async lastAppointment(parent, _, context) {
             try {
-                const appointments = await context.dataloaders.appointmentsByPatient.load(parent.patientId || parent.id);
+                const appointments = await context.dataloaders.appointmentsByPatient.load(parent.patient_id || parent.id);
                 if (!appointments || appointments.length === 0)
                     return null;
                 const sortedAppointments = appointments
@@ -574,7 +574,7 @@ exports.patientResolvers = {
         },
         async nextAppointment(parent, _, context) {
             try {
-                const appointments = await context.dataloaders.appointmentsByPatient.load(parent.patientId || parent.id);
+                const appointments = await context.dataloaders.appointmentsByPatient.load(parent.patient_id || parent.id);
                 if (!appointments || appointments.length === 0)
                     return null;
                 const now = new Date();

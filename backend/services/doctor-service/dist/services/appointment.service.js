@@ -13,13 +13,13 @@ class AppointmentService {
             serviceName: 'doctor-service',
         });
     }
-    async getDoctorAppointments(doctorId, filters = {}) {
+    async getDoctorAppointments(doctor_id, filters = {}) {
         try {
-            logger_1.default.info('🔄 Fetching doctor appointments via API Gateway', { doctorId, filters });
-            const response = await this.apiGatewayClient.getDoctorAppointments(doctorId, filters);
+            logger_1.default.info('🔄 Fetching doctor appointments via API Gateway', { doctor_id, filters });
+            const response = await this.apiGatewayClient.getDoctorAppointments(doctor_id, filters);
             if (response.success && response.data) {
                 logger_1.default.info('✅ Doctor appointments fetched successfully via API Gateway', {
-                    doctorId,
+                    doctor_id,
                     appointmentCount: response.data.appointments?.length || 0
                 });
                 return {
@@ -27,46 +27,46 @@ class AppointmentService {
                     pagination: response.data.pagination
                 };
             }
-            logger_1.default.warn('⚠️ No appointments found via API Gateway', { doctorId });
+            logger_1.default.warn('⚠️ No appointments found via API Gateway', { doctor_id });
             return { appointments: [] };
         }
         catch (error) {
             logger_1.default.error('❌ Error fetching doctor appointments via API Gateway:', {
                 error: error instanceof Error ? error.message : 'Unknown error',
-                doctorId,
+                doctor_id,
                 filters
             });
             return { appointments: [] };
         }
     }
-    async getDoctorAppointmentStats(doctorId) {
+    async getDoctorAppointmentStats(doctor_id) {
         try {
-            logger_1.default.info('🔄 Fetching appointment stats via API Gateway', { doctorId });
-            const response = await this.apiGatewayClient.getAppointmentStats(doctorId);
+            logger_1.default.info('🔄 Fetching appointment stats via API Gateway', { doctor_id });
+            const response = await this.apiGatewayClient.getAppointmentStats(doctor_id);
             if (response.success && response.data) {
-                logger_1.default.info('✅ Appointment stats fetched successfully via API Gateway', { doctorId });
+                logger_1.default.info('✅ Appointment stats fetched successfully via API Gateway', { doctor_id });
                 return response.data;
             }
-            logger_1.default.warn('⚠️ No appointment stats found via API Gateway', { doctorId });
+            logger_1.default.warn('⚠️ No appointment stats found via API Gateway', { doctor_id });
             return this.getDefaultStats();
         }
         catch (error) {
             logger_1.default.error('❌ Error fetching appointment stats via API Gateway:', {
                 error: error instanceof Error ? error.message : 'Unknown error',
-                doctorId
+                doctor_id
             });
             return this.getDefaultStats();
         }
     }
-    async getDoctorPatientCount(doctorId) {
+    async getDoctorPatientCount(doctor_id) {
         try {
-            logger_1.default.info('🔄 Fetching patient count via API Gateway', { doctorId });
-            const stats = await this.getDoctorAppointmentStats(doctorId);
+            logger_1.default.info('🔄 Fetching patient count via API Gateway', { doctor_id });
+            const stats = await this.getDoctorAppointmentStats(doctor_id);
             const uniquePatients = stats.monthly_stats.reduce((total, month) => {
                 return total + month.patients;
             }, 0);
             logger_1.default.info('✅ Patient count calculated via API Gateway', {
-                doctorId,
+                doctor_id,
                 count: uniquePatients
             });
             return uniquePatients;
@@ -74,7 +74,7 @@ class AppointmentService {
         catch (error) {
             logger_1.default.error('❌ Error fetching patient count via API Gateway:', {
                 error: error instanceof Error ? error.message : 'Unknown error',
-                doctorId
+                doctor_id
             });
             return 0;
         }
@@ -98,26 +98,26 @@ class AppointmentService {
             return false;
         }
     }
-    async getTodayAppointments(doctorId) {
-        logger_1.default.info('🔄 Fetching today appointments via API Gateway', { doctorId });
+    async getTodayAppointments(doctor_id) {
+        logger_1.default.info('🔄 Fetching today appointments via API Gateway', { doctor_id });
         const today = new Date().toISOString().split('T')[0];
-        const result = await this.getDoctorAppointments(doctorId, {
+        const result = await this.getDoctorAppointments(doctor_id, {
             date: today,
             limit: 100
         });
         logger_1.default.info('✅ Today appointments fetched via API Gateway', {
-            doctorId,
+            doctor_id,
             count: result.appointments.length
         });
         return result.appointments;
     }
-    async getMonthlyAppointments(doctorId) {
+    async getMonthlyAppointments(doctor_id) {
         try {
-            logger_1.default.info('🔄 Fetching monthly appointments via API Gateway', { doctorId });
+            logger_1.default.info('🔄 Fetching monthly appointments via API Gateway', { doctor_id });
             const now = new Date();
             const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
             const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-            const result = await this.getDoctorAppointments(doctorId, {
+            const result = await this.getDoctorAppointments(doctor_id, {
                 limit: 1000
             });
             const monthlyAppointments = result.appointments.filter(appointment => {
@@ -125,7 +125,7 @@ class AppointmentService {
                 return appointmentDate >= startOfMonth && appointmentDate <= endOfMonth;
             });
             logger_1.default.info('✅ Monthly appointments fetched via API Gateway', {
-                doctorId,
+                doctor_id,
                 count: monthlyAppointments.length
             });
             return monthlyAppointments;
@@ -133,16 +133,16 @@ class AppointmentService {
         catch (error) {
             logger_1.default.error('❌ Error fetching monthly appointments via API Gateway:', {
                 error: error instanceof Error ? error.message : 'Unknown error',
-                doctorId
+                doctor_id
             });
             return [];
         }
     }
-    async getUpcomingAppointments(doctorId) {
+    async getUpcomingAppointments(doctor_id) {
         try {
-            logger_1.default.info('🔄 Fetching upcoming appointments via API Gateway', { doctorId });
+            logger_1.default.info('🔄 Fetching upcoming appointments via API Gateway', { doctor_id });
             const today = new Date().toISOString().split('T')[0];
-            const result = await this.getDoctorAppointments(doctorId, {
+            const result = await this.getDoctorAppointments(doctor_id, {
                 limit: 10
             });
             const upcomingAppointments = result.appointments.filter(appointment => {
@@ -157,7 +157,7 @@ class AppointmentService {
                 return dateA.getTime() - dateB.getTime();
             });
             logger_1.default.info('✅ Upcoming appointments fetched via API Gateway', {
-                doctorId,
+                doctor_id,
                 count: upcomingAppointments.length
             });
             return upcomingAppointments.slice(0, 10);
@@ -165,15 +165,15 @@ class AppointmentService {
         catch (error) {
             logger_1.default.error('❌ Error fetching upcoming appointments via API Gateway:', {
                 error: error instanceof Error ? error.message : 'Unknown error',
-                doctorId
+                doctor_id
             });
             return [];
         }
     }
-    async getRecentActivity(doctorId) {
+    async getRecentActivity(doctor_id) {
         try {
-            logger_1.default.info('🔄 Fetching recent activity via API Gateway', { doctorId });
-            const result = await this.getDoctorAppointments(doctorId, {
+            logger_1.default.info('🔄 Fetching recent activity via API Gateway', { doctor_id });
+            const result = await this.getDoctorAppointments(doctor_id, {
                 limit: 10
             });
             const appointments = result.appointments.sort((a, b) => {
@@ -189,7 +189,7 @@ class AppointmentService {
                 status: apt.status
             }));
             logger_1.default.info('✅ Recent activity fetched via API Gateway', {
-                doctorId,
+                doctor_id,
                 count: recentActivity.length
             });
             return recentActivity;
@@ -197,7 +197,7 @@ class AppointmentService {
         catch (error) {
             logger_1.default.error('❌ Error fetching recent activity via API Gateway:', {
                 error: error instanceof Error ? error.message : 'Unknown error',
-                doctorId
+                doctor_id
             });
             return [];
         }

@@ -12,9 +12,9 @@ const logger_1 = __importDefault(require("@hospital/shared/dist/utils/logger"));
 exports.doctorResolvers = {
     Query: {
         // Get single doctor
-        async doctor(_, { id, doctorId }, context) {
+        async doctor(_, { id, doctor_id }, context) {
             try {
-                const identifier = id || doctorId;
+                const identifier = id || doctor_id;
                 if (!identifier) {
                     throw new Error("Cần cung cấp ID hoặc mã bác sĩ");
                 }
@@ -34,7 +34,7 @@ exports.doctorResolvers = {
             }
         },
         // Get multiple doctors with filtering and pagination
-        async doctors(_, { filters, limit = 20, offset = 0, sortBy = "createdAt", sortOrder = "DESC", }, context) {
+        async doctors(_, { filters, limit = 20, offset = 0, sortBy = "created_at", sortOrder = "DESC", }, context) {
             try {
                 logger_1.default.debug("Fetching doctors:", {
                     filters,
@@ -126,14 +126,14 @@ exports.doctorResolvers = {
             }
         },
         // Get doctor availability
-        async doctorAvailability(_, { doctorId, date }, context) {
+        async doctorAvailability(_, { doctor_id, date }, context) {
             try {
                 logger_1.default.debug("Fetching doctor availability:", {
-                    doctorId,
+                    doctor_id,
                     date,
                     requestId: context.requestId,
                 });
-                const response = await context.restApi.getAvailableSlots(doctorId, date);
+                const response = await context.restApi.getAvailableSlots(doctor_id, date);
                 if (!response.success) {
                     throw new Error(response.error?.message || "Không thể lấy lịch trống của bác sĩ");
                 }
@@ -145,10 +145,10 @@ exports.doctorResolvers = {
             }
         },
         // Get doctor statistics
-        async doctorStats(_, { doctorId }, context) {
+        async doctorStats(_, { doctor_id }, context) {
             try {
                 // Use DataLoader for optimization
-                const stats = await context.dataloaders.doctorStats.load(doctorId);
+                const stats = await context.dataloaders.doctorStats.load(doctor_id);
                 if (!stats) {
                     throw new Error("Không thể lấy thống kê bác sĩ");
                 }
@@ -160,16 +160,16 @@ exports.doctorResolvers = {
             }
         },
         // Get doctor reviews
-        async doctorReviews(_, { doctorId, limit = 10, offset = 0, }, context) {
+        async doctorReviews(_, { doctor_id, limit = 10, offset = 0, }, context) {
             try {
                 logger_1.default.debug("Fetching doctor reviews:", {
-                    doctorId,
+                    doctor_id,
                     limit,
                     offset,
                     requestId: context.requestId,
                 });
                 const response = await context.restApi.getDoctorReviews({
-                    doctorId,
+                    doctor_id,
                     limit,
                     offset,
                 });
@@ -183,15 +183,15 @@ exports.doctorResolvers = {
                 throw error;
             }
         },
-        // Get doctor schedule
-        async doctorSchedule(_, { doctorId, date }, context) {
+        // Get doctor schedule (legacy support)
+        async doctorSchedule(_, { doctor_id, date }, context) {
             try {
                 logger_1.default.debug("Fetching doctor schedule:", {
-                    doctorId,
+                    doctor_id,
                     date,
                     requestId: context.requestId,
                 });
-                const response = await context.restApi.getDoctorSchedule(doctorId, date);
+                const response = await context.restApi.getDoctorSchedule(doctor_id, date);
                 if (!response.success) {
                     throw new Error(response.error?.message || "Không thể lấy lịch làm việc bác sĩ");
                 }
@@ -199,6 +199,64 @@ exports.doctorResolvers = {
             }
             catch (error) {
                 logger_1.default.error("Error fetching doctor schedule:", error);
+                throw error;
+            }
+        },
+        // Enhanced doctor schedule queries
+        async doctorScheduleEnhanced(_, { doctor_id, weekStartDate, }, context) {
+            try {
+                logger_1.default.debug("Fetching enhanced doctor schedule:", {
+                    doctor_id,
+                    weekStartDate,
+                    requestId: context.requestId,
+                });
+                const response = await context.restApi.getDoctorSchedule(doctor_id, weekStartDate);
+                if (!response.success) {
+                    throw new Error(response.error?.message || "Không thể lấy lịch làm việc nâng cao");
+                }
+                return response.data || [];
+            }
+            catch (error) {
+                logger_1.default.error("Error fetching enhanced doctor schedule:", error);
+                throw error;
+            }
+        },
+        async doctorWeeklyAvailability(_, { doctor_id, weekStartDate, }, context) {
+            try {
+                logger_1.default.debug("Fetching doctor weekly availability:", {
+                    doctor_id,
+                    weekStartDate,
+                    requestId: context.requestId,
+                });
+                const response = await context.restApi.getDoctorSchedule(doctor_id, weekStartDate);
+                if (!response.success) {
+                    throw new Error(response.error?.message || "Không thể lấy lịch tuần bác sĩ");
+                }
+                return response.data;
+            }
+            catch (error) {
+                logger_1.default.error("Error fetching doctor weekly availability:", error);
+                throw error;
+            }
+        },
+        async doctorAppointmentSlots(_, { doctor_id, date }, context) {
+            try {
+                logger_1.default.debug("Fetching doctor appointment slots:", {
+                    doctor_id,
+                    date,
+                    requestId: context.requestId,
+                });
+                const response = await context.restApi.getAppointments({
+                    doctor_id,
+                    dateFrom: date,
+                });
+                if (!response.success) {
+                    throw new Error(response.error?.message || "Không thể lấy slot cuộc hẹn");
+                }
+                return response.data || [];
+            }
+            catch (error) {
+                logger_1.default.error("Error fetching doctor appointment slots:", error);
                 throw error;
             }
         },
@@ -218,19 +276,19 @@ exports.doctorResolvers = {
             }
         },
         // Get multiple rooms
-        async rooms(_, { departmentId, roomType, isActive = true, limit = 20 }, context) {
+        async rooms(_, { departmentId, roomType, is_active = true, limit = 20 }, context) {
             try {
                 logger_1.default.debug("Fetching rooms:", {
                     departmentId,
                     roomType,
-                    isActive,
+                    is_active,
                     limit,
                     requestId: context.requestId,
                 });
                 const response = await context.restApi.getRooms({
                     departmentId,
                     roomType,
-                    isActive,
+                    is_active,
                     limit,
                 });
                 if (!response.success) {
@@ -284,7 +342,7 @@ exports.doctorResolvers = {
                     throw new Error("Yêu cầu xác thực");
                 }
                 // Check permissions (admin or the doctor themselves)
-                if (context.user.role !== "admin" && context.user.doctorId !== id) {
+                if (context.user.role !== "admin" && context.user.doctor_id !== id) {
                     throw new Error("Không có quyền cập nhật thông tin bác sĩ này");
                 }
                 logger_1.default.debug("Updating doctor:", {
@@ -416,7 +474,7 @@ exports.doctorResolvers = {
         // Resolve appointments using DataLoader
         async appointments(parent, { status, dateFrom, dateTo, limit = 10, offset = 0 }, context) {
             try {
-                const appointments = await context.dataloaders.appointmentsByDoctor.load(parent.doctorId || parent.id);
+                const appointments = await context.dataloaders.appointmentsByDoctor.load(parent.doctor_id || parent.id);
                 // Apply filters
                 let filteredAppointments = appointments || [];
                 if (status) {
@@ -465,7 +523,7 @@ exports.doctorResolvers = {
         // Resolve reviews using DataLoader
         async reviews(parent, { limit = 10, offset = 0 }, context) {
             try {
-                const reviews = await context.dataloaders.doctorReviews.load(parent.doctorId || parent.id);
+                const reviews = await context.dataloaders.doctorReviews.load(parent.doctor_id || parent.id);
                 // Apply pagination
                 const paginatedReviews = (reviews || []).slice(offset, offset + limit);
                 return {
@@ -503,7 +561,7 @@ exports.doctorResolvers = {
         // Computed fields
         async averageRating(parent, _, context) {
             try {
-                const stats = await context.dataloaders.doctorStats.load(parent.doctorId || parent.id);
+                const stats = await context.dataloaders.doctorStats.load(parent.doctor_id || parent.id);
                 return stats?.averageRating || 0;
             }
             catch (error) {
@@ -513,7 +571,7 @@ exports.doctorResolvers = {
         },
         async totalPatients(parent, _, context) {
             try {
-                const stats = await context.dataloaders.doctorStats.load(parent.doctorId || parent.id);
+                const stats = await context.dataloaders.doctorStats.load(parent.doctor_id || parent.id);
                 return stats?.totalPatients || 0;
             }
             catch (error) {
@@ -523,7 +581,7 @@ exports.doctorResolvers = {
         },
         async totalAppointments(parent, _, context) {
             try {
-                const stats = await context.dataloaders.doctorStats.load(parent.doctorId || parent.id);
+                const stats = await context.dataloaders.doctorStats.load(parent.doctor_id || parent.id);
                 return stats?.totalAppointments || 0;
             }
             catch (error) {
@@ -533,7 +591,7 @@ exports.doctorResolvers = {
         },
         async upcomingAppointments(parent, _, context) {
             try {
-                const stats = await context.dataloaders.doctorStats.load(parent.doctorId || parent.id);
+                const stats = await context.dataloaders.doctorStats.load(parent.doctor_id || parent.id);
                 return stats?.upcomingAppointments || 0;
             }
             catch (error) {
@@ -544,7 +602,7 @@ exports.doctorResolvers = {
         async availableToday(parent, _, context) {
             try {
                 const today = new Date().toISOString().split("T")[0];
-                const slots = await context.dataloaders.availableSlots.load(`${parent.doctorId || parent.id}:${today}`);
+                const slots = await context.dataloaders.availableSlots.load(`${parent.doctor_id || parent.id}:${today}`);
                 return (slots || []).some((slot) => slot.isAvailable);
             }
             catch (error) {
@@ -559,15 +617,15 @@ exports.doctorResolvers = {
         serviceQuality: (parent) => parent.service_quality,
         isVerified: (parent) => parent.is_verified,
         isAnonymous: (parent) => parent.is_anonymous,
-        createdAt: (parent) => parent.created_at,
-        updatedAt: (parent) => parent.updated_at,
+        created_at: (parent) => parent.created_at,
+        updated_at: (parent) => parent.updated_at,
         // Resolve relationships using DataLoaders
         async doctor(parent, _, context) {
-            if (!parent.doctor_id && !parent.doctorId)
+            if (!parent.doctor_id && !parent.doctor_id)
                 return null;
             try {
-                const doctorId = parent.doctor_id || parent.doctorId;
-                return await context.dataloaders.doctorById.load(doctorId);
+                const doctor_id = parent.doctor_id || parent.doctor_id;
+                return await context.dataloaders.doctorById.load(doctor_id);
             }
             catch (error) {
                 logger_1.default.error("Error loading review doctor:", error);
@@ -575,11 +633,11 @@ exports.doctorResolvers = {
             }
         },
         async patient(parent, _, context) {
-            if (!parent.patient_id && !parent.patientId)
+            if (!parent.patient_id && !parent.patient_id)
                 return null;
             try {
-                const patientId = parent.patient_id || parent.patientId;
-                return await context.dataloaders.patientById.load(patientId);
+                const patient_id = parent.patient_id || parent.patient_id;
+                return await context.dataloaders.patientById.load(patient_id);
             }
             catch (error) {
                 logger_1.default.error("Error loading review patient:", error);
@@ -587,11 +645,11 @@ exports.doctorResolvers = {
             }
         },
         async appointment(parent, _, context) {
-            if (!parent.appointment_id && !parent.appointmentId)
+            if (!parent.appointment_id && !parent.appointment_id)
                 return null;
             try {
-                const appointmentId = parent.appointment_id || parent.appointmentId;
-                return await context.dataloaders.appointmentById.load(appointmentId);
+                const appointment_id = parent.appointment_id || parent.appointment_id;
+                return await context.dataloaders.appointmentById.load(appointment_id);
             }
             catch (error) {
                 logger_1.default.error("Error loading review appointment:", error);
@@ -599,27 +657,57 @@ exports.doctorResolvers = {
             }
         },
     },
-    // Field resolvers for DoctorSchedule type
+    // Field resolvers for Enhanced DoctorSchedule type
     DoctorSchedule: {
-        // Map database snake_case to GraphQL camelCase
+        // Map database snake_case to GraphQL camelCase for enhanced schedule
         dayOfWeek: (parent) => parent.day_of_week,
         startTime: (parent) => parent.start_time,
         endTime: (parent) => parent.end_time,
-        isAvailable: (parent) => parent.is_available,
-        maxAppointments: (parent) => parent.max_appointments,
+        templateId: (parent) => parent.template_id,
+        // Enhanced break system
+        breakPeriods: (parent) => {
+            if (!parent.break_periods)
+                return [];
+            try {
+                const periods = typeof parent.break_periods === "string"
+                    ? JSON.parse(parent.break_periods)
+                    : parent.break_periods;
+                return Array.isArray(periods)
+                    ? periods.map((period) => ({
+                        startTime: period.start_time,
+                        endTime: period.end_time,
+                        breakType: period.break_type,
+                    }))
+                    : [];
+            }
+            catch {
+                return [];
+            }
+        },
+        // Appointment configuration
         slotDuration: (parent) => parent.slot_duration,
-        breakStartTime: (parent) => parent.break_start_time,
-        breakEndTime: (parent) => parent.break_end_time,
-        scheduleType: (parent) => parent.schedule_type,
-        createdAt: (parent) => parent.created_at,
-        updatedAt: (parent) => parent.updated_at,
+        bufferTime: (parent) => parent.buffer_time,
+        maxAppointments: (parent) => parent.max_appointments,
+        // Availability settings
+        isAvailable: (parent) => parent.is_available,
+        availabilityType: (parent) => parent.availability_type?.toUpperCase() || "REGULAR",
+        // Department rules
+        departmentRules: (parent) => parent.department_rules,
+        // Effective period
+        effectiveFrom: (parent) => parent.effective_from,
+        effectiveTo: (parent) => parent.effective_to,
+        // Status
+        is_active: (parent) => parent.is_active,
+        // Timestamps
+        created_at: (parent) => parent.created_at,
+        updated_at: (parent) => parent.updated_at,
         // Resolve relationships using DataLoaders
         async doctor(parent, _, context) {
-            if (!parent.doctor_id && !parent.doctorId)
+            if (!parent.doctor_id && !parent.doctor_id)
                 return null;
             try {
-                const doctorId = parent.doctor_id || parent.doctorId;
-                return await context.dataloaders.doctorById.load(doctorId);
+                const doctor_id = parent.doctor_id || parent.doctor_id;
+                return await context.dataloaders.doctorById.load(doctor_id);
             }
             catch (error) {
                 logger_1.default.error("Error loading schedule doctor:", error);
@@ -652,9 +740,9 @@ exports.doctorResolvers = {
         floorNumber: (parent) => parent.floor_number,
         dailyRate: (parent) => parent.daily_rate,
         equipmentIds: (parent) => parent.equipment_ids,
-        isActive: (parent) => parent.is_active,
-        createdAt: (parent) => parent.created_at,
-        updatedAt: (parent) => parent.updated_at,
+        is_active: (parent) => parent.is_active,
+        created_at: (parent) => parent.created_at,
+        updated_at: (parent) => parent.updated_at,
         // Resolve relationships using DataLoaders
         async department(parent, _, context) {
             if (!parent.department_id && !parent.departmentId)

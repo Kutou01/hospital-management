@@ -49,45 +49,45 @@ exports.patientTypeDefs = (0, graphql_tag_1.gql) `
   type Patient {
     # Basic Information
     id: UUID!
-    patientId: PatientID!
-    profileId: UUID!
-    fullName: String!
+    patient_id: PatientID!
+    profile_id: UUID!
+    full_name: String!
     email: String!
-    phoneNumber: PhoneNumber
-    
+    phone_number: PhoneNumber
+
     # Personal Information
     gender: Gender!
-    dateOfBirth: Date!
+    date_of_birth: Date!
     age: Int!
     address: String
-    emergencyContact: EmergencyContact
-    maritalStatus: MaritalStatus
+    emergency_contact: EmergencyContact
+    marital_status: MaritalStatus
     occupation: String
-    
+
     # Medical Information
-    bloodType: BloodGroup
+    blood_type: BloodGroup
     height: Height
     weight: Weight
     bmi: Float
     allergies: [String!]
-    chronicConditions: [String!]
-    currentMedications: [String!]
-    
+    chronic_conditions: [String!]
+    current_medications: [String!]
+
     # Insurance Information
-    insuranceType: InsuranceType
-    insuranceNumber: String
-    insuranceProvider: String
-    insuranceExpiryDate: Date
-    
+    insurance_type: InsuranceType
+    insurance_number: String
+    insurance_provider: String
+    insurance_expiry_date: Date
+
     # Status
-    isActive: Boolean!
+    is_active: Boolean!
     status: PatientStatus!
-    
+
     # Timestamps
-    createdAt: DateTime!
-    updatedAt: DateTime!
-    lastVisit: DateTime
-    
+    created_at: DateTime!
+    updated_at: DateTime!
+    last_visit: DateTime
+
     # Relationships
     appointments(
       status: AppointmentStatus
@@ -112,73 +112,73 @@ exports.patientTypeDefs = (0, graphql_tag_1.gql) `
       limit: Int = 10
       offset: Int = 0
     ): PaymentConnection!
-    
+
     # Computed Fields
-    totalAppointments: Int!
-    upcomingAppointments: Int!
-    completedAppointments: Int!
-    totalSpent: Float!
-    lastAppointment: Appointment
-    nextAppointment: Appointment
-    primaryDoctor: Doctor
-    visitFrequency: Float # visits per month
+    total_appointments: Int!
+    upcoming_appointments: Int!
+    completed_appointments: Int!
+    total_spent: Float!
+    last_appointment: Appointment
+    next_appointment: Appointment
+    primary_doctor: Doctor
+    visit_frequency: Float # visits per month
   }
 
   # Emergency Contact
   type EmergencyContact {
     name: String!
     relationship: String!
-    phoneNumber: PhoneNumber!
+    phone_number: PhoneNumber!
     address: String
   }
 
   # Patient Medical Summary
   type PatientMedicalSummary {
-    patientId: PatientID!
-    totalVisits: Int!
-    lastVisitDate: DateTime
-    chronicConditions: [String!]!
+    patient_id: PatientID!
+    total_visits: Int!
+    last_visit_date: DateTime
+    chronic_conditions: [String!]!
     allergies: [String!]!
-    currentMedications: [String!]!
-    vitalSigns: LatestVitalSigns
-    labResults: [LatestLabResult!]!
+    current_medications: [String!]!
+    vital_signs: LatestVitalSigns
+    lab_results: [LatestLabResult!]!
     diagnoses: [String!]!
     treatments: [String!]!
-    riskFactors: [String!]!
+    risk_factors: [String!]!
   }
 
   type LatestVitalSigns {
-    bloodPressure: String
-    heartRate: Int
+    blood_pressure: String
+    heart_rate: Int
     temperature: Float
-    respiratoryRate: Int
-    oxygenSaturation: Float
-    recordedAt: DateTime!
+    respiratory_rate: Int
+    oxygen_saturation: Float
+    recorded_at: DateTime!
   }
 
   type LatestLabResult {
-    testName: String!
+    test_name: String!
     value: String!
     unit: String
-    normalRange: String
+    normal_range: String
     status: String # NORMAL, HIGH, LOW, CRITICAL
-    recordedAt: DateTime!
+    recorded_at: DateTime!
   }
 
   # Patient Statistics
   type PatientStats {
-    patientId: PatientID!
-    totalAppointments: Int!
-    completedAppointments: Int!
-    cancelledAppointments: Int!
-    noShowAppointments: Int!
-    totalSpent: Float!
-    averageSpentPerVisit: Float!
-    visitFrequency: Float! # visits per month
-    lastVisitDate: DateTime
-    nextAppointmentDate: DateTime
-    preferredDoctors: [Doctor!]!
-    mostVisitedDepartments: [Department!]!
+    patient_id: PatientID!
+    total_appointments: Int!
+    completed_appointments: Int!
+    cancelled_appointments: Int!
+    no_show_appointments: Int!
+    total_spent: Float!
+    average_spent_per_visit: Float!
+    visit_frequency: Float! # visits per month
+    last_visit_date: DateTime
+    next_appointment_date: DateTime
+    preferred_doctors: [Doctor!]!
+    most_visited_departments: [Department!]!
   }
 
   # Connection types
@@ -222,7 +222,7 @@ exports.patientTypeDefs = (0, graphql_tag_1.gql) `
   input PatientFilters {
     search: String
     status: PatientStatus
-    isActive: Boolean
+    is_active: Boolean
     gender: Gender
     ageMin: Int
     ageMax: Int
@@ -236,70 +236,70 @@ exports.patientTypeDefs = (0, graphql_tag_1.gql) `
   }
 
   input CreatePatientInput {
-    fullName: String!
+    full_name: String!
     email: String!
-    phoneNumber: PhoneNumber!
+    phone_number: PhoneNumber!
     gender: Gender!
-    dateOfBirth: Date!
+    date_of_birth: Date!
     address: String
-    emergencyContact: EmergencyContactInput
-    maritalStatus: MaritalStatus
+    emergency_contact: EmergencyContactInput
+    marital_status: MaritalStatus
     occupation: String
-    bloodType: BloodGroup
+    blood_type: BloodGroup
     height: Height
     weight: Weight
     allergies: [String!]
-    chronicConditions: [String!]
-    currentMedications: [String!]
-    insuranceType: InsuranceType
-    insuranceNumber: String
-    insuranceProvider: String
-    insuranceExpiryDate: Date
+    chronic_conditions: [String!]
+    current_medications: [String!]
+    insurance_type: InsuranceType
+    insurance_number: String
+    insurance_provider: String
+    insurance_expiry_date: Date
   }
 
   input UpdatePatientInput {
-    fullName: String
-    phoneNumber: PhoneNumber
+    full_name: String
+    phone_number: PhoneNumber
     address: String
-    emergencyContact: EmergencyContactInput
-    maritalStatus: MaritalStatus
+    emergency_contact: EmergencyContactInput
+    marital_status: MaritalStatus
     occupation: String
-    bloodType: BloodGroup
+    blood_type: BloodGroup
     height: Height
     weight: Weight
     allergies: [String!]
-    chronicConditions: [String!]
-    currentMedications: [String!]
-    insuranceType: InsuranceType
-    insuranceNumber: String
-    insuranceProvider: String
-    insuranceExpiryDate: Date
-    isActive: Boolean
+    chronic_conditions: [String!]
+    current_medications: [String!]
+    insurance_type: InsuranceType
+    insurance_number: String
+    insurance_provider: String
+    insurance_expiry_date: Date
+    is_active: Boolean
     status: PatientStatus
   }
 
   input EmergencyContactInput {
     name: String!
     relationship: String!
-    phoneNumber: PhoneNumber!
+    phone_number: PhoneNumber!
     address: String
   }
 
   # Queries
   extend type Query {
     # Single patient queries
-    patient(id: UUID, patientId: PatientID): Patient
-    patientByProfile(profileId: UUID!): Patient
-    
+    patient(id: UUID, patient_id: PatientID): Patient
+    patientByProfile(profile_id: UUID!): Patient
+
     # Multiple patients queries
     patients(
       filters: PatientFilters
       limit: Int = 20
       offset: Int = 0
-      sortBy: String = "createdAt"
+      sortBy: String = "created_at"
       sortOrder: String = "DESC"
     ): PatientConnection!
-    
+
     # Search patients
     searchPatients(
       query: String!
@@ -307,16 +307,16 @@ exports.patientTypeDefs = (0, graphql_tag_1.gql) `
       limit: Int = 20
       offset: Int = 0
     ): PatientConnection!
-    
+
     # Patient medical summary
-    patientMedicalSummary(patientId: PatientID!): PatientMedicalSummary!
+    patientMedicalSummary(patient_id: PatientID!): PatientMedicalSummary!
 
     # Patient statistics
-    patientStats(patientId: PatientID!): PatientStats!
+    patientStats(patient_id: PatientID!): PatientStats!
 
     # Patient medical records (specific to patient context)
     patientMedicalRecords(
-      patientId: PatientID!
+      patient_id: PatientID!
       limit: Int = 20
       offset: Int = 0
       dateFrom: Date
@@ -325,23 +325,20 @@ exports.patientTypeDefs = (0, graphql_tag_1.gql) `
 
     # Patient appointments with doctor
     patientDoctorHistory(
-      patientId: PatientID!
-      doctorId: DoctorID!
+      patient_id: PatientID!
+      doctor_id: DoctorID!
       limit: Int = 10
     ): [Appointment!]!
-    
+
     # Patients by doctor
     doctorPatients(
-      doctorId: DoctorID!
+      doctor_id: DoctorID!
       limit: Int = 20
       offset: Int = 0
     ): PatientConnection!
-    
+
     # Recent patients
-    recentPatients(
-      days: Int = 30
-      limit: Int = 20
-    ): [Patient!]!
+    recentPatients(days: Int = 30, limit: Int = 20): [Patient!]!
   }
 
   # Mutations
@@ -352,45 +349,45 @@ exports.patientTypeDefs = (0, graphql_tag_1.gql) `
     deletePatient(id: UUID!): Boolean!
     activatePatient(id: UUID!): Patient!
     deactivatePatient(id: UUID!): Patient!
-    
+
     # Patient medical information
     updatePatientMedicalInfo(
       id: UUID!
-      bloodType: BloodGroup
+      blood_type: BloodGroup
       height: Height
       weight: Weight
       allergies: [String!]
-      chronicConditions: [String!]
-      currentMedications: [String!]
+      chronic_conditions: [String!]
+      current_medications: [String!]
     ): Patient!
-    
+
     # Patient insurance
     updatePatientInsurance(
       id: UUID!
-      insuranceType: InsuranceType
-      insuranceNumber: String
-      insuranceProvider: String
-      insuranceExpiryDate: Date
+      insurance_type: InsuranceType
+      insurance_number: String
+      insurance_provider: String
+      insurance_expiry_date: Date
     ): Patient!
-    
+
     # Emergency contact
     updateEmergencyContact(
       id: UUID!
-      emergencyContact: EmergencyContactInput!
+      emergency_contact: EmergencyContactInput!
     ): Patient!
   }
 
   # Subscriptions
   extend type Subscription {
     # Patient status changes
-    patientStatusChanged(patientId: PatientID): Patient!
-    patientUpdated(patientId: PatientID): Patient!
+    patientStatusChanged(patient_id: PatientID): Patient!
+    patientUpdated(patient_id: PatientID): Patient!
 
     # New medical records
-    patientMedicalRecordAdded(patientId: PatientID!): MedicalRecord!
+    patientMedicalRecordAdded(patient_id: PatientID!): MedicalRecord!
 
     # New prescriptions
-    patientPrescriptionAdded(patientId: PatientID!): Prescription!
+    patientPrescriptionAdded(patient_id: PatientID!): Prescription!
   }
 `;
 exports.default = exports.patientTypeDefs;

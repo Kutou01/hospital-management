@@ -151,7 +151,7 @@ const baseTypeDefs = (0, graphql_tag_1.gql) `
     title: String!
     message: String!
     data: String # JSON string
-    createdAt: DateTime!
+    created_at: DateTime!
   }
 
   enum NotificationType {
@@ -216,8 +216,8 @@ const baseTypeDefs = (0, graphql_tag_1.gql) `
   }
 
   interface Timestamped {
-    createdAt: DateTime!
-    updatedAt: DateTime!
+    created_at: DateTime!
+    updated_at: DateTime!
   }
 
   # Vietnamese Language Support
@@ -236,7 +236,7 @@ const baseTypeDefs = (0, graphql_tag_1.gql) `
     encoding: String!
     size: Int!
     url: String!
-    uploadedAt: DateTime!
+    uploaded_at: DateTime!
   }
 
   # Audit Log

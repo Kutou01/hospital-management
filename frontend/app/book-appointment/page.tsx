@@ -1,5 +1,6 @@
 "use client";
 
+import { FileUploadZone } from "@/components/files/FileUploadZone";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +16,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { departmentsApi, doctorsApi } from "@/lib/api";
 import { appointmentsApi } from "@/lib/api/appointments";
+import { availabilityApi } from "@/lib/api/availability";
+import { type UploadResult } from "@/lib/api/files";
 import {
   AlertCircle,
   ArrowRight,
@@ -87,6 +90,9 @@ export default function BookAppointmentPage() {
     symptoms: "",
     urgency: "normal",
   });
+  const [uploadedDocuments, setUploadedDocuments] = useState<UploadResult[]>(
+    []
+  );
 
   // Get selected doctor info
   const selectedDoctor = doctors.find(
@@ -170,52 +176,72 @@ export default function BookAppointmentPage() {
 
     setIsLoadingTimeSlots(true);
     try {
-      console.log("Fetching time slots for:", { doctorId, date });
-      const response = await appointmentsApi.getAvailableSlots(doctorId, date);
+      console.log("🔄 Fetching real-time availability for:", {
+        doctorId,
+        date,
+      });
+
+      // Use new availability API for real-time data
+      const response = await availabilityApi.getAvailableTimeSlots(
+        doctorId,
+        date,
+        30
+      );
 
       if (response.success && response.data) {
-        setAvailableTimeSlots(response.data);
-        console.log("Available time slots:", response.data);
+        // Extract time strings from TimeSlot objects
+        const timeSlots = response.data.map((slot) => slot.time);
+        setAvailableTimeSlots(timeSlots);
+        console.log("✅ Real-time available slots loaded:", timeSlots);
       } else {
-        console.error("Failed to fetch time slots:", response.error);
-        // Fallback to mock data if API fails
-        setAvailableTimeSlots([
-          "08:00",
-          "08:30",
-          "09:00",
-          "09:30",
-          "10:00",
-          "10:30",
-          "11:00",
-          "11:30",
-          "14:00",
-          "14:30",
-          "15:00",
-          "15:30",
-          "16:00",
-          "16:30",
-          "17:00",
-        ]);
+        console.error("❌ Failed to fetch real-time slots:", response.error);
+
+        // Fallback: Try legacy appointment API
+        try {
+          const fallbackResponse = await appointmentsApi.getAvailableSlots(
+            doctorId,
+            date
+          );
+          if (fallbackResponse.success && fallbackResponse.data) {
+            setAvailableTimeSlots(fallbackResponse.data);
+            console.log("⚠️ Using fallback appointment API");
+          } else {
+            throw new Error("Both APIs failed");
+          }
+        } catch (fallbackError) {
+          console.warn("⚠️ Using mock data due to API failures");
+          // Enhanced mock data with realistic hospital hours
+          setAvailableTimeSlots([
+            "08:00",
+            "08:30",
+            "09:00",
+            "09:30",
+            "10:00",
+            "10:30",
+            "11:00",
+            "11:30",
+            "13:00",
+            "13:30",
+            "14:00",
+            "14:30",
+            "15:00",
+            "15:30",
+            "16:00",
+            "16:30",
+          ]);
+        }
       }
     } catch (error) {
-      console.error("Error fetching time slots:", error);
-      // Fallback to mock data on error
+      console.error("💥 Critical error fetching time slots:", error);
+      // Emergency fallback
       setAvailableTimeSlots([
         "08:00",
-        "08:30",
         "09:00",
-        "09:30",
         "10:00",
-        "10:30",
         "11:00",
-        "11:30",
         "14:00",
-        "14:30",
         "15:00",
-        "15:30",
         "16:00",
-        "16:30",
-        "17:00",
       ]);
     } finally {
       setIsLoadingTimeSlots(false);
@@ -233,24 +259,74 @@ export default function BookAppointmentPage() {
 
   const handleFormSubmit = async () => {
     try {
-      console.log("Submitting booking form:", bookingForm);
+      console.log("🔄 Submitting booking form:", bookingForm);
 
-      // For public booking, we'll store the booking info and redirect to login
-      // After login, the user can complete the booking
-      localStorage.setItem(
-        "pendingBooking",
-        JSON.stringify({
-          ...bookingForm,
-          doctorInfo: selectedDoctor,
-          timestamp: new Date().toISOString(),
-        })
+      // Validate required fields
+      if (
+        !bookingForm.selectedDoctor ||
+        !bookingForm.selectedDate ||
+        !bookingForm.selectedTime
+      ) {
+        console.error("❌ Missing required booking information");
+        alert("Vui lòng chọn đầy đủ bác sĩ, ngày và giờ khám!");
+        return;
+      }
+
+      // Check availability one more time before submitting
+      console.log("🔍 Final availability check...");
+      const [hours, minutes] = bookingForm.selectedTime.split(":");
+      const startTime = `${hours}:${minutes}`;
+      const endTime = `${String(
+        parseInt(hours) + (parseInt(minutes) + 30) / 60
+      ).padStart(2, "0")}:${String((parseInt(minutes) + 30) % 60).padStart(
+        2,
+        "0"
+      )}`;
+
+      const availabilityCheck = await availabilityApi.checkTimeSlotAvailability(
+        bookingForm.selectedDoctor,
+        {
+          date: bookingForm.selectedDate,
+          start_time: startTime,
+          end_time: endTime,
+        }
       );
 
+      if (!availabilityCheck.success || !availabilityCheck.data?.available) {
+        console.error("❌ Time slot no longer available");
+        alert(
+          "Xin lỗi, khung giờ này đã được đặt bởi người khác. Vui lòng chọn giờ khác!"
+        );
+
+        // Refresh time slots
+        await fetchAvailableTimeSlots(
+          bookingForm.selectedDoctor,
+          bookingForm.selectedDate
+        );
+        setStep(2); // Go back to time selection
+        return;
+      }
+
+      console.log("✅ Time slot confirmed available");
+
+      // Store booking info with validation timestamp
+      const bookingData = {
+        ...bookingForm,
+        doctorInfo: selectedDoctor,
+        timestamp: new Date().toISOString(),
+        validatedAt: new Date().toISOString(),
+        startTime,
+        endTime,
+        uploadedDocuments: uploadedDocuments.filter((doc) => doc.success),
+      };
+
+      localStorage.setItem("pendingBooking", JSON.stringify(bookingData));
+
+      console.log("✅ Booking prepared successfully");
       setStep(4);
     } catch (error) {
-      console.error("Error preparing booking:", error);
-      // Still proceed to confirmation step for now
-      setStep(4);
+      console.error("💥 Error preparing booking:", error);
+      alert("Có lỗi xảy ra khi chuẩn bị đặt lịch. Vui lòng thử lại!");
     }
   };
 
@@ -722,6 +798,36 @@ export default function BookAppointmentPage() {
                     placeholder="Mô tả ngắn gọn triệu chứng hoặc lý do cần khám..."
                     rows={4}
                   />
+                </div>
+
+                {/* Medical Documents Upload */}
+                <div>
+                  <Label>Tài liệu y tế liên quan (tùy chọn)</Label>
+                  <p className="text-sm text-gray-600 mb-3">
+                    Có thể đính kèm kết quả xét nghiệm, hình ảnh, đơn thuốc cũ
+                    để bác sĩ tham khảo
+                  </p>
+                  <FileUploadZone
+                    onUploadSuccess={(results) => {
+                      setUploadedDocuments((prev) => [...prev, ...results]);
+                    }}
+                    onUploadError={(error) => {
+                      console.error("Upload error:", error);
+                    }}
+                    documentType="medical_report"
+                    maxFiles={3}
+                    maxSize={3 * 1024 * 1024} // 3MB
+                    className="border-dashed border-2 border-gray-200"
+                  />
+                  {uploadedDocuments.length > 0 && (
+                    <div className="mt-2">
+                      <p className="text-sm text-green-600">
+                        ✓ Đã tải lên{" "}
+                        {uploadedDocuments.filter((doc) => doc.success).length}{" "}
+                        tài liệu
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">

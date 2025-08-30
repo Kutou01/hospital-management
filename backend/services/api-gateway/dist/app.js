@@ -354,10 +354,49 @@ function createApp() {
             res.status(503).json({ error: "Appointment service unavailable" });
         },
     }));
+    // Receptionist Service Routes - ENABLED
+    app.use("/api/receptionists", auth_middleware_1.authMiddleware, (0, http_proxy_middleware_1.createProxyMiddleware)({
+        target: process.env.RECEPTIONIST_SERVICE_URL ||
+            "http://receptionist-service:3006",
+        changeOrigin: true,
+        pathRewrite: {
+            "^/api/receptionists": "/api/receptionists",
+        },
+        onError: (err, req, res) => {
+            console.error("Receptionist Service Proxy Error:", err);
+            res.status(503).json({ error: "Receptionist service unavailable" });
+        },
+    }));
+    // Receptionist Check-in Routes - ENABLED
+    app.use("/api/checkin", auth_middleware_1.authMiddleware, (0, http_proxy_middleware_1.createProxyMiddleware)({
+        target: process.env.RECEPTIONIST_SERVICE_URL ||
+            "http://receptionist-service:3006",
+        changeOrigin: true,
+        pathRewrite: {
+            "^/api/checkin": "/api/checkin",
+        },
+        onError: (err, req, res) => {
+            console.error("Receptionist Check-in Service Proxy Error:", err);
+            res.status(503).json({ error: "Check-in service unavailable" });
+        },
+    }));
+    // Receptionist Reports Routes - ENABLED
+    app.use("/api/reports", auth_middleware_1.authMiddleware, (0, http_proxy_middleware_1.createProxyMiddleware)({
+        target: process.env.RECEPTIONIST_SERVICE_URL ||
+            "http://receptionist-service:3006",
+        changeOrigin: true,
+        pathRewrite: {
+            "^/api/reports": "/api/reports",
+        },
+        onError: (err, req, res) => {
+            console.error("Receptionist Reports Service Proxy Error:", err);
+            res.status(503).json({ error: "Reports service unavailable" });
+        },
+    }));
     // Medical Records Service Routes - ENABLED
     app.use("/api/medical-records", auth_middleware_1.authMiddleware, (0, http_proxy_middleware_1.createProxyMiddleware)({
         target: process.env.MEDICAL_RECORDS_SERVICE_URL ||
-            "http://medical-records-service:3006",
+            "http://medical-records-service:3007",
         changeOrigin: true,
         pathRewrite: {
             "^/api/medical-records": "/api/medical-records",
@@ -367,19 +406,11 @@ function createApp() {
             res.status(503).json({ error: "Medical records service unavailable" });
         },
     }));
-    // Prescription Service Routes - ENABLED
-    app.use("/api/prescriptions", auth_middleware_1.authMiddleware, (0, http_proxy_middleware_1.createProxyMiddleware)({
-        target: process.env.PRESCRIPTION_SERVICE_URL ||
-            "http://prescription-service:3007",
-        changeOrigin: true,
-        pathRewrite: {
-            "^/api/prescriptions": "/api/prescriptions",
-        },
-        onError: (err, req, res) => {
-            console.error("Prescription Service Proxy Error:", err);
-            res.status(503).json({ error: "Prescription service unavailable" });
-        },
-    }));
+    // REMOVED: Prescription Service Routes - MERGED into Medical Records Service
+    // Prescription endpoints now available at:
+    // - /api/medical-records/:recordId/prescriptions (create/update prescriptions for a medical record)
+    // - /api/medical-records/prescriptions/patient/:patientId (get prescriptions by patient)
+    // - /api/medical-records/prescriptions/doctor/:doctorId (get prescriptions by doctor)
     // Payment Service Routes - ENABLED
     app.use("/api/payments", (req, res, next) => {
         // Skip auth for health check and webhooks
@@ -388,7 +419,7 @@ function createApp() {
         }
         next();
     }, auth_middleware_1.authMiddleware, (0, http_proxy_middleware_1.createProxyMiddleware)({
-        target: process.env.PAYMENT_SERVICE_URL || "http://payment-service:3008",
+        target: process.env.PAYMENT_SERVICE_URL || "http://payment-service:3009",
         changeOrigin: true,
         pathRewrite: {
             "^/api/payments": "/api/payments",
@@ -400,7 +431,7 @@ function createApp() {
     }));
     // Payment Webhooks (no auth required)
     app.use("/api/webhooks", (0, http_proxy_middleware_1.createProxyMiddleware)({
-        target: process.env.PAYMENT_SERVICE_URL || "http://payment-service:3008",
+        target: process.env.PAYMENT_SERVICE_URL || "http://payment-service:3009",
         changeOrigin: true,
         pathRewrite: {
             "^/api/webhooks": "/api/webhooks",
@@ -482,10 +513,12 @@ function createApp() {
                 "departments",
                 "specialties",
                 "rooms",
-                "medical-records",
-                "prescriptions",
+                "medical-records", // Now includes prescription functionality
                 "payments",
                 "notifications",
+            ],
+            mergedServices: [
+                "prescriptions -> medical-records", // Prescription service merged into Medical Records
             ],
             disabledServices: [],
             services: serviceRegistry.getRegisteredServices(),
@@ -661,11 +694,8 @@ function createApp() {
                         "http://medical-records-service:3006",
                     status: "active",
                 },
-                prescriptions: {
-                    url: process.env.PRESCRIPTION_SERVICE_URL ||
-                        "http://prescription-service:3007",
-                    status: "active",
-                },
+                // REMOVED: prescriptions service - merged into medical-records service
+                // Prescription endpoints now available at /api/medical-records/prescriptions/*
                 notifications: {
                     url: process.env.NOTIFICATION_SERVICE_URL ||
                         "http://notification-service:3011",

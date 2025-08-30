@@ -10,19 +10,19 @@ class ExperienceRepository {
     constructor() {
         this.supabase = (0, database_config_1.getSupabase)();
     }
-    async findByDoctorId(doctorId) {
+    async findByDoctorId(doctor_id) {
         try {
             const { data, error } = await this.supabase
                 .from('doctor_experiences')
                 .select('*')
-                .eq('doctor_id', doctorId)
+                .eq('doctor_id', doctor_id)
                 .order('start_date', { ascending: false });
             if (error)
                 throw error;
             return data?.map(this.mapSupabaseExperienceToExperience) || [];
         }
         catch (error) {
-            logger_1.default.error('Error finding experiences by doctor ID', { error, doctorId });
+            logger_1.default.error('Error finding experiences by doctor ID', { error, doctor_id });
             throw error;
         }
     }
@@ -45,12 +45,12 @@ class ExperienceRepository {
             throw error;
         }
     }
-    async findByType(doctorId, experienceType) {
+    async findByType(doctor_id, experienceType) {
         try {
             const { data, error } = await this.supabase
                 .from('doctor_experiences')
                 .select('*')
-                .eq('doctor_id', doctorId)
+                .eq('doctor_id', doctor_id)
                 .eq('experience_type', experienceType)
                 .order('start_date', { ascending: false });
             if (error)
@@ -58,16 +58,16 @@ class ExperienceRepository {
             return data?.map(this.mapSupabaseExperienceToExperience) || [];
         }
         catch (error) {
-            logger_1.default.error('Error finding experiences by type', { error, doctorId, experienceType });
+            logger_1.default.error('Error finding experiences by type', { error, doctor_id, experienceType });
             throw error;
         }
     }
-    async findCurrent(doctorId) {
+    async findCurrent(doctor_id) {
         try {
             const { data, error } = await this.supabase
                 .from('doctor_experiences')
                 .select('*')
-                .eq('doctor_id', doctorId)
+                .eq('doctor_id', doctor_id)
                 .eq('is_current', true)
                 .order('start_date', { ascending: false });
             if (error)
@@ -75,7 +75,7 @@ class ExperienceRepository {
             return data?.map(this.mapSupabaseExperienceToExperience) || [];
         }
         catch (error) {
-            logger_1.default.error('Error finding current experiences', { error, doctorId });
+            logger_1.default.error('Error finding current experiences', { error, doctor_id });
             throw error;
         }
     }
@@ -152,21 +152,21 @@ class ExperienceRepository {
             throw error;
         }
     }
-    async getWorkExperience(doctorId) {
-        return this.findByType(doctorId, 'work');
+    async getWorkExperience(doctor_id) {
+        return this.findByType(doctor_id, 'work');
     }
-    async getEducation(doctorId) {
-        return this.findByType(doctorId, 'education');
+    async getEducation(doctor_id) {
+        return this.findByType(doctor_id, 'education');
     }
-    async getCertifications(doctorId) {
-        return this.findByType(doctorId, 'certification');
+    async getCertifications(doctor_id) {
+        return this.findByType(doctor_id, 'certification');
     }
-    async getResearch(doctorId) {
-        return this.findByType(doctorId, 'research');
+    async getResearch(doctor_id) {
+        return this.findByType(doctor_id, 'research');
     }
-    async calculateTotalExperience(doctorId) {
+    async calculateTotalExperience(doctor_id) {
         try {
-            const experiences = await this.findByDoctorId(doctorId);
+            const experiences = await this.findByDoctorId(doctor_id);
             const currentDate = new Date();
             let totalYears = 0;
             let workYears = 0;
@@ -192,13 +192,13 @@ class ExperienceRepository {
             };
         }
         catch (error) {
-            logger_1.default.error('Error calculating total experience', { error, doctorId });
+            logger_1.default.error('Error calculating total experience', { error, doctor_id });
             throw error;
         }
     }
-    async getExperienceTimeline(doctorId) {
+    async getExperienceTimeline(doctor_id) {
         try {
-            const experiences = await this.findByDoctorId(doctorId);
+            const experiences = await this.findByDoctorId(doctor_id);
             return experiences.sort((a, b) => {
                 const dateA = new Date(a.start_date);
                 const dateB = new Date(b.start_date);
@@ -206,16 +206,16 @@ class ExperienceRepository {
             });
         }
         catch (error) {
-            logger_1.default.error('Error getting experience timeline', { error, doctorId });
+            logger_1.default.error('Error getting experience timeline', { error, doctor_id });
             throw error;
         }
     }
-    async searchExperiences(doctorId, searchTerm) {
+    async searchExperiences(doctor_id, searchTerm) {
         try {
             const { data, error } = await this.supabase
                 .from('doctor_experiences')
                 .select('*')
-                .eq('doctor_id', doctorId)
+                .eq('doctor_id', doctor_id)
                 .or(`institution_name.ilike.%${searchTerm}%,position.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
                 .order('start_date', { ascending: false });
             if (error)
@@ -223,16 +223,16 @@ class ExperienceRepository {
             return data?.map(this.mapSupabaseExperienceToExperience) || [];
         }
         catch (error) {
-            logger_1.default.error('Error searching experiences', { error, doctorId, searchTerm });
+            logger_1.default.error('Error searching experiences', { error, doctor_id, searchTerm });
             throw error;
         }
     }
-    async getExperiencesByDateRange(doctorId, startDate, endDate) {
+    async getExperiencesByDateRange(doctor_id, startDate, endDate) {
         try {
             const { data, error } = await this.supabase
                 .from('doctor_experiences')
                 .select('*')
-                .eq('doctor_id', doctorId)
+                .eq('doctor_id', doctor_id)
                 .gte('start_date', startDate.toISOString().split('T')[0])
                 .lte('start_date', endDate.toISOString().split('T')[0])
                 .order('start_date', { ascending: false });
@@ -241,16 +241,16 @@ class ExperienceRepository {
             return data?.map(this.mapSupabaseExperienceToExperience) || [];
         }
         catch (error) {
-            logger_1.default.error('Error getting experiences by date range', { error, doctorId, startDate, endDate });
+            logger_1.default.error('Error getting experiences by date range', { error, doctor_id, startDate, endDate });
             throw error;
         }
     }
-    async updateCurrentStatus(doctorId, experienceType, isCurrent, excludeId) {
+    async updateCurrentStatus(doctor_id, experienceType, isCurrent, excludeId) {
         try {
             let query = this.supabase
                 .from('doctor_experiences')
                 .update({ is_current: isCurrent })
-                .eq('doctor_id', doctorId)
+                .eq('doctor_id', doctor_id)
                 .eq('experience_type', experienceType);
             if (excludeId) {
                 query = query.neq('experience_id', excludeId);
@@ -260,7 +260,7 @@ class ExperienceRepository {
                 throw error;
         }
         catch (error) {
-            logger_1.default.error('Error updating current status', { error, doctorId, experienceType, isCurrent });
+            logger_1.default.error('Error updating current status', { error, doctor_id, experienceType, isCurrent });
             throw error;
         }
     }

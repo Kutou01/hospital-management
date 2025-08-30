@@ -1,8 +1,6 @@
 import { Doctor, CreateDoctorRequest, UpdateDoctorRequest, DoctorSearchQuery } from '@hospital/shared/dist/types/doctor.types';
 export declare class DoctorRepository {
-    private supabase;
-    constructor();
-    findById(doctorId: string): Promise<Doctor | null>;
+    findById(doctor_id: string): Promise<Doctor | null>;
     findByProfileId(profileId: string): Promise<Doctor | null>;
     findByEmail(email: string): Promise<Doctor | null>;
     findAll(limit?: number, offset?: number): Promise<Doctor[]>;
@@ -15,13 +13,13 @@ export declare class DoctorRepository {
     search(query: DoctorSearchQuery, limit?: number, offset?: number): Promise<Doctor[]>;
     getSearchCount(query: DoctorSearchQuery): Promise<number>;
     create(doctorData: CreateDoctorRequest): Promise<Doctor>;
-    update(doctorId: string, doctorData: UpdateDoctorRequest): Promise<Doctor | null>;
-    delete(doctorId: string): Promise<boolean>;
+    update(doctor_id: string, doctorData: UpdateDoctorRequest): Promise<Doctor | null>;
+    delete(doctor_id: string): Promise<boolean>;
     count(): Promise<number>;
-    getDashboardStats(doctorId: string): Promise<any>;
-    getRecentAppointments(doctorId: string, limit?: number): Promise<any[]>;
-    getWeeklyStats(doctorId: string): Promise<any>;
-    getMonthlyStats(doctorId: string): Promise<any>;
+    getDashboardStats(doctor_id: string): Promise<any>;
+    getRecentAppointments(doctor_id: string, limit?: number): Promise<any[]>;
+    getWeeklyStats(doctor_id: string): Promise<any>;
+    getMonthlyStats(doctor_id: string): Promise<any>;
     countByDepartment(departmentId: string): Promise<number>;
     private mapSupabaseDoctorToDoctor;
 }

@@ -23,115 +23,111 @@ exports.medicalRecordTypeDefs = (0, graphql_tag_1.gql) `
 
   # Input Types
   input MedicalRecordFilters {
-    patientId: PatientID
-    doctorId: DoctorID
-    appointmentId: UUID
+    patient_id: PatientID
+    doctor_id: DoctorID
+    appointment_id: UUID
     status: MedicalRecordStatus
-    visitDateFrom: Date
-    visitDateTo: Date
+    visit_date_from: Date
+    visit_date_to: Date
     diagnosis: String
   }
 
   input CreateMedicalRecordInput {
-    patientId: PatientID!
-    doctorId: DoctorID!
-    appointmentId: UUID
-    visitDate: Date!
-    chiefComplaint: String
-    historyOfPresentIllness: String
-    physicalExamination: String
+    patient_id: PatientID!
+    doctor_id: DoctorID!
+    appointment_id: UUID
+    visit_date: Date!
+    chief_complaint: String
+    history_of_present_illness: String
+    physical_examination: String
     diagnosis: String
     treatment: String
     prescription: String
-    followUpInstructions: String
-    vitalSigns: VitalSignsInput
+    follow_up_instructions: String
+    vital_signs: VitalSignsInput
   }
 
   input UpdateMedicalRecordInput {
-    chiefComplaint: String
-    historyOfPresentIllness: String
-    physicalExamination: String
+    chief_complaint: String
+    history_of_present_illness: String
+    physical_examination: String
     diagnosis: String
     treatment: String
     prescription: String
-    followUpInstructions: String
-    vitalSigns: VitalSignsInput
+    follow_up_instructions: String
+    vital_signs: VitalSignsInput
     status: MedicalRecordStatus
   }
 
   input VitalSignsInput {
     # Blood Pressure
-    bloodPressureSystolic: Int
-    bloodPressureDiastolic: Int
+    blood_pressure_systolic: Int
+    blood_pressure_diastolic: Int
 
     # Core Vitals
-    heartRate: Int
+    heart_rate: Int
     temperature: Float
-    respiratoryRate: Int
-    oxygenSaturation: Float
+    respiratory_rate: Int
+    oxygen_saturation: Float
 
     # Physical Measurements
     height: Float
     weight: Float
 
     # Metadata
-    recordedBy: String!
+    recorded_by: String!
     notes: String
   }
 
   input CreateLabResultInput {
-    recordId: UUID!
-    testName: String!
-    testType: String!
-    resultValue: String
-    referenceRange: String
+    record_id: UUID!
+    test_name: String!
+    test_type: String!
+    result_value: String
+    reference_range: String
     unit: String
-    testDate: Date!
-    resultDate: Date
-    labTechnician: String
+    test_date: Date!
+    result_date: Date
+    lab_technician: String
     notes: String
   }
 
   input UpdateLabResultInput {
-    testName: String
-    testType: String
-    resultValue: String
-    referenceRange: String
+    test_name: String
+    test_type: String
+    result_value: String
+    reference_range: String
     unit: String
-    testDate: Date
-    resultDate: Date
-    labTechnician: String
+    test_date: Date
+    result_date: Date
+    lab_technician: String
     notes: String
     status: LabResultStatus
   }
 
-  # Core Medical Record Type
+  # Simplified Medical Record Type
   type MedicalRecord {
     id: UUID!
-    patientId: PatientID!
-    doctorId: DoctorID!
-    appointmentId: UUID
+    patient_id: PatientID!
+    doctor_id: DoctorID!
+    appointment_id: UUID
 
-    # Record Information
-    visitDate: Date!
-    chiefComplaint: String
-    historyOfPresentIllness: String
-    physicalExamination: String
+    # Simplified Record Information
+    visit_date: Date!
+    symptoms: String # Replaces: chief_complaint + history_of_present_illness
+    examination_notes: String # Replaces: physical_examination
     diagnosis: String
-    treatment: String
-    prescription: String
-    followUpInstructions: String
+    treatment: String # Replaces: treatment + follow_up_instructions
+    medications: String # Simple text instead of complex prescription system
+    notes: String
 
     # Status
     status: MedicalRecordStatus!
 
-    # Vital Signs
-    vitalSigns: VitalSigns
+    # Simplified Vital Signs (embedded)
+    basic_vitals: BasicVitalSigns
 
-    # Lab Results
-    labResults: [LabResult!]!
-
-    # Attachments
+    # Attachments (keep for file uploads)
     attachments: [MedicalAttachment!]!
 
     # Relationships
@@ -140,60 +136,32 @@ exports.medicalRecordTypeDefs = (0, graphql_tag_1.gql) `
     appointment: Appointment
 
     # Timestamps
-    createdAt: DateTime!
-    updatedAt: DateTime!
+    created_at: DateTime!
+    updated_at: DateTime!
   }
 
-  # Vital Signs (mapped to vital_signs_history table)
-  type VitalSigns {
-    # Blood Pressure
-    bloodPressureSystolic: Int # maps to blood_pressure_systolic
-    bloodPressureDiastolic: Int # maps to blood_pressure_diastolic
-    # Core Vitals
-    heartRate: Int # maps to heart_rate
-    temperature: Float # maps to temperature
-    respiratoryRate: Int # maps to respiratory_rate
-    oxygenSaturation: Float # maps to oxygen_saturation
-    # Physical Measurements
-    height: Float # maps to height
-    weight: Float # maps to weight
-    bmi: Float # maps to bmi (calculated field)
-    # Metadata
-    recordedAt: DateTime! # maps to recorded_at
-    recordedBy: String! # maps to recorded_by
-    notes: String # maps to notes
+  # Simplified Basic Vital Signs (embedded in medical record)
+  type BasicVitalSigns {
+    temperature: Float # Celsius
+    blood_pressure: String # "120/80" format
+    heart_rate: Int # BPM
+    weight: Float # KG
+    height: Float # CM
   }
 
-  # Lab Result
-  type LabResult {
-    id: UUID!
-    recordId: UUID!
-    testName: String!
-    testType: String!
-    resultValue: String
-    referenceRange: String
-    unit: String
-    testDate: Date!
-    resultDate: Date
-    labTechnician: String
-    notes: String
-    status: LabResultStatus!
-    isAbnormal: Boolean!
-    createdAt: DateTime!
-    updatedAt: DateTime!
-  }
+  # REMOVED: LabResult type - lab results now stored as simple text in medical records
 
   # Medical Attachment
   type MedicalAttachment {
     id: UUID!
-    recordId: UUID!
-    fileName: String!
-    fileUrl: String!
-    fileType: String!
-    fileSize: Int!
+    record_id: UUID!
+    file_name: String!
+    file_url: String!
+    file_type: String!
+    file_size: Int!
     description: String
-    uploadedBy: String!
-    createdAt: DateTime!
+    uploaded_by: String!
+    created_at: DateTime!
   }
 
   # Connection types
@@ -218,17 +186,17 @@ exports.medicalRecordTypeDefs = (0, graphql_tag_1.gql) `
       filters: MedicalRecordFilters
       limit: Int = 20
       offset: Int = 0
-      sortBy: String = "visitDate"
+      sortBy: String = "visit_date"
       sortOrder: String = "DESC"
     ): MedicalRecordConnection!
 
     # Doctor medical records
     doctorMedicalRecords(
-      doctorId: DoctorID!
+      doctor_id: DoctorID!
       limit: Int = 20
       offset: Int = 0
-      dateFrom: Date
-      dateTo: Date
+      date_from: Date
+      date_to: Date
     ): MedicalRecordConnection!
 
     # Search medical records
@@ -241,12 +209,12 @@ exports.medicalRecordTypeDefs = (0, graphql_tag_1.gql) `
 
     # Lab results query
     labResults(
-      patientId: PatientID!
-      testType: String
+      patient_id: PatientID!
+      test_type: String
       limit: Int = 20
       offset: Int = 0
-      dateFrom: Date
-      dateTo: Date
+      date_from: Date
+      date_to: Date
     ): [LabResult!]!
 
     # Note: patientMedicalRecords query is defined in patient.schema.ts
@@ -270,7 +238,7 @@ exports.medicalRecordTypeDefs = (0, graphql_tag_1.gql) `
 
     # Medical Record Attachments
     addMedicalAttachment(
-      recordId: UUID!
+      record_id: UUID!
       file: Upload!
       description: String
     ): MedicalAttachment!
@@ -280,12 +248,12 @@ exports.medicalRecordTypeDefs = (0, graphql_tag_1.gql) `
   # Subscriptions
   extend type Subscription {
     # Medical record updates
-    medicalRecordUpdated(recordId: UUID): MedicalRecord!
-    medicalRecordCreated(patientId: PatientID): MedicalRecord!
+    medicalRecordUpdated(record_id: UUID): MedicalRecord!
+    medicalRecordCreated(patient_id: PatientID): MedicalRecord!
 
     # Lab result updates
-    labResultAdded(recordId: UUID): LabResult!
-    labResultUpdated(recordId: UUID): LabResult!
+    labResultAdded(record_id: UUID): LabResult!
+    labResultUpdated(record_id: UUID): LabResult!
   }
 `;
 exports.default = exports.medicalRecordTypeDefs;

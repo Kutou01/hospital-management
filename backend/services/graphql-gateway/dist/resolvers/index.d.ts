@@ -23,15 +23,15 @@ export declare const resolvers: {
             phoneNumber: any;
             email: any;
             status: string;
-            isActive: any;
+            is_active: any;
             emergencyAvailable: any;
             totalRooms: any;
             availableRooms: any;
             totalBeds: any;
             availableBeds: any;
             maxPatients: any;
-            createdAt: any;
-            updatedAt: any;
+            created_at: any;
+            updated_at: any;
             currentPatients: number;
             todayAppointments: number;
             availabilityRate: number;
@@ -57,15 +57,15 @@ export declare const resolvers: {
             phoneNumber: any;
             email: any;
             status: string;
-            isActive: any;
+            is_active: any;
             emergencyAvailable: any;
             totalRooms: any;
             availableRooms: any;
             totalBeds: any;
             availableBeds: any;
             maxPatients: any;
-            createdAt: any;
-            updatedAt: any;
+            created_at: any;
+            updated_at: any;
             currentPatients: number;
             todayAppointments: number;
             availabilityRate: number;
@@ -114,7 +114,7 @@ export declare const resolvers: {
             };
             totalCount: any;
         }>;
-        doctorMedicalRecords(_: any, { doctorId, limit, offset, dateFrom, dateTo }: any, context: GraphQLContext): Promise<{
+        doctorMedicalRecords(_: any, { doctor_id, limit, offset, dateFrom, dateTo }: any, context: GraphQLContext): Promise<{
             edges: any;
             pageInfo: {
                 hasNextPage: boolean;
@@ -134,9 +134,9 @@ export declare const resolvers: {
             };
             totalCount: any;
         }>;
-        appointment(_: any, { id, appointmentId }: {
+        appointment(_: any, { id, appointment_id }: {
             id?: string;
-            appointmentId?: string;
+            appointment_id?: string;
         }, context: GraphQLContext): Promise<any>;
         appointments(_: any, { filters, limit, offset, sortBy, sortOrder, }: any, context: GraphQLContext): Promise<{
             edges: any;
@@ -148,17 +148,17 @@ export declare const resolvers: {
             };
             totalCount: any;
         }>;
-        todayAppointments(_: any, { doctorId, departmentId, status }: any, context: GraphQLContext): Promise<any>;
-        upcomingAppointments(_: any, { doctorId, patientId, days, limit }: any, context: GraphQLContext): Promise<any>;
-        availableSlots(_: any, { doctorId, date, duration, }: {
-            doctorId: string;
+        todayAppointments(_: any, { doctor_id, departmentId, status }: any, context: GraphQLContext): Promise<any>;
+        upcomingAppointments(_: any, { doctor_id, patient_id, days, limit }: any, context: GraphQLContext): Promise<any>;
+        availableSlots(_: any, { doctor_id, date, duration, }: {
+            doctor_id: string;
             date: string;
             duration: number;
         }, context: GraphQLContext): Promise<any[]>;
-        appointmentStats(_: any, { doctorId, patientId, departmentId, dateFrom, dateTo }: any, context: GraphQLContext): Promise<any>;
-        patient(_: any, { id, patientId }: {
+        appointmentStats(_: any, { doctor_id, patient_id, departmentId, dateFrom, dateTo }: any, context: GraphQLContext): Promise<any>;
+        patient(_: any, { id, patient_id }: {
             id?: string;
-            patientId?: string;
+            patient_id?: string;
         }, context: GraphQLContext): Promise<any>;
         patientByProfile(_: any, { profileId }: {
             profileId: string;
@@ -183,18 +183,18 @@ export declare const resolvers: {
             };
             totalCount: any;
         }>;
-        patientMedicalSummary(_: any, { patientId }: {
-            patientId: string;
+        patientMedicalSummary(_: any, { patient_id }: {
+            patient_id: string;
         }, context: GraphQLContext): Promise<any>;
-        patientStats(_: any, { patientId }: {
-            patientId: string;
+        patientStats(_: any, { patient_id }: {
+            patient_id: string;
         }, context: GraphQLContext): Promise<any>;
-        patientDoctorHistory(_: any, { patientId, doctorId, limit, }: {
-            patientId: string;
-            doctorId: string;
+        patientDoctorHistory(_: any, { patient_id, doctor_id, limit, }: {
+            patient_id: string;
+            doctor_id: string;
             limit: number;
         }, context: GraphQLContext): Promise<any>;
-        patientMedicalRecords(_: any, { patientId, limit, offset, dateFrom, dateTo }: any, context: GraphQLContext): Promise<{
+        patientMedicalRecords(_: any, { patient_id, limit, offset, dateFrom, dateTo }: any, context: GraphQLContext): Promise<{
             edges: any;
             pageInfo: {
                 hasNextPage: boolean;
@@ -204,9 +204,9 @@ export declare const resolvers: {
             };
             totalCount: any;
         }>;
-        doctor(_: any, { id, doctorId }: {
+        doctor(_: any, { id, doctor_id }: {
             id?: string;
-            doctorId?: string;
+            doctor_id?: string;
         }, context: GraphQLContext): Promise<any>;
         doctors(_: any, { filters, limit, offset, sortBy, sortOrder, }: {
             filters?: any;
@@ -245,26 +245,38 @@ export declare const resolvers: {
             };
             totalCount: number;
         }>;
-        doctorAvailability(_: any, { doctorId, date }: {
-            doctorId: string;
+        doctorAvailability(_: any, { doctor_id, date }: {
+            doctor_id: string;
             date: string;
         }, context: GraphQLContext): Promise<any>;
-        doctorStats(_: any, { doctorId }: {
-            doctorId: string;
+        doctorStats(_: any, { doctor_id }: {
+            doctor_id: string;
         }, context: GraphQLContext): Promise<any>;
-        doctorReviews(_: any, { doctorId, limit, offset, }: {
-            doctorId: string;
+        doctorReviews(_: any, { doctor_id, limit, offset, }: {
+            doctor_id: string;
             limit?: number;
             offset?: number;
         }, context: GraphQLContext): Promise<any>;
-        doctorSchedule(_: any, { doctorId, date }: {
-            doctorId: string;
+        doctorSchedule(_: any, { doctor_id, date }: {
+            doctor_id: string;
             date?: string;
+        }, context: GraphQLContext): Promise<any>;
+        doctorScheduleEnhanced(_: any, { doctor_id, weekStartDate, }: {
+            doctor_id: string;
+            weekStartDate?: string;
+        }, context: GraphQLContext): Promise<any>;
+        doctorWeeklyAvailability(_: any, { doctor_id, weekStartDate, }: {
+            doctor_id: string;
+            weekStartDate: string;
+        }, context: GraphQLContext): Promise<any>;
+        doctorAppointmentSlots(_: any, { doctor_id, date }: {
+            doctor_id: string;
+            date: string;
         }, context: GraphQLContext): Promise<any>;
         room(_: any, { id }: {
             id: string;
         }, context: GraphQLContext): Promise<any>;
-        rooms(_: any, { departmentId, roomType, isActive, limit }: any, context: GraphQLContext): Promise<any>;
+        rooms(_: any, { departmentId, roomType, is_active, limit }: any, context: GraphQLContext): Promise<any>;
         health: (_: any, __: any, context: GraphQLContext) => Promise<{
             status: string;
             timestamp: string;
@@ -351,7 +363,7 @@ export declare const resolvers: {
         }, context: GraphQLContext): Promise<any>;
         checkInAppointment(_: any, { id }: {
             id: string;
-        }, context: GraphQLContext): Promise<any>;
+        }, context: GraphQLContext): Promise<never>;
         completeAppointment(_: any, { id, notes }: {
             id: string;
             notes?: string;
@@ -551,8 +563,8 @@ export declare const resolvers: {
         oxygenSaturation: (parent: any) => any;
         height: (parent: any) => any;
         weight: (parent: any) => any;
-        recordedAt: (parent: any) => any;
-        recordedBy: (parent: any) => any;
+        recorded_at: (parent: any) => any;
+        recorded_by: (parent: any) => any;
         notes: (parent: any) => any;
         bmi(parent: any): number | null;
     };
@@ -560,8 +572,8 @@ export declare const resolvers: {
         serviceQuality: (parent: any) => any;
         isVerified: (parent: any) => any;
         isAnonymous: (parent: any) => any;
-        createdAt: (parent: any) => any;
-        updatedAt: (parent: any) => any;
+        created_at: (parent: any) => any;
+        updated_at: (parent: any) => any;
         doctor(parent: any, _: any, context: GraphQLContext): Promise<any>;
         patient(parent: any, _: any, context: GraphQLContext): Promise<any>;
         appointment(parent: any, _: any, context: GraphQLContext): Promise<any>;
@@ -570,14 +582,23 @@ export declare const resolvers: {
         dayOfWeek: (parent: any) => any;
         startTime: (parent: any) => any;
         endTime: (parent: any) => any;
-        isAvailable: (parent: any) => any;
-        maxAppointments: (parent: any) => any;
+        templateId: (parent: any) => any;
+        breakPeriods: (parent: any) => {
+            startTime: any;
+            endTime: any;
+            breakType: any;
+        }[];
         slotDuration: (parent: any) => any;
-        breakStartTime: (parent: any) => any;
-        breakEndTime: (parent: any) => any;
-        scheduleType: (parent: any) => any;
-        createdAt: (parent: any) => any;
-        updatedAt: (parent: any) => any;
+        bufferTime: (parent: any) => any;
+        maxAppointments: (parent: any) => any;
+        isAvailable: (parent: any) => any;
+        availabilityType: (parent: any) => any;
+        departmentRules: (parent: any) => any;
+        effectiveFrom: (parent: any) => any;
+        effectiveTo: (parent: any) => any;
+        is_active: (parent: any) => any;
+        created_at: (parent: any) => any;
+        updated_at: (parent: any) => any;
         doctor(parent: any, _: any, context: GraphQLContext): Promise<any>;
         room(parent: any, _: any, context: GraphQLContext): Promise<any>;
     };
@@ -589,9 +610,9 @@ export declare const resolvers: {
         floorNumber: (parent: any) => any;
         dailyRate: (parent: any) => any;
         equipmentIds: (parent: any) => any;
-        isActive: (parent: any) => any;
-        createdAt: (parent: any) => any;
-        updatedAt: (parent: any) => any;
+        is_active: (parent: any) => any;
+        created_at: (parent: any) => any;
+        updated_at: (parent: any) => any;
         department(parent: any, _: any, context: GraphQLContext): Promise<any>;
     };
     Date: GraphQLScalarType<Date, string>;

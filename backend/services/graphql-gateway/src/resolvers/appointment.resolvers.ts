@@ -15,7 +15,7 @@ export const appointmentResolvers = {
       context: GraphQLContext
     ) {
       try {
-        const identifier = id || appointmentId;
+        const identifier = id || appointment_id;
         if (!identifier) {
           throw new Error(
             contextUtils.translate(
@@ -309,7 +309,9 @@ export const appointmentResolvers = {
           );
         }
 
-        logger.info("Appointment updated successfully:", { appointment_id: id });
+        logger.info("Appointment updated successfully:", {
+          appointment_id: id,
+        });
         return response.data;
       } catch (error) {
         logger.error("Error updating appointment:", error);

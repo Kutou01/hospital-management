@@ -19,7 +19,7 @@ export declare const medicalRecordsResolvers: {
             };
             totalCount: any;
         }>;
-        doctorMedicalRecords(_: any, { doctorId, limit, offset, dateFrom, dateTo }: any, context: GraphQLContext): Promise<{
+        doctorMedicalRecords(_: any, { doctor_id, limit, offset, dateFrom, dateTo }: any, context: GraphQLContext): Promise<{
             edges: any;
             pageInfo: {
                 hasNextPage: boolean;
@@ -66,8 +66,8 @@ export declare const medicalRecordsResolvers: {
         oxygenSaturation: (parent: any) => any;
         height: (parent: any) => any;
         weight: (parent: any) => any;
-        recordedAt: (parent: any) => any;
-        recordedBy: (parent: any) => any;
+        recorded_at: (parent: any) => any;
+        recorded_by: (parent: any) => any;
         notes: (parent: any) => any;
         bmi(parent: any): number | null;
     };

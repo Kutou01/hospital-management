@@ -6,7 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { appointmentsApi, patientsApi } from "@/lib/api";
+import { availabilityApi } from "@/lib/api/availability";
 import { useEnhancedAuth } from "@/lib/auth/auth-wrapper";
 import {
   AlertCircle,
@@ -55,6 +57,17 @@ export default function PatientAppointments() {
   const [isLoadingAppointments, setIsLoadingAppointments] = useState(true);
   const [patientId, setPatientId] = useState<string | null>(null);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+
+  // Reschedule modal state
+  const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
+  const [appointmentToReschedule, setAppointmentToReschedule] =
+    useState<Appointment | null>(null);
+  const [rescheduleDate, setRescheduleDate] = useState("");
+  const [rescheduleTime, setRescheduleTime] = useState("");
+  const [availableTimeSlotsForReschedule, setAvailableTimeSlotsForReschedule] =
+    useState<string[]>([]);
+  const [isLoadingRescheduleSlots, setIsLoadingRescheduleSlots] =
+    useState(false);
 
   // Get patient ID when user is loaded
   useEffect(() => {
@@ -130,12 +143,141 @@ export default function PatientAppointments() {
     }
   };
 
-  // Handle appointment rescheduling (placeholder for now)
+  // Handle appointment rescheduling
   const handleRescheduleAppointment = async (appointmentId: string) => {
-    // For now, show a message that this feature is coming soon
-    toast.info(
-      "Tính năng đổi lịch hẹn sẽ được cập nhật sớm. Vui lòng liên hệ bệnh viện để đổi lịch."
+    const appointment = appointments.find(
+      (apt) => apt.appointment_id === appointmentId
     );
+    if (!appointment) {
+      toast.error("Không tìm thấy thông tin lịch hẹn");
+      return;
+    }
+
+    // Check if appointment can be rescheduled
+    if (
+      appointment.status !== "scheduled" &&
+      appointment.status !== "confirmed"
+    ) {
+      toast.error(
+        "Chỉ có thể đổi lịch các cuộc hẹn đã lên lịch hoặc đã xác nhận"
+      );
+      return;
+    }
+
+    setAppointmentToReschedule(appointment);
+    setRescheduleDate("");
+    setRescheduleTime("");
+    setAvailableTimeSlotsForReschedule([]);
+    setIsRescheduleModalOpen(true);
+  };
+
+  // Fetch available slots for rescheduling
+  const fetchRescheduleTimeSlots = async (doctorId: string, date: string) => {
+    if (!doctorId || !date) return;
+
+    setIsLoadingRescheduleSlots(true);
+    try {
+      console.log("🔄 Fetching reschedule slots for:", { doctorId, date });
+
+      const response = await availabilityApi.getAvailableTimeSlots(
+        doctorId,
+        date,
+        30
+      );
+      if (response.success && response.data) {
+        const timeSlots = response.data.map((slot) => slot.time);
+        setAvailableTimeSlotsForReschedule(timeSlots);
+        console.log("✅ Reschedule slots loaded:", timeSlots);
+      } else {
+        console.error("❌ Failed to fetch reschedule slots:", response.error);
+        toast.error("Không thể tải danh sách giờ khám");
+      }
+    } catch (error) {
+      console.error("💥 Error fetching reschedule slots:", error);
+      toast.error("Lỗi khi tải danh sách giờ khám");
+    } finally {
+      setIsLoadingRescheduleSlots(false);
+    }
+  };
+
+  // Handle reschedule date change
+  const handleRescheduleDateChange = (date: string) => {
+    setRescheduleDate(date);
+    setRescheduleTime("");
+    setAvailableTimeSlotsForReschedule([]);
+
+    if (appointmentToReschedule && date) {
+      fetchRescheduleTimeSlots(appointmentToReschedule.doctor_id, date);
+    }
+  };
+
+  // Confirm reschedule
+  const confirmReschedule = async () => {
+    if (!appointmentToReschedule || !rescheduleDate || !rescheduleTime) {
+      toast.error("Vui lòng chọn ngày và giờ mới");
+      return;
+    }
+
+    try {
+      console.log("🔄 Confirming reschedule...");
+
+      // Check availability one more time
+      const [hours, minutes] = rescheduleTime.split(":");
+      const startTime = `${hours}:${minutes}`;
+      const endTime = `${String(
+        parseInt(hours) + (parseInt(minutes) + 30) / 60
+      ).padStart(2, "0")}:${String((parseInt(minutes) + 30) % 60).padStart(
+        2,
+        "0"
+      )}`;
+
+      const availabilityCheck = await availabilityApi.checkTimeSlotAvailability(
+        appointmentToReschedule.doctor_id,
+        {
+          date: rescheduleDate,
+          start_time: startTime,
+          end_time: endTime,
+        }
+      );
+
+      if (!availabilityCheck.success || !availabilityCheck.data?.available) {
+        toast.error(
+          "Khung giờ đã được đặt bởi người khác. Vui lòng chọn giờ khác!"
+        );
+        await fetchRescheduleTimeSlots(
+          appointmentToReschedule.doctor_id,
+          rescheduleDate
+        );
+        return;
+      }
+
+      // Update appointment
+      const updateData = {
+        appointment_date: rescheduleDate,
+        appointment_time: rescheduleTime,
+      };
+
+      const response = await appointmentsApi.update(
+        appointmentToReschedule.appointment_id,
+        updateData
+      );
+
+      if (response.success) {
+        toast.success("Đổi lịch hẹn thành công!");
+        setIsRescheduleModalOpen(false);
+        setAppointmentToReschedule(null);
+
+        // Reload appointments
+        if (patientId) {
+          loadAppointments(patientId);
+        }
+      } else {
+        toast.error("Không thể đổi lịch hẹn. Vui lòng thử lại.");
+      }
+    } catch (error) {
+      console.error("💥 Error rescheduling appointment:", error);
+      toast.error("Lỗi khi đổi lịch hẹn. Vui lòng thử lại.");
+    }
   };
 
   // Handle opening booking modal
@@ -475,6 +617,95 @@ export default function PatientAppointments() {
           patientId={patientId}
           onAppointmentBooked={handleAppointmentBooked}
         />
+      )}
+
+      {/* Reschedule Modal */}
+      {isRescheduleModalOpen && appointmentToReschedule && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Đổi lịch hẹn</h3>
+
+              <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600">Lịch hẹn hiện tại:</p>
+                <p className="font-medium">
+                  {appointmentToReschedule.doctor_name}
+                </p>
+                <p className="text-sm">
+                  {appointmentToReschedule.appointment_date} •{" "}
+                  {appointmentToReschedule.appointment_time}
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="reschedule-date">Chọn ngày mới</Label>
+                  <Input
+                    id="reschedule-date"
+                    type="date"
+                    value={rescheduleDate}
+                    onChange={(e) => handleRescheduleDateChange(e.target.value)}
+                    min={new Date().toISOString().split("T")[0]}
+                  />
+                </div>
+
+                {rescheduleDate && (
+                  <div>
+                    <Label htmlFor="reschedule-time">Chọn giờ mới</Label>
+                    {isLoadingRescheduleSlots ? (
+                      <div className="p-4 text-center">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                        <p className="text-sm text-gray-600 mt-2">
+                          Đang tải giờ khám...
+                        </p>
+                      </div>
+                    ) : availableTimeSlotsForReschedule.length > 0 ? (
+                      <div className="grid grid-cols-3 gap-2 mt-2">
+                        {availableTimeSlotsForReschedule.map((time) => (
+                          <Button
+                            key={time}
+                            variant={
+                              rescheduleTime === time ? "default" : "outline"
+                            }
+                            size="sm"
+                            onClick={() => setRescheduleTime(time)}
+                            className="text-xs"
+                          >
+                            {time}
+                          </Button>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-600 mt-2">
+                        Không có giờ khám nào khả dụng trong ngày này
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2 mt-6">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setIsRescheduleModalOpen(false);
+                    setAppointmentToReschedule(null);
+                  }}
+                >
+                  Hủy
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={confirmReschedule}
+                  disabled={!rescheduleDate || !rescheduleTime}
+                >
+                  Xác nhận đổi lịch
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </PatientLayout>
   );

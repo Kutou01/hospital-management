@@ -19,22 +19,22 @@ export const doctorTypeDefs = gql`
     # Basic Information
     id: UUID!
     doctor_id: DoctorID!
-    profileId: UUID!
-    fullName: String!
+    profile_id: UUID!
+    full_name: String!
     email: String!
-    phoneNumber: PhoneNumber
+    phone_number: PhoneNumber
 
     # Professional Information
     specialization: String!
-    licenseNumber: LicenseNumber!
-    yearsOfExperience: Int!
-    consultationFee: Float
+    license_number: LicenseNumber!
+    years_of_experience: Int!
+    consultation_fee: Float
     bio: String
-    photoUrl: String
+    photo_url: String
 
     # Personal Information
     gender: Gender
-    dateOfBirth: Date
+    date_of_birth: Date
     address: String
 
     # Status
@@ -59,25 +59,25 @@ export const doctorTypeDefs = gql`
     reviews(limit: Int = 10, offset: Int = 0): ReviewConnection!
 
     # Computed Fields
-    averageRating: Float
-    totalPatients: Int
-    totalAppointments: Int
-    upcomingAppointments: Int
-    completedAppointments: Int
-    availableToday: Boolean!
-    nextAvailableSlot: DateTime
+    average_rating: Float
+    total_patients: Int
+    total_appointments: Int
+    upcoming_appointments: Int
+    completed_appointments: Int
+    available_today: Boolean!
+    next_available_slot: DateTime
   }
 
   # Doctor Experience
   type DoctorExperience {
     id: UUID!
     doctor_id: DoctorID!
-    hospitalName: String!
+    hospital_name: String!
     position: String!
-    startDate: Date!
-    endDate: Date
+    start_date: Date!
+    end_date: Date
     description: String
-    isCurrent: Boolean!
+    is_current: Boolean!
     created_at: DateTime!
     updated_at: DateTime!
   }
@@ -92,13 +92,13 @@ export const doctorTypeDefs = gql`
     rating: Int! # maps to rating (1-5)
     comment: String # maps to comment
     # Review Details
-    serviceQuality: Int # maps to service_quality
+    service_quality: Int # maps to service_quality
     communication: Int # maps to communication
     punctuality: Int # maps to punctuality
     facilities: Int # maps to facilities
     # Status
-    isVerified: Boolean! # maps to is_verified
-    isAnonymous: Boolean! # maps to is_anonymous
+    is_verified: Boolean! # maps to is_verified
+    is_anonymous: Boolean! # maps to is_anonymous
     # Timestamps
     created_at: DateTime! # maps to created_at
     updated_at: DateTime! # maps to updated_at
@@ -112,25 +112,25 @@ export const doctorTypeDefs = gql`
   type DoctorSchedule {
     id: UUID! # maps to schedule_id
     doctor_id: DoctorID! # maps to doctor_id
-    templateId: UUID # maps to template_id
+    template_id: UUID # maps to template_id
     # Schedule Details
-    dayOfWeek: Int! # maps to day_of_week (0=Sunday, 1=Monday, etc.)
-    startTime: String! # maps to start_time (HH:MM format)
-    endTime: String! # maps to end_time (HH:MM format)
+    day_of_week: Int! # maps to day_of_week (0=Sunday, 1=Monday, etc.)
+    start_time: String! # maps to start_time (HH:MM format)
+    end_time: String! # maps to end_time (HH:MM format)
     # Enhanced Break System
-    breakPeriods: [BreakPeriod!]! # maps to break_periods JSONB
+    break_periods: [BreakPeriod!]! # maps to break_periods JSONB
     # Appointment Configuration
-    slotDuration: Int! # maps to slot_duration (minutes)
-    bufferTime: Int # maps to buffer_time (minutes between appointments)
-    maxAppointments: Int # maps to max_appointments
+    slot_duration: Int! # maps to slot_duration (minutes)
+    buffer_time: Int # maps to buffer_time (minutes between appointments)
+    max_appointments: Int # maps to max_appointments
     # Availability Settings
-    isAvailable: Boolean! # maps to is_available
-    availabilityType: ScheduleAvailabilityType! # maps to availability_type
+    is_available: Boolean! # maps to is_available
+    availability_type: ScheduleAvailabilityType! # maps to availability_type
     # Department Rules
-    departmentRules: JSON # maps to department_rules JSONB
+    department_rules: JSON # maps to department_rules JSONB
     # Effective Period
-    effectiveFrom: Date # maps to effective_from
-    effectiveTo: Date # maps to effective_to
+    effective_from: Date # maps to effective_from
+    effective_to: Date # maps to effective_to
     # Status
     is_active: Boolean! # maps to is_active
     # Relationships
@@ -145,20 +145,20 @@ export const doctorTypeDefs = gql`
   # Room Type (mapped to rooms table)
   type Room {
     id: UUID! # maps to room_id
-    roomNumber: String! # maps to room_number
-    roomType: String! # maps to room_type
-    departmentId: String # maps to department_id
+    room_number: String! # maps to room_number
+    room_type: String! # maps to room_type
+    department_id: String # maps to department_id
     # Capacity
     capacity: Int! # maps to capacity
-    currentOccupancy: Int! # maps to current_occupancy
+    current_occupancy: Int! # maps to current_occupancy
     # Details
-    floorNumber: Int # maps to floor_number
+    floor_number: Int # maps to floor_number
     amenities: [String!] # maps to amenities
-    dailyRate: Float # maps to daily_rate
+    daily_rate: Float # maps to daily_rate
     status: String! # maps to status
     description: String # maps to description
     # Equipment
-    equipmentIds: [String!] # maps to equipment_ids
+    equipment_ids: [String!] # maps to equipment_ids
     location: String # maps to location (jsonb)
     notes: String # maps to notes
     # Status
@@ -173,33 +173,33 @@ export const doctorTypeDefs = gql`
   # Doctor Statistics
   type DoctorStats {
     doctor_id: DoctorID!
-    totalAppointments: Int!
-    completedAppointments: Int!
-    cancelledAppointments: Int!
-    totalPatients: Int!
-    averageRating: Float
-    totalReviews: Int!
-    upcomingAppointments: Int!
-    todayAppointments: Int!
-    thisWeekAppointments: Int!
-    thisMonthAppointments: Int!
+    total_appointments: Int!
+    completed_appointments: Int!
+    cancelled_appointments: Int!
+    total_patients: Int!
+    average_rating: Float
+    total_reviews: Int!
+    upcoming_appointments: Int!
+    today_appointments: Int!
+    this_week_appointments: Int!
+    this_month_appointments: Int!
     revenue: DoctorRevenue
     performance: DoctorPerformance
   }
 
   type DoctorRevenue {
     today: Float!
-    thisWeek: Float!
-    thisMonth: Float!
-    thisYear: Float!
+    this_week: Float!
+    this_month: Float!
+    this_year: Float!
     currency: String! # VND
   }
 
   type DoctorPerformance {
-    punctualityScore: Float # 0-100
-    patientSatisfactionScore: Float # 0-100
-    appointmentCompletionRate: Float # 0-100
-    averageConsultationTime: Int # minutes
+    punctuality_score: Float # 0-100
+    patient_satisfaction_score: Float # 0-100
+    appointment_completion_rate: Float # 0-100
+    average_consultation_time: Int # minutes
   }
 
   # Connection types for pagination
@@ -229,180 +229,180 @@ export const doctorTypeDefs = gql`
   input DoctorFilters {
     search: String
     specialization: String
-    departmentId: UUID
+    department_id: UUID
     status: DoctorStatus
     is_active: Boolean
-    minRating: Float
-    maxConsultationFee: Float
-    availableToday: Boolean
+    min_rating: Float
+    max_consultation_fee: Float
+    available_today: Boolean
     gender: Gender
-    minExperience: Int
-    maxExperience: Int
+    min_experience: Int
+    max_experience: Int
   }
 
   input CreateDoctorInput {
-    fullName: String!
+    full_name: String!
     email: String!
-    phoneNumber: PhoneNumber!
+    phone_number: PhoneNumber!
     specialization: String!
-    licenseNumber: LicenseNumber!
-    yearsOfExperience: Int!
-    departmentId: UUID!
+    license_number: LicenseNumber!
+    years_of_experience: Int!
+    department_id: UUID!
     gender: Gender
-    dateOfBirth: Date
+    date_of_birth: Date
     address: String
     bio: String
-    consultationFee: Float
+    consultation_fee: Float
   }
 
   input UpdateDoctorInput {
-    fullName: String
-    phoneNumber: PhoneNumber
+    full_name: String
+    phone_number: PhoneNumber
     specialization: String
-    yearsOfExperience: Int
-    departmentId: UUID
+    years_of_experience: Int
+    department_id: UUID
     address: String
     bio: String
-    consultationFee: Float
+    consultation_fee: Float
     is_active: Boolean
     status: DoctorStatus
   }
 
   input CreateDoctorExperienceInput {
     doctor_id: DoctorID!
-    hospitalName: String!
+    hospital_name: String!
     position: String!
-    startDate: Date!
-    endDate: Date
+    start_date: Date!
+    end_date: Date
     description: String
-    isCurrent: Boolean = false
+    is_current: Boolean = false
   }
 
   input UpdateDoctorExperienceInput {
-    hospitalName: String
+    hospital_name: String
     position: String
-    startDate: Date
-    endDate: Date
+    start_date: Date
+    end_date: Date
     description: String
-    isCurrent: Boolean
+    is_current: Boolean
   }
 
   input CreateDoctorScheduleInput {
     doctor_id: DoctorID!
-    dayOfWeek: Int!
-    startTime: String!
-    endTime: String!
-    isAvailable: Boolean = true
-    maxAppointments: Int
-    slotDuration: Int = 30
-    breakStartTime: String
-    breakEndTime: String
-    roomId: UUID
+    day_of_week: Int!
+    start_time: String!
+    end_time: String!
+    is_available: Boolean = true
+    max_appointments: Int
+    slot_duration: Int = 30
+    break_start_time: String
+    break_end_time: String
+    room_id: UUID
   }
 
   input UpdateDoctorScheduleInput {
-    dayOfWeek: Int
-    startTime: String
-    endTime: String
-    isAvailable: Boolean
-    maxAppointments: Int
-    slotDuration: Int
-    breakStartTime: String
-    breakEndTime: String
-    roomId: UUID
+    day_of_week: Int
+    start_time: String
+    end_time: String
+    is_available: Boolean
+    max_appointments: Int
+    slot_duration: Int
+    break_start_time: String
+    break_end_time: String
+    room_id: UUID
   }
 
   # Enhanced Schedule Input Types
   input CreateDoctorScheduleEnhancedInput {
     doctor_id: DoctorID!
-    templateId: UUID
-    dayOfWeek: Int!
-    startTime: String!
-    endTime: String!
-    breakPeriods: [BreakPeriodInput!]!
-    slotDuration: Int = 30
-    bufferTime: Int = 5
-    maxAppointments: Int = 16
-    isAvailable: Boolean = true
-    availabilityType: ScheduleAvailabilityType = REGULAR
-    departmentRules: JSON
-    effectiveFrom: Date
-    effectiveTo: Date
+    template_id: UUID
+    day_of_week: Int!
+    start_time: String!
+    end_time: String!
+    break_periods: [BreakPeriodInput!]!
+    slot_duration: Int = 30
+    buffer_time: Int = 5
+    max_appointments: Int = 16
+    is_available: Boolean = true
+    availability_type: ScheduleAvailabilityType = REGULAR
+    department_rules: JSON
+    effective_from: Date
+    effective_to: Date
     is_active: Boolean = true
   }
 
   input UpdateDoctorScheduleEnhancedInput {
-    templateId: UUID
-    dayOfWeek: Int
-    startTime: String
-    endTime: String
-    breakPeriods: [BreakPeriodInput!]
-    slotDuration: Int
-    bufferTime: Int
-    maxAppointments: Int
-    isAvailable: Boolean
-    availabilityType: ScheduleAvailabilityType
-    departmentRules: JSON
-    effectiveFrom: Date
-    effectiveTo: Date
+    template_id: UUID
+    day_of_week: Int
+    start_time: String
+    end_time: String
+    break_periods: [BreakPeriodInput!]
+    slot_duration: Int
+    buffer_time: Int
+    max_appointments: Int
+    is_available: Boolean
+    availability_type: ScheduleAvailabilityType
+    department_rules: JSON
+    effective_from: Date
+    effective_to: Date
     is_active: Boolean
   }
 
   input BreakPeriodInput {
-    startTime: String!
-    endTime: String!
-    breakType: String!
+    start_time: String!
+    end_time: String!
+    break_type: String!
   }
 
   input CreateScheduleTemplateInput {
-    templateName: String!
-    departmentId: String
+    template_name: String!
+    department_id: String
     description: String
-    defaultStartTime: String!
-    defaultEndTime: String!
-    defaultBreakStart: String
-    defaultBreakEnd: String
-    defaultSlotDuration: Int = 30
-    defaultBufferTime: Int = 5
-    maxAppointmentsPerDay: Int = 16
-    workingDays: [Int!]!
+    default_start_time: String!
+    default_end_time: String!
+    default_break_start: String
+    default_break_end: String
+    default_slot_duration: Int = 30
+    default_buffer_time: Int = 5
+    max_appointments_per_day: Int = 16
+    working_days: [Int!]!
     is_active: Boolean = true
   }
 
   input UpdateScheduleTemplateInput {
-    templateName: String
+    template_name: String
     description: String
-    defaultStartTime: String
-    defaultEndTime: String
-    defaultBreakStart: String
-    defaultBreakEnd: String
-    defaultSlotDuration: Int
-    defaultBufferTime: Int
-    maxAppointmentsPerDay: Int
-    workingDays: [Int!]
+    default_start_time: String
+    default_end_time: String
+    default_break_start: String
+    default_break_end: String
+    default_slot_duration: Int
+    default_buffer_time: Int
+    max_appointments_per_day: Int
+    working_days: [Int!]
     is_active: Boolean
   }
 
   input CreateScheduleExceptionInput {
     doctor_id: DoctorID!
-    exceptionDate: Date!
-    exceptionType: ScheduleExceptionType!
-    isAvailable: Boolean = false
+    exception_date: Date!
+    exception_type: ScheduleExceptionType!
+    is_available: Boolean = false
     reason: String
-    overrideStartTime: String
-    overrideEndTime: String
-    overrideBreakPeriods: [BreakPeriodInput!]
-    overrideMaxAppointments: Int
+    override_start_time: String
+    override_end_time: String
+    override_break_periods: [BreakPeriodInput!]
+    override_max_appointments: Int
   }
 
   input UpdateScheduleExceptionInput {
-    exceptionType: ScheduleExceptionType
-    isAvailable: Boolean
+    exception_type: ScheduleExceptionType
+    is_available: Boolean
     reason: String
-    overrideStartTime: String
-    overrideEndTime: String
-    overrideBreakPeriods: [BreakPeriodInput!]
-    overrideMaxAppointments: Int
+    override_start_time: String
+    override_end_time: String
+    override_break_periods: [BreakPeriodInput!]
+    override_max_appointments: Int
   }
 
   input CreateDoctorReviewInput {
@@ -415,19 +415,19 @@ export const doctorTypeDefs = gql`
     comment: String
 
     # Review Details
-    serviceQuality: Int # 1-5 stars
+    service_quality: Int # 1-5 stars
     communication: Int # 1-5 stars
     punctuality: Int # 1-5 stars
     facilities: Int # 1-5 stars
     # Settings
-    isAnonymous: Boolean = false
+    is_anonymous: Boolean = false
   }
 
   # Queries
   extend type Query {
     # Single doctor queries
     doctor(id: UUID, doctor_id: DoctorID): Doctor
-    doctorByProfile(profileId: UUID!): Doctor
+    doctorByProfile(profile_id: UUID!): Doctor
 
     # Multiple doctors queries
     doctors(
@@ -454,7 +454,7 @@ export const doctorTypeDefs = gql`
 
     # Department doctors
     departmentDoctors(
-      departmentId: UUID!
+      department_id: UUID!
       limit: Int = 20
       offset: Int = 0
     ): DoctorConnection!
@@ -478,13 +478,13 @@ export const doctorTypeDefs = gql`
     doctorSchedule(doctor_id: DoctorID!, date: Date): [DoctorSchedule!]!
     doctorScheduleEnhanced(
       doctor_id: DoctorID!
-      weekStartDate: Date
+      week_start_date: Date
     ): [DoctorSchedule!]!
-    doctorScheduleTemplates(departmentId: String): [DoctorScheduleTemplate!]!
+    doctorScheduleTemplates(department_id: String): [DoctorScheduleTemplate!]!
     doctorScheduleExceptions(
       doctor_id: DoctorID!
-      dateFrom: Date
-      dateTo: Date
+      date_from: Date
+      date_to: Date
     ): [DoctorScheduleException!]!
     doctorAppointmentSlots(
       doctor_id: DoctorID!
@@ -492,19 +492,19 @@ export const doctorTypeDefs = gql`
     ): [DoctorAppointmentSlot!]!
 
     # Enhanced availability queries
-    doctorWeeklyAvailability(doctor_id: DoctorID!, weekStartDate: Date!): JSON
+    doctorWeeklyAvailability(doctor_id: DoctorID!, week_start_date: Date!): JSON
     doctorAvailabilityOptimized(
       doctor_id: DoctorID!
-      startDate: Date
-      endDate: Date
+      start_date: Date
+      end_date: Date
     ): JSON
-    bulkDoctorAvailability(doctorIds: [DoctorID!]!, date: Date!): JSON
+    bulkDoctorAvailability(doctor_ids: [DoctorID!]!, date: Date!): JSON
 
     # Rooms
     room(id: UUID!): Room
     rooms(
-      departmentId: String
-      roomType: String
+      department_id: String
+      room_type: String
       is_active: Boolean = true
       limit: Int = 20
     ): [Room!]!

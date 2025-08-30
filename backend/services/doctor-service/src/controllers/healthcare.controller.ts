@@ -3,18 +3,13 @@
 // Healthcare standards integration controller
 // ============================================================================
 
-import { Request, Response } from 'express';
-import { HealthcareService } from '@hospital/shared/dist/services/healthcare.service';
+import { HealthcareService } from "@hospital/shared/dist/services/healthcare.service";
 import {
-  FHIRValidationResult,
-  ICD10ValidationResult,
-  ICD10SearchResult,
-  HealthcareServiceResponse,
-  PatientDiagnosis,
   CreateDiagnosisRequest,
-  UpdateDiagnosisRequest
-} from '@hospital/shared/dist/types/healthcare.types';
-import logger from '@hospital/shared/dist/utils/logger';
+  UpdateDiagnosisRequest,
+} from "@hospital/shared/dist/types/healthcare.types";
+import logger from "@hospital/shared/dist/utils/logger";
+import { Request, Response } from "express";
 
 export class HealthcareController {
   private healthcareService: HealthcareService;
@@ -34,14 +29,16 @@ export class HealthcareController {
   validateDoctorFHIR = async (req: Request, res: Response): Promise<void> => {
     try {
       const { id: doctor_id } = req.params;
-      
+
       logger.info(`Validating doctor FHIR compliance for doctor: ${doctor_id}`);
 
       // Convert doctor to FHIR format first
-      const fhirPractitioner = await this.healthcareService.convertDoctorToFHIR(doctor_id);
-      
+      const fhirPractitioner =
+        await this.healthcareService.convertDoctorToFHIR(doctor_id);
+
       // Validate FHIR compliance
-      const validationResult = await this.healthcareService.validateFHIRPractitioner(fhirPractitioner);
+      const validationResult =
+        await this.healthcareService.validateFHIRPractitioner(fhirPractitioner);
 
       res.json({
         success: true,
@@ -49,17 +46,25 @@ export class HealthcareController {
           doctor_id: doctor_id,
           fhir_resource: fhirPractitioner,
           validation: validationResult,
-          compliance_status: validationResult.fhir_compliance_score >= 80 ? 'COMPLIANT' : 'NON_COMPLIANT'
+          compliance_status:
+            validationResult.fhir_compliance_score >= 80
+              ? "COMPLIANT"
+              : "NON_COMPLIANT",
         },
-        message: `Doctor FHIR validation completed with ${validationResult.fhir_compliance_score}% compliance`
+        message: `Doctor FHIR validation completed with ${validationResult.fhir_compliance_score}% compliance`,
       });
-
     } catch (error) {
-      logger.error('Healthcare Controller - Validate doctor FHIR failed:', error);
+      logger.error(
+        "Healthcare Controller - Validate doctor FHIR failed:",
+        error
+      );
       res.status(500).json({
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to validate doctor FHIR compliance',
-        code: 'FHIR_VALIDATION_ERROR'
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to validate doctor FHIR compliance",
+        code: "FHIR_VALIDATION_ERROR",
       });
     }
   };
@@ -71,23 +76,26 @@ export class HealthcareController {
   getDoctorFHIR = async (req: Request, res: Response): Promise<void> => {
     try {
       const { id: doctor_id } = req.params;
-      
+
       logger.info(`Converting doctor to FHIR format: ${doctor_id}`);
 
-      const fhirPractitioner = await this.healthcareService.convertDoctorToFHIR(doctor_id);
+      const fhirPractitioner =
+        await this.healthcareService.convertDoctorToFHIR(doctor_id);
 
       res.json({
         success: true,
         data: fhirPractitioner,
-        message: 'Doctor successfully converted to FHIR Practitioner resource'
+        message: "Doctor successfully converted to FHIR Practitioner resource",
       });
-
     } catch (error) {
-      logger.error('Healthcare Controller - Get doctor FHIR failed:', error);
+      logger.error("Healthcare Controller - Get doctor FHIR failed:", error);
       res.status(500).json({
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to convert doctor to FHIR format',
-        code: 'FHIR_CONVERSION_ERROR'
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to convert doctor to FHIR format",
+        code: "FHIR_CONVERSION_ERROR",
       });
     }
   };
@@ -102,13 +110,13 @@ export class HealthcareController {
    */
   searchICD10Codes = async (req: Request, res: Response): Promise<void> => {
     try {
-      const { q: searchTerm, limit = '20' } = req.query;
+      const { q: searchTerm, limit = "20" } = req.query;
 
-      if (!searchTerm || typeof searchTerm !== 'string') {
+      if (!searchTerm || typeof searchTerm !== "string") {
         res.status(400).json({
           success: false,
-          error: 'Search term is required',
-          code: 'MISSING_SEARCH_TERM'
+          error: "Search term is required",
+          code: "MISSING_SEARCH_TERM",
         });
         return;
       }
@@ -125,17 +133,22 @@ export class HealthcareController {
         data: {
           search_term: searchTerm,
           results: searchResults,
-          total_results: searchResults.length
+          total_results: searchResults.total,
         },
-        message: `Found ${searchResults.length} ICD-10 codes matching "${searchTerm}"`
+        message: `Found ${searchResults.total} ICD-10 codes matching "${searchTerm}"`,
       });
-
     } catch (error) {
-      logger.error('Healthcare Controller - Search ICD-10 codes failed:', error);
+      logger.error(
+        "Healthcare Controller - Search ICD-10 codes failed:",
+        error
+      );
       res.status(500).json({
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to search ICD-10 codes',
-        code: 'ICD10_SEARCH_ERROR'
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to search ICD-10 codes",
+        code: "ICD10_SEARCH_ERROR",
       });
     }
   };
@@ -150,26 +163,32 @@ export class HealthcareController {
 
       logger.info(`Validating ICD-10 code: ${code}`);
 
-      const validationResult = await this.healthcareService.validateICD10Code(code);
+      const validationResult =
+        await this.healthcareService.validateICD10Code(code);
 
       res.json({
         success: true,
         data: {
           code: code,
           validation: validationResult,
-          is_valid: validationResult.is_valid
+          is_valid: validationResult.isValid,
         },
-        message: validationResult.is_valid 
-          ? `ICD-10 code ${code} is valid` 
-          : `ICD-10 code ${code} is invalid: ${validationResult.validation_message}`
+        message: validationResult.isValid
+          ? `ICD-10 code ${code} is valid`
+          : `ICD-10 code ${code} is invalid`,
       });
-
     } catch (error) {
-      logger.error('Healthcare Controller - Validate ICD-10 code failed:', error);
+      logger.error(
+        "Healthcare Controller - Validate ICD-10 code failed:",
+        error
+      );
       res.status(500).json({
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to validate ICD-10 code',
-        code: 'ICD10_VALIDATION_ERROR'
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to validate ICD-10 code",
+        code: "ICD10_VALIDATION_ERROR",
       });
     }
   };
@@ -178,30 +197,39 @@ export class HealthcareController {
    * Get ICD-10 codes by category
    * GET /api/doctors/icd10/category/:category
    */
-  getICD10CodesByCategory = async (req: Request, res: Response): Promise<void> => {
+  getICD10CodesByCategory = async (
+    req: Request,
+    res: Response
+  ): Promise<void> => {
     try {
       const { category } = req.params;
 
       logger.info(`Getting ICD-10 codes for category: ${category}`);
 
-      const codes = await this.healthcareService.getICD10CodesByCategory(category);
+      const codes =
+        await this.healthcareService.getICD10CodesByCategory(category);
 
       res.json({
         success: true,
         data: {
           category: category,
           codes: codes,
-          total_codes: codes.length
+          total_codes: codes.length,
         },
-        message: `Found ${codes.length} ICD-10 codes in category "${category}"`
+        message: `Found ${codes.length} ICD-10 codes in category "${category}"`,
       });
-
     } catch (error) {
-      logger.error('Healthcare Controller - Get ICD-10 codes by category failed:', error);
+      logger.error(
+        "Healthcare Controller - Get ICD-10 codes by category failed:",
+        error
+      );
       res.status(500).json({
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to get ICD-10 codes by category',
-        code: 'ICD10_CATEGORY_ERROR'
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to get ICD-10 codes by category",
+        code: "ICD10_CATEGORY_ERROR",
       });
     }
   };
@@ -219,29 +247,26 @@ export class HealthcareController {
       const { doctor_id } = req.params;
       const diagnosisData: CreateDiagnosisRequest = {
         ...req.body,
-        doctor_id: doctor_id
+        doctor_id: doctor_id,
       };
 
       logger.info(`Creating diagnosis for patient: ${doctor_id}`);
 
-      const result = await this.healthcareService.createDiagnosis(diagnosisData);
-
-      if (!result.success) {
-        res.status(400).json(result);
-        return;
-      }
+      const diagnosis =
+        await this.healthcareService.createDiagnosis(diagnosisData);
 
       res.status(201).json({
-        ...result,
-        message: 'Diagnosis created successfully with ICD-10 validation'
+        success: true,
+        data: diagnosis,
+        message: "Diagnosis created successfully with ICD-10 validation",
       });
-
     } catch (error) {
-      logger.error('Healthcare Controller - Create diagnosis failed:', error);
+      logger.error("Healthcare Controller - Create diagnosis failed:", error);
       res.status(500).json({
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to create diagnosis',
-        code: 'DIAGNOSIS_CREATION_ERROR'
+        error:
+          error instanceof Error ? error.message : "Failed to create diagnosis",
+        code: "DIAGNOSIS_CREATION_ERROR",
       });
     }
   };
@@ -256,24 +281,26 @@ export class HealthcareController {
 
       logger.info(`Getting diagnoses for patient: ${patient_id}`);
 
-      const result = await this.healthcareService.getPatientDiagnoses(patient_id);
-
-      if (!result.success) {
-        res.status(400).json(result);
-        return;
-      }
+      const diagnoses =
+        await this.healthcareService.getPatientDiagnoses(patient_id);
 
       res.json({
-        ...result,
-        message: `Found ${result.data?.length || 0} diagnoses for patient`
+        success: true,
+        data: diagnoses,
+        message: `Found ${diagnoses.length} diagnoses for patient`,
       });
-
     } catch (error) {
-      logger.error('Healthcare Controller - Get patient diagnoses failed:', error);
+      logger.error(
+        "Healthcare Controller - Get patient diagnoses failed:",
+        error
+      );
       res.status(500).json({
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to get patient diagnoses',
-        code: 'DIAGNOSIS_RETRIEVAL_ERROR'
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to get patient diagnoses",
+        code: "DIAGNOSIS_RETRIEVAL_ERROR",
       });
     }
   };
@@ -289,24 +316,23 @@ export class HealthcareController {
 
       logger.info(`Updating diagnosis: ${diagnosisId}`);
 
-      const result = await this.healthcareService.updateDiagnosis(diagnosisId, updateData);
-
-      if (!result.success) {
-        res.status(400).json(result);
-        return;
-      }
+      const diagnosis = await this.healthcareService.updateDiagnosis(
+        diagnosisId,
+        updateData
+      );
 
       res.json({
-        ...result,
-        message: 'Diagnosis updated successfully'
+        success: true,
+        data: diagnosis,
+        message: "Diagnosis updated successfully",
       });
-
     } catch (error) {
-      logger.error('Healthcare Controller - Update diagnosis failed:', error);
+      logger.error("Healthcare Controller - Update diagnosis failed:", error);
       res.status(500).json({
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to update diagnosis',
-        code: 'DIAGNOSIS_UPDATE_ERROR'
+        error:
+          error instanceof Error ? error.message : "Failed to update diagnosis",
+        code: "DIAGNOSIS_UPDATE_ERROR",
       });
     }
   };
@@ -319,15 +345,22 @@ export class HealthcareController {
    * Get healthcare compliance status for doctor
    * GET /api/doctors/:id/healthcare/compliance
    */
-  getHealthcareCompliance = async (req: Request, res: Response): Promise<void> => {
+  getHealthcareCompliance = async (
+    req: Request,
+    res: Response
+  ): Promise<void> => {
     try {
       const { id: doctor_id } = req.params;
 
-      logger.info(`Getting healthcare compliance status for doctor: ${doctor_id}`);
+      logger.info(
+        `Getting healthcare compliance status for doctor: ${doctor_id}`
+      );
 
       // Get FHIR compliance
-      const fhirPractitioner = await this.healthcareService.convertDoctorToFHIR(doctor_id);
-      const fhirValidation = await this.healthcareService.validateFHIRPractitioner(fhirPractitioner);
+      const fhirPractitioner =
+        await this.healthcareService.convertDoctorToFHIR(doctor_id);
+      const fhirValidation =
+        await this.healthcareService.validateFHIRPractitioner(fhirPractitioner);
 
       // Get diagnosis statistics (ICD-10 usage)
       // This would be expanded to get doctor's diagnosis statistics
@@ -338,27 +371,35 @@ export class HealthcareController {
           doctor_id: doctor_id,
           fhir_compliance: {
             score: fhirValidation.fhir_compliance_score,
-            status: fhirValidation.fhir_compliance_score >= 80 ? 'COMPLIANT' : 'NON_COMPLIANT',
-            errors: fhirValidation.validation_errors
+            status:
+              fhirValidation.fhir_compliance_score >= 80
+                ? "COMPLIANT"
+                : "NON_COMPLIANT",
+            errors: fhirValidation.errors,
           },
           icd10_compliance: {
             score: 95, // This would be calculated based on actual usage
-            status: 'COMPLIANT'
+            status: "COMPLIANT",
           },
           overall_compliance: {
             score: Math.round((fhirValidation.fhir_compliance_score + 95) / 2),
-            status: 'COMPLIANT'
-          }
+            status: "COMPLIANT",
+          },
         },
-        message: 'Healthcare compliance status retrieved successfully'
+        message: "Healthcare compliance status retrieved successfully",
       });
-
     } catch (error) {
-      logger.error('Healthcare Controller - Get healthcare compliance failed:', error);
+      logger.error(
+        "Healthcare Controller - Get healthcare compliance failed:",
+        error
+      );
       res.status(500).json({
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to get healthcare compliance status',
-        code: 'COMPLIANCE_CHECK_ERROR'
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to get healthcare compliance status",
+        code: "COMPLIANCE_CHECK_ERROR",
       });
     }
   };

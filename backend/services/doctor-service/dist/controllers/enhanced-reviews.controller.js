@@ -9,13 +9,13 @@ const logger_1 = __importDefault(require("@hospital/shared/dist/utils/logger"));
 class EnhancedReviewsController {
     async getDoctorReviews(req, res) {
         try {
-            const { doctorId } = req.params;
+            const { doctor_id } = req.params;
             const { page = 1, limit = 10, sort = 'newest', rating_filter, verified_only = 'false' } = req.query;
             const pageNum = parseInt(page);
             const limitNum = parseInt(limit);
             const offset = (pageNum - 1) * limitNum;
             logger_1.default.info('📝 [EnhancedReviews] Getting reviews for doctor', {
-                doctorId,
+                doctor_id,
                 page: pageNum,
                 limit: limitNum,
                 sort,
@@ -25,7 +25,7 @@ class EnhancedReviewsController {
             let countQuery = database_config_1.supabaseAdmin
                 .from('doctor_reviews')
                 .select('*', { count: 'exact', head: true })
-                .eq('doctor_id', doctorId);
+                .eq('doctor_id', doctor_id);
             if (rating_filter) {
                 countQuery = countQuery.eq('rating', parseInt(rating_filter));
             }
@@ -63,7 +63,7 @@ class EnhancedReviewsController {
             appointment_type
           )
         `)
-                .eq('doctor_id', doctorId);
+                .eq('doctor_id', doctor_id);
             if (rating_filter) {
                 reviewsQuery = reviewsQuery.eq('rating', parseInt(rating_filter));
             }
@@ -96,7 +96,7 @@ class EnhancedReviewsController {
                 });
                 return;
             }
-            const summary = await this.getReviewSummary(doctorId);
+            const summary = await this.getReviewSummary(doctor_id);
             const reviews = (reviewsData || []).map(review => ({
                 review_id: review.review_id,
                 patient_name: review.patients?.profiles?.full_name || 'Bệnh nhân ẩn danh',
@@ -124,7 +124,7 @@ class EnhancedReviewsController {
                 }
             };
             logger_1.default.info('✅ [EnhancedReviews] Successfully retrieved reviews', {
-                doctorId,
+                doctor_id,
                 reviewCount: reviews.length,
                 totalReviews: totalReviews || 0,
                 averageRating: summary.average_rating
@@ -142,12 +142,12 @@ class EnhancedReviewsController {
             });
         }
     }
-    async getReviewSummary(doctorId) {
+    async getReviewSummary(doctor_id) {
         try {
             const { data: allReviews, error } = await database_config_1.supabaseAdmin
                 .from('doctor_reviews')
                 .select('rating, review_date, is_verified, doctor_response')
-                .eq('doctor_id', doctorId);
+                .eq('doctor_id', doctor_id);
             if (error || !allReviews) {
                 logger_1.default.error('❌ [ReviewSummary] Error getting all reviews:', error);
                 return this.getEmptyReviewSummary();

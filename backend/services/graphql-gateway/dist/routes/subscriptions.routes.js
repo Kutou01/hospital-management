@@ -24,11 +24,11 @@ const router = (0, express_1.Router)();
 router.post('/webhooks/appointment-created', async (req, res) => {
     try {
         const appointment = req.body;
-        if (!appointment || !appointment.appointmentId) {
+        if (!appointment || !appointment.appointment_id) {
             return sendError(res, 'Invalid appointment data');
         }
         await subscription_service_1.subscriptionService.publishAppointmentUpdate(appointment);
-        logger_1.default.info(`📢 Webhook: Published appointment created for ${appointment.appointmentId}`);
+        logger_1.default.info(`📢 Webhook: Published appointment created for ${appointment.appointment_id}`);
         return sendSuccess(res, 'Event published successfully');
     }
     catch (error) {
@@ -39,11 +39,11 @@ router.post('/webhooks/appointment-created', async (req, res) => {
 router.post('/webhooks/appointment-status-changed', async (req, res) => {
     try {
         const appointment = req.body;
-        if (!appointment || !appointment.appointmentId) {
+        if (!appointment || !appointment.appointment_id) {
             return sendError(res, 'Invalid appointment data');
         }
         await subscription_service_1.subscriptionService.publishAppointmentStatusChange(appointment);
-        logger_1.default.info(`📢 Webhook: Published appointment status change for ${appointment.appointmentId}`);
+        logger_1.default.info(`📢 Webhook: Published appointment status change for ${appointment.appointment_id}`);
         return sendSuccess(res, 'Event published successfully');
     }
     catch (error) {
@@ -75,11 +75,11 @@ router.post('/webhooks/queue-updated', async (req, res) => {
 router.post('/webhooks/doctor-availability-changed', async (req, res) => {
     try {
         const doctorData = req.body;
-        if (!doctorData || !doctorData.doctorId) {
+        if (!doctorData || !doctorData.doctor_id) {
             return sendError(res, 'Invalid doctor data');
         }
         await subscription_service_1.subscriptionService.publishDoctorAvailabilityChange(doctorData);
-        logger_1.default.info(`📢 Webhook: Published doctor availability change for ${doctorData.doctorId}`);
+        logger_1.default.info(`📢 Webhook: Published doctor availability change for ${doctorData.doctor_id}`);
         return sendSuccess(res, 'Event published successfully');
     }
     catch (error) {
@@ -111,11 +111,11 @@ router.post('/webhooks/schedule-updated', async (req, res) => {
 router.post('/webhooks/doctor-status-changed', async (req, res) => {
     try {
         const doctorData = req.body;
-        if (!doctorData || !doctorData.doctorId) {
+        if (!doctorData || !doctorData.doctor_id) {
             return sendError(res, 'Invalid doctor data');
         }
         await subscription_service_1.subscriptionService.publishDoctorStatusChange(doctorData);
-        logger_1.default.info(`📢 Webhook: Published doctor status change for ${doctorData.doctorId}`);
+        logger_1.default.info(`📢 Webhook: Published doctor status change for ${doctorData.doctor_id}`);
         return sendSuccess(res, 'Event published successfully');
     }
     catch (error) {
@@ -147,11 +147,11 @@ router.post('/webhooks/system-notification', async (req, res) => {
 router.post('/webhooks/patient-updated', async (req, res) => {
     try {
         const patientData = req.body;
-        if (!patientData || !patientData.patientId) {
+        if (!patientData || !patientData.patient_id) {
             return sendError(res, 'Invalid patient data');
         }
         await subscription_service_1.subscriptionService.publishPatientUpdate(patientData);
-        logger_1.default.info(`📢 Webhook: Published patient update for ${patientData.patientId}`);
+        logger_1.default.info(`📢 Webhook: Published patient update for ${patientData.patient_id}`);
         return sendSuccess(res, 'Event published successfully');
     }
     catch (error) {
@@ -165,11 +165,11 @@ router.post('/webhooks/patient-updated', async (req, res) => {
 router.post('/webhooks/patient-status-changed', async (req, res) => {
     try {
         const patientData = req.body;
-        if (!patientData || !patientData.patientId) {
+        if (!patientData || !patientData.patient_id) {
             return sendError(res, 'Invalid patient data');
         }
         await subscription_service_1.subscriptionService.publishPatientStatusChange(patientData);
-        logger_1.default.info(`📢 Webhook: Published patient status change for ${patientData.patientId}`);
+        logger_1.default.info(`📢 Webhook: Published patient status change for ${patientData.patient_id}`);
         return sendSuccess(res, 'Event published successfully');
     }
     catch (error) {

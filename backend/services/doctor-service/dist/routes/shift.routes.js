@@ -12,7 +12,7 @@ const validateShiftId = [
     (0, express_validator_1.param)('shiftId').notEmpty().withMessage('Shift ID is required')
 ];
 const validateDoctorId = [
-    (0, express_validator_1.param)('doctorId').notEmpty().withMessage('Doctor ID is required')
+    (0, express_validator_1.param)('doctor_id').notEmpty().withMessage('Doctor ID is required')
 ];
 const validateCreateShift = [
     (0, express_validator_1.body)('doctor_id').notEmpty().withMessage('Doctor ID is required'),

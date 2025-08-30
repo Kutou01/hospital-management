@@ -14,7 +14,7 @@ export const doctorResolvers = {
       context: GraphQLContext
     ) {
       try {
-        const identifier = id || doctorId;
+        const identifier = id || doctor_id;
         if (!identifier) {
           throw new Error("Cần cung cấp ID hoặc mã bác sĩ");
         }
@@ -306,7 +306,10 @@ export const doctorResolvers = {
     // Enhanced doctor schedule queries
     async doctorScheduleEnhanced(
       _: any,
-      { doctor_id, weekStartDate }: { doctor_id: string; weekStartDate?: string },
+      {
+        doctor_id,
+        weekStartDate,
+      }: { doctor_id: string; weekStartDate?: string },
       context: GraphQLContext
     ) {
       try {
@@ -316,7 +319,7 @@ export const doctorResolvers = {
           requestId: context.requestId,
         });
 
-        const response = await context.restApi.getDoctorScheduleEnhanced(
+        const response = await context.restApi.getDoctorSchedule(
           doctor_id,
           weekStartDate
         );
@@ -336,7 +339,10 @@ export const doctorResolvers = {
 
     async doctorWeeklyAvailability(
       _: any,
-      { doctor_id, weekStartDate }: { doctor_id: string; weekStartDate: string },
+      {
+        doctor_id,
+        weekStartDate,
+      }: { doctor_id: string; weekStartDate: string },
       context: GraphQLContext
     ) {
       try {
@@ -346,7 +352,7 @@ export const doctorResolvers = {
           requestId: context.requestId,
         });
 
-        const response = await context.restApi.getDoctorWeeklyAvailability(
+        const response = await context.restApi.getDoctorSchedule(
           doctor_id,
           weekStartDate
         );
@@ -376,10 +382,10 @@ export const doctorResolvers = {
           requestId: context.requestId,
         });
 
-        const response = await context.restApi.getDoctorAppointmentSlots(
+        const response = await context.restApi.getAppointments({
           doctor_id,
-          date
-        );
+          dateFrom: date,
+        });
 
         if (!response.success) {
           throw new Error(

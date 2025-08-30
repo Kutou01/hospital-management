@@ -310,7 +310,7 @@ export class OptimizedDataLoadersService {
               ? result.reason
               : new Error("Schedule not found");
           logger.warn(
-            `Failed to load schedule for doctor ${doctor_id}:`,
+            `Failed to load schedule for doctor ${doctorIds[index]}:`,
             error
           );
           return error;
@@ -342,7 +342,7 @@ export class OptimizedDataLoadersService {
               ? result.reason
               : new Error("Reviews not found");
           logger.warn(
-            `Failed to load reviews for doctor ${doctor_id}:`,
+            `Failed to load reviews for doctor ${doctorIds[index]}:`,
             error
           );
           return error;
@@ -403,7 +403,7 @@ export class OptimizedDataLoadersService {
               ? result.reason
               : new Error("Failed to load patients for doctor");
           logger.warn(
-            `Failed to load patients for doctor ${doctor_id}:`,
+            `Failed to load patients for doctor ${doctorIds[index]}:`,
             error
           );
           return error;

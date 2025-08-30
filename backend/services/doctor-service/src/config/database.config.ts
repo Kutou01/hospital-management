@@ -1,5 +1,5 @@
+import { connectionPool } from "@hospital/shared/dist/database/connection-pool";
 import logger from "@hospital/shared/dist/utils/logger";
-import { connectionPool } from "@hospital/shared/src/database/connection-pool";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
 // Environment variables validation
@@ -54,29 +54,27 @@ export function getSupabase(): SupabaseClient {
 // New recommended database access methods using connection pooling
 export const dbPool = {
   // Execute standard query with connection pooling
-  async executeQuery<T>(
-    queryFn: (client: SupabaseClient) => Promise<T>
-  ): Promise<T> {
+  async executeQuery<T>(queryFn: (client: any) => Promise<T>): Promise<T> {
     return connectionPool.executeQuery(queryFn);
   },
 
   // Execute healthcare-specific FHIR validation
   async executeFHIRValidation<T>(
-    validationFn: (client: SupabaseClient) => Promise<T>
+    validationFn: (client: any) => Promise<T>
   ): Promise<T> {
     return connectionPool.executeFHIRValidation(validationFn);
   },
 
   // Execute diagnosis operations with high priority
   async executeDiagnosisOperation<T>(
-    diagnosisFn: (client: SupabaseClient) => Promise<T>
+    diagnosisFn: (client: any) => Promise<T>
   ): Promise<T> {
     return connectionPool.executeDiagnosisOperation(diagnosisFn);
   },
 
   // Execute bulk operations with low priority
   async executeBulkOperation<T>(
-    bulkFn: (client: SupabaseClient) => Promise<T>
+    bulkFn: (client: any) => Promise<T>
   ): Promise<T> {
     return connectionPool.executeBulkOperation(bulkFn);
   },

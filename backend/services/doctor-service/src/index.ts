@@ -3,6 +3,11 @@ import dotenv from "dotenv";
 // Load environment variables FIRST
 dotenv.config();
 
+import {
+  createConnectionPoolHealthCheck,
+  createConnectionPoolMetrics,
+  createConnectionPoolStressTest,
+} from "@hospital/shared/dist/middleware/connection-pool-health";
 import { sanitizeInput } from "@hospital/shared/dist/middleware/validation.middleware";
 import {
   createVersioningMiddleware,
@@ -16,11 +21,6 @@ import {
   addRequestId,
   globalErrorHandler,
 } from "@hospital/shared/dist/utils/response-helpers";
-import {
-  createConnectionPoolHealthCheck,
-  createConnectionPoolMetrics,
-  createConnectionPoolStressTest,
-} from "@hospital/shared/src/middleware/connection-pool-health";
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";

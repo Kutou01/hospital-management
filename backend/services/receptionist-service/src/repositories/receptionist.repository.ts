@@ -1,5 +1,5 @@
-import { supabaseAdmin } from '../config/database.config';
-import logger from '@hospital/shared/dist/utils/logger';
+import logger from "@hospital/shared/dist/utils/logger";
+import { dbPool, supabaseAdmin } from "../config/database.config";
 
 export interface Receptionist {
   receptionist_id: string;
@@ -48,64 +48,93 @@ export interface QueueItem {
 }
 
 export class ReceptionistRepository {
+  private pool = dbPool; // Primary connection pool
+  private supabase = supabaseAdmin; // Legacy fallback
   async findById(receptionistId: string): Promise<Receptionist | null> {
     try {
-      const { data, error } = await supabaseAdmin
-        .from('receptionist')
-        .select('*')
-        .eq('receptionist_id', receptionistId)
-        .single();
+      // Use Connection Pool for standard query operations
+      return await this.pool.executeQuery(async (client) => {
+        const { data, error } = await client
+          .from("receptionist")
+          .select("*")
+          .eq("receptionist_id", receptionistId)
+          .single();
 
-      if (error) {
-        logger.error('Error finding receptionist by ID:', error);
+        if (error) {
+          logger.error("Error finding receptionist by ID:", error);
+          return null;
+        }
+
+        return data;
+      });
+    } catch (error) {
+      logger.error("Connection pool error in findById:", error);
+
+      // FALLBACK: Use direct client if pool fails
+      try {
+        const { data, error: fallbackError } = await this.supabase
+          .from("receptionist")
+          .select("*")
+          .eq("receptionist_id", receptionistId)
+          .single();
+
+        if (fallbackError) {
+          logger.error("Fallback error in findById:", fallbackError);
+          return null;
+        }
+
+        return data;
+      } catch (fallbackError) {
+        logger.error(
+          "Both pool and fallback failed in findById:",
+          fallbackError
+        );
         return null;
       }
-
-      return data;
-    } catch (error) {
-      logger.error('Repository error in findById:', error);
-      return null;
     }
   }
 
   async findByProfileId(profileId: string): Promise<Receptionist | null> {
     try {
       const { data, error } = await supabaseAdmin
-        .from('receptionist')
-        .select('*')
-        .eq('profile_id', profileId)
+        .from("receptionist")
+        .select("*")
+        .eq("profile_id", profileId)
         .single();
 
       if (error) {
-        logger.error('Error finding receptionist by profile ID:', error);
+        logger.error("Error finding receptionist by profile ID:", error);
         return null;
       }
 
       return data;
     } catch (error) {
-      logger.error('Repository error in findByProfileId:', error);
+      logger.error("Repository error in findByProfileId:", error);
       return null;
     }
   }
 
-  async updateShiftSchedule(receptionistId: string, schedule: any): Promise<boolean> {
+  async updateShiftSchedule(
+    receptionistId: string,
+    schedule: any
+  ): Promise<boolean> {
     try {
       const { error } = await supabaseAdmin
-        .from('receptionist')
+        .from("receptionist")
         .update({
           shift_schedule: schedule,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
-        .eq('receptionist_id', receptionistId);
+        .eq("receptionist_id", receptionistId);
 
       if (error) {
-        logger.error('Error updating shift schedule:', error);
+        logger.error("Error updating shift schedule:", error);
         return false;
       }
 
       return true;
     } catch (error) {
-      logger.error('Repository error in updateShiftSchedule:', error);
+      logger.error("Repository error in updateShiftSchedule:", error);
       return false;
     }
   }
@@ -113,7 +142,7 @@ export class ReceptionistRepository {
   async createCheckIn(checkInData: CheckInData): Promise<any> {
     try {
       const { data, error } = await supabaseAdmin
-        .from('patient_check_ins')
+        .from("patient_check_ins")
         .insert({
           patient_id: checkInData.patient_id,
           appointment_id: checkInData.appointment_id,
@@ -122,19 +151,19 @@ export class ReceptionistRepository {
           insurance_verified: checkInData.insurance_verified,
           documents_complete: checkInData.documents_complete,
           notes: checkInData.notes,
-          status: checkInData.status
+          status: checkInData.status,
         })
         .select()
         .single();
 
       if (error) {
-        logger.error('Error creating check-in:', error);
+        logger.error("Error creating check-in:", error);
         throw error;
       }
 
       return data;
     } catch (error) {
-      logger.error('Repository error in createCheckIn:', error);
+      logger.error("Repository error in createCheckIn:", error);
       throw error;
     }
   }
@@ -142,8 +171,9 @@ export class ReceptionistRepository {
   async getQueue(): Promise<QueueItem[]> {
     try {
       const { data, error } = await supabaseAdmin
-        .from('appointments')
-        .select(`
+        .from("appointments")
+        .select(
+          `
           appointment_id,
           patient_id,
           doctor_id,
@@ -166,71 +196,80 @@ export class ReceptionistRepository {
             check_in_time,
             status
           )
-        `)
-        .eq('appointment_date', new Date().toISOString().split('T')[0])
-        .in('status', ['scheduled', 'checked_in', 'in_progress'])
-        .order('appointment_time', { ascending: true });
+        `
+        )
+        .eq("appointment_date", new Date().toISOString().split("T")[0])
+        .in("status", ["scheduled", "checked_in", "in_progress"])
+        .order("appointment_time", { ascending: true });
 
       if (error) {
-        logger.error('Error getting queue:', error);
+        logger.error("Error getting queue:", error);
         return [];
       }
 
       // Transform data to QueueItem format
-      const queueItems: QueueItem[] = data.map((appointment: any, index: number) => ({
-        id: appointment.appointment_id,
-        patient_id: appointment.patient_id,
-        appointment_id: appointment.appointment_id,
-        patient_name: appointment.patients?.profiles?.full_name || 'Unknown',
-        doctor_name: appointment.doctors?.profiles?.full_name || 'Unknown',
-        appointment_time: appointment.appointment_time,
-        status: appointment.status,
-        check_in_time: appointment.patient_check_ins?.[0]?.check_in_time,
-        queue_number: index + 1,
-        estimated_wait_time: index * 15 // Estimate 15 minutes per patient
-      }));
+      const queueItems: QueueItem[] = data.map(
+        (appointment: any, index: number) => ({
+          id: appointment.appointment_id,
+          patient_id: appointment.patient_id,
+          appointment_id: appointment.appointment_id,
+          patient_name: appointment.patients?.profiles?.full_name || "Unknown",
+          doctor_name: appointment.doctors?.profiles?.full_name || "Unknown",
+          appointment_time: appointment.appointment_time,
+          status: appointment.status,
+          check_in_time: appointment.patient_check_ins?.[0]?.check_in_time,
+          queue_number: index + 1,
+          estimated_wait_time: index * 15, // Estimate 15 minutes per patient
+        })
+      );
 
       return queueItems;
     } catch (error) {
-      logger.error('Repository error in getQueue:', error);
+      logger.error("Repository error in getQueue:", error);
       return [];
     }
   }
 
   async getDashboardStats(): Promise<any> {
     try {
-      const today = new Date().toISOString().split('T')[0];
-      
+      const today = new Date().toISOString().split("T")[0];
+
       // Get today's appointments
-      const { data: appointments, error: appointmentsError } = await supabaseAdmin
-        .from('appointments')
-        .select('*')
-        .eq('appointment_date', today);
+      const { data: appointments, error: appointmentsError } =
+        await supabaseAdmin
+          .from("appointments")
+          .select("*")
+          .eq("appointment_date", today);
 
       // Get checked-in patients
       const { data: checkIns, error: checkInsError } = await supabaseAdmin
-        .from('patient_check_ins')
-        .select('*')
-        .gte('check_in_time', `${today}T00:00:00`)
-        .lt('check_in_time', `${today}T23:59:59`);
+        .from("patient_check_ins")
+        .select("*")
+        .gte("check_in_time", `${today}T00:00:00`)
+        .lt("check_in_time", `${today}T23:59:59`);
 
       if (appointmentsError || checkInsError) {
-        logger.error('Error getting dashboard stats:', { appointmentsError, checkInsError });
+        logger.error("Error getting dashboard stats:", {
+          appointmentsError,
+          checkInsError,
+        });
         return null;
       }
 
       const stats = {
         todayAppointments: appointments?.length || 0,
         checkedInPatients: checkIns?.length || 0,
-        pendingCheckIns: appointments?.filter(a => a.status === 'scheduled').length || 0,
-        completedAppointments: appointments?.filter(a => a.status === 'completed').length || 0,
+        pendingCheckIns:
+          appointments?.filter((a) => a.status === "scheduled").length || 0,
+        completedAppointments:
+          appointments?.filter((a) => a.status === "completed").length || 0,
         averageWaitTime: 15, // Mock data for now
-        totalRevenue: 0 // Will be calculated from payments
+        totalRevenue: 0, // Will be calculated from payments
       };
 
       return stats;
     } catch (error) {
-      logger.error('Repository error in getDashboardStats:', error);
+      logger.error("Repository error in getDashboardStats:", error);
       return null;
     }
   }

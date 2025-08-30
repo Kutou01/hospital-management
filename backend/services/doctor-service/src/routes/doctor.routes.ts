@@ -10,6 +10,7 @@ import { DoctorController } from "../controllers/doctor.controller";
 import { EnhancedReviewsController } from "../controllers/enhanced-reviews.controller";
 import { WeeklyScheduleController } from "../controllers/weekly-schedule.controller";
 import { authMiddleware, requireDoctor } from "../middleware/auth.middleware";
+import { parameterMappingMiddleware } from "../middleware/parameter-mapping.middleware";
 
 // Force rebuild timestamp: 2025-06-23 01:15
 
@@ -19,6 +20,10 @@ const appointmentStatsController = new AppointmentStatsController();
 const weeklyScheduleController = new WeeklyScheduleController();
 const enhancedReviewsController = new EnhancedReviewsController();
 const dashboardController = new DashboardController();
+
+// Apply parameter mapping middleware to all routes
+// This converts kebab-case route params to snake_case for database consistency
+router.use(parameterMappingMiddleware);
 
 // Validation middleware
 const validateCreateDoctor = [
@@ -196,7 +201,7 @@ router.get(
 );
 
 // =====================================================
-// REAL-TIME FEATURES (Must be before /:doctor_id routes)
+// REAL-TIME FEATURES (Must be before /:doctor-id routes)
 // =====================================================
 
 /**
@@ -254,12 +259,12 @@ router.get("/live", doctorController.getLiveDoctors.bind(doctorController));
  *         description: Doctor not found
  */
 router.get(
-  "/by-profile/:profileId",
+  "/by-profile/:profile-id",
   doctorController.getDoctorByProfileId.bind(doctorController)
 );
 
 // =====================================================
-// AUTHENTICATED DOCTOR DASHBOARD ROUTES (Must be before /:doctor_id routes)
+// AUTHENTICATED DOCTOR DASHBOARD ROUTES (Must be before /:doctor-id routes)
 // =====================================================
 
 /**
@@ -397,13 +402,13 @@ router.get(
 
 /**
  * @swagger
- * /api/doctors/{doctorId}:
+ * /api/doctors/{doctor-id}:
  *   get:
  *     summary: Get doctor by ID
  *     tags: [Doctors]
  *     parameters:
  *       - in: path
- *         name: doctor_id
+ *         name: doctor-id
  *         required: true
  *         schema:
  *           type: string
@@ -414,7 +419,7 @@ router.get(
  *         description: Doctor not found
  */
 router.get(
-  "/:doctorId",
+  "/:doctor-id",
   validateDoctorId,
   doctorController.getDoctorById.bind(doctorController)
 );
@@ -436,7 +441,7 @@ router.get(
  *         description: List of doctors in department
  */
 router.get(
-  "/department/:departmentId",
+  "/department/:department-id",
   validateDepartmentId,
   doctorController.getDoctorsByDepartment.bind(doctorController)
 );
@@ -486,13 +491,13 @@ router.post(
 
 /**
  * @swagger
- * /api/doctors/{doctorId}:
+ * /api/doctors/{doctor-id}:
  *   put:
  *     summary: Update doctor
  *     tags: [Doctors]
  *     parameters:
  *       - in: path
- *         name: doctor_id
+ *         name: doctor-id
  *         required: true
  *         schema:
  *           type: string
@@ -503,7 +508,7 @@ router.post(
  *         description: Doctor not found
  */
 router.put(
-  "/:doctorId",
+  "/:doctor-id",
   validateDoctorId,
   validateUpdateDoctor,
   doctorController.updateDoctor.bind(doctorController)
@@ -511,13 +516,13 @@ router.put(
 
 /**
  * @swagger
- * /api/doctors/{doctorId}:
+ * /api/doctors/{doctor-id}:
  *   delete:
  *     summary: Delete doctor
  *     tags: [Doctors]
  *     parameters:
  *       - in: path
- *         name: doctor_id
+ *         name: doctor-id
  *         required: true
  *         schema:
  *           type: string
@@ -528,7 +533,7 @@ router.put(
  *         description: Doctor not found
  */
 router.delete(
-  "/:doctorId",
+  "/:doctor-id",
   validateDoctorId,
   doctorController.deleteDoctor.bind(doctorController)
 );
@@ -539,13 +544,13 @@ router.delete(
 
 /**
  * @swagger
- * /api/doctors/{doctorId}/profile:
+ * /api/doctors/{doctor-id}/profile:
  *   get:
  *     summary: Get complete doctor profile with schedule, reviews, and experiences
  *     tags: [Doctors]
  *     parameters:
  *       - in: path
- *         name: doctor_id
+ *         name: doctor-id
  *         required: true
  *         schema:
  *           type: string
@@ -556,20 +561,20 @@ router.delete(
  *         description: Doctor not found
  */
 router.get(
-  "/:doctorId/profile",
+  "/:doctor-id/profile",
   validateDoctorId,
   doctorController.getDoctorProfile.bind(doctorController)
 );
 
 /**
  * @swagger
- * /api/doctors/{doctorId}/profile-dashboard:
+ * /api/doctors/{doctor-id}/profile-dashboard:
  *   get:
  *     summary: Get complete doctor profile dashboard with all data
  *     tags: [Doctor Profile]
  *     parameters:
  *       - in: path
- *         name: doctor_id
+ *         name: doctor-id
  *         required: true
  *         schema:
  *           type: string
@@ -580,7 +585,7 @@ router.get(
  *         description: Doctor not found
  */
 router.get(
-  "/:doctorId/profile-dashboard",
+  "/:doctor-id/profile-dashboard",
   validateDoctorId,
   dashboardController.getDoctorProfileDashboard.bind(dashboardController)
 );
@@ -591,13 +596,13 @@ router.get(
 
 /**
  * @swagger
- * /api/doctors/{doctorId}/schedule:
+ * /api/doctors/{doctor-id}/schedule:
  *   get:
  *     summary: Get doctor's schedule
  *     tags: [Doctor Schedule]
  *     parameters:
  *       - in: path
- *         name: doctor_id
+ *         name: doctor-id
  *         required: true
  *         schema:
  *           type: string
@@ -606,20 +611,20 @@ router.get(
  *         description: Doctor's schedule
  */
 router.get(
-  "/:doctorId/schedule",
+  "/:doctor-id/schedule",
   validateDoctorId,
   doctorController.getDoctorSchedule.bind(doctorController)
 );
 
 /**
  * @swagger
- * /api/doctors/{doctorId}/schedule/weekly:
+ * /api/doctors/{doctor-id}/schedule/weekly:
  *   get:
  *     summary: Get doctor's weekly schedule
  *     tags: [Doctor Schedule]
  *     parameters:
  *       - in: path
- *         name: doctor_id
+ *         name: doctor-id
  *         required: true
  *         schema:
  *           type: string
@@ -628,14 +633,14 @@ router.get(
  *         description: Doctor's weekly schedule
  */
 router.get(
-  "/:doctorId/schedule/today",
+  "/:doctor-id/schedule/today",
   validateDoctorId,
   doctorController.getTodaySchedule.bind(doctorController)
 );
 
 // Enhanced weekly schedule with real-time availability
 router.get(
-  "/:doctorId/schedule/weekly",
+  "/:doctor-id/schedule/weekly",
   validateDoctorId,
   query("date")
     .optional()
@@ -646,13 +651,13 @@ router.get(
 
 /**
  * @swagger
- * /api/doctors/{doctorId}/schedule:
+ * /api/doctors/{doctor-id}/schedule:
  *   put:
  *     summary: Update doctor's schedule
  *     tags: [Doctor Schedule]
  *     parameters:
  *       - in: path
- *         name: doctor_id
+ *         name: doctor-id
  *         required: true
  *         schema:
  *           type: string
@@ -672,20 +677,20 @@ router.get(
  *         description: Schedule updated successfully
  */
 router.put(
-  "/:doctorId/schedule",
+  "/:doctor-id/schedule",
   validateDoctorId,
   doctorController.updateSchedule.bind(doctorController)
 );
 
 /**
  * @swagger
- * /api/doctors/{doctorId}/availability:
+ * /api/doctors/{doctor-id}/availability:
  *   get:
  *     summary: Get doctor's availability for a specific date
  *     tags: [Doctor Schedule]
  *     parameters:
  *       - in: path
- *         name: doctor_id
+ *         name: doctor-id
  *         required: true
  *         schema:
  *           type: string
@@ -700,20 +705,20 @@ router.put(
  *         description: Doctor's availability
  */
 router.get(
-  "/:doctorId/availability",
+  "/:doctor-id/availability",
   validateDoctorId,
   doctorController.getAvailability.bind(doctorController)
 );
 
 /**
  * @swagger
- * /api/doctors/{doctorId}/time-slots:
+ * /api/doctors/{doctor-id}/time-slots:
  *   get:
  *     summary: Get available time slots for a specific date
  *     tags: [Doctor Schedule]
  *     parameters:
  *       - in: path
- *         name: doctor_id
+ *         name: doctor-id
  *         required: true
  *         schema:
  *           type: string
@@ -728,7 +733,7 @@ router.get(
  *         description: Available time slots
  */
 router.get(
-  "/:doctorId/time-slots",
+  "/:doctor-id/time-slots",
   validateDoctorId,
   doctorController.getAvailableTimeSlots.bind(doctorController)
 );
@@ -739,13 +744,13 @@ router.get(
 
 /**
  * @swagger
- * /api/doctors/{doctorId}/reviews:
+ * /api/doctors/{doctor-id}/reviews:
  *   get:
  *     summary: Get doctor's reviews
  *     tags: [Doctor Reviews]
  *     parameters:
  *       - in: path
- *         name: doctor_id
+ *         name: doctor-id
  *         required: true
  *         schema:
  *           type: string
@@ -763,7 +768,7 @@ router.get(
  */
 // Enhanced reviews endpoint with Vietnamese support
 router.get(
-  "/:doctorId/reviews",
+  "/:doctor-id/reviews",
   validateDoctorId,
   query("page")
     .optional()
@@ -790,13 +795,13 @@ router.get(
 
 /**
  * @swagger
- * /api/doctors/{doctorId}/reviews/stats:
+ * /api/doctors/{doctor-id}/reviews/stats:
  *   get:
  *     summary: Get doctor's review statistics
  *     tags: [Doctor Reviews]
  *     parameters:
  *       - in: path
- *         name: doctor_id
+ *         name: doctor-id
  *         required: true
  *         schema:
  *           type: string
@@ -805,7 +810,7 @@ router.get(
  *         description: Review statistics
  */
 router.get(
-  "/:doctorId/reviews/stats",
+  "/:doctor-id/reviews/stats",
   validateDoctorId,
   doctorController.getReviewStats.bind(doctorController)
 );
@@ -816,13 +821,13 @@ router.get(
 
 /**
  * @swagger
- * /api/doctors/{doctorId}/appointments:
+ * /api/doctors/{doctor-id}/appointments:
  *   get:
  *     summary: Get doctor's appointments
  *     tags: [Doctor Appointments]
  *     parameters:
  *       - in: path
- *         name: doctor_id
+ *         name: doctor-id
  *         required: true
  *         schema:
  *           type: string
@@ -854,20 +859,20 @@ router.get(
  *         description: Doctor not found
  */
 router.get(
-  "/:doctorId/appointments",
+  "/:doctor-id/appointments",
   validateDoctorId,
   doctorController.getDoctorAppointments.bind(doctorController)
 );
 
 /**
  * @swagger
- * /api/doctors/{doctorId}/stats:
+ * /api/doctors/{doctor-id}/stats:
  *   get:
  *     summary: Get doctor's statistics
  *     tags: [Doctor Statistics]
  *     parameters:
  *       - in: path
- *         name: doctor_id
+ *         name: doctor-id
  *         required: true
  *         schema:
  *           type: string
@@ -878,7 +883,7 @@ router.get(
  *         description: Doctor not found
  */
 router.get(
-  "/:doctorId/stats",
+  "/:doctor-id/stats",
   validateDoctorId,
   doctorController.getDoctorStats.bind(doctorController)
 );
@@ -889,13 +894,13 @@ router.get(
 
 /**
  * @swagger
- * /api/doctors/{doctorId}/experiences:
+ * /api/doctors/{doctor-id}/experiences:
  *   get:
  *     summary: Get doctor's work experiences
  *     tags: [Doctor Experience]
  *     parameters:
  *       - in: path
- *         name: doctor_id
+ *         name: doctor-id
  *         required: true
  *         schema:
  *           type: string
@@ -912,20 +917,20 @@ router.get(
  *         description: Doctor not found
  */
 router.get(
-  "/:doctorId/experiences",
+  "/:doctor-id/experiences",
   validateDoctorId,
   doctorController.getDoctorExperiences.bind(doctorController)
 );
 
 /**
  * @swagger
- * /api/doctors/{doctorId}/appointment-stats:
+ * /api/doctors/{doctor-id}/appointment-stats:
  *   get:
  *     summary: Get doctor's appointment statistics
  *     tags: [Doctor Statistics]
  *     parameters:
  *       - in: path
- *         name: doctor_id
+ *         name: doctor-id
  *         required: true
  *         schema:
  *           type: string
@@ -943,7 +948,7 @@ router.get(
  */
 // Enhanced appointment statistics endpoint
 router.get(
-  "/:doctorId/appointment-stats",
+  "/:doctor-id/appointment-stats",
   validateDoctorId,
   query("period")
     .optional()
@@ -964,7 +969,7 @@ router.get(
 
 // Legacy endpoint for backward compatibility
 router.get(
-  "/:doctorId/appointments/stats",
+  "/:doctor-id/appointments/stats",
   validateDoctorId,
   appointmentStatsController.getDoctorAppointmentStats.bind(
     appointmentStatsController

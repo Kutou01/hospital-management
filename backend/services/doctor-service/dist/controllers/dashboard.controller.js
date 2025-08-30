@@ -17,13 +17,13 @@ class DashboardController {
     }
     async getDoctorProfileDashboard(req, res) {
         try {
-            const { doctorId } = req.params;
+            const { doctor_id } = req.params;
             const startTime = Date.now();
             logger_1.default.info('🏥 [Dashboard] Getting complete profile dashboard', {
-                doctorId,
+                doctor_id,
                 timestamp: new Date().toISOString()
             });
-            const doctorInfo = await this.getDoctorBasicInfo(doctorId);
+            const doctorInfo = await this.getDoctorBasicInfo(doctor_id);
             if (!doctorInfo) {
                 res.status(404).json({
                     success: false,
@@ -32,11 +32,11 @@ class DashboardController {
                 return;
             }
             const [appointmentStats, weeklySchedule, recentReviews, performanceMetrics, quickMetrics] = await Promise.allSettled([
-                this.getAppointmentStatsData(doctorId),
-                this.getWeeklyScheduleData(doctorId),
-                this.getRecentReviewsData(doctorId),
-                this.getPerformanceMetrics(doctorId),
-                this.getQuickMetrics(doctorId)
+                this.getAppointmentStatsData(doctor_id),
+                this.getWeeklyScheduleData(doctor_id),
+                this.getRecentReviewsData(doctor_id),
+                this.getPerformanceMetrics(doctor_id),
+                this.getQuickMetrics(doctor_id)
             ]);
             const processResult = (result, fallback = null, source = 'unknown') => {
                 if (result.status === 'fulfilled') {
@@ -94,7 +94,7 @@ class DashboardController {
             };
             const loadTime = Date.now() - startTime;
             logger_1.default.info('✅ [Dashboard] Profile dashboard loaded successfully', {
-                doctorId,
+                doctor_id,
                 doctorName: doctorInfo.full_name,
                 loadTime: `${loadTime}ms`,
                 dataQuality: {
@@ -121,7 +121,7 @@ class DashboardController {
             });
         }
     }
-    async getDoctorBasicInfo(doctorId) {
+    async getDoctorBasicInfo(doctor_id) {
         try {
             const { data: doctor, error } = await database_config_1.supabaseAdmin
                 .from('doctors')
@@ -141,14 +141,13 @@ class DashboardController {
           profiles!inner(
             full_name,
             email,
-            phone_number,
-            avatar_url
+            phone_number
           ),
           departments!inner(
             department_name
           )
         `)
-                .eq('doctor_id', doctorId)
+                .eq('doctor_id', doctor_id)
                 .single();
             if (error || !doctor) {
                 logger_1.default.error('❌ [DoctorBasicInfo] Error:', error);
@@ -171,7 +170,7 @@ class DashboardController {
                 availability_status: doctor.availability_status,
                 rating: doctor.rating,
                 total_reviews: doctor.total_reviews,
-                avatar_url: doctor.profiles.avatar_url
+                avatar_url: null
             };
         }
         catch (error) {
@@ -179,9 +178,9 @@ class DashboardController {
             return null;
         }
     }
-    async getAppointmentStatsData(doctorId) {
+    async getAppointmentStatsData(doctor_id) {
         const mockReq = {
-            params: { doctorId },
+            params: { doctor_id },
             query: { period: 'week', include_trends: 'true' }
         };
         return new Promise((resolve, reject) => {
@@ -199,9 +198,9 @@ class DashboardController {
             this.appointmentStatsController.getDoctorAppointmentStats(mockReq, mockRes);
         });
     }
-    async getWeeklyScheduleData(doctorId) {
+    async getWeeklyScheduleData(doctor_id) {
         const mockReq = {
-            params: { doctorId },
+            params: { doctor_id },
             query: {}
         };
         return new Promise((resolve, reject) => {
@@ -219,9 +218,9 @@ class DashboardController {
             this.weeklyScheduleController.getWeeklySchedule(mockReq, mockRes);
         });
     }
-    async getRecentReviewsData(doctorId) {
+    async getRecentReviewsData(doctor_id) {
         const mockReq = {
-            params: { doctorId },
+            params: { doctor_id },
             query: { page: 1, limit: 5, sort: 'newest' }
         };
         return new Promise((resolve, reject) => {
@@ -239,12 +238,12 @@ class DashboardController {
             this.enhancedReviewsController.getDoctorReviews(mockReq, mockRes);
         });
     }
-    async getPerformanceMetrics(doctorId) {
+    async getPerformanceMetrics(doctor_id) {
         try {
             const { data: metrics, error } = await database_config_1.supabaseAdmin
                 .from('doctor_performance_metrics')
                 .select('*')
-                .eq('doctor_id', doctorId)
+                .eq('doctor_id', doctor_id)
                 .gte('metric_date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
                 .order('metric_date', { ascending: false })
                 .limit(1)
@@ -280,13 +279,13 @@ class DashboardController {
             };
         }
     }
-    async getQuickMetrics(doctorId) {
+    async getQuickMetrics(doctor_id) {
         try {
             const today = new Date().toISOString().split('T')[0];
             const { count: appointmentsToday } = await database_config_1.supabaseAdmin
                 .from('appointments')
                 .select('*', { count: 'exact', head: true })
-                .eq('doctor_id', doctorId)
+                .eq('doctor_id', doctor_id)
                 .eq('appointment_date', today);
             const { data: nextAppointment } = await database_config_1.supabaseAdmin
                 .from('appointments')
@@ -295,7 +294,7 @@ class DashboardController {
           start_time,
           patients!inner(profiles!inner(full_name))
         `)
-                .eq('doctor_id', doctorId)
+                .eq('doctor_id', doctor_id)
                 .eq('appointment_date', today)
                 .eq('status', 'scheduled')
                 .gte('start_time', new Date().toTimeString().split(' ')[0])

@@ -28,6 +28,7 @@ A comprehensive microservices-based hospital management system built with modern
 - ✅ **Department Service** (3005) - Hospital structure management
 - ✅ **Receptionist Service** (3006) - Check-in, queue & appointment management
 - ✅ **Medical Records Service** (3007) - Simplified medical records
+- ✅ **File Service** (3107) - **Document management with critical fix applied** ✨
 - ✅ **Prescription Service** (3008) - Prescription management system
 - ✅ **Payment Service** (3009) - PayOS integration complete
 - ✅ **Notification Service** (3011) - Real-time notifications

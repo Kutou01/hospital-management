@@ -7,7 +7,7 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
 const PHONE_PATTERN = /^0\d{9}$/;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 exports.validatePatientId = [
-    (0, express_validator_1.param)('patientId')
+    (0, express_validator_1.param)('patient_id')
         .notEmpty()
         .withMessage('Patient ID is required')
         .matches(PATIENT_ID_PATTERN)
@@ -19,7 +19,7 @@ exports.validateProfileId = [
         .withMessage('Profile ID must be a valid UUID')
 ];
 exports.validateDoctorId = [
-    (0, express_validator_1.param)('doctorId')
+    (0, express_validator_1.param)('doctor_id')
         .matches(/^[A-Z]{4}-DOC-\d{6}-\d{3}$/)
         .withMessage('Doctor ID must be in department-based format (e.g., CARD-DOC-YYYYMM-XXX)')
 ];

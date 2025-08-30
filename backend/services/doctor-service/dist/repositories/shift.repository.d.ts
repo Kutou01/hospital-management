@@ -2,9 +2,9 @@ import { DoctorShift, CreateShiftRequest, UpdateShiftRequest } from '@hospital/s
 export declare class ShiftRepository {
     private supabase;
     constructor();
-    findByDoctorId(doctorId: string, limit?: number, offset?: number): Promise<DoctorShift[]>;
+    findByDoctorId(doctor_id: string, limit?: number, offset?: number): Promise<DoctorShift[]>;
     findById(shiftId: string): Promise<DoctorShift | null>;
-    findByDateRange(doctorId: string, startDate: Date, endDate: Date): Promise<DoctorShift[]>;
+    findByDateRange(doctor_id: string, startDate: Date, endDate: Date): Promise<DoctorShift[]>;
     findByDepartment(departmentId: string, date?: Date, limit?: number): Promise<DoctorShift[]>;
     create(shiftData: CreateShiftRequest): Promise<DoctorShift>;
     update(shiftId: string, shiftData: UpdateShiftRequest): Promise<DoctorShift | null>;
@@ -12,9 +12,9 @@ export declare class ShiftRepository {
     confirmShift(shiftId: string): Promise<DoctorShift | null>;
     completeShift(shiftId: string, notes?: string): Promise<DoctorShift | null>;
     cancelShift(shiftId: string, reason?: string): Promise<DoctorShift | null>;
-    getUpcomingShifts(doctorId: string, days?: number): Promise<DoctorShift[]>;
+    getUpcomingShifts(doctor_id: string, days?: number): Promise<DoctorShift[]>;
     getEmergencyShifts(departmentId?: string, date?: Date): Promise<DoctorShift[]>;
-    getShiftStatistics(doctorId: string, startDate: Date, endDate: Date): Promise<{
+    getShiftStatistics(doctor_id: string, startDate: Date, endDate: Date): Promise<{
         total_shifts: number;
         completed_shifts: number;
         cancelled_shifts: number;

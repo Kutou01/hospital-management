@@ -55,7 +55,7 @@ exports.departmentTypeDefs = (0, graphql_tag_1.gql) `
     nameEn: String
     nameVi: String!
     description: String
-    
+
     # Department Details
     code: String! # e.g., CARD, NEUR, ORTH
     type: String # Internal, Surgical, Diagnostic, etc.
@@ -63,24 +63,24 @@ exports.departmentTypeDefs = (0, graphql_tag_1.gql) `
     building: String
     phoneNumber: PhoneNumber
     email: String
-    
+
     # Operational Information
     status: DepartmentStatus!
-    isActive: Boolean!
+    is_active: Boolean!
     operatingHours: OperatingHours
     emergencyAvailable: Boolean!
-    
+
     # Capacity Information
     totalRooms: Int!
     availableRooms: Int!
     totalBeds: Int
     availableBeds: Int
     maxPatients: Int
-    
+
     # Timestamps
-    createdAt: DateTime!
-    updatedAt: DateTime!
-    
+    created_at: DateTime!
+    updated_at: DateTime!
+
     # Relationships
     head: Doctor # Department head
     doctors(
@@ -106,10 +106,10 @@ exports.departmentTypeDefs = (0, graphql_tag_1.gql) `
       limit: Int = 20
       offset: Int = 0
     ): AppointmentConnection!
-    
+
     # Statistics
     stats: DepartmentStats
-    
+
     # Computed Fields
     currentPatients: Int!
     todayAppointments: Int!
@@ -150,7 +150,7 @@ exports.departmentTypeDefs = (0, graphql_tag_1.gql) `
     capacity: Int
     departmentId: UUID!
     department: Department!
-    
+
     # Room Details
     area: Float # square meters
     hasAirConditioning: Boolean
@@ -158,18 +158,18 @@ exports.departmentTypeDefs = (0, graphql_tag_1.gql) `
     hasVacuum: Boolean
     hasInternet: Boolean
     accessibility: Boolean
-    
+
     # Equipment in room
     equipment: [Equipment!]!
-    
+
     # Current usage
     currentAppointment: Appointment
     nextAppointment: Appointment
     isOccupied: Boolean!
-    
+
     # Timestamps
-    createdAt: DateTime!
-    updatedAt: DateTime!
+    created_at: DateTime!
+    updated_at: DateTime!
   }
 
   # Equipment
@@ -181,27 +181,27 @@ exports.departmentTypeDefs = (0, graphql_tag_1.gql) `
     serialNumber: String
     type: String!
     status: EquipmentStatus!
-    
+
     # Location
     departmentId: UUID
     roomId: UUID
     department: Department
     room: Room
-    
+
     # Equipment Details
     purchaseDate: Date
     warrantyExpiry: Date
     lastMaintenanceDate: Date
     nextMaintenanceDate: Date
     cost: Float
-    
+
     # Operational
     isOperational: Boolean!
     requiresCalibration: Boolean
-    
+
     # Timestamps
-    createdAt: DateTime!
-    updatedAt: DateTime!
+    created_at: DateTime!
+    updated_at: DateTime!
   }
 
   # Department Statistics
@@ -213,22 +213,22 @@ exports.departmentTypeDefs = (0, graphql_tag_1.gql) `
     availableRooms: Int!
     totalEquipment: Int!
     operationalEquipment: Int!
-    
+
     # Appointment statistics
     todayAppointments: Int!
     thisWeekAppointments: Int!
     thisMonthAppointments: Int!
     completedAppointments: Int!
     cancelledAppointments: Int!
-    
+
     # Patient statistics
     totalPatients: Int!
     newPatients: Int!
     returningPatients: Int!
-    
+
     # Financial
     revenue: DepartmentRevenue!
-    
+
     # Performance
     averageWaitTime: Float! # minutes
     averageConsultationTime: Float! # minutes
@@ -247,59 +247,57 @@ exports.departmentTypeDefs = (0, graphql_tag_1.gql) `
   # Note: MedicalRecord, VitalSigns, LabResult, and MedicalAttachment types
   # are defined in medical-record.schema.ts to avoid duplication and maintain consistency
 
-  # Prescription
-  type Prescription {
+  # Simplified Prescription
+  type SimplifiedPrescription {
     id: UUID!
-    patientId: PatientID!
-    doctorId: DoctorID!
-    appointmentId: UUID
-    
-    # Prescription Details
-    prescriptionNumber: String!
+    patient_id: PatientID!
+    doctor_id: DoctorID!
+    appointment_id: UUID
+
+    # Simplified Prescription Details
     prescriptionDate: Date!
-    medications: [Medication!]!
-    instructions: String
+    medications: [SimplifiedMedication!]! # Embedded simplified medications
     notes: String
-    
-    # Status
-    isActive: Boolean!
-    isDispensed: Boolean!
-    dispensedAt: DateTime
-    dispensedBy: String
-    
+
+    # Simplified Status
+    status: PrescriptionStatus! # active, completed, cancelled
     # Relationships
     patient: Patient!
     doctor: Doctor!
     appointment: Appointment
-    
+
     # Timestamps
-    createdAt: DateTime!
-    updatedAt: DateTime!
+    created_at: DateTime!
+    updated_at: DateTime!
   }
 
-  type Medication {
-    name: String!
-    dosage: String!
-    frequency: String!
-    duration: String!
-    instructions: String
-    quantity: Int
-    unit: String
+  enum PrescriptionStatus {
+    ACTIVE
+    COMPLETED
+    CANCELLED
+  }
+
+  # Simplified Medication (embedded in prescription)
+  type SimplifiedMedication {
+    name: String! # Simple medication name
+    dosage: String! # Free text (e.g., "500mg")
+    instructions: String! # Simple instructions (e.g., "Take twice daily after meals")
+    quantity: Int! # Number of units
   }
 
   # Payment
   type Payment {
     id: UUID!
-    patientId: PatientID!
-    appointmentId: UUID
-    
+    patient_id: PatientID!
+    appointment_id: UUID
+
     # Payment Details
     paymentNumber: String!
     amount: Float!
     currency: String! # VND
     paymentMethod: String!
     paymentStatus: PaymentStatus!
-    
+
     # Payment Breakdown
     consultationFee: Float!
     medicationFee: Float
@@ -308,27 +306,27 @@ exports.departmentTypeDefs = (0, graphql_tag_1.gql) `
     insuranceCoverage: Float
     discount: Float
     tax: Float
-    
+
     # Payment Information
     paidAt: DateTime
     refundedAt: DateTime
     refundAmount: Float
     transactionId: String
-    
+
     # Relationships
     patient: Patient!
     appointment: Appointment
-    
+
     # Timestamps
-    createdAt: DateTime!
-    updatedAt: DateTime!
+    created_at: DateTime!
+    updated_at: DateTime!
   }
 
   # Input Types
   input DepartmentFilters {
     search: String
     status: DepartmentStatus
-    isActive: Boolean
+    is_active: Boolean
     type: String
     floor: Int
     building: String
@@ -367,7 +365,7 @@ exports.departmentTypeDefs = (0, graphql_tag_1.gql) `
     emergencyAvailable: Boolean
     maxPatients: Int
     status: DepartmentStatus
-    isActive: Boolean
+    is_active: Boolean
   }
 
   input OperatingHoursInput {
@@ -401,10 +399,10 @@ exports.departmentTypeDefs = (0, graphql_tag_1.gql) `
       sortBy: String = "name"
       sortOrder: String = "ASC"
     ): [Department!]!
-    
+
     # Department statistics
     departmentStats(departmentId: UUID!): DepartmentStats!
-    
+
     # Room queries
     room(id: UUID!): Room
     departmentRooms(
@@ -419,21 +417,21 @@ exports.departmentTypeDefs = (0, graphql_tag_1.gql) `
       timeFrom: Time
       timeTo: Time
     ): [Room!]!
-    
+
     # Equipment queries
     equipment(id: UUID!): Equipment
     departmentEquipment(
       departmentId: UUID!
       status: EquipmentStatus
     ): [Equipment!]!
-    
+
     # Note: Medical record queries are defined in medical-record.schema.ts
     # Note: Patient medical record queries are defined in patient.schema.ts
 
     # Prescriptions
     prescription(id: UUID!): Prescription
     patientPrescriptions(
-      patientId: PatientID!
+      patient_id: PatientID!
       active: Boolean
       limit: Int = 20
       offset: Int = 0
@@ -442,7 +440,7 @@ exports.departmentTypeDefs = (0, graphql_tag_1.gql) `
     # Payments
     payment(id: UUID!): Payment
     patientPayments(
-      patientId: PatientID!
+      patient_id: PatientID!
       status: PaymentStatus
       limit: Int = 20
       offset: Int = 0
@@ -464,10 +462,10 @@ exports.departmentTypeDefs = (0, graphql_tag_1.gql) `
     # Department updates
     departmentUpdated(departmentId: UUID): Department!
     departmentStatsUpdated(departmentId: UUID!): DepartmentStats!
-    
+
     # Room availability
     roomAvailabilityChanged(departmentId: UUID): Room!
-    
+
     # Equipment status
     equipmentStatusChanged(departmentId: UUID): Equipment!
   }

@@ -81,14 +81,14 @@ class PatientRealtimeService {
     async handlePatientChange(payload) {
         try {
             const { eventType, new: newRecord, old: oldRecord } = payload;
-            const patientId = newRecord?.patient_id || oldRecord?.patient_id;
+            const patient_id = newRecord?.patient_id || oldRecord?.patient_id;
             logger_1.default.info('📡 Received patient change:', {
                 eventType,
-                patientId
+                patient_id
             });
             const realtimeEvent = {
                 type: eventType,
-                patient_id: patientId,
+                patient_id: patient_id,
                 profile_id: newRecord?.profile_id || oldRecord?.profile_id,
                 old_status: oldRecord?.status,
                 new_status: newRecord?.status,
@@ -111,11 +111,11 @@ class PatientRealtimeService {
                 eventType,
                 profileId
             });
-            const patientId = await this.findPatientByProfileId(profileId);
-            if (patientId) {
+            const patient_id = await this.findPatientByProfileId(profileId);
+            if (patient_id) {
                 const realtimeEvent = {
                     type: eventType,
-                    patient_id: patientId,
+                    patient_id: patient_id,
                     profile_id: profileId,
                     timestamp: new Date().toISOString()
                 };
@@ -134,7 +134,7 @@ class PatientRealtimeService {
             await this.updateCache(event);
             logger_1.default.info('✅ Patient event processed successfully:', {
                 type: event.type,
-                patientId: event.patient_id
+                patient_id: event.patient_id
             });
         }
         catch (error) {

@@ -1,6 +1,5 @@
 import { logger } from "@hospital/shared";
-import { GraphQLContext } from "../context";
-import { contextUtils } from '../context';
+import { contextUtils, GraphQLContext } from "../context";
 
 /**
  * Patient GraphQL Resolvers
@@ -16,7 +15,7 @@ export const patientResolvers = {
       context: GraphQLContext
     ) {
       try {
-        const identifier = id || patientId;
+        const identifier = id || patient_id;
         if (!identifier) {
           throw new Error(
             contextUtils.translate(context, "patient.errors.missing_identifier")
@@ -208,7 +207,10 @@ export const patientResolvers = {
         if (!response.success) {
           throw new Error(
             response.error?.message ||
-              contextUtils.translate(context, "patient.errors.medical_summary_failed")
+              contextUtils.translate(
+                context,
+                "patient.errors.medical_summary_failed"
+              )
           );
         }
 
@@ -310,7 +312,8 @@ export const patientResolvers = {
         if (!response.success) {
           throw new Error(
             response.error?.message ||
-              contextUtils.translate(context, 
+              contextUtils.translate(
+                context,
                 "medical_record.errors.patient_records_failed"
               )
           );
@@ -478,7 +481,10 @@ export const patientResolvers = {
         if (!response.success) {
           throw new Error(
             response.error?.message ||
-              contextUtils.translate(context, "patient.errors.deactivate_failed")
+              contextUtils.translate(
+                context,
+                "patient.errors.deactivate_failed"
+              )
           );
         }
 
@@ -527,7 +533,10 @@ export const patientResolvers = {
         if (!response.success) {
           throw new Error(
             response.error?.message ||
-              contextUtils.translate(context, "patient.errors.medical_update_failed")
+              contextUtils.translate(
+                context,
+                "patient.errors.medical_update_failed"
+              )
           );
         }
 
@@ -574,7 +583,10 @@ export const patientResolvers = {
         if (!response.success) {
           throw new Error(
             response.error?.message ||
-              contextUtils.translate(context, "patient.errors.insurance_update_failed")
+              contextUtils.translate(
+                context,
+                "patient.errors.insurance_update_failed"
+              )
           );
         }
 

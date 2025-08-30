@@ -1,5 +1,5 @@
-import DataLoader from 'dataloader';
-import { RestApiService } from '../services/rest-api.service';
+import DataLoader from "dataloader";
+import { RestApiService } from "../services/rest-api.service";
 /**
  * DataLoader factory for N+1 query optimization
  * Creates batched loaders for efficient data fetching from REST APIs

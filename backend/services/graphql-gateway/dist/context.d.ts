@@ -37,10 +37,10 @@ export interface AuthenticatedUser {
     email: string;
     role: UserRole;
     permissions: string[];
-    doctorId?: string;
-    patientId?: string;
+    doctor_id?: string;
+    patient_id?: string;
     fullName: string;
-    isActive: boolean;
+    is_active: boolean;
     lastLoginAt?: Date;
     sessionId?: string;
     tokenIssuedAt: Date;

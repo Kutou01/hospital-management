@@ -12,7 +12,7 @@ const validateExperienceId = [
     (0, express_validator_1.param)('experienceId').notEmpty().withMessage('Experience ID is required')
 ];
 const validateDoctorId = [
-    (0, express_validator_1.param)('doctorId').notEmpty().withMessage('Doctor ID is required')
+    (0, express_validator_1.param)('doctor_id').notEmpty().withMessage('Doctor ID is required')
 ];
 const validateCreateExperience = [
     (0, express_validator_1.body)('doctor_id').notEmpty().withMessage('Doctor ID is required'),

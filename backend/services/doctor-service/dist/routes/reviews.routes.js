@@ -9,9 +9,9 @@ const auth_middleware_1 = require("../middleware/auth.middleware");
 const router = express_1.default.Router();
 router.get('/:doctorId/reviews', auth_middleware_1.authenticateToken, async (req, res) => {
     try {
-        const { doctorId } = req.params;
+        const { doctor_id } = req.params;
         const { page = 1, limit = 10, rating_filter } = req.query;
-        if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctorId)) {
+        if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctor_id)) {
             return res.status(403).json({
                 success: false,
                 error: { message: 'Không có quyền truy cập thông tin này' }
@@ -28,7 +28,7 @@ router.get('/:doctorId/reviews', auth_middleware_1.authenticateToken, async (req
           )
         )
       `)
-            .eq('doctor_id', doctorId)
+            .eq('doctor_id', doctor_id)
             .order('review_date', { ascending: false });
         if (rating_filter && rating_filter !== 'all') {
             query = query.eq('rating', parseInt(rating_filter));
@@ -48,7 +48,7 @@ router.get('/:doctorId/reviews', auth_middleware_1.authenticateToken, async (req
         const { data: stats, error: statsError } = await database_config_1.supabase
             .from('doctor_reviews')
             .select('rating')
-            .eq('doctor_id', doctorId);
+            .eq('doctor_id', doctor_id);
         if (statsError) {
             console.error('❌ [Reviews] Stats error:', statsError);
         }
@@ -90,8 +90,8 @@ router.get('/:doctorId/reviews', auth_middleware_1.authenticateToken, async (req
 });
 router.get('/:doctorId/reviews/summary', auth_middleware_1.authenticateToken, async (req, res) => {
     try {
-        const { doctorId } = req.params;
-        if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctorId)) {
+        const { doctor_id } = req.params;
+        if (!req.user || (req.user.role !== 'admin' && req.user.doctor_id !== doctor_id)) {
             return res.status(403).json({
                 success: false,
                 error: { message: 'Không có quyền truy cập thông tin này' }
@@ -100,7 +100,7 @@ router.get('/:doctorId/reviews/summary', auth_middleware_1.authenticateToken, as
         const { data: reviews, error } = await database_config_1.supabase
             .from('doctor_reviews')
             .select('rating, review_date')
-            .eq('doctor_id', doctorId);
+            .eq('doctor_id', doctor_id);
         if (error) {
             console.error('❌ [ReviewsSummary] Database error:', error);
             return res.status(500).json({

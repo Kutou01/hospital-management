@@ -4,15 +4,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DoctorController = void 0;
+const logger_1 = __importDefault(require("@hospital/shared/dist/utils/logger"));
 const express_validator_1 = require("express-validator");
 const doctor_repository_1 = require("../repositories/doctor.repository");
-const schedule_repository_1 = require("../repositories/schedule.repository");
-const review_repository_1 = require("../repositories/review.repository");
-const shift_repository_1 = require("../repositories/shift.repository");
 const experience_repository_1 = require("../repositories/experience.repository");
+const review_repository_1 = require("../repositories/review.repository");
+const schedule_repository_1 = require("../repositories/schedule.repository");
+const shift_repository_1 = require("../repositories/shift.repository");
 const appointment_service_1 = require("../services/appointment.service");
 const patient_service_1 = require("../services/patient.service");
-const logger_1 = __importDefault(require("@hospital/shared/dist/utils/logger"));
 class DoctorController {
     constructor() {
         this.doctorRepository = new doctor_repository_1.DoctorRepository();
@@ -31,12 +31,12 @@ class DoctorController {
             const startTime = Date.now();
             const [doctors, total] = await Promise.all([
                 this.doctorRepository.findAll(limit, offset),
-                this.doctorRepository.count()
+                this.doctorRepository.count(),
             ]);
             const queryTime = Date.now() - startTime;
             res.json({
                 success: true,
-                message: 'Doctors retrieved successfully',
+                message: "Doctors retrieved successfully",
                 data: doctors,
                 pagination: {
                     page,
@@ -44,46 +44,49 @@ class DoctorController {
                     total,
                     totalPages: Math.ceil(total / limit),
                     hasNext: page < Math.ceil(total / limit),
-                    hasPrev: page > 1
+                    hasPrev: page > 1,
                 },
                 performance: {
                     query_time_ms: queryTime,
                     total_records: total,
-                    returned_records: doctors.length
-                }
+                    returned_records: doctors.length,
+                },
             });
         }
         catch (error) {
-            logger_1.default.error('Error fetching doctors', { error, query: req.query });
+            logger_1.default.error("Error fetching doctors", { error, query: req.query });
             res.status(500).json({
                 success: false,
-                message: 'Failed to retrieve doctors',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Failed to retrieve doctors",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
     async getDoctorById(req, res) {
         try {
-            const { doctorId } = req.params;
-            const doctor = await this.doctorRepository.findById(doctorId);
+            const { doctor_id } = req.params;
+            const doctor = await this.doctorRepository.findById(doctor_id);
             if (!doctor) {
                 res.status(404).json({
                     success: false,
-                    message: 'Doctor not found'
+                    message: "Doctor not found",
                 });
                 return;
             }
             res.json({
                 success: true,
-                data: doctor
+                data: doctor,
             });
         }
         catch (error) {
-            logger_1.default.error('Error fetching doctor by ID', { error, doctorId: req.params.doctorId });
+            logger_1.default.error("Error fetching doctor by ID", {
+                error,
+                doctor_id: req.params.doctor_id,
+            });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
@@ -94,21 +97,24 @@ class DoctorController {
             if (!doctor) {
                 res.status(404).json({
                     success: false,
-                    message: 'Doctor not found for this profile'
+                    message: "Doctor not found for this profile",
                 });
                 return;
             }
             res.json({
                 success: true,
-                data: doctor
+                data: doctor,
             });
         }
         catch (error) {
-            logger_1.default.error('Error fetching doctor by profile ID', { error, profileId: req.params.profileId });
+            logger_1.default.error("Error fetching doctor by profile ID", {
+                error,
+                profileId: req.params.profileId,
+            });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
@@ -129,16 +135,19 @@ class DoctorController {
                     total,
                     total_pages: totalPages,
                     has_previous: page > 1,
-                    has_next: page < totalPages
-                }
+                    has_next: page < totalPages,
+                },
             });
         }
         catch (error) {
-            logger_1.default.error('Error fetching doctors by department', { error, departmentId: req.params.departmentId });
+            logger_1.default.error("Error fetching doctors by department", {
+                error,
+                departmentId: req.params.departmentId,
+            });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
@@ -152,25 +161,32 @@ class DoctorController {
                 department_id: req.query.department_id,
                 gender: req.query.gender,
                 search: req.query.search,
-                min_rating: req.query.min_rating ? parseFloat(req.query.min_rating) : undefined,
-                max_consultation_fee: req.query.max_consultation_fee ? parseFloat(req.query.max_consultation_fee) : undefined,
+                min_rating: req.query.min_rating
+                    ? parseFloat(req.query.min_rating)
+                    : undefined,
+                max_consultation_fee: req.query.max_consultation_fee
+                    ? parseFloat(req.query.max_consultation_fee)
+                    : undefined,
                 languages: req.query.languages,
                 availability_status: req.query.availability_status,
-                experience_years: req.query.experience_years ? parseInt(req.query.experience_years) : undefined,
-                sort_by: req.query.sort_by || 'rating',
-                sort_order: req.query.sort_order || 'desc'
+                experience_years: req.query.experience_years
+                    ? parseInt(req.query.experience_years)
+                    : undefined,
+                sort_by: req.query.sort_by || "rating",
+                sort_order: req.query.sort_order || "desc",
             };
-            if (searchQuery.min_rating && (searchQuery.min_rating < 0 || searchQuery.min_rating > 5)) {
+            if (searchQuery.min_rating &&
+                (searchQuery.min_rating < 0 || searchQuery.min_rating > 5)) {
                 res.status(400).json({
                     success: false,
-                    message: 'Invalid rating range. Rating must be between 0 and 5.'
+                    message: "Invalid rating range. Rating must be between 0 and 5.",
                 });
                 return;
             }
             if (searchQuery.experience_years && searchQuery.experience_years < 0) {
                 res.status(400).json({
                     success: false,
-                    message: 'Experience years must be a positive number.'
+                    message: "Experience years must be a positive number.",
                 });
                 return;
             }
@@ -180,7 +196,7 @@ class DoctorController {
             const totalCount = await this.doctorRepository.getSearchCount(searchQuery);
             res.json({
                 success: true,
-                message: 'Doctors retrieved successfully',
+                message: "Doctors retrieved successfully",
                 data: result,
                 pagination: {
                     page,
@@ -188,25 +204,25 @@ class DoctorController {
                     total: totalCount,
                     totalPages: Math.ceil(totalCount / limit),
                     hasNext: page < Math.ceil(totalCount / limit),
-                    hasPrev: page > 1
+                    hasPrev: page > 1,
                 },
                 search_metadata: {
                     query_time_ms: searchTime,
-                    filters_applied: Object.keys(searchQuery).filter(key => searchQuery[key] !== undefined &&
-                        searchQuery[key] !== ''),
+                    filters_applied: Object.keys(searchQuery).filter((key) => searchQuery[key] !== undefined &&
+                        searchQuery[key] !== ""),
                     total_results: totalCount,
                     search_term: searchQuery.search || null,
                     sort_by: searchQuery.sort_by,
-                    sort_order: searchQuery.sort_order
-                }
+                    sort_order: searchQuery.sort_order,
+                },
             });
         }
         catch (error) {
-            logger_1.default.error('Error searching doctors', { error, query: req.query });
+            logger_1.default.error("Error searching doctors", { error, query: req.query });
             res.status(500).json({
                 success: false,
-                message: 'Failed to search doctors',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Failed to search doctors",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
@@ -216,24 +232,70 @@ class DoctorController {
             if (!errors.isEmpty()) {
                 res.status(400).json({
                     success: false,
-                    message: 'Validation failed',
-                    errors: errors.array()
+                    message: "Validation failed",
+                    errors: errors.array(),
                 });
                 return;
             }
+            const { profile_id } = req.body;
+            if (!profile_id) {
+                logger_1.default.info("Doctor creation request without profile_id - redirecting to Auth Service");
+                res.status(400).json({
+                    success: false,
+                    error: "Doctor creation handled by Auth Service",
+                    message: "Use Auth Service /api/auth/register-doctor endpoint for complete doctor registration",
+                    redirect: {
+                        service: "auth-service",
+                        endpoint: "/api/auth/register-doctor",
+                        method: "POST",
+                        required_fields: [
+                            "email",
+                            "password",
+                            "full_name",
+                            "phone_number",
+                            "license_number",
+                            "department_id",
+                            "specialization",
+                        ],
+                        example: {
+                            email: "doctor@hospital.com",
+                            password: "Doctor123!",
+                            full_name: "Dr. John Smith",
+                            phone_number: "0123456789",
+                            license_number: "VN-MD-1234",
+                            department_id: "CARD",
+                            specialization: "Cardiology",
+                            years_of_experience: 5,
+                            education: "MD from University of Medicine",
+                            certifications: ["Board Certified Cardiologist"],
+                        },
+                    },
+                    timestamp: new Date().toISOString(),
+                });
+                return;
+            }
+            logger_1.default.info("Direct doctor creation request with profile_id:", {
+                profile_id,
+                full_name: req.body.full_name,
+            });
             const doctor = await this.doctorRepository.create(req.body);
+            logger_1.default.info("Doctor created successfully:", {
+                doctor_id: doctor.doctor_id,
+                profile_id: doctor.profile_id,
+            });
             res.status(201).json({
                 success: true,
-                message: 'Doctor created successfully',
-                data: doctor
+                message: "Doctor created successfully",
+                data: doctor,
+                timestamp: new Date().toISOString(),
             });
         }
         catch (error) {
-            logger_1.default.error('Error creating doctor', { error, body: req.body });
+            logger_1.default.error("Error creating doctor", { error, body: req.body });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
@@ -243,114 +305,130 @@ class DoctorController {
             if (!errors.isEmpty()) {
                 res.status(400).json({
                     success: false,
-                    message: 'Validation failed',
-                    errors: errors.array()
+                    message: "Validation failed",
+                    errors: errors.array(),
                 });
                 return;
             }
-            const { doctorId } = req.params;
-            const doctor = await this.doctorRepository.update(doctorId, req.body);
+            const { doctor_id } = req.params;
+            const doctor = await this.doctorRepository.update(doctor_id, req.body);
             if (!doctor) {
                 res.status(404).json({
                     success: false,
-                    message: 'Doctor not found'
+                    message: "Doctor not found",
                 });
                 return;
             }
             res.json({
                 success: true,
-                message: 'Doctor updated successfully',
-                data: doctor
+                message: "Doctor updated successfully",
+                data: doctor,
             });
         }
         catch (error) {
-            logger_1.default.error('Error updating doctor', { error, doctorId: req.params.doctorId, body: req.body });
+            logger_1.default.error("Error updating doctor", {
+                error,
+                doctor_id: req.params.doctor_id,
+                body: req.body,
+            });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
     async deleteDoctor(req, res) {
         try {
-            const { doctorId } = req.params;
-            const success = await this.doctorRepository.delete(doctorId);
+            const { doctor_id } = req.params;
+            const success = await this.doctorRepository.delete(doctor_id);
             if (!success) {
                 res.status(404).json({
                     success: false,
-                    message: 'Doctor not found'
+                    message: "Doctor not found",
                 });
                 return;
             }
             res.json({
                 success: true,
-                message: 'Doctor deleted successfully'
+                message: "Doctor deleted successfully",
             });
         }
         catch (error) {
-            logger_1.default.error('Error deleting doctor', { error, doctorId: req.params.doctorId });
+            logger_1.default.error("Error deleting doctor", {
+                error,
+                doctor_id: req.params.doctor_id,
+            });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
     async getDoctorSchedule(req, res) {
         try {
-            const { doctorId } = req.params;
-            const schedule = await this.scheduleRepository.findByDoctorId(doctorId);
+            const { doctor_id } = req.params;
+            const schedule = await this.scheduleRepository.findByDoctorId(doctor_id);
             res.json({
                 success: true,
-                data: schedule
+                data: schedule,
             });
         }
         catch (error) {
-            logger_1.default.error('Error fetching doctor schedule', { error, doctorId: req.params.doctorId });
+            logger_1.default.error("Error fetching doctor schedule", {
+                error,
+                doctor_id: req.params.doctor_id,
+            });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
     async getTodaySchedule(req, res) {
         try {
-            const { doctorId } = req.params;
+            const { doctor_id } = req.params;
             const today = new Date();
             const dayOfWeek = today.getDay();
-            const weeklySchedule = await this.scheduleRepository.getWeeklySchedule(doctorId);
+            const weeklySchedule = await this.scheduleRepository.getWeeklySchedule(doctor_id);
             const todaySchedule = weeklySchedule.filter((slot) => slot.day_of_week === dayOfWeek);
             res.json({
                 success: true,
-                data: todaySchedule
+                data: todaySchedule,
             });
         }
         catch (error) {
-            logger_1.default.error('Error fetching today schedule', { error, doctorId: req.params.doctorId });
+            logger_1.default.error("Error fetching today schedule", {
+                error,
+                doctor_id: req.params.doctor_id,
+            });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
     async getWeeklySchedule(req, res) {
         try {
-            const { doctorId } = req.params;
-            const schedule = await this.scheduleRepository.getWeeklySchedule(doctorId);
+            const { doctor_id } = req.params;
+            const schedule = await this.scheduleRepository.getWeeklySchedule(doctor_id);
             res.json({
                 success: true,
-                data: schedule
+                data: schedule,
             });
         }
         catch (error) {
-            logger_1.default.error('Error fetching weekly schedule', { error, doctorId: req.params.doctorId });
+            logger_1.default.error("Error fetching weekly schedule", {
+                error,
+                doctor_id: req.params.doctor_id,
+            });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
@@ -360,169 +438,193 @@ class DoctorController {
             if (!errors.isEmpty()) {
                 res.status(400).json({
                     success: false,
-                    message: 'Validation failed',
-                    errors: errors.array()
+                    message: "Validation failed",
+                    errors: errors.array(),
                 });
                 return;
             }
-            const { doctorId } = req.params;
+            const { doctor_id } = req.params;
             const { schedules } = req.body;
-            const updatedSchedules = await this.scheduleRepository.bulkUpdateSchedule(doctorId, schedules);
+            const updatedSchedules = await this.scheduleRepository.bulkUpdateSchedule(doctor_id, schedules);
             res.json({
                 success: true,
-                message: 'Schedule updated successfully',
-                data: updatedSchedules
+                message: "Schedule updated successfully",
+                data: updatedSchedules,
             });
         }
         catch (error) {
-            logger_1.default.error('Error updating schedule', { error, doctorId: req.params.doctorId, body: req.body });
+            logger_1.default.error("Error updating schedule", {
+                error,
+                doctor_id: req.params.doctor_id,
+                body: req.body,
+            });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
     async getAvailability(req, res) {
         try {
-            const { doctorId } = req.params;
+            const { doctor_id } = req.params;
             const { date } = req.query;
             if (!date) {
                 res.status(400).json({
                     success: false,
-                    message: 'Date parameter is required'
+                    message: "Date parameter is required",
                 });
                 return;
             }
             const checkDate = new Date(date);
-            const availability = await this.scheduleRepository.getAvailability(doctorId, checkDate);
+            const availability = await this.scheduleRepository.getAvailability(doctor_id, checkDate);
             res.json({
                 success: true,
-                data: availability
+                data: availability,
             });
         }
         catch (error) {
-            logger_1.default.error('Error fetching availability', { error, doctorId: req.params.doctorId, date: req.query.date });
+            logger_1.default.error("Error fetching availability", {
+                error,
+                doctor_id: req.params.doctor_id,
+                date: req.query.date,
+            });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
     async getAvailableTimeSlots(req, res) {
         try {
-            const { doctorId } = req.params;
+            const { doctor_id } = req.params;
             const { date } = req.query;
             if (!date) {
                 res.status(400).json({
                     success: false,
-                    message: 'Date parameter is required'
+                    message: "Date parameter is required",
                 });
                 return;
             }
             const checkDate = new Date(date);
-            const timeSlots = await this.scheduleRepository.getAvailableTimeSlots(doctorId, checkDate);
+            const timeSlots = await this.scheduleRepository.getAvailableTimeSlots(doctor_id, checkDate);
             res.json({
                 success: true,
-                data: timeSlots
+                data: timeSlots,
             });
         }
         catch (error) {
-            logger_1.default.error('Error fetching available time slots', { error, doctorId: req.params.doctorId, date: req.query.date });
+            logger_1.default.error("Error fetching available time slots", {
+                error,
+                doctor_id: req.params.doctor_id,
+                date: req.query.date,
+            });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
     async getDoctorReviews(req, res) {
         try {
-            const { doctorId } = req.params;
+            const { doctor_id } = req.params;
             const page = parseInt(req.query.page) || 1;
             const limit = parseInt(req.query.limit) || 20;
             const offset = (page - 1) * limit;
-            const reviews = await this.reviewRepository.findByDoctorId(doctorId, limit, offset);
+            const reviews = await this.reviewRepository.findByDoctorId(doctor_id, limit, offset);
             res.json({
                 success: true,
                 data: reviews,
                 pagination: {
                     page,
                     limit,
-                    total: reviews.length
-                }
+                    total: reviews.length,
+                },
             });
         }
         catch (error) {
-            logger_1.default.error('Error fetching doctor reviews', { error, doctorId: req.params.doctorId });
+            logger_1.default.error("Error fetching doctor reviews", {
+                error,
+                doctor_id: req.params.doctor_id,
+            });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
     async getReviewStats(req, res) {
         try {
-            const { doctorId } = req.params;
-            const stats = await this.reviewRepository.getReviewStats(doctorId);
+            const { doctor_id } = req.params;
+            const stats = await this.reviewRepository.getReviewStats(doctor_id);
             res.json({
                 success: true,
-                data: stats
+                data: stats,
             });
         }
         catch (error) {
-            logger_1.default.error('Error fetching review stats', { error, doctorId: req.params.doctorId });
+            logger_1.default.error("Error fetching review stats", {
+                error,
+                doctor_id: req.params.doctor_id,
+            });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
     async getDoctorShifts(req, res) {
         try {
-            const { doctorId } = req.params;
+            const { doctor_id } = req.params;
             const page = parseInt(req.query.page) || 1;
             const limit = parseInt(req.query.limit) || 20;
             const offset = (page - 1) * limit;
-            const shifts = await this.shiftRepository.findByDoctorId(doctorId, limit, offset);
+            const shifts = await this.shiftRepository.findByDoctorId(doctor_id, limit, offset);
             res.json({
                 success: true,
                 data: shifts,
                 pagination: {
                     page,
                     limit,
-                    total: shifts.length
-                }
+                    total: shifts.length,
+                },
             });
         }
         catch (error) {
-            logger_1.default.error('Error fetching doctor shifts', { error, doctorId: req.params.doctorId });
+            logger_1.default.error("Error fetching doctor shifts", {
+                error,
+                doctor_id: req.params.doctor_id,
+            });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
     async getUpcomingShifts(req, res) {
         try {
-            const { doctorId } = req.params;
+            const { doctor_id } = req.params;
             const days = parseInt(req.query.days) || 7;
-            const shifts = await this.shiftRepository.getUpcomingShifts(doctorId, days);
+            const shifts = await this.shiftRepository.getUpcomingShifts(doctor_id, days);
             res.json({
                 success: true,
-                data: shifts
+                data: shifts,
             });
         }
         catch (error) {
-            logger_1.default.error('Error fetching upcoming shifts', { error, doctorId: req.params.doctorId });
+            logger_1.default.error("Error fetching upcoming shifts", {
+                error,
+                doctor_id: req.params.doctor_id,
+            });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
@@ -532,24 +634,24 @@ class DoctorController {
             if (!errors.isEmpty()) {
                 res.status(400).json({
                     success: false,
-                    message: 'Validation failed',
-                    errors: errors.array()
+                    message: "Validation failed",
+                    errors: errors.array(),
                 });
                 return;
             }
             const shift = await this.shiftRepository.create(req.body);
             res.status(201).json({
                 success: true,
-                message: 'Shift created successfully',
-                data: shift
+                message: "Shift created successfully",
+                data: shift,
             });
         }
         catch (error) {
-            logger_1.default.error('Error creating shift', { error, body: req.body });
+            logger_1.default.error("Error creating shift", { error, body: req.body });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
@@ -559,8 +661,8 @@ class DoctorController {
             if (!errors.isEmpty()) {
                 res.status(400).json({
                     success: false,
-                    message: 'Validation failed',
-                    errors: errors.array()
+                    message: "Validation failed",
+                    errors: errors.array(),
                 });
                 return;
             }
@@ -569,22 +671,26 @@ class DoctorController {
             if (!shift) {
                 res.status(404).json({
                     success: false,
-                    message: 'Shift not found'
+                    message: "Shift not found",
                 });
                 return;
             }
             res.json({
                 success: true,
-                message: 'Shift updated successfully',
-                data: shift
+                message: "Shift updated successfully",
+                data: shift,
             });
         }
         catch (error) {
-            logger_1.default.error('Error updating shift', { error, shiftId: req.params.shiftId, body: req.body });
+            logger_1.default.error("Error updating shift", {
+                error,
+                shiftId: req.params.shiftId,
+                body: req.body,
+            });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
@@ -595,109 +701,124 @@ class DoctorController {
             if (!shift) {
                 res.status(404).json({
                     success: false,
-                    message: 'Shift not found'
+                    message: "Shift not found",
                 });
                 return;
             }
             res.json({
                 success: true,
-                message: 'Shift confirmed successfully',
-                data: shift
+                message: "Shift confirmed successfully",
+                data: shift,
             });
         }
         catch (error) {
-            logger_1.default.error('Error confirming shift', { error, shiftId: req.params.shiftId });
+            logger_1.default.error("Error confirming shift", {
+                error,
+                shiftId: req.params.shiftId,
+            });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
     async getShiftStatistics(req, res) {
         try {
-            const { doctorId } = req.params;
+            const { doctor_id } = req.params;
             const { startDate, endDate } = req.query;
             if (!startDate || !endDate) {
                 res.status(400).json({
                     success: false,
-                    message: 'Start date and end date are required'
+                    message: "Start date and end date are required",
                 });
                 return;
             }
-            const stats = await this.shiftRepository.getShiftStatistics(doctorId, new Date(startDate), new Date(endDate));
+            const stats = await this.shiftRepository.getShiftStatistics(doctor_id, new Date(startDate), new Date(endDate));
             res.json({
                 success: true,
-                data: stats
+                data: stats,
             });
         }
         catch (error) {
-            logger_1.default.error('Error fetching shift statistics', { error, doctorId: req.params.doctorId });
+            logger_1.default.error("Error fetching shift statistics", {
+                error,
+                doctor_id: req.params.doctor_id,
+            });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
     async getDoctorExperiences(req, res) {
         try {
-            const { doctorId } = req.params;
+            const { doctor_id } = req.params;
             const { type } = req.query;
             let experiences;
             if (type) {
-                experiences = await this.experienceRepository.findByType(doctorId, type);
+                experiences = await this.experienceRepository.findByType(doctor_id, type);
             }
             else {
-                experiences = await this.experienceRepository.findByDoctorId(doctorId);
+                experiences = await this.experienceRepository.findByDoctorId(doctor_id);
             }
             res.json({
                 success: true,
-                data: experiences
+                data: experiences,
             });
         }
         catch (error) {
-            logger_1.default.error('Error fetching doctor experiences', { error, doctorId: req.params.doctorId });
+            logger_1.default.error("Error fetching doctor experiences", {
+                error,
+                doctor_id: req.params.doctor_id,
+            });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
     async getExperienceTimeline(req, res) {
         try {
-            const { doctorId } = req.params;
-            const timeline = await this.experienceRepository.getExperienceTimeline(doctorId);
+            const { doctor_id } = req.params;
+            const timeline = await this.experienceRepository.getExperienceTimeline(doctor_id);
             res.json({
                 success: true,
-                data: timeline
+                data: timeline,
             });
         }
         catch (error) {
-            logger_1.default.error('Error fetching experience timeline', { error, doctorId: req.params.doctorId });
+            logger_1.default.error("Error fetching experience timeline", {
+                error,
+                doctor_id: req.params.doctor_id,
+            });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
     async getTotalExperience(req, res) {
         try {
-            const { doctorId } = req.params;
-            const totalExperience = await this.experienceRepository.calculateTotalExperience(doctorId);
+            const { doctor_id } = req.params;
+            const totalExperience = await this.experienceRepository.calculateTotalExperience(doctor_id);
             res.json({
                 success: true,
-                data: totalExperience
+                data: totalExperience,
             });
         }
         catch (error) {
-            logger_1.default.error('Error calculating total experience', { error, doctorId: req.params.doctorId });
+            logger_1.default.error("Error calculating total experience", {
+                error,
+                doctor_id: req.params.doctor_id,
+            });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
@@ -707,24 +828,24 @@ class DoctorController {
             if (!errors.isEmpty()) {
                 res.status(400).json({
                     success: false,
-                    message: 'Validation failed',
-                    errors: errors.array()
+                    message: "Validation failed",
+                    errors: errors.array(),
                 });
                 return;
             }
             const experience = await this.experienceRepository.create(req.body);
             res.status(201).json({
                 success: true,
-                message: 'Experience created successfully',
-                data: experience
+                message: "Experience created successfully",
+                data: experience,
             });
         }
         catch (error) {
-            logger_1.default.error('Error creating experience', { error, body: req.body });
+            logger_1.default.error("Error creating experience", { error, body: req.body });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
@@ -734,8 +855,8 @@ class DoctorController {
             if (!errors.isEmpty()) {
                 res.status(400).json({
                     success: false,
-                    message: 'Validation failed',
-                    errors: errors.array()
+                    message: "Validation failed",
+                    errors: errors.array(),
                 });
                 return;
             }
@@ -744,22 +865,26 @@ class DoctorController {
             if (!experience) {
                 res.status(404).json({
                     success: false,
-                    message: 'Experience not found'
+                    message: "Experience not found",
                 });
                 return;
             }
             res.json({
                 success: true,
-                message: 'Experience updated successfully',
-                data: experience
+                message: "Experience updated successfully",
+                data: experience,
             });
         }
         catch (error) {
-            logger_1.default.error('Error updating experience', { error, experienceId: req.params.experienceId, body: req.body });
+            logger_1.default.error("Error updating experience", {
+                error,
+                experienceId: req.params.experienceId,
+                body: req.body,
+            });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
@@ -770,79 +895,85 @@ class DoctorController {
             if (!success) {
                 res.status(404).json({
                     success: false,
-                    message: 'Experience not found'
+                    message: "Experience not found",
                 });
                 return;
             }
             res.json({
                 success: true,
-                message: 'Experience deleted successfully'
+                message: "Experience deleted successfully",
             });
         }
         catch (error) {
-            logger_1.default.error('Error deleting experience', { error, experienceId: req.params.experienceId });
+            logger_1.default.error("Error deleting experience", {
+                error,
+                experienceId: req.params.experienceId,
+            });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
     async getDoctorProfile(req, res) {
         try {
-            const { doctorId } = req.params;
-            const doctor = await this.doctorRepository.findById(doctorId);
+            const { doctor_id } = req.params;
+            const doctor = await this.doctorRepository.findById(doctor_id);
             if (!doctor) {
                 res.status(404).json({
                     success: false,
-                    message: 'Doctor not found'
+                    message: "Doctor not found",
                 });
                 return;
             }
             const [schedule, reviewStats, experiences, upcomingShifts] = await Promise.all([
-                this.scheduleRepository.getWeeklySchedule(doctorId),
-                this.reviewRepository.getReviewStats(doctorId),
-                this.experienceRepository.findByDoctorId(doctorId),
-                this.shiftRepository.getUpcomingShifts(doctorId, 7)
+                this.scheduleRepository.getWeeklySchedule(doctor_id),
+                this.reviewRepository.getReviewStats(doctor_id),
+                this.experienceRepository.findByDoctorId(doctor_id),
+                this.shiftRepository.getUpcomingShifts(doctor_id, 7),
             ]);
             const profile = {
                 ...doctor,
                 schedule,
                 review_stats: reviewStats,
                 experiences,
-                current_shifts: upcomingShifts
+                current_shifts: upcomingShifts,
             };
             res.json({
                 success: true,
-                data: profile
+                data: profile,
             });
         }
         catch (error) {
-            logger_1.default.error('Error fetching doctor profile', { error, doctorId: req.params.doctorId });
+            logger_1.default.error("Error fetching doctor profile", {
+                error,
+                doctor_id: req.params.doctor_id,
+            });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
     async getDoctorAppointments(req, res) {
         try {
-            const { doctorId } = req.params;
+            const { doctor_id } = req.params;
             const { date, status, page = 1, limit = 10 } = req.query;
-            const doctor = await this.doctorRepository.findById(doctorId);
+            const doctor = await this.doctorRepository.findById(doctor_id);
             if (!doctor) {
                 res.status(404).json({
                     success: false,
-                    message: 'Doctor not found'
+                    message: "Doctor not found",
                 });
                 return;
             }
-            const appointmentResult = await this.appointmentService.getDoctorAppointments(doctorId, {
+            const appointmentResult = await this.appointmentService.getDoctorAppointments(doctor_id, {
                 date: date,
                 status: status,
                 page: Number(page),
-                limit: Number(limit)
+                limit: Number(limit),
             });
             const enrichedAppointments = [];
             for (const appointment of appointmentResult.appointments) {
@@ -853,14 +984,16 @@ class DoctorController {
                 enrichedAppointments.push({
                     appointment_id: appointment.appointment_id,
                     patient_id: appointment.patient_id,
-                    patient_name: patientInfo?.full_name || appointment.patient_name || 'Unknown Patient',
-                    patient_phone: patientInfo?.phone_number || appointment.patient_phone || 'N/A',
-                    patient_email: patientInfo?.email || appointment.patient_email || 'N/A',
+                    patient_name: patientInfo?.full_name ||
+                        appointment.patient_name ||
+                        "Unknown Patient",
+                    patient_phone: patientInfo?.phone_number || appointment.patient_phone || "N/A",
+                    patient_email: patientInfo?.email || appointment.patient_email || "N/A",
                     appointment_date: appointment.appointment_date,
                     appointment_time: appointment.appointment_time,
-                    appointment_type: appointment.appointment_type || 'Khám tổng quát',
+                    appointment_type: appointment.appointment_type || "Khám tổng quát",
                     status: appointment.status,
-                    notes: appointment.notes || ''
+                    notes: appointment.notes || "",
                 });
             }
             res.json({
@@ -870,50 +1003,61 @@ class DoctorController {
                     page: Number(page),
                     limit: Number(limit),
                     total: enrichedAppointments.length,
-                    totalPages: Math.ceil(enrichedAppointments.length / Number(limit))
+                    totalPages: Math.ceil(enrichedAppointments.length / Number(limit)),
                 },
-                source: 'appointment-service'
+                source: "appointment-service",
             });
         }
         catch (error) {
-            logger_1.default.error('Error fetching doctor appointments', { error, doctorId: req.params.doctorId });
+            logger_1.default.error("Error fetching doctor appointments", {
+                error,
+                doctor_id: req.params.doctor_id,
+            });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
     async getDoctorStats(req, res) {
         try {
-            const { doctorId } = req.params;
-            const doctor = await this.doctorRepository.findById(doctorId);
+            const { doctor_id } = req.params;
+            const doctor = await this.doctorRepository.findById(doctor_id);
             if (!doctor) {
                 res.status(404).json({
                     success: false,
-                    message: 'Doctor not found'
+                    message: "Doctor not found",
                 });
                 return;
             }
-            const [reviewStats, appointmentStats, totalExperience, todayAppointments, monthlyAppointments, patientCount, patientStats] = await Promise.allSettled([
-                this.reviewRepository.getReviewStats(doctorId),
-                this.appointmentService.getDoctorAppointmentStats(doctorId),
-                this.experienceRepository.calculateTotalExperience(doctorId),
-                this.appointmentService.getTodayAppointments(doctorId),
-                this.appointmentService.getMonthlyAppointments(doctorId),
-                this.patientService.getPatientCountForDoctor(doctorId),
-                this.patientService.getDoctorPatientStats(doctorId)
+            const [reviewStats, appointmentStats, totalExperience, todayAppointments, monthlyAppointments, patientCount, patientStats,] = await Promise.allSettled([
+                this.reviewRepository.getReviewStats(doctor_id),
+                this.appointmentService.getDoctorAppointmentStats(doctor_id),
+                this.experienceRepository.calculateTotalExperience(doctor_id),
+                this.appointmentService.getTodayAppointments(doctor_id),
+                this.appointmentService.getMonthlyAppointments(doctor_id),
+                this.patientService.getPatientCountForDoctor(doctor_id),
+                this.patientService.getDoctorPatientStats(doctor_id),
             ]);
-            const reviews = reviewStats.status === 'fulfilled' ? reviewStats.value : { average_rating: 0, total_reviews: 0 };
-            const appointments = appointmentStats.status === 'fulfilled' ? appointmentStats.value : null;
-            const experience = totalExperience.status === 'fulfilled' ? totalExperience.value : { total_years: 0 };
-            const todayApts = todayAppointments.status === 'fulfilled' ? todayAppointments.value : [];
-            const monthlyApts = monthlyAppointments.status === 'fulfilled' ? monthlyAppointments.value : [];
-            const totalPatients = patientCount.status === 'fulfilled' ? patientCount.value : 0;
-            const patientStatsData = patientStats.status === 'fulfilled' ? patientStats.value : null;
-            const completedAppointments = monthlyApts.filter(apt => apt.status === 'completed').length;
+            const reviews = reviewStats.status === "fulfilled"
+                ? reviewStats.value
+                : { average_rating: 0, total_reviews: 0 };
+            const appointments = appointmentStats.status === "fulfilled" ? appointmentStats.value : null;
+            const experience = totalExperience.status === "fulfilled"
+                ? totalExperience.value
+                : { total_years: 0 };
+            const todayApts = todayAppointments.status === "fulfilled" ? todayAppointments.value : [];
+            const monthlyApts = monthlyAppointments.status === "fulfilled"
+                ? monthlyAppointments.value
+                : [];
+            const totalPatients = patientCount.status === "fulfilled" ? patientCount.value : 0;
+            const patientStatsData = patientStats.status === "fulfilled" ? patientStats.value : null;
+            const completedAppointments = monthlyApts.filter((apt) => apt.status === "completed").length;
             const totalMonthlyAppointments = monthlyApts.length;
-            const successRate = totalMonthlyAppointments > 0 ? (completedAppointments / totalMonthlyAppointments) * 100 : 0;
+            const successRate = totalMonthlyAppointments > 0
+                ? (completedAppointments / totalMonthlyAppointments) * 100
+                : 0;
             const stats = {
                 total_patients: totalPatients,
                 total_appointments: appointments?.total_appointments || 0,
@@ -925,7 +1069,7 @@ class DoctorController {
                 years_experience: Math.round(experience.total_years * 10) / 10,
                 specialization: doctor.specialty,
                 department: doctor.department_id,
-                status: doctor.availability_status || 'active',
+                status: doctor.availability_status || "active",
                 new_patients: patientStatsData?.new_patients_last_30_days || 0,
                 follow_up_patients: patientStatsData?.returning_patients_last_30_days || 0,
                 total_unique_patients: patientStatsData?.total_unique_patients || totalPatients,
@@ -933,24 +1077,33 @@ class DoctorController {
                 monthly_stats: appointments?.monthly_stats || [],
                 appointment_types: appointments?.appointment_types || [],
                 data_sources: {
-                    appointments: appointmentStats.status === 'fulfilled' ? 'appointment-service' : 'unavailable',
-                    patients: patientCount.status === 'fulfilled' ? 'patient-service' : 'unavailable',
-                    patient_stats: patientStats.status === 'fulfilled' ? 'patient-service' : 'unavailable',
-                    reviews: reviewStats.status === 'fulfilled' ? 'database' : 'unavailable',
-                    experience: totalExperience.status === 'fulfilled' ? 'database' : 'unavailable'
-                }
+                    appointments: appointmentStats.status === "fulfilled"
+                        ? "appointment-service"
+                        : "unavailable",
+                    patients: patientCount.status === "fulfilled"
+                        ? "patient-service"
+                        : "unavailable",
+                    patient_stats: patientStats.status === "fulfilled"
+                        ? "patient-service"
+                        : "unavailable",
+                    reviews: reviewStats.status === "fulfilled" ? "database" : "unavailable",
+                    experience: totalExperience.status === "fulfilled" ? "database" : "unavailable",
+                },
             };
             res.json({
                 success: true,
-                data: stats
+                data: stats,
             });
         }
         catch (error) {
-            logger_1.default.error('Error fetching doctor stats', { error, doctorId: req.params.doctorId });
+            logger_1.default.error("Error fetching doctor stats", {
+                error,
+                doctor_id: req.params.doctor_id,
+            });
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
@@ -972,19 +1125,19 @@ class DoctorController {
                         doctors: true,
                         profiles: true,
                         shifts: true,
-                        experiences: true
-                    }
+                        experiences: true,
+                    },
                 },
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
             });
         }
         catch (error) {
-            logger_1.default.error('Error in getRealtimeStatus:', error);
+            logger_1.default.error("Error in getRealtimeStatus:", error);
             res.status(500).json({
                 success: false,
-                error: 'Failed to get real-time status',
-                message: error instanceof Error ? error.message : 'Unknown error',
-                timestamp: new Date().toISOString()
+                error: "Failed to get real-time status",
+                message: error instanceof Error ? error.message : "Unknown error",
+                timestamp: new Date().toISOString(),
             });
         }
     }
@@ -1001,40 +1154,40 @@ class DoctorController {
                     doctors,
                     realtime_enabled: true,
                     live_updates: true,
-                    websocket_channel: 'doctors_realtime',
+                    websocket_channel: "doctors_realtime",
                     subscription_info: {
-                        events: ['INSERT', 'UPDATE', 'DELETE'],
+                        events: ["INSERT", "UPDATE", "DELETE"],
                         filters: [
-                            'availability_updates',
-                            'schedule_updates',
-                            'shift_updates',
-                            'experience_updates',
-                            'new_doctors'
+                            "availability_updates",
+                            "schedule_updates",
+                            "shift_updates",
+                            "experience_updates",
+                            "new_doctors",
                         ],
                         rooms: [
-                            'medical_staff',
-                            'admin_dashboard',
-                            'appointment_service',
-                            'doctor_{doctorId}'
-                        ]
-                    }
+                            "medical_staff",
+                            "admin_dashboard",
+                            "appointment_service",
+                            "doctor_{doctorId}",
+                        ],
+                    },
                 },
                 pagination: {
                     page,
                     limit,
                     total,
-                    totalPages: Math.ceil(total / limit)
+                    totalPages: Math.ceil(total / limit),
                 },
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
             });
         }
         catch (error) {
-            logger_1.default.error('Error in getLiveDoctors:', error);
+            logger_1.default.error("Error in getLiveDoctors:", error);
             res.status(500).json({
                 success: false,
-                error: 'Failed to fetch live doctors',
-                message: error instanceof Error ? error.message : 'Unknown error',
-                timestamp: new Date().toISOString()
+                error: "Failed to fetch live doctors",
+                message: error instanceof Error ? error.message : "Unknown error",
+                timestamp: new Date().toISOString(),
             });
         }
     }
@@ -1042,43 +1195,43 @@ class DoctorController {
         try {
             const userId = req.user?.id;
             const userRole = req.user?.role;
-            logger_1.default.info('🔍 DEBUG getCurrentDoctorProfile - req.user:', {
+            logger_1.default.info("🔍 DEBUG getCurrentDoctorProfile - req.user:", {
                 userId,
                 userRole,
-                fullUser: req.user
+                fullUser: req.user,
             });
-            if (!userId || userRole !== 'doctor') {
+            if (!userId || userRole !== "doctor") {
                 res.status(401).json({
                     success: false,
-                    message: 'Unauthorized: Doctor access required'
+                    message: "Unauthorized: Doctor access required",
                 });
                 return;
             }
-            logger_1.default.info('🔍 DEBUG - Looking for doctor with profile_id:', userId);
+            logger_1.default.info("🔍 DEBUG - Looking for doctor with profile_id:", userId);
             const doctor = await this.doctorRepository.findByProfileId(userId);
             if (!doctor) {
-                logger_1.default.error('🔍 DEBUG - Doctor not found for profile_id:', userId);
+                logger_1.default.error("🔍 DEBUG - Doctor not found for profile_id:", userId);
                 res.status(404).json({
                     success: false,
-                    message: 'Doctor not found'
+                    message: "Doctor not found",
                 });
                 return;
             }
-            logger_1.default.info('🔍 DEBUG - Doctor found:', {
+            logger_1.default.info("🔍 DEBUG - Doctor found:", {
                 doctor_id: doctor.doctor_id,
-                full_name: doctor.full_name
+                full_name: doctor.full_name,
             });
             res.json({
                 success: true,
-                data: doctor
+                data: doctor,
             });
         }
         catch (error) {
-            logger_1.default.error('Error getting current doctor profile:', error);
+            logger_1.default.error("Error getting current doctor profile:", error);
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
@@ -1086,10 +1239,10 @@ class DoctorController {
         try {
             const userId = req.user?.id;
             const userRole = req.user?.role;
-            if (!userId || userRole !== 'doctor') {
+            if (!userId || userRole !== "doctor") {
                 res.status(401).json({
                     success: false,
-                    message: 'Unauthorized: Doctor access required'
+                    message: "Unauthorized: Doctor access required",
                 });
                 return;
             }
@@ -1097,22 +1250,22 @@ class DoctorController {
             if (!doctor) {
                 res.status(404).json({
                     success: false,
-                    message: 'Doctor not found'
+                    message: "Doctor not found",
                 });
                 return;
             }
             const stats = await this.doctorRepository.getDashboardStats(doctor.doctor_id);
             res.json({
                 success: true,
-                data: stats
+                data: stats,
             });
         }
         catch (error) {
-            logger_1.default.error('Error getting current doctor stats:', error);
+            logger_1.default.error("Error getting current doctor stats:", error);
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
@@ -1121,10 +1274,10 @@ class DoctorController {
             const startTime = Date.now();
             const userId = req.user?.id;
             const userRole = req.user?.role;
-            if (!userId || userRole !== 'doctor') {
+            if (!userId || userRole !== "doctor") {
                 res.status(401).json({
                     success: false,
-                    message: 'Unauthorized: Doctor access required'
+                    message: "Unauthorized: Doctor access required",
                 });
                 return;
             }
@@ -1132,21 +1285,21 @@ class DoctorController {
             if (!doctor) {
                 res.status(404).json({
                     success: false,
-                    message: 'Doctor not found'
+                    message: "Doctor not found",
                 });
                 return;
             }
-            const doctorId = doctor.doctor_id;
-            const [dashboardStats, todaySchedule, recentAppointments, reviewStats, weeklyStats, monthlyStats] = await Promise.allSettled([
-                this.doctorRepository.getDashboardStats(doctorId),
-                this.scheduleRepository.getTodaySchedule(doctorId),
-                this.doctorRepository.getRecentAppointments(doctorId, 5),
-                this.reviewRepository.getReviewStats(doctorId),
-                this.doctorRepository.getWeeklyStats(doctorId),
-                this.doctorRepository.getMonthlyStats(doctorId)
+            const doctor_id = doctor.doctor_id;
+            const [dashboardStats, todaySchedule, recentAppointments, reviewStats, weeklyStats, monthlyStats,] = await Promise.allSettled([
+                this.doctorRepository.getDashboardStats(doctor_id),
+                this.scheduleRepository.getTodaySchedule(doctor_id),
+                this.doctorRepository.getRecentAppointments(doctor_id, 5),
+                this.reviewRepository.getReviewStats(doctor_id),
+                this.doctorRepository.getWeeklyStats(doctor_id),
+                this.doctorRepository.getMonthlyStats(doctor_id),
             ]);
             const processResult = (result, fallback = null) => {
-                return result.status === 'fulfilled' ? result.value : fallback;
+                return result.status === "fulfilled" ? result.value : fallback;
             };
             const stats = processResult(dashboardStats, {
                 todayAppointments: 0,
@@ -1154,13 +1307,23 @@ class DoctorController {
                 completedAppointments: 0,
                 totalPatients: 0,
                 totalReviews: 0,
-                averageRating: 0
+                averageRating: 0,
             });
             const schedule = processResult(todaySchedule, []);
             const appointments = processResult(recentAppointments, []);
-            const reviews = processResult(reviewStats, { average_rating: 0, total_reviews: 0 });
-            const weekly = processResult(weeklyStats, { appointments: 0, revenue: 0 });
-            const monthly = processResult(monthlyStats, { appointments: 0, revenue: 0, success_rate: 0 });
+            const reviews = processResult(reviewStats, {
+                average_rating: 0,
+                total_reviews: 0,
+            });
+            const weekly = processResult(weeklyStats, {
+                appointments: 0,
+                revenue: 0,
+            });
+            const monthly = processResult(monthlyStats, {
+                appointments: 0,
+                revenue: 0,
+                success_rate: 0,
+            });
             const dashboardData = {
                 stats: {
                     ...stats,
@@ -1169,31 +1332,33 @@ class DoctorController {
                     successRate: monthly.success_rate || 0,
                     totalRevenue: monthly.revenue || 0,
                     averageRating: reviews.average_rating || 0,
-                    totalReviews: reviews.total_reviews || 0
+                    totalReviews: reviews.total_reviews || 0,
                 },
                 todaySchedule: schedule,
                 recentAppointments: appointments,
                 quickMetrics: {
-                    patientsToday: schedule.filter((s) => s.status === 'booked').length,
-                    completedToday: schedule.filter((s) => s.status === 'completed').length,
-                    upcomingToday: schedule.filter((s) => s.status === 'booked' && new Date(s.start_time) > new Date()).length,
-                    emergencyCount: appointments.filter((a) => a.priority === 'emergency').length
+                    patientsToday: schedule.filter((s) => s.status === "booked")
+                        .length,
+                    completedToday: schedule.filter((s) => s.status === "completed")
+                        .length,
+                    upcomingToday: schedule.filter((s) => s.status === "booked" && new Date(s.start_time) > new Date()).length,
+                    emergencyCount: appointments.filter((a) => a.priority === "emergency").length,
                 },
                 lastUpdated: new Date().toISOString(),
-                responseTime: Date.now() - startTime
+                responseTime: Date.now() - startTime,
             };
             res.json({
                 success: true,
                 data: dashboardData,
-                message: 'Dashboard data loaded successfully'
+                message: "Dashboard data loaded successfully",
             });
         }
         catch (error) {
-            logger_1.default.error('Error getting complete dashboard data:', error);
+            logger_1.default.error("Error getting complete dashboard data:", error);
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
@@ -1201,10 +1366,10 @@ class DoctorController {
         try {
             const userId = req.user?.id;
             const userRole = req.user?.role;
-            if (!userId || userRole !== 'doctor') {
+            if (!userId || userRole !== "doctor") {
                 res.status(401).json({
                     success: false,
-                    message: 'Unauthorized: Doctor access required'
+                    message: "Unauthorized: Doctor access required",
                 });
                 return;
             }
@@ -1212,22 +1377,22 @@ class DoctorController {
             if (!doctor) {
                 res.status(404).json({
                     success: false,
-                    message: 'Doctor not found'
+                    message: "Doctor not found",
                 });
                 return;
             }
             const appointments = await this.appointmentService.getTodayAppointments(doctor.doctor_id);
             res.json({
                 success: true,
-                data: appointments
+                data: appointments,
             });
         }
         catch (error) {
-            logger_1.default.error('Error getting today appointments:', error);
+            logger_1.default.error("Error getting today appointments:", error);
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
@@ -1235,10 +1400,10 @@ class DoctorController {
         try {
             const userId = req.user?.id;
             const userRole = req.user?.role;
-            if (!userId || userRole !== 'doctor') {
+            if (!userId || userRole !== "doctor") {
                 res.status(401).json({
                     success: false,
-                    message: 'Unauthorized: Doctor access required'
+                    message: "Unauthorized: Doctor access required",
                 });
                 return;
             }
@@ -1246,22 +1411,22 @@ class DoctorController {
             if (!doctor) {
                 res.status(404).json({
                     success: false,
-                    message: 'Doctor not found'
+                    message: "Doctor not found",
                 });
                 return;
             }
             const appointments = await this.appointmentService.getUpcomingAppointments(doctor.doctor_id);
             res.json({
                 success: true,
-                data: appointments
+                data: appointments,
             });
         }
         catch (error) {
-            logger_1.default.error('Error getting upcoming appointments:', error);
+            logger_1.default.error("Error getting upcoming appointments:", error);
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }
@@ -1269,10 +1434,10 @@ class DoctorController {
         try {
             const userId = req.user?.id;
             const userRole = req.user?.role;
-            if (!userId || userRole !== 'doctor') {
+            if (!userId || userRole !== "doctor") {
                 res.status(401).json({
                     success: false,
-                    message: 'Unauthorized: Doctor access required'
+                    message: "Unauthorized: Doctor access required",
                 });
                 return;
             }
@@ -1280,22 +1445,22 @@ class DoctorController {
             if (!doctor) {
                 res.status(404).json({
                     success: false,
-                    message: 'Doctor not found'
+                    message: "Doctor not found",
                 });
                 return;
             }
             const activity = await this.appointmentService.getRecentActivity(doctor.doctor_id);
             res.json({
                 success: true,
-                data: activity
+                data: activity,
             });
         }
         catch (error) {
-            logger_1.default.error('Error getting recent activity:', error);
+            logger_1.default.error("Error getting recent activity:", error);
             res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: process.env.NODE_ENV === 'development' ? error : undefined
+                message: "Internal server error",
+                error: process.env.NODE_ENV === "development" ? error : undefined,
             });
         }
     }

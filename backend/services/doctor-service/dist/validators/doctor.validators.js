@@ -12,7 +12,7 @@ const TIME_PATTERN = /^([01]?[0-9]|2[0-3]):[0-5][0-9]-([01]?[0-9]|2[0-3]):[0-5][
 const VALID_STATUSES = ['active', 'inactive', 'on_leave'];
 const VALID_GENDERS = ['male', 'female', 'other'];
 exports.validateDoctorId = [
-    (0, express_validator_1.param)('doctorId')
+    (0, express_validator_1.param)('doctor_id')
         .matches(DOCTOR_ID_PATTERN)
         .withMessage('Doctor ID must be in format DEPT-DOC-YYYYMM-XXX (e.g., CARD-DOC-202506-001)')
 ];
@@ -176,8 +176,8 @@ const validateLanguagesArray = (languages) => {
     return languages.every((lang) => typeof lang === 'string' && lang.length >= 2 && lang.length <= 50);
 };
 exports.validateLanguagesArray = validateLanguagesArray;
-const validateDoctorIdFormat = (doctorId) => {
-    return DOCTOR_ID_PATTERN.test(doctorId);
+const validateDoctorIdFormat = (doctor_id) => {
+    return DOCTOR_ID_PATTERN.test(doctor_id);
 };
 exports.validateDoctorIdFormat = validateDoctorIdFormat;
 const validateLicenseNumberFormat = (licenseNumber) => {

@@ -71,8 +71,8 @@ class PatientController {
                 });
                 return;
             }
-            const { patientId } = req.params;
-            const patient = await this.patientRepository.getPatientById(patientId);
+            const { patient_id } = req.params;
+            const patient = await this.patientRepository.getPatientById(patient_id);
             if (!patient) {
                 res.status(404).json({
                     success: false,
@@ -149,12 +149,12 @@ class PatientController {
                 });
                 return;
             }
-            const { doctorId } = req.params;
-            const count = await this.patientRepository.getPatientCountForDoctor(doctorId);
+            const { doctor_id } = req.params;
+            const count = await this.patientRepository.getPatientCountForDoctor(doctor_id);
             const response = {
                 success: true,
                 data: { count },
-                message: `Found ${count} unique patients for doctor ${doctorId}`,
+                message: `Found ${doctor_id}`,
                 timestamp: new Date().toISOString()
             };
             res.json(response);
@@ -181,13 +181,13 @@ class PatientController {
                 });
                 return;
             }
-            const { doctorId } = req.params;
-            logger_1.default.info(`Getting patient statistics for doctor: ${doctorId}`);
-            const stats = await this.patientRepository.getPatientStatsForDoctor(doctorId);
+            const { doctor_id } = req.params;
+            logger_1.default.info(`Getting patient statistics for doctor: ${doctor_id}`);
+            const stats = await this.patientRepository.getPatientStatsForDoctor(doctor_id);
             const response = {
                 success: true,
                 data: stats,
-                message: `Patient statistics retrieved for doctor ${doctorId}`,
+                message: `Patient statistics retrieved for doctor ${doctor_id}`,
                 timestamp: new Date().toISOString()
             };
             res.json(response);
@@ -214,8 +214,8 @@ class PatientController {
                 });
                 return;
             }
-            const { doctorId } = req.params;
-            const patients = await this.patientRepository.getPatientsByDoctorId(doctorId);
+            const { doctor_id } = req.params;
+            const patients = await this.patientRepository.getPatientsByDoctorId(doctor_id);
             const response = {
                 success: true,
                 data: patients,
@@ -313,7 +313,7 @@ class PatientController {
             const errors = (0, express_validator_1.validationResult)(req);
             if (!errors.isEmpty()) {
                 logger_1.default.warn('Validation failed for updatePatient:', {
-                    patientId: req.params.patientId,
+                    patient_id: req.params.patient_id,
                     errors: errors.array()
                 });
                 res.status(400).json({
@@ -324,8 +324,8 @@ class PatientController {
                 });
                 return;
             }
-            const { patientId } = req.params;
-            if (!patientId) {
+            const { patient_id } = req.params;
+            if (!patient_id) {
                 logger_1.default.warn('No patient ID provided in updatePatient');
                 res.status(400).json({
                     success: false,
@@ -335,8 +335,8 @@ class PatientController {
                 return;
             }
             const updateData = req.body;
-            logger_1.default.info('Updating patient:', { patientId, updateFields: Object.keys(updateData) });
-            const exists = await this.patientRepository.patientExists(patientId);
+            logger_1.default.info('Updating patient:', { patient_id, updateFields: Object.keys(updateData) });
+            const exists = await this.patientRepository.patientExists(patient_id);
             if (!exists) {
                 res.status(404).json({
                     success: false,
@@ -345,7 +345,7 @@ class PatientController {
                 });
                 return;
             }
-            const patient = await this.patientRepository.updatePatient(patientId, updateData);
+            const patient = await this.patientRepository.updatePatient(patient_id, updateData);
             const response = {
                 success: true,
                 data: patient,
@@ -376,8 +376,8 @@ class PatientController {
                 });
                 return;
             }
-            const { patientId } = req.params;
-            const exists = await this.patientRepository.patientExists(patientId);
+            const { patient_id } = req.params;
+            const exists = await this.patientRepository.patientExists(patient_id);
             if (!exists) {
                 res.status(404).json({
                     success: false,
@@ -386,7 +386,7 @@ class PatientController {
                 });
                 return;
             }
-            await this.patientRepository.deletePatient(patientId);
+            await this.patientRepository.deletePatient(patient_id);
             res.json({
                 success: true,
                 message: 'Patient deleted successfully',
@@ -473,8 +473,8 @@ class PatientController {
     }
     async getPatientMedicalSummary(req, res) {
         try {
-            const { patientId } = req.params;
-            if (!patientId) {
+            const { patient_id } = req.params;
+            if (!patient_id) {
                 res.status(400).json({
                     success: false,
                     error: 'Patient ID is required',
@@ -482,7 +482,7 @@ class PatientController {
                 });
                 return;
             }
-            const summary = await this.patientRepository.getPatientMedicalSummary(patientId);
+            const summary = await this.patientRepository.getPatientMedicalSummary(patient_id);
             if (!summary.patient) {
                 res.status(404).json({
                     success: false,

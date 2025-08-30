@@ -117,14 +117,14 @@ class DoctorRealtimeService {
     async handleDoctorChange(payload) {
         try {
             const { eventType, new: newRecord, old: oldRecord } = payload;
-            const doctorId = newRecord?.doctor_id || oldRecord?.doctor_id;
+            const doctor_id = newRecord?.doctor_id || oldRecord?.doctor_id;
             logger_1.default.info('📡 Received doctor change:', {
                 eventType,
-                doctorId
+                doctor_id
             });
             const realtimeEvent = {
                 type: eventType,
-                doctor_id: doctorId,
+                doctor_id: doctor_id,
                 profile_id: newRecord?.profile_id || oldRecord?.profile_id,
                 old_status: oldRecord?.availability_status,
                 new_status: newRecord?.availability_status,
@@ -148,14 +148,14 @@ class DoctorRealtimeService {
                 eventType,
                 profileId
             });
-            const doctorId = await this.findDoctorByProfileId(profileId);
-            if (!doctorId) {
+            const doctor_id = await this.findDoctorByProfileId(profileId);
+            if (!doctor_id) {
                 logger_1.default.warn('⚠️ No doctor found for profile:', profileId);
                 return;
             }
             const realtimeEvent = {
                 type: eventType,
-                doctor_id: doctorId,
+                doctor_id: doctor_id,
                 profile_id: profileId,
                 old_status: oldRecord?.status,
                 new_status: newRecord?.status,
@@ -174,14 +174,14 @@ class DoctorRealtimeService {
     async handleShiftChange(payload) {
         try {
             const { eventType, new: newRecord, old: oldRecord } = payload;
-            const doctorId = newRecord?.doctor_id || oldRecord?.doctor_id;
+            const doctor_id = newRecord?.doctor_id || oldRecord?.doctor_id;
             logger_1.default.info('📡 Received doctor shift change:', {
                 eventType,
-                doctorId
+                doctor_id
             });
             const realtimeEvent = {
                 type: eventType,
-                doctor_id: doctorId,
+                doctor_id: doctor_id,
                 old_status: oldRecord?.status,
                 new_status: newRecord?.status,
                 availability_updated: false,
@@ -199,14 +199,14 @@ class DoctorRealtimeService {
     async handleExperienceChange(payload) {
         try {
             const { eventType, new: newRecord, old: oldRecord } = payload;
-            const doctorId = newRecord?.doctor_id || oldRecord?.doctor_id;
+            const doctor_id = newRecord?.doctor_id || oldRecord?.doctor_id;
             logger_1.default.info('📡 Received doctor experience change:', {
                 eventType,
-                doctorId
+                doctor_id
             });
             const realtimeEvent = {
                 type: eventType,
-                doctor_id: doctorId,
+                doctor_id: doctor_id,
                 old_status: oldRecord?.status,
                 new_status: newRecord?.status,
                 availability_updated: false,
@@ -229,7 +229,7 @@ class DoctorRealtimeService {
             await this.updateCache(event);
             logger_1.default.info('✅ Doctor event processed successfully:', {
                 type: event.type,
-                doctorId: event.doctor_id
+                doctor_id: event.doctor_id
             });
         }
         catch (error) {

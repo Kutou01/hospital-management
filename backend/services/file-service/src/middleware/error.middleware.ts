@@ -1,4 +1,4 @@
-import { NextFunction, Request, Response } from "express";
+import express from "express";
 import { logger } from "../utils/logger";
 
 export interface AppError extends Error {
@@ -54,9 +54,9 @@ export class StorageError extends Error {
 
 export const errorHandler = (
   err: AppError,
-  req: Request,
-  res: Response,
-  next: NextFunction
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
 ) => {
   // Default to 500 server error
   let statusCode = err.statusCode || 500;
@@ -122,8 +122,11 @@ export const errorHandler = (
 };
 
 export const asyncHandler = (fn: Function) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction
+  ) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };
 };
-

@@ -1,16 +1,20 @@
-import { Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import { logger } from '@hospital/shared';
-import { AuthenticatedRequest } from '../types';
+import { NextFunction, Response } from "express";
+import jwt from "jsonwebtoken";
+import { AuthenticatedRequest } from "../types";
+import { logger } from "../utils/logger";
 
-export const authMiddleware = (req: AuthenticatedRequest, res: Response, next: NextFunction): any => {
+export const authMiddleware = (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): any => {
   try {
     const authHeader = req.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({
         success: false,
-        message: 'Access token is required'
+        message: "Access token is required",
       });
     }
 
@@ -19,17 +23,17 @@ export const authMiddleware = (req: AuthenticatedRequest, res: Response, next: N
     if (!token) {
       return res.status(401).json({
         success: false,
-        message: 'Access token is required'
+        message: "Access token is required",
       });
     }
 
     // Verify JWT token
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
-      logger.error('JWT_SECRET is not configured');
+      logger.error("JWT_SECRET is not configured");
       return res.status(500).json({
         success: false,
-        message: 'Server configuration error'
+        message: "Server configuration error",
       });
     }
 
@@ -38,7 +42,7 @@ export const authMiddleware = (req: AuthenticatedRequest, res: Response, next: N
     if (!decoded || !decoded.id) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid access token'
+        message: "Invalid access token",
       });
     }
 
@@ -46,41 +50,41 @@ export const authMiddleware = (req: AuthenticatedRequest, res: Response, next: N
     req.user = {
       id: decoded.id,
       email: decoded.email,
-      role: decoded.role
+      role: decoded.role,
     };
 
-    logger.debug('User authenticated', {
+    logger.debug("User authenticated", {
       userId: req.user.id,
       email: req.user.email,
       role: req.user.role,
-      path: req.path
+      path: req.path,
     });
 
     next();
   } catch (error: any) {
-    logger.error('Authentication error', {
-      error: error?.message || 'Unknown error',
+    logger.error("Authentication error", {
+      error: error?.message || "Unknown error",
       path: req.path,
-      method: req.method
+      method: req.method,
     });
 
-    if (error?.name === 'JsonWebTokenError') {
+    if (error?.name === "JsonWebTokenError") {
       return res.status(401).json({
         success: false,
-        message: 'Invalid access token'
+        message: "Invalid access token",
       });
     }
 
-    if (error?.name === 'TokenExpiredError') {
+    if (error?.name === "TokenExpiredError") {
       return res.status(401).json({
         success: false,
-        message: 'Access token has expired'
+        message: "Access token has expired",
       });
     }
 
     return res.status(500).json({
       success: false,
-      message: 'Authentication failed'
+      message: "Authentication failed",
     });
   }
 };

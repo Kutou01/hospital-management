@@ -301,4 +301,3 @@ export class FileValidator {
     return `${userId}/${documentType}/${timestamp}_${randomId}_${cleanName}.${extension}`;
   }
 }
-

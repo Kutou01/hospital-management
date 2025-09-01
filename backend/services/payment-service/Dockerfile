@@ -23,18 +23,18 @@ COPY services/payment-service/package*.json ./
 COPY services/payment-service/tsconfig.json ./
 
 # Install dependencies (this will link to the shared package)
-RUN npm ci --only=production && npm cache clean --force
+RUN npm install --only=production && npm cache clean --force
 
 # Development stage
 FROM base AS development
-RUN npm ci
+RUN npm install
 COPY services/payment-service/ .
 EXPOSE 3008
 CMD ["npm", "run", "dev"]
 
 # Build stage
 FROM base AS build
-RUN npm ci
+RUN npm install
 COPY services/payment-service/ .
 RUN npm run build
 
@@ -54,7 +54,7 @@ COPY --from=build /app/shared/package*.json ./shared/
 
 # Install shared package dependencies
 WORKDIR /app/shared
-RUN npm ci --only=production && npm cache clean --force
+RUN npm install --only=production && npm cache clean --force
 
 # Set up service directory structure
 WORKDIR /app/services/payment-service
@@ -63,7 +63,7 @@ WORKDIR /app/services/payment-service
 COPY services/payment-service/package*.json ./
 
 # Install only production dependencies
-RUN npm ci --only=production && npm cache clean --force
+RUN npm install --only=production && npm cache clean --force
 
 # Copy built application
 COPY --from=build /app/services/payment-service/dist ./dist

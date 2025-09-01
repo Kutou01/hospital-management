@@ -88,7 +88,7 @@ app.post('/api/notifications/send', async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Failed to send notification',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
     });
   }
 });
@@ -117,7 +117,7 @@ app.post('/api/notifications/appointment/reminder', async (req, res) => {
       appointmentId
     });
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Appointment reminder sent',
       data: result
@@ -214,7 +214,7 @@ app.use((error: any, req: express.Request, res: express.Response, next: express.
   res.status(500).json({
     success: false,
     message: 'Internal server error',
-    error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    error: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
   });
 });
 

@@ -21,54 +21,112 @@ const DEPARTMENT_CODES = {
     DEPT012: "ICU",
 };
 class AuthService {
+    constructor() {
+        this.pool = supabase_1.dbPool;
+        this.supabase = supabase_1.supabaseAdmin;
+    }
     async generateDoctorId(departmentId) {
         try {
             logger_1.default.info("Generating doctor ID for department:", departmentId);
-            const { data: doctorId, error } = await supabase_1.supabaseAdmin.rpc("generate_doctor_id", { dept_id: departmentId });
-            if (error) {
-                logger_1.default.error("Database function error for doctor ID generation:", error);
+            return await this.pool.executeQuery(async (client) => {
+                const { data: doctorId, error } = await client.rpc("generate_doctor_id", { dept_id: departmentId });
+                if (error) {
+                    logger_1.default.error("Database function error for doctor ID generation:", error);
+                    throw error;
+                }
+                if (!doctorId) {
+                    throw new Error("Database function returned null doctor ID");
+                }
+                logger_1.default.info("Generated doctor ID via connection pool:", {
+                    departmentId,
+                    doctorId,
+                });
+                return doctorId;
+            });
+        }
+        catch (error) {
+            logger_1.default.error("Connection pool error in generateDoctorId:", error);
+            try {
+                const { data: doctorId, error: fallbackError } = await supabase_1.supabaseAdmin.rpc("generate_doctor_id", {
+                    dept_id: departmentId,
+                });
+                if (fallbackError) {
+                    logger_1.default.error("Fallback error for doctor ID generation:", fallbackError);
+                    const departmentCode = DEPARTMENT_CODES[departmentId] || "GEN";
+                    const yearMonth = new Date()
+                        .toISOString()
+                        .slice(0, 7)
+                        .replace("-", "");
+                    const timestamp = Date.now().toString().slice(-3);
+                    const fallbackId = `${departmentCode}-DOC-${yearMonth}-${timestamp}`;
+                    logger_1.default.warn("Using local fallback ID generation:", fallbackId);
+                    return fallbackId;
+                }
+                if (!doctorId) {
+                    throw new Error("Database function returned null doctor ID");
+                }
+                logger_1.default.info("Generated doctor ID via fallback:", {
+                    departmentId,
+                    doctorId,
+                });
+                return doctorId;
+            }
+            catch (fallbackError) {
+                logger_1.default.error("Both pool and fallback failed in generateDoctorId:", fallbackError);
                 const departmentCode = DEPARTMENT_CODES[departmentId] || "GEN";
                 const yearMonth = new Date().toISOString().slice(0, 7).replace("-", "");
                 const timestamp = Date.now().toString().slice(-3);
                 const fallbackId = `${departmentCode}-DOC-${yearMonth}-${timestamp}`;
-                logger_1.default.warn("Using fallback ID generation:", fallbackId);
+                logger_1.default.warn("Using emergency local ID generation:", fallbackId);
                 return fallbackId;
             }
-            if (!doctorId) {
-                throw new Error("Database function returned null doctor ID");
-            }
-            logger_1.default.info("Generated doctor ID via database function:", {
-                departmentId,
-                doctorId,
-            });
-            return doctorId;
-        }
-        catch (error) {
-            logger_1.default.error("Error in generateDoctorId:", error);
-            throw error;
         }
     }
     async generatePatientId() {
         try {
             logger_1.default.info("Generating patient ID via database function");
-            const { data: patientId, error } = await supabase_1.supabaseAdmin.rpc("generate_patient_id");
-            if (error) {
-                logger_1.default.error("Database function error for patient ID generation:", error);
+            return await this.pool.executeQuery(async (client) => {
+                const { data: patientId, error } = await client.rpc("generate_patient_id");
+                if (error) {
+                    logger_1.default.error("Database function error for patient ID generation:", error);
+                    throw error;
+                }
+                if (!patientId) {
+                    throw new Error("Database function returned null patient ID");
+                }
+                logger_1.default.info("Generated patient ID via connection pool:", patientId);
+                return patientId;
+            });
+        }
+        catch (error) {
+            logger_1.default.error("Connection pool error in generatePatientId:", error);
+            try {
+                const { data: patientId, error: fallbackError } = await supabase_1.supabaseAdmin.rpc("generate_patient_id");
+                if (fallbackError) {
+                    logger_1.default.error("Fallback error for patient ID generation:", fallbackError);
+                    const yearMonth = new Date()
+                        .toISOString()
+                        .slice(0, 7)
+                        .replace("-", "");
+                    const timestamp = Date.now().toString().slice(-3);
+                    const fallbackId = `PAT-${yearMonth}-${timestamp}`;
+                    logger_1.default.warn("Using local fallback ID generation:", fallbackId);
+                    return fallbackId;
+                }
+                if (!patientId) {
+                    throw new Error("Database function returned null patient ID");
+                }
+                logger_1.default.info("Generated patient ID via fallback:", patientId);
+                return patientId;
+            }
+            catch (fallbackError) {
+                logger_1.default.error("Both pool and fallback failed in generatePatientId:", fallbackError);
                 const yearMonth = new Date().toISOString().slice(0, 7).replace("-", "");
                 const timestamp = Date.now().toString().slice(-3);
                 const fallbackId = `PAT-${yearMonth}-${timestamp}`;
-                logger_1.default.warn("Using fallback ID generation:", fallbackId);
+                logger_1.default.warn("Using emergency local ID generation:", fallbackId);
                 return fallbackId;
             }
-            if (!patientId) {
-                throw new Error("Database function returned null patient ID");
-            }
-            logger_1.default.info("Generated patient ID via database function:", patientId);
-            return patientId;
-        }
-        catch (error) {
-            logger_1.default.error("Error in generatePatientId:", error);
-            throw error;
         }
     }
     async generateAdminId() {
@@ -185,16 +243,18 @@ class AuthService {
                 phone_number: userData.phone_number,
                 date_of_birth: userData.date_of_birth,
             });
-            const { error: profileError } = await supabase_1.supabaseAdmin
-                .from("profiles")
-                .insert(profileData);
-            if (profileError) {
-                logger_1.default.error("❌ Profile creation error:", profileError);
-                throw new Error(`Profile creation failed: ${profileError.message}`);
-            }
-            logger_1.default.info("✅ Profile created successfully", {
-                userId: authData.user.id,
-                phone_number: userData.phone_number,
+            await this.pool.executeQuery(async (client) => {
+                const { error: profileError } = await client
+                    .from("profiles")
+                    .insert(profileData);
+                if (profileError) {
+                    logger_1.default.error("❌ Profile creation error:", profileError);
+                    throw new Error(`Profile creation failed: ${profileError.message}`);
+                }
+                logger_1.default.info("✅ Profile created successfully via connection pool", {
+                    userId: authData.user.id,
+                    phone_number: userData.phone_number,
+                });
             });
             try {
                 await this.createRoleSpecificRecord(authData.user.id, userData);
@@ -441,16 +501,44 @@ class AuthService {
             catch (jwtError) {
                 logger_1.default.warn("JWT decode warning:", jwtError);
             }
-            const { data: securityCheck, error: securityError } = await supabase_1.supabaseAdmin.rpc("enhanced_user_authentication", {
-                p_user_id: data.user.id,
-                p_ip_address: ipAddress,
-                p_user_agent: userAgent,
-                p_action: "AUTH_SIGN_IN_SUCCESS",
-            });
-            if (securityError) {
-                logger_1.default.warn("Security check failed:", securityError);
+            let securityCheck = null;
+            try {
+                const result = await this.pool.executeQuery(async (client) => {
+                    const { data: securityCheck, error: securityError } = await client.rpc("enhanced_user_authentication", {
+                        p_user_id: data.user.id,
+                        p_ip_address: ipAddress,
+                        p_user_agent: userAgent,
+                        p_action: "AUTH_SIGN_IN_SUCCESS",
+                    });
+                    if (securityError) {
+                        logger_1.default.warn("Security check failed:", securityError);
+                        return null;
+                    }
+                    return securityCheck;
+                });
+                securityCheck = result;
             }
-            else if (securityCheck && !securityCheck.success) {
+            catch (poolError) {
+                logger_1.default.warn("Connection pool error in security check:", poolError);
+                try {
+                    const { data: fallbackSecurityCheck, error: fallbackSecurityError } = await supabase_1.supabaseAdmin.rpc("enhanced_user_authentication", {
+                        p_user_id: data.user.id,
+                        p_ip_address: ipAddress,
+                        p_user_agent: userAgent,
+                        p_action: "AUTH_SIGN_IN_SUCCESS",
+                    });
+                    if (fallbackSecurityError) {
+                        logger_1.default.warn("Fallback security check failed:", fallbackSecurityError);
+                    }
+                    else {
+                        securityCheck = fallbackSecurityCheck;
+                    }
+                }
+                catch (fallbackError) {
+                    logger_1.default.warn("Both pool and fallback security check failed:", fallbackError);
+                }
+            }
+            if (securityCheck && !securityCheck.success) {
                 logger_1.default.warn("Authentication blocked by security check:", {
                     userId: data.user.id,
                     error: securityCheck.error,
@@ -466,12 +554,22 @@ class AuthService {
                 return { error: "Account is inactive" };
             }
             try {
-                await supabase_1.supabaseAdmin.rpc("update_user_login_time", {
-                    user_id: data.user.id,
+                await this.pool.executeQuery(async (client) => {
+                    await client.rpc("update_user_login_time", {
+                        user_id: data.user.id,
+                    });
                 });
             }
-            catch (updateError) {
-                logger_1.default.warn("Failed to update last_login time:", updateError);
+            catch (poolError) {
+                logger_1.default.warn("Connection pool error updating last_login time:", poolError);
+                try {
+                    await supabase_1.supabaseAdmin.rpc("update_user_login_time", {
+                        user_id: data.user.id,
+                    });
+                }
+                catch (fallbackError) {
+                    logger_1.default.warn("Both pool and fallback failed to update last_login time:", fallbackError);
+                }
             }
             const finalUser = {
                 id: data.user.id,

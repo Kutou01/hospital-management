@@ -1,16 +1,20 @@
 # Multi-stage build for file service
 FROM node:18-alpine AS builder
 
-# Install system dependencies for image processing
+# Install system dependencies for image processing and building
 RUN apk add --no-cache \
     vips-dev \
-    libc6-compat
+    libc6-compat \
+    make \
+    g++ \
+    python3 \
+    binutils-dev
 
 WORKDIR /app
 
 # Copy package.json and install dependencies
 COPY services/file-service/package*.json ./
-RUN npm ci --only=production && npm cache clean --force
+RUN npm install && npm cache clean --force
 
 # Production stage
 FROM node:18-alpine AS production

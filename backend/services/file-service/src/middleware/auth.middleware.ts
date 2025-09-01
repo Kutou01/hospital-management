@@ -1,21 +1,13 @@
-import { NextFunction, Request, Response } from "express";
+import express from "express";
 import { logger } from "../utils/logger";
 import { supabase } from "../utils/supabase";
 import { SecurityError } from "./error.middleware";
 
-export interface AuthenticatedRequest extends Request {
-  user?: {
-    id: string;
-    role: string;
-    email: string;
-  };
-}
-
 export const authMiddleware = async (
-  req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction
-) => {
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -76,13 +68,14 @@ export const authMiddleware = async (
     next();
   } catch (error) {
     if (error instanceof SecurityError) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         error: {
           code: "AUTHENTICATION_FAILED",
           message: error.message,
         },
       });
+      return;
     }
 
     logger.error("Authentication middleware error", {
@@ -90,7 +83,7 @@ export const authMiddleware = async (
       path: req.path,
     });
 
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
       error: {
         code: "INTERNAL_ERROR",
@@ -102,15 +95,20 @@ export const authMiddleware = async (
 
 // Role-based authorization middleware
 export const requireRole = (allowedRoles: string[]) => {
-  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  return (
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction
+  ): void => {
     if (!req.user) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         error: {
           code: "AUTHENTICATION_REQUIRED",
           message: "Authentication required",
         },
       });
+      return;
     }
 
     if (!allowedRoles.includes(req.user.role)) {
@@ -121,13 +119,14 @@ export const requireRole = (allowedRoles: string[]) => {
         endpoint: req.path,
       });
 
-      return res.status(403).json({
+      res.status(403).json({
         success: false,
         error: {
           code: "INSUFFICIENT_PERMISSIONS",
           message: "Insufficient permissions for this operation",
         },
       });
+      return;
     }
 
     next();
@@ -153,4 +152,3 @@ export const requirePatientOrStaff = requireRole([
   "admin",
   "superadmin",
 ]);
-

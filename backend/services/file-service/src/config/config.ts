@@ -20,7 +20,7 @@ export const config = {
     "http://localhost:3001",
     "https://hospital-management.vercel.app",
     process.env.FRONTEND_URL,
-  ].filter(Boolean),
+  ].filter((url): url is string => Boolean(url)),
 
   // File upload configuration
   fileUpload: {

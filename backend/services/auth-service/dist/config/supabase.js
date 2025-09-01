@@ -3,135 +3,154 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.initializeSupabase = exports.testSupabaseConnection = exports.supabaseClient = exports.supabaseFresh = exports.supabaseAdmin = void 0;
-const supabase_js_1 = require("@supabase/supabase-js");
+exports.dbPool = exports.initializeSupabase = exports.testSupabaseConnection = exports.supabaseClient = exports.supabaseFresh = exports.supabaseAdmin = exports.connectionPool = void 0;
 const logger_1 = __importDefault(require("@hospital/shared/dist/utils/logger"));
+const connection_pool_1 = require("@hospital/shared/src/database/connection-pool");
+Object.defineProperty(exports, "connectionPool", { enumerable: true, get: function () { return connection_pool_1.connectionPool; } });
+const supabase_js_1 = require("@supabase/supabase-js");
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 if (!supabaseUrl) {
-    throw new Error('SUPABASE_URL environment variable is required');
+    throw new Error("SUPABASE_URL environment variable is required");
 }
 if (!supabaseServiceKey) {
-    throw new Error('SUPABASE_SERVICE_ROLE_KEY environment variable is required');
+    throw new Error("SUPABASE_SERVICE_ROLE_KEY environment variable is required");
 }
 if (!supabaseAnonKey) {
-    throw new Error('SUPABASE_ANON_KEY environment variable is required');
+    throw new Error("SUPABASE_ANON_KEY environment variable is required");
 }
-logger_1.default.info('🔧 Supabase configuration loaded', {
+logger_1.default.info("Database configuration loaded for Auth Service", {
+    service: "auth-service",
     url: supabaseUrl,
     hasServiceKey: !!supabaseServiceKey,
-    hasAnonKey: !!supabaseAnonKey
+    hasAnonKey: !!supabaseAnonKey,
+    connectionPooling: true,
 });
 exports.supabaseAdmin = (0, supabase_js_1.createClient)(supabaseUrl, supabaseServiceKey, {
     auth: {
         autoRefreshToken: false,
-        persistSession: false
+        persistSession: false,
     },
     db: {
-        schema: 'public'
+        schema: "public",
     },
     global: {
         headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache',
-            'X-Client-Info': `auth-service-${Date.now()}`
-        }
-    }
+            "Cache-Control": "no-cache",
+            Pragma: "no-cache",
+            "X-Client-Info": `auth-service-${Date.now()}`,
+        },
+    },
 });
 exports.supabaseFresh = (0, supabase_js_1.createClient)(supabaseUrl, supabaseServiceKey, {
     auth: {
         autoRefreshToken: false,
-        persistSession: false
+        persistSession: false,
     },
     db: {
-        schema: 'public'
+        schema: "public",
     },
     global: {
         headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0',
-            'X-Client-Info': `fresh-client-${Date.now()}`
-        }
-    }
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            Pragma: "no-cache",
+            Expires: "0",
+            "X-Client-Info": `fresh-client-${Date.now()}`,
+        },
+    },
 });
 exports.supabaseClient = (0, supabase_js_1.createClient)(supabaseUrl, supabaseAnonKey, {
     auth: {
         autoRefreshToken: true,
-        persistSession: true
+        persistSession: true,
     },
     db: {
-        schema: 'public'
-    }
+        schema: "public",
+    },
 });
 const testSupabaseConnection = async () => {
     try {
-        logger_1.default.info('🔍 Testing Supabase connection...');
+        logger_1.default.info("🔍 Testing Supabase connection...");
         const { data: adminTest, error: adminError } = await exports.supabaseAdmin
-            .from('profiles')
-            .select('count')
+            .from("profiles")
+            .select("count")
             .limit(1);
         if (adminError) {
-            logger_1.default.error('❌ Supabase admin client connection failed:', {
+            logger_1.default.error("❌ Supabase admin client connection failed:", {
                 error: adminError.message,
                 code: adminError.code,
-                details: adminError.details
+                details: adminError.details,
             });
             return false;
         }
         const { data: anonTest, error: anonError } = await exports.supabaseClient
-            .from('profiles')
-            .select('count')
+            .from("profiles")
+            .select("count")
             .limit(1);
         if (anonError) {
-            logger_1.default.error('❌ Supabase anonymous client connection failed:', {
+            logger_1.default.error("❌ Supabase anonymous client connection failed:", {
                 error: anonError.message,
                 code: anonError.code,
-                details: anonError.details
+                details: anonError.details,
             });
             return false;
         }
         const { data: authTest, error: authTestError } = await exports.supabaseAdmin.auth.admin.listUsers({
             page: 1,
-            perPage: 1
+            perPage: 1,
         });
         if (authTestError) {
-            logger_1.default.error('❌ Supabase auth test failed:', {
+            logger_1.default.error("❌ Supabase auth test failed:", {
                 error: authTestError.message,
-                code: authTestError.code
+                code: authTestError.code,
             });
             return false;
         }
-        logger_1.default.info('✅ Supabase connection and auth test successful', {
+        logger_1.default.info("✅ Supabase connection and auth test successful", {
             profilesAccessible: true,
             authFunctional: true,
-            userCount: authTest.users?.length || 0
+            userCount: authTest.users?.length || 0,
         });
         return true;
     }
     catch (error) {
-        logger_1.default.error('❌ Supabase connection test error:', {
+        logger_1.default.error("❌ Supabase connection test error:", {
             error: error.message,
-            stack: error.stack
+            stack: error.stack,
         });
         return false;
     }
 };
 exports.testSupabaseConnection = testSupabaseConnection;
 const initializeSupabase = async () => {
-    logger_1.default.info('🚀 Initializing Supabase connection...');
+    logger_1.default.info("🚀 Initializing Supabase connection...");
     const isConnected = await (0, exports.testSupabaseConnection)();
     if (!isConnected) {
-        logger_1.default.error('❌ Failed to connect to Supabase. Please check your configuration.');
+        logger_1.default.error("❌ Failed to connect to Supabase. Please check your configuration.");
         process.exit(1);
     }
-    logger_1.default.info('✅ Supabase initialized successfully');
+    logger_1.default.info("✅ Supabase initialized successfully");
 };
 exports.initializeSupabase = initializeSupabase;
+exports.dbPool = {
+    async executeQuery(queryFn) {
+        return connection_pool_1.connectionPool.executeQuery(queryFn);
+    },
+    async executeFHIRValidation(validationFn) {
+        return connection_pool_1.connectionPool.executeFHIRValidation(validationFn);
+    },
+    async executeDiagnosisOperation(diagnosisFn) {
+        return connection_pool_1.connectionPool.executeDiagnosisOperation(diagnosisFn);
+    },
+    async executeBulkOperation(bulkFn) {
+        return connection_pool_1.connectionPool.executeBulkOperation(bulkFn);
+    },
+};
 exports.default = {
     admin: exports.supabaseAdmin,
     client: exports.supabaseClient,
-    testConnection: exports.testSupabaseConnection
+    testConnection: exports.testSupabaseConnection,
+    dbPool: exports.dbPool,
 };
 //# sourceMappingURL=supabase.js.map

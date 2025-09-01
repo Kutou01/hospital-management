@@ -102,6 +102,7 @@ app.get("/", (req, res) => {
             health: "/health",
             docs: "/docs",
             auth: "/api/auth",
+            mfa: "/api/auth/mfa",
             users: "/api/users",
             sessions: "/api/sessions",
         },
@@ -115,6 +116,7 @@ app.use("*", (req, res) => {
         service: SERVICE_NAME,
         availableRoutes: [
             "/api/auth",
+            "/api/auth/mfa",
             "/api/users",
             "/api/sessions",
             "/health",

@@ -5,54 +5,100 @@ const shared_1 = require("@hospital/shared");
 const database_config_1 = require("../config/database.config");
 class MedicalRecordRepository {
     constructor() {
-        this.supabase = database_config_1.supabaseAdmin;
+        this.supabase = database_config_1.supabaseAdmin; // Legacy fallback
+        this.pool = database_config_1.dbPool; // Primary connection pool
     }
     async findAll(limit = 50, offset = 0) {
         try {
-            const { data, error } = await this.supabase.rpc("get_all_medical_records", {
-                limit_count: limit,
-                offset_count: offset,
+            // Use Connection Pool with FHIR validation for healthcare compliance
+            return await this.pool.executeFHIRValidation(async (client) => {
+                const { data, error } = await client.rpc("get_all_medical_records", {
+                    limit_count: limit,
+                    offset_count: offset,
+                });
+                if (error) {
+                    shared_1.logger.error("Database function error in findAll:", error);
+                    throw error;
+                }
+                if (!data || data.length === 0) {
+                    return [];
+                }
+                return data.map(this.mapSupabaseRecordToMedicalRecord);
             });
-            if (error) {
-                shared_1.logger.error("Database function error in findAll:", error);
-                throw error;
-            }
-            if (!data || data.length === 0) {
-                return [];
-            }
-            return data.map(this.mapSupabaseRecordToMedicalRecord);
         }
         catch (error) {
-            shared_1.logger.error("Error fetching medical records", { error });
-            throw error;
+            shared_1.logger.error("Connection pool error in findAll:", error);
+            // FALLBACK: Use direct client if pool fails
+            try {
+                const { data, error: fallbackError } = await this.supabase.rpc("get_all_medical_records", {
+                    limit_count: limit,
+                    offset_count: offset,
+                });
+                if (fallbackError) {
+                    shared_1.logger.error("Fallback error in findAll:", fallbackError);
+                    throw fallbackError;
+                }
+                if (!data || data.length === 0) {
+                    return [];
+                }
+                return data.map(this.mapSupabaseRecordToMedicalRecord);
+            }
+            catch (fallbackError) {
+                shared_1.logger.error("Both pool and fallback failed in findAll:", fallbackError);
+                throw fallbackError;
+            }
         }
     }
     async findById(recordId) {
         try {
-            const { data, error } = await this.supabase
-                .from("medical_records")
-                .select("*")
-                .eq("record_id", recordId)
-                .eq("status", "active")
-                .single();
-            if (error) {
-                if (error.code === "PGRST116")
-                    return null;
-                throw error;
-            }
-            return this.mapSupabaseRecordToMedicalRecord(data);
+            // Use Connection Pool with FHIR validation for healthcare compliance
+            return await this.pool.executeFHIRValidation(async (client) => {
+                const { data, error } = await client
+                    .from("medical_records")
+                    .select("*")
+                    .eq("record_id", recordId)
+                    .eq("status", "active")
+                    .single();
+                if (error) {
+                    if (error.code === "PGRST116")
+                        return null;
+                    throw error;
+                }
+                return this.mapSupabaseRecordToMedicalRecord(data);
+            });
         }
         catch (error) {
-            shared_1.logger.error("Error fetching medical record by ID", { error, recordId });
-            throw error;
+            shared_1.logger.error("Connection pool error in findById:", { error, recordId });
+            // FALLBACK: Use direct client if pool fails
+            try {
+                const { data, error: fallbackError } = await this.supabase
+                    .from("medical_records")
+                    .select("*")
+                    .eq("record_id", recordId)
+                    .eq("status", "active")
+                    .single();
+                if (fallbackError) {
+                    if (fallbackError.code === "PGRST116")
+                        return null;
+                    throw fallbackError;
+                }
+                return this.mapSupabaseRecordToMedicalRecord(data);
+            }
+            catch (fallbackError) {
+                shared_1.logger.error("Both pool and fallback failed in findById:", {
+                    fallbackError,
+                    recordId,
+                });
+                throw fallbackError;
+            }
         }
     }
-    async findByPatientId(patientId) {
+    async findByPatientId(patient_id) {
         try {
             const { data, error } = await this.supabase
                 .from("medical_records")
                 .select("*")
-                .eq("patient_id", patientId)
+                .eq("patient_id", patient_id)
                 .eq("status", "active")
                 .order("visit_date", { ascending: false });
             if (error)
@@ -62,17 +108,17 @@ class MedicalRecordRepository {
         catch (error) {
             shared_1.logger.error("Error fetching medical records by patient ID", {
                 error,
-                patientId,
+                patient_id,
             });
             throw error;
         }
     }
-    async findByDoctorId(doctorId) {
+    async findByDoctorId(doctor_id) {
         try {
             const { data, error } = await this.supabase
                 .from("medical_records")
                 .select("*")
-                .eq("doctor_id", doctorId)
+                .eq("doctor_id", doctor_id)
                 .eq("status", "active")
                 .order("visit_date", { ascending: false });
             if (error)
@@ -82,35 +128,65 @@ class MedicalRecordRepository {
         catch (error) {
             shared_1.logger.error("Error fetching medical records by doctor ID", {
                 error,
-                doctorId,
+                doctor_id,
             });
             throw error;
         }
     }
     async create(recordData, createdBy) {
         try {
-            const { data, error } = await this.supabase.rpc("create_medical_record", {
-                record_data: {
-                    ...recordData,
-                    created_by: createdBy,
-                    updated_by: createdBy,
-                },
+            // Use Connection Pool with Diagnosis Operation for medical record creation
+            return await this.pool.executeDiagnosisOperation(async (client) => {
+                const { data, error } = await client.rpc("create_medical_record", {
+                    record_data: {
+                        ...recordData,
+                        created_by: createdBy,
+                        updated_by: createdBy,
+                    },
+                });
+                if (error) {
+                    shared_1.logger.error("Database function error in create:", error);
+                    throw error;
+                }
+                if (!data || data.length === 0) {
+                    throw new Error("Failed to create medical record - no data returned");
+                }
+                shared_1.logger.info("Medical record created successfully via connection pool:", {
+                    recordId: data[0].record_id,
+                });
+                return this.mapSupabaseRecordToMedicalRecord(data[0]);
             });
-            if (error) {
-                shared_1.logger.error("Database function error in create:", error);
-                throw error;
-            }
-            if (!data || data.length === 0) {
-                throw new Error("Failed to create medical record - no data returned");
-            }
-            shared_1.logger.info("Medical record created successfully via database function:", {
-                recordId: data[0].record_id,
-            });
-            return this.mapSupabaseRecordToMedicalRecord(data[0]);
         }
         catch (error) {
-            shared_1.logger.error("Error creating medical record", { error, recordData });
-            throw error;
+            shared_1.logger.error("Connection pool error in create:", { error, recordData });
+            // FALLBACK: Use direct client if pool fails
+            try {
+                const { data, error: fallbackError } = await this.supabase.rpc("create_medical_record", {
+                    record_data: {
+                        ...recordData,
+                        created_by: createdBy,
+                        updated_by: createdBy,
+                    },
+                });
+                if (fallbackError) {
+                    shared_1.logger.error("Fallback error in create:", fallbackError);
+                    throw fallbackError;
+                }
+                if (!data || data.length === 0) {
+                    throw new Error("Failed to create medical record - no data returned");
+                }
+                shared_1.logger.info("Medical record created successfully via fallback:", {
+                    recordId: data[0].record_id,
+                });
+                return this.mapSupabaseRecordToMedicalRecord(data[0]);
+            }
+            catch (fallbackError) {
+                shared_1.logger.error("Both pool and fallback failed in create:", {
+                    fallbackError,
+                    recordData,
+                });
+                throw fallbackError;
+            }
         }
     }
     async update(recordId, recordData, updatedBy) {
@@ -289,12 +365,12 @@ class MedicalRecordRepository {
             throw error;
         }
     }
-    async getPrescriptionsByPatientId(patientId) {
+    async getPrescriptionsByPatientId(patient_id) {
         try {
             const { data, error } = await this.supabase
                 .from("medical_records")
                 .select("prescriptions")
-                .eq("patient_id", patientId)
+                .eq("patient_id", patient_id)
                 .not("prescriptions", "is", null);
             if (error)
                 throw error;
@@ -311,17 +387,17 @@ class MedicalRecordRepository {
         catch (error) {
             shared_1.logger.error("Error fetching prescriptions by patient ID", {
                 error,
-                patientId,
+                patient_id,
             });
             throw error;
         }
     }
-    async getPrescriptionsByDoctorId(doctorId) {
+    async getPrescriptionsByDoctorId(doctor_id) {
         try {
             const { data, error } = await this.supabase
                 .from("medical_records")
                 .select("prescriptions")
-                .eq("doctor_id", doctorId)
+                .eq("doctor_id", doctor_id)
                 .not("prescriptions", "is", null);
             if (error)
                 throw error;
@@ -338,7 +414,7 @@ class MedicalRecordRepository {
         catch (error) {
             shared_1.logger.error("Error fetching prescriptions by doctor ID", {
                 error,
-                doctorId,
+                doctor_id,
             });
             throw error;
         }

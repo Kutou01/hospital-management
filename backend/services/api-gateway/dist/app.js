@@ -496,6 +496,18 @@ function createApp() {
             res.status(503).json({ error: "Notification service unavailable" });
         },
     }));
+    // ICD-10 Healthcare Routes - ENABLED (Proxy to Doctor Service)
+    app.use("/api/icd10", (0, http_proxy_middleware_1.createProxyMiddleware)({
+        target: process.env.DOCTOR_SERVICE_URL || "http://doctor-service:3002",
+        changeOrigin: true,
+        pathRewrite: {
+            "^/api/icd10": "/api/icd10",
+        },
+        onError: (err, req, res) => {
+            console.error("ICD-10 Service Proxy Error:", err);
+            res.status(503).json({ error: "ICD-10 service unavailable" });
+        },
+    }));
     // Root endpoint
     app.get("/", (req, res) => {
         res.json({

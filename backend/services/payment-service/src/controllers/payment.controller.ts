@@ -1,9 +1,9 @@
-import { Response } from 'express';
-import { validationResult } from 'express-validator';
-import { PayOSService } from '../services/payos.service';
-import { PaymentRepository } from '../repositories/payment.repository';
-import { logger } from '@hospital/shared';
-import { AuthenticatedRequest } from '../types';
+import { Response } from "express";
+import { validationResult } from "express-validator";
+import { PaymentRepository } from "../repositories/payment.repository";
+import { PayOSService } from "../services/payos.service";
+import { AuthenticatedRequest } from "../types";
+import { logger } from "../utils/logger";
 
 export class PaymentController {
   private payOSService: PayOSService;
@@ -17,25 +17,29 @@ export class PaymentController {
   /**
    * Create PayOS payment link
    */
-  async createPayOSPayment(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async createPayOSPayment(
+    req: AuthenticatedRequest,
+    res: Response
+  ): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         res.status(400).json({
           success: false,
-          message: 'Validation failed',
-          errors: errors.array()
+          message: "Validation failed",
+          errors: errors.array(),
         });
         return;
       }
 
-      const { appointmentId, amount, description, serviceName, patientInfo } = req.body;
+      const { appointmentId, amount, description, serviceName, patientInfo } =
+        req.body;
       const userId = req.user?.id;
 
       if (!userId) {
         res.status(401).json({
           success: false,
-          message: 'User not authenticated'
+          message: "User not authenticated",
         });
         return;
       }
@@ -44,7 +48,7 @@ export class PaymentController {
       if (!this.payOSService.validateAmount(amount)) {
         res.status(400).json({
           success: false,
-          message: 'Invalid payment amount'
+          message: "Invalid payment amount",
         });
         return;
       }
@@ -58,10 +62,10 @@ export class PaymentController {
         appointmentId,
         amount: this.payOSService.formatAmount(amount),
         description,
-        paymentMethod: 'payos',
-        status: 'pending',
+        paymentMethod: "payos",
+        status: "pending",
         userId,
-        patientInfo
+        patientInfo,
       });
 
       // Create PayOS payment link
@@ -71,46 +75,48 @@ export class PaymentController {
         description,
         serviceName,
         appointmentId,
-        patientInfo
+        patientInfo,
       };
 
-      const paymentLink = await this.payOSService.createPaymentLink(paymentData);
+      const paymentLink =
+        await this.payOSService.createPaymentLink(paymentData);
 
       // Update payment record with PayOS data
       await this.paymentRepository.updatePayment(paymentRecord.id, {
         paymentLinkId: paymentLink.paymentLinkId,
         checkoutUrl: paymentLink.checkoutUrl,
-        qrCode: paymentLink.qrCode
+        qrCode: paymentLink.qrCode,
       });
 
-      logger.info('PayOS payment created successfully', {
+      logger.info("PayOS payment created successfully", {
         orderCode,
         appointmentId,
         amount,
-        userId
+        userId,
       });
 
       res.json({
         success: true,
-        message: 'Payment link created successfully',
+        message: "Payment link created successfully",
         data: {
           orderCode,
           checkoutUrl: paymentLink.checkoutUrl,
           qrCode: paymentLink.qrCode,
           amount: paymentLink.amount,
-          paymentLinkId: paymentLink.paymentLinkId
-        }
+          paymentLinkId: paymentLink.paymentLinkId,
+        },
       });
     } catch (error: any) {
-      logger.error('Error creating PayOS payment', {
-        error: error?.message || 'Unknown error',
+      logger.error("Error creating PayOS payment", {
+        error: error?.message || "Unknown error",
         body: req.body,
-        userId: req.user?.id
+        userId: req.user?.id,
       });
       res.status(500).json({
         success: false,
-        message: 'Failed to create payment link',
-        error: process.env.NODE_ENV === 'development' ? error?.message : undefined
+        message: "Failed to create payment link",
+        error:
+          process.env.NODE_ENV === "development" ? error?.message : undefined,
       });
     }
   }
@@ -118,14 +124,17 @@ export class PaymentController {
   /**
    * Create cash payment record
    */
-  async createCashPayment(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async createCashPayment(
+    req: AuthenticatedRequest,
+    res: Response
+  ): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         res.status(400).json({
           success: false,
-          message: 'Validation failed',
-          errors: errors.array()
+          message: "Validation failed",
+          errors: errors.array(),
         });
         return;
       }
@@ -136,7 +145,7 @@ export class PaymentController {
       if (!userId) {
         res.status(401).json({
           success: false,
-          message: 'User not authenticated'
+          message: "User not authenticated",
         });
         return;
       }
@@ -150,39 +159,40 @@ export class PaymentController {
         appointmentId,
         amount,
         description: description || `Thanh toán tiền mặt - ${appointmentId}`,
-        paymentMethod: 'cash',
-        status: 'pending',
-        userId
+        paymentMethod: "cash",
+        status: "pending",
+        userId,
       });
 
-      logger.info('Cash payment record created', {
+      logger.info("Cash payment record created", {
         orderCode,
         appointmentId,
         amount,
-        userId
+        userId,
       });
 
       res.json({
         success: true,
-        message: 'Cash payment record created successfully',
+        message: "Cash payment record created successfully",
         data: {
           orderCode,
           amount,
-          status: 'pending',
-          paymentMethod: 'cash',
-          id: paymentRecord.id
-        }
+          status: "pending",
+          paymentMethod: "cash",
+          id: paymentRecord.id,
+        },
       });
     } catch (error: any) {
-      logger.error('Error creating cash payment', {
-        error: error?.message || 'Unknown error',
+      logger.error("Error creating cash payment", {
+        error: error?.message || "Unknown error",
         body: req.body,
-        userId: req.user?.id
+        userId: req.user?.id,
       });
       res.status(500).json({
         success: false,
-        message: 'Failed to create cash payment record',
-        error: process.env.NODE_ENV === 'development' ? error?.message : undefined
+        message: "Failed to create cash payment record",
+        error:
+          process.env.NODE_ENV === "development" ? error?.message : undefined,
       });
     }
   }
@@ -198,18 +208,20 @@ export class PaymentController {
       if (!orderCode || !userId) {
         res.status(400).json({
           success: false,
-          message: 'Order code and user authentication required'
+          message: "Order code and user authentication required",
         });
         return;
       }
 
       // Get payment record from database
-      const paymentRecord = await this.paymentRepository.getPaymentByOrderCode(orderCode as string);
+      const paymentRecord = await this.paymentRepository.getPaymentByOrderCode(
+        orderCode as string
+      );
 
       if (!paymentRecord) {
         res.status(404).json({
           success: false,
-          message: 'Payment not found'
+          message: "Payment not found",
         });
         return;
       }
@@ -218,7 +230,7 @@ export class PaymentController {
       if (paymentRecord.userId !== userId) {
         res.status(403).json({
           success: false,
-          message: 'Access denied'
+          message: "Access denied",
         });
         return;
       }
@@ -226,36 +238,41 @@ export class PaymentController {
       let paymentInfo: any = null;
 
       // For PayOS payments, get latest status from PayOS
-      if (paymentRecord.paymentMethod === 'payos' && paymentRecord.status === 'pending') {
+      if (
+        paymentRecord.paymentMethod === "payos" &&
+        paymentRecord.status === "pending"
+      ) {
         try {
-          paymentInfo = await this.payOSService.getPaymentInfo(orderCode as string);
-          
+          paymentInfo = await this.payOSService.getPaymentInfo(
+            orderCode as string
+          );
+
           // Update payment status based on PayOS response
-          if (paymentInfo && paymentInfo.status === 'PAID') {
+          if (paymentInfo && paymentInfo.status === "PAID") {
             await this.paymentRepository.updatePayment(paymentRecord.id, {
-              status: 'success',
+              status: "success",
               transactionId: paymentInfo.transactions?.[0]?.reference,
-              paidAt: new Date().toISOString()
+              paidAt: new Date().toISOString(),
             });
-            paymentRecord.status = 'success';
-          } else if (paymentInfo && paymentInfo.status === 'CANCELLED') {
+            paymentRecord.status = "success";
+          } else if (paymentInfo && paymentInfo.status === "CANCELLED") {
             await this.paymentRepository.updatePayment(paymentRecord.id, {
-              status: 'cancelled'
+              status: "cancelled",
             });
-            paymentRecord.status = 'cancelled';
+            paymentRecord.status = "cancelled";
           }
         } catch (error: any) {
-          logger.warn('Failed to get PayOS payment info', {
+          logger.warn("Failed to get PayOS payment info", {
             orderCode,
-            error: error?.message || 'Unknown error'
+            error: error?.message || "Unknown error",
           });
         }
       }
 
-      logger.info('Payment verification completed', {
+      logger.info("Payment verification completed", {
         orderCode,
         status: paymentRecord.status,
-        userId
+        userId,
       });
 
       res.json({
@@ -270,19 +287,20 @@ export class PaymentController {
           createdAt: paymentRecord.createdAt,
           appointmentId: paymentRecord.appointmentId,
           description: paymentRecord.description,
-          payosInfo: paymentInfo
-        }
+          payosInfo: paymentInfo,
+        },
       });
     } catch (error: any) {
-      logger.error('Error verifying payment', {
-        error: error?.message || 'Unknown error',
+      logger.error("Error verifying payment", {
+        error: error?.message || "Unknown error",
         orderCode: req.query.orderCode,
-        userId: req.user?.id
+        userId: req.user?.id,
       });
       res.status(500).json({
         success: false,
-        message: 'Failed to verify payment',
-        error: process.env.NODE_ENV === 'development' ? error?.message : undefined
+        message: "Failed to verify payment",
+        error:
+          process.env.NODE_ENV === "development" ? error?.message : undefined,
       });
     }
   }
@@ -290,7 +308,10 @@ export class PaymentController {
   /**
    * Get payment history for user
    */
-  async getPaymentHistory(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async getPaymentHistory(
+    req: AuthenticatedRequest,
+    res: Response
+  ): Promise<void> {
     try {
       const userId = req.user?.id;
       const { page = 1, limit = 20, status, method } = req.query;
@@ -298,14 +319,14 @@ export class PaymentController {
       if (!userId) {
         res.status(401).json({
           success: false,
-          message: 'User not authenticated'
+          message: "User not authenticated",
         });
         return;
       }
 
       const filters = {
         status: status as string,
-        paymentMethod: method as string
+        paymentMethod: method as string,
       };
 
       const payments = await this.paymentRepository.getPaymentsByUserId(
@@ -315,11 +336,11 @@ export class PaymentController {
         filters
       );
 
-      logger.info('Payment history retrieved', {
+      logger.info("Payment history retrieved", {
         userId,
         count: payments.length,
         page,
-        limit
+        limit,
       });
 
       res.json({
@@ -328,18 +349,19 @@ export class PaymentController {
         pagination: {
           page: parseInt(page as string),
           limit: parseInt(limit as string),
-          total: payments.length
-        }
+          total: payments.length,
+        },
       });
     } catch (error: any) {
-      logger.error('Error getting payment history', {
-        error: error?.message || 'Unknown error',
-        userId: req.user?.id
+      logger.error("Error getting payment history", {
+        error: error?.message || "Unknown error",
+        userId: req.user?.id,
       });
       res.status(500).json({
         success: false,
-        message: 'Failed to get payment history',
-        error: process.env.NODE_ENV === 'development' ? error?.message : undefined
+        message: "Failed to get payment history",
+        error:
+          process.env.NODE_ENV === "development" ? error?.message : undefined,
       });
     }
   }
@@ -347,7 +369,10 @@ export class PaymentController {
   /**
    * Get payment receipt data
    */
-  async getPaymentReceipt(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async getPaymentReceipt(
+    req: AuthenticatedRequest,
+    res: Response
+  ): Promise<void> {
     try {
       const { id } = req.params;
       const userId = req.user?.id;
@@ -355,40 +380,44 @@ export class PaymentController {
       if (!userId) {
         res.status(401).json({
           success: false,
-          message: 'User not authenticated'
+          message: "User not authenticated",
         });
         return;
       }
 
-      const receipt = await this.paymentRepository.getPaymentReceiptById(id, userId);
+      const receipt = await this.paymentRepository.getPaymentReceiptById(
+        id,
+        userId
+      );
 
       if (!receipt) {
         res.status(404).json({
           success: false,
-          message: 'Receipt not found'
+          message: "Receipt not found",
         });
         return;
       }
 
-      logger.info('Payment receipt retrieved', {
+      logger.info("Payment receipt retrieved", {
         receiptId: id,
-        userId
+        userId,
       });
 
       res.json({
         success: true,
-        data: receipt
+        data: receipt,
       });
     } catch (error: any) {
-      logger.error('Error getting payment receipt', {
-        error: error?.message || 'Unknown error',
+      logger.error("Error getting payment receipt", {
+        error: error?.message || "Unknown error",
         receiptId: req.params.id,
-        userId: req.user?.id
+        userId: req.user?.id,
       });
       res.status(500).json({
         success: false,
-        message: 'Failed to get payment receipt',
-        error: process.env.NODE_ENV === 'development' ? error?.message : undefined
+        message: "Failed to get payment receipt",
+        error:
+          process.env.NODE_ENV === "development" ? error?.message : undefined,
       });
     }
   }
@@ -405,17 +434,18 @@ export class PaymentController {
       if (!userId) {
         res.status(401).json({
           success: false,
-          message: 'User not authenticated'
+          message: "User not authenticated",
         });
         return;
       }
 
-      const paymentRecord = await this.paymentRepository.getPaymentByOrderCode(orderCode);
+      const paymentRecord =
+        await this.paymentRepository.getPaymentByOrderCode(orderCode);
 
       if (!paymentRecord) {
         res.status(404).json({
           success: false,
-          message: 'Payment not found'
+          message: "Payment not found",
         });
         return;
       }
@@ -423,50 +453,51 @@ export class PaymentController {
       if (paymentRecord.userId !== userId) {
         res.status(403).json({
           success: false,
-          message: 'Access denied'
+          message: "Access denied",
         });
         return;
       }
 
-      if (paymentRecord.status !== 'pending') {
+      if (paymentRecord.status !== "pending") {
         res.status(400).json({
           success: false,
-          message: 'Payment cannot be cancelled'
+          message: "Payment cannot be cancelled",
         });
         return;
       }
 
       // Cancel PayOS payment link if it's a PayOS payment
-      if (paymentRecord.paymentMethod === 'payos') {
+      if (paymentRecord.paymentMethod === "payos") {
         await this.payOSService.cancelPaymentLink(orderCode, reason);
       }
 
       // Update payment status
       await this.paymentRepository.updatePayment(paymentRecord.id, {
-        status: 'cancelled',
-        cancelReason: reason
+        status: "cancelled",
+        cancelReason: reason,
       });
 
-      logger.info('Payment cancelled successfully', {
+      logger.info("Payment cancelled successfully", {
         orderCode,
         reason,
-        userId
+        userId,
       });
 
       res.json({
         success: true,
-        message: 'Payment cancelled successfully'
+        message: "Payment cancelled successfully",
       });
     } catch (error: any) {
-      logger.error('Error cancelling payment', {
-        error: error?.message || 'Unknown error',
+      logger.error("Error cancelling payment", {
+        error: error?.message || "Unknown error",
         orderCode: req.params.orderCode,
-        userId: req.user?.id
+        userId: req.user?.id,
       });
       res.status(500).json({
         success: false,
-        message: 'Failed to cancel payment',
-        error: process.env.NODE_ENV === 'development' ? error?.message : undefined
+        message: "Failed to cancel payment",
+        error:
+          process.env.NODE_ENV === "development" ? error?.message : undefined,
       });
     }
   }

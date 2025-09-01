@@ -1,13 +1,13 @@
-import { NextFunction, Request, Response } from "express";
+import express from "express";
 import { body, query, validationResult } from "express-validator";
 import { config } from "../config/config";
 import { ValidationError } from "./error.middleware";
 
 // Handle validation errors
 export const handleValidationErrors = (
-  req: Request,
-  res: Response,
-  next: NextFunction
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
 ) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -40,8 +40,8 @@ export const validateDocumentUpload = [
     }),
 
   // File validation
-  (req: Request, res: Response, next: NextFunction) => {
-    const files = req.files as Express.Multer.File[];
+  (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const files = req.files as any[];
 
     if (!files || files.length === 0) {
       throw new ValidationError("At least one file is required");
@@ -124,7 +124,7 @@ export const validateDocumentQuery = [
 
 // Document ID parameter validation
 export const validateDocumentId = [
-  (req: Request, res: Response, next: NextFunction) => {
+  (req: express.Request, res: express.Response, next: express.NextFunction) => {
     const { id } = req.params;
 
     // UUID format validation
@@ -142,7 +142,7 @@ export const validateDocumentId = [
 // Medical document type specific validation
 export const validateMedicalDocument = [
   body("document_type").custom((value, { req }) => {
-    const files = req.files as Express.Multer.File[];
+    const files = req.files as any[];
 
     if (!files || files.length === 0) {
       return true; // Will be caught by file validation
@@ -220,4 +220,3 @@ export const sanitizeMetadata = (metadata: any): Record<string, any> => {
 
   return sanitized;
 };
-

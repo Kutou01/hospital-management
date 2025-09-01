@@ -54,6 +54,8 @@ export interface AuthResponse {
     } | any;
 }
 export declare class AuthService {
+    private pool;
+    private supabase;
     private generateDoctorId;
     private generatePatientId;
     private generateAdminId;

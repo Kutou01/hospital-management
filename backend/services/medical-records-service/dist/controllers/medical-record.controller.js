@@ -65,8 +65,8 @@ class MedicalRecordController {
     }
     async getMedicalRecordsByPatientId(req, res) {
         try {
-            const { patientId } = req.params;
-            const records = await this.medicalRecordRepository.findByPatientId(patientId);
+            const { patient_id } = req.params;
+            const records = await this.medicalRecordRepository.findByPatientId(patient_id);
             res.json({
                 success: true,
                 data: records,
@@ -75,7 +75,7 @@ class MedicalRecordController {
         catch (error) {
             shared_1.logger.error("Error fetching medical records by patient ID", {
                 error,
-                patientId: req.params.patientId,
+                patient_id: req.params.patient_id,
             });
             res.status(500).json({
                 success: false,
@@ -86,8 +86,8 @@ class MedicalRecordController {
     }
     async getMedicalRecordsByDoctorId(req, res) {
         try {
-            const { doctorId } = req.params;
-            const records = await this.medicalRecordRepository.findByDoctorId(doctorId);
+            const { doctor_id } = req.params;
+            const records = await this.medicalRecordRepository.findByDoctorId(doctor_id);
             res.json({
                 success: true,
                 data: records,
@@ -96,7 +96,7 @@ class MedicalRecordController {
         catch (error) {
             shared_1.logger.error("Error fetching medical records by doctor ID", {
                 error,
-                doctorId: req.params.doctorId,
+                doctor_id: req.params.doctor_id,
             });
             res.status(500).json({
                 success: false,
@@ -257,8 +257,8 @@ class MedicalRecordController {
     }
     async getPrescriptionsByPatientId(req, res) {
         try {
-            const { patientId } = req.params;
-            const prescriptions = await this.medicalRecordRepository.getPrescriptionsByPatientId(patientId);
+            const { patient_id } = req.params;
+            const prescriptions = await this.medicalRecordRepository.getPrescriptionsByPatientId(patient_id);
             res.json({
                 success: true,
                 message: "Prescriptions retrieved successfully",
@@ -268,7 +268,7 @@ class MedicalRecordController {
         catch (error) {
             shared_1.logger.error("Error fetching prescriptions by patient ID", {
                 error,
-                patientId: req.params.patientId,
+                patient_id: req.params.patient_id,
             });
             res.status(500).json({
                 success: false,
@@ -279,8 +279,8 @@ class MedicalRecordController {
     }
     async getPrescriptionsByDoctorId(req, res) {
         try {
-            const { doctorId } = req.params;
-            const prescriptions = await this.medicalRecordRepository.getPrescriptionsByDoctorId(doctorId);
+            const { doctor_id } = req.params;
+            const prescriptions = await this.medicalRecordRepository.getPrescriptionsByDoctorId(doctor_id);
             res.json({
                 success: true,
                 message: "Prescriptions retrieved successfully",
@@ -290,7 +290,7 @@ class MedicalRecordController {
         catch (error) {
             shared_1.logger.error("Error fetching prescriptions by doctor ID", {
                 error,
-                doctorId: req.params.doctorId,
+                doctor_id: req.params.doctor_id,
             });
             res.status(500).json({
                 success: false,

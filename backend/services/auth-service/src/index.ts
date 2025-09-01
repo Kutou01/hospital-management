@@ -120,7 +120,7 @@ app.get("/metrics", getMetricsHandler);
 try {
   app.use("/api/auth", authRoutes);
   app.use("/api/auth", patientRegistrationRoutes);
-  app.use("/api/auth", mfaRoutes);
+  // app.use("/api/auth", mfaRoutes); // Temporarily disabled - MFA routes not implemented
   app.use("/api/users", userRoutes);
   app.use("/api/sessions", sessionRoutes);
   logger.info("✅ Routes loaded successfully");

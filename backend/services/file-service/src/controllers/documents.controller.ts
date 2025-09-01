@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import express from "express";
 import sharp from "sharp";
 import { config } from "../config/config";
 import {
@@ -10,21 +10,13 @@ import { FileValidator } from "../utils/file-validator";
 import { logger } from "../utils/logger";
 import { documentService, supabaseAdmin } from "../utils/supabase";
 
-export interface AuthenticatedRequest extends Request {
-  user?: {
-    id: string;
-    role: string;
-    email: string;
-  };
-}
-
 export class DocumentsController {
   // Upload documents
   uploadDocuments = asyncHandler(
-    async (req: AuthenticatedRequest, res: Response) => {
+    async (req: express.Request, res: express.Response) => {
       try {
         const { document_type, metadata = "{}" } = req.body;
-        const files = req.files as Express.Multer.File[];
+        const files = req.files as any[];
 
         if (!req.user) {
           throw new SecurityError("Authentication required");
@@ -178,7 +170,7 @@ export class DocumentsController {
         const successCount = uploadResults.filter((r) => r.success).length;
         const failureCount = uploadResults.filter((r) => !r.success).length;
 
-        res.json({
+        res.status(200).json({
           success: successCount > 0,
           message: `Upload completed: ${successCount} successful, ${failureCount} failed`,
           data: {
@@ -199,7 +191,7 @@ export class DocumentsController {
 
   // Get user documents
   getUserDocuments = asyncHandler(
-    async (req: AuthenticatedRequest, res: Response) => {
+    async (req: express.Request, res: express.Response) => {
       if (!req.user) {
         throw new SecurityError("Authentication required");
       }
@@ -222,7 +214,7 @@ export class DocumentsController {
         offset,
       });
 
-      res.json({
+      res.status(200).json({
         success: true,
         data: {
           documents: result.documents,
@@ -239,7 +231,7 @@ export class DocumentsController {
 
   // Get document by ID
   getDocument = asyncHandler(
-    async (req: AuthenticatedRequest, res: Response) => {
+    async (req: express.Request, res: express.Response) => {
       if (!req.user) {
         throw new SecurityError("Authentication required");
       }
@@ -260,7 +252,7 @@ export class DocumentsController {
 
   // Download document
   downloadDocument = asyncHandler(
-    async (req: AuthenticatedRequest, res: Response) => {
+    async (req: express.Request, res: express.Response) => {
       if (!req.user) {
         throw new SecurityError("Authentication required");
       }
@@ -307,7 +299,7 @@ export class DocumentsController {
 
   // Delete document
   deleteDocument = asyncHandler(
-    async (req: AuthenticatedRequest, res: Response) => {
+    async (req: express.Request, res: express.Response) => {
       if (!req.user) {
         throw new SecurityError("Authentication required");
       }
@@ -350,7 +342,7 @@ export class DocumentsController {
 
   // Get document preview/thumbnail
   getDocumentPreview = asyncHandler(
-    async (req: AuthenticatedRequest, res: Response) => {
+    async (req: express.Request, res: express.Response) => {
       if (!req.user) {
         throw new SecurityError("Authentication required");
       }
@@ -416,4 +408,3 @@ export class DocumentsController {
       .toBuffer();
   }
 }
-

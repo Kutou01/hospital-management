@@ -1,5 +1,8 @@
+import dotenv from "dotenv";
+dotenv.config();
+
+import { connectionPool } from "@hospital/shared/dist/database/connection-pool";
 import logger from "@hospital/shared/dist/utils/logger";
-import { connectionPool } from "@hospital/shared/src/database/connection-pool";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
 // Supabase configuration
@@ -167,7 +170,11 @@ export const initializeSupabase = async (): Promise<void> => {
     logger.error(
       "❌ Failed to connect to Supabase. Please check your configuration."
     );
-    process.exit(1);
+    // Do not crash the service in development; start in degraded mode and report unhealthy in /health
+    logger.warn(
+      "⚠️ Starting Auth Service in degraded mode (Supabase unavailable)"
+    );
+    return; // allow service to start; health endpoint will reflect the issue
   }
 
   logger.info("✅ Supabase initialized successfully");

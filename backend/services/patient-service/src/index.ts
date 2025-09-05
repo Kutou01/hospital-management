@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 // Load environment variables FIRST
 dotenv.config();
 
+import { getMetricsHandler, metricsMiddleware } from "@hospital/shared";
 import logger from "@hospital/shared/dist/utils/logger";
 import cors from "cors";
 import express from "express";
@@ -38,6 +39,12 @@ app.use(cors());
 app.use(morgan("combined"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Metrics middleware
+app.use(metricsMiddleware("patient-service"));
+
+// Prometheus metrics endpoint
+app.get("/metrics", getMetricsHandler);
 
 // Health check endpoint with real-time status
 app.get("/health", (req, res) => {

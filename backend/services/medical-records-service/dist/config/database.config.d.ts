@@ -1,5 +1,5 @@
-import { connectionPool } from "@hospital/shared/src/database/connection-pool";
 import { SupabaseClient } from "@supabase/supabase-js";
+declare let connectionPool: any;
 export { connectionPool };
 export declare const supabaseAdmin: SupabaseClient;
 export declare function getSupabase(): SupabaseClient;

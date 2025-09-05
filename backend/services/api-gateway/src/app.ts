@@ -162,6 +162,45 @@ export function createApp(): express.Application {
     })
   );
 
+  // Public health endpoints for Receptionist and Medical Records (no auth)
+  app.get(
+    "/api/receptionists/health",
+    createProxyMiddleware({
+      target:
+        process.env.RECEPTIONIST_SERVICE_URL ||
+        "http://receptionist-service:3006",
+      changeOrigin: true,
+      pathRewrite: {
+        "^/api/receptionists/health": "/health",
+      },
+      onError: (err: any, req: any, res: any) => {
+        console.error("Receptionist Service Health Proxy Error:", err);
+        res
+          .status(503)
+          .json({ error: "Receptionist service health check unavailable" });
+      },
+    })
+  );
+
+  app.get(
+    "/api/medical-records/health",
+    createProxyMiddleware({
+      target:
+        process.env.MEDICAL_RECORDS_SERVICE_URL ||
+        "http://medical-records-service:3007",
+      changeOrigin: true,
+      pathRewrite: {
+        "^/api/medical-records/health": "/health",
+      },
+      onError: (err: any, req: any, res: any) => {
+        console.error("Medical Records Service Health Proxy Error:", err);
+        res
+          .status(503)
+          .json({ error: "Medical records service health check unavailable" });
+      },
+    })
+  );
+
   app.get(
     "/api/appointments/health",
     createProxyMiddleware({
@@ -199,7 +238,72 @@ export function createApp(): express.Application {
     })
   );
 
+  // Public health endpoints for Payment, Notification, and File services (no auth)
+  app.get(
+    "/api/payments/health",
+    createProxyMiddleware({
+      target: process.env.PAYMENT_SERVICE_URL || "http://payment-service:3009",
+      changeOrigin: true,
+      pathRewrite: { "^/api/payments/health": "/health" },
+      onError: (err: any, req: any, res: any) => {
+        console.error("Payment Service Health Proxy Error:", err);
+        res
+          .status(503)
+          .json({ error: "Payment service health check unavailable" });
+      },
+    })
+  );
+
+  app.get(
+    "/api/notifications/health",
+    createProxyMiddleware({
+      target:
+        process.env.NOTIFICATION_SERVICE_URL ||
+        "http://notification-service:3011",
+      changeOrigin: true,
+      pathRewrite: { "^/api/notifications/health": "/health" },
+      onError: (err: any, req: any, res: any) => {
+        console.error("Notification Service Health Proxy Error:", err);
+        res
+          .status(503)
+          .json({ error: "Notification service health check unavailable" });
+      },
+    })
+  );
+
+  app.get(
+    "/api/files/health",
+    createProxyMiddleware({
+      target: process.env.FILE_SERVICE_URL || "http://file-service:3107",
+      changeOrigin: true,
+      pathRewrite: { "^/api/files/health": "/health" },
+      onError: (err: any, req: any, res: any) => {
+        console.error("File Service Health Proxy Error:", err);
+        res
+          .status(503)
+          .json({ error: "File service health check unavailable" });
+      },
+    })
+  );
+
   // Metrics endpoint for Prometheus
+
+  // Public health endpoints for GraphQL Gateway as well (optional)
+  app.get(
+    "/api/graphql-gateway/health",
+    createProxyMiddleware({
+      target: process.env.GRAPHQL_GATEWAY_URL || "http://graphql-gateway:3200",
+      changeOrigin: true,
+      pathRewrite: { "^/api/graphql-gateway/health": "/health" },
+      onError: (err: any, req: any, res: any) => {
+        console.error("GraphQL Gateway Health Proxy Error:", err);
+        res
+          .status(503)
+          .json({ error: "GraphQL Gateway health check unavailable" });
+      },
+    })
+  );
+
   app.get("/metrics", getMetricsHandler);
 
   // GraphQL Gateway Routes - Unified GraphQL API with Smart Authentication
@@ -913,7 +1017,7 @@ export function createApp(): express.Application {
         "medical-records": {
           url:
             process.env.MEDICAL_RECORDS_SERVICE_URL ||
-            "http://medical-records-service:3006",
+            "http://medical-records-service:3007",
           status: "active",
         },
         // REMOVED: prescriptions service - merged into medical-records service

@@ -1,6 +1,15 @@
 import logger from "@hospital/shared/dist/utils/logger";
-import { connectionPool } from "@hospital/shared/src/database/connection-pool";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+
+// Try to import connection pool, fallback if not available
+let connectionPool: any = null;
+try {
+  const poolModule = require("@hospital/shared/dist/database/connection-pool");
+  connectionPool = poolModule.connectionPool;
+  console.log("✅ Connection pool imported successfully");
+} catch (error) {
+  console.warn("⚠️ Connection pool not available, using direct client:", error);
+}
 
 // Environment variables validation
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -54,28 +63,44 @@ export function getSupabase(): SupabaseClient {
 export const dbPool = {
   // Execute standard query with connection pooling
   async executeQuery<T>(queryFn: (client: any) => Promise<T>): Promise<T> {
-    return connectionPool.executeQuery(queryFn);
+    if (connectionPool && connectionPool.executeQuery) {
+      return connectionPool.executeQuery(queryFn);
+    }
+    // Fallback to direct supabase client
+    return queryFn(supabaseAdmin);
   },
 
   // Execute healthcare-specific FHIR validation
   async executeFHIRValidation<T>(
     validationFn: (client: any) => Promise<T>
   ): Promise<T> {
-    return connectionPool.executeFHIRValidation(validationFn);
+    if (connectionPool && connectionPool.executeFHIRValidation) {
+      return connectionPool.executeFHIRValidation(validationFn);
+    }
+    // Fallback to direct supabase client
+    return validationFn(supabaseAdmin);
   },
 
   // Execute diagnosis operations with high priority
   async executeDiagnosisOperation<T>(
     diagnosisFn: (client: any) => Promise<T>
   ): Promise<T> {
-    return connectionPool.executeDiagnosisOperation(diagnosisFn);
+    if (connectionPool && connectionPool.executeDiagnosisOperation) {
+      return connectionPool.executeDiagnosisOperation(diagnosisFn);
+    }
+    // Fallback to direct supabase client
+    return diagnosisFn(supabaseAdmin);
   },
 
   // Execute bulk operations with low priority
   async executeBulkOperation<T>(
     bulkFn: (client: any) => Promise<T>
   ): Promise<T> {
-    return connectionPool.executeBulkOperation(bulkFn);
+    if (connectionPool && connectionPool.executeBulkOperation) {
+      return connectionPool.executeBulkOperation(bulkFn);
+    }
+    // Fallback to direct supabase client
+    return bulkFn(supabaseAdmin);
   },
 };
 

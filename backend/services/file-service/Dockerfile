@@ -31,6 +31,10 @@ RUN addgroup -g 1001 -S nodejs
 RUN adduser -S fileservice -u 1001
 
 # Copy dependencies from builder
+
+# Provide shared package at runtime/compile time
+COPY shared ./node_modules/@hospital/shared/
+
 COPY --from=builder --chown=fileservice:nodejs /app/node_modules ./node_modules
 
 # Copy source code

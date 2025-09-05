@@ -1,4 +1,4 @@
-import { logger } from "@hospital/shared";
+import { getMetricsHandler, logger, metricsMiddleware } from "@hospital/shared";
 import compression from "compression";
 import cors from "cors";
 import express from "express";
@@ -244,8 +244,12 @@ export function createEnhancedApp(): express.Application {
     });
   });
 
-  // Metrics endpoint (basic metrics without authentication for monitoring)
-  app.get("/metrics", async (req, res) => {
+  // Prometheus metrics
+  app.use(metricsMiddleware("medical-records-service"));
+  app.get("/metrics", getMetricsHandler);
+
+  // JSON summary metrics (kept for dashboards)
+  app.get("/metrics-summary", async (req, res) => {
     try {
       const metrics = await metricsService.getMetricsSummary("5m");
       const cacheStats = await cacheService.getStats();

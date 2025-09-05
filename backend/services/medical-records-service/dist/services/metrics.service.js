@@ -104,15 +104,13 @@ class MetricsService {
         this.metrics = [];
         try {
             // Insert metrics into database
-            const { error } = await this.supabase
-                .from("service_metrics")
-                .insert(metricsToFlush.map(metric => ({
+            const { error } = await this.supabase.from("service_metrics").insert(metricsToFlush.map((metric) => ({
                 service_name: "medical-records-service",
                 operation: metric.name,
                 duration_ms: metric.value,
                 success: true,
                 timestamp: metric.timestamp,
-                metadata: metric.tags
+                metadata: metric.tags,
             })));
             if (error) {
                 console.error("Failed to flush metrics:", error);
@@ -132,8 +130,8 @@ class MetricsService {
             status: "healthy",
             metrics: {
                 pending_metrics: this.metrics.length,
-                last_flush: "recent"
-            }
+                last_flush: "recent",
+            },
         };
         try {
             // Test database connection
@@ -168,9 +166,10 @@ class MetricsService {
                 throw error;
             return {
                 total_requests: data?.length || 0,
-                avg_response_time: data?.reduce((sum, m) => sum + m.duration_ms, 0) / (data?.length || 1),
-                success_rate: data?.filter(m => m.success).length / (data?.length || 1),
-                metrics: data || []
+                avg_response_time: data?.reduce((sum, m) => sum + m.duration_ms, 0) /
+                    (data?.length || 1),
+                success_rate: data?.filter((m) => m.success).length / (data?.length || 1),
+                metrics: data || [],
             };
         }
         catch (error) {
@@ -179,7 +178,7 @@ class MetricsService {
                 total_requests: 0,
                 avg_response_time: 0,
                 success_rate: 1,
-                metrics: []
+                metrics: [],
             };
         }
     }
@@ -192,9 +191,9 @@ class MetricsService {
                     total_operations: metrics.total_requests,
                     average_duration: metrics.avg_response_time,
                     success_rate: metrics.success_rate,
-                    pending_metrics: this.metrics.length
+                    pending_metrics: this.metrics.length,
                 },
-                time_window: timeWindow
+                time_window: timeWindow,
             };
         }
         catch (error) {
@@ -204,9 +203,9 @@ class MetricsService {
                     total_operations: 0,
                     average_duration: 0,
                     success_rate: 1,
-                    pending_metrics: this.metrics.length
+                    pending_metrics: this.metrics.length,
                 },
-                time_window: timeWindow
+                time_window: timeWindow,
             };
         }
     }
@@ -218,11 +217,16 @@ class MetricsService {
         const value = parseInt(match[1]);
         const unit = match[2];
         switch (unit) {
-            case 's': return value * 1000;
-            case 'm': return value * 60 * 1000;
-            case 'h': return value * 60 * 60 * 1000;
-            case 'd': return value * 24 * 60 * 60 * 1000;
-            default: return 3600000;
+            case "s":
+                return value * 1000;
+            case "m":
+                return value * 60 * 1000;
+            case "h":
+                return value * 60 * 60 * 1000;
+            case "d":
+                return value * 24 * 60 * 60 * 1000;
+            default:
+                return 3600000;
         }
     }
     // Utility methods

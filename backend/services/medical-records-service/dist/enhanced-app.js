@@ -221,8 +221,11 @@ function createEnhancedApp() {
             pid: process.pid,
         });
     });
-    // Metrics endpoint (basic metrics without authentication for monitoring)
-    app.get("/metrics", async (req, res) => {
+    // Prometheus metrics
+    app.use((0, shared_1.metricsMiddleware)("medical-records-service"));
+    app.get("/metrics", shared_1.getMetricsHandler);
+    // JSON summary metrics (kept for dashboards)
+    app.get("/metrics-summary", async (req, res) => {
         try {
             const metrics = await metrics_service_1.metricsService.getMetricsSummary("5m");
             const cacheStats = await cache_service_1.cacheService.getStats();

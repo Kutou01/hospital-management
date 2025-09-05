@@ -62,6 +62,37 @@ export interface UpdateMedicalRecordRequest {
     prescriptions?: CreateEmbeddedPrescriptionRequest[];
     status?: "active" | "archived" | "deleted";
 }
+export interface VitalSignsHistory {
+    vital_id: string;
+    record_id: string;
+    recorded_at: Date;
+    recorded_by: string;
+    temperature?: number;
+    blood_pressure_systolic?: number;
+    blood_pressure_diastolic?: number;
+    heart_rate?: number;
+    respiratory_rate?: number;
+    oxygen_saturation?: number;
+    weight?: number;
+    height?: number;
+    bmi?: number;
+    notes?: string;
+}
+export interface LabResult {
+    result_id: string;
+    record_id: string;
+    test_name: string;
+    test_type: string;
+    test_date: Date;
+    result_value?: string;
+    reference_range?: string;
+    unit?: string;
+    status: "pending" | "completed" | "cancelled";
+    result_date?: Date;
+    lab_technician?: string;
+    notes?: string;
+    created_at: Date;
+}
 export interface EmbeddedPrescription {
     prescription_id: string;
     prescription_date: Date;
@@ -96,5 +127,29 @@ export interface UpdateEmbeddedPrescriptionRequest {
     status?: "active" | "completed" | "cancelled";
     medications?: CreateSimplifiedMedicationRequest[];
     notes?: string;
+}
+export interface CreateVitalSignsRequest {
+    recorded_at: string;
+    temperature?: number;
+    blood_pressure_systolic?: number;
+    blood_pressure_diastolic?: number;
+    heart_rate?: number;
+    respiratory_rate?: number;
+    oxygen_saturation?: number;
+    weight?: number;
+    height?: number;
+    notes?: string;
+}
+export interface CreateLabResultRequest {
+    test_name: string;
+    test_type: string;
+    test_date: string;
+    result_value?: string;
+    reference_range?: string;
+    unit?: string;
+    result_date?: string;
+    lab_technician?: string;
+    notes?: string;
+    status?: "pending" | "completed" | "cancelled";
 }
 //# sourceMappingURL=medical-record.types.d.ts.map

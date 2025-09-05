@@ -16,7 +16,8 @@ const router = express.Router();
  *       503:
  *         description: Service is unhealthy
  */
-router.get("/", async (req, res) => {
+// Liveness
+router.get("/", async (_req, res) => {
   const healthCheck = {
     uptime: process.uptime(),
     message: "File Service is running",
@@ -50,6 +51,7 @@ router.get("/", async (req, res) => {
       (check) => check === true
     );
 
+    // readiness result
     res.status(isHealthy ? 200 : 503).json({
       success: isHealthy,
       data: healthCheck,
@@ -76,7 +78,8 @@ router.get("/", async (req, res) => {
  *       200:
  *         description: Detailed health information
  */
-router.get("/detailed", async (req, res) => {
+// Readiness (detailed)
+router.get("/detailed", async (_req, res) => {
   const memoryUsage = process.memoryUsage();
 
   const detailedHealth = {
@@ -152,4 +155,3 @@ router.get("/detailed", async (req, res) => {
 });
 
 export { router as healthRoutes };
-

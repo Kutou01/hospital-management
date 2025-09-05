@@ -20,7 +20,7 @@ services:
       - RECEPTIONIST_SERVICE_URL=http://receptionist-service:3006
       - MEDICAL_RECORDS_SERVICE_URL=http://medical-records-service:3007
       # REMOVED: PRESCRIPTION_SERVICE_URL - merged into medical-records-service
-      - BILLING_SERVICE_URL=http://billing-service:3008
+
       - PAYMENT_SERVICE_URL=http://payment-service:3009
       - NOTIFICATION_SERVICE_URL=http://notification-service:3011
       - FILE_SERVICE_URL=http://file-service:3107
@@ -54,7 +54,7 @@ services:
           memory: 512M
           cpus: "0.5"
       # AUTO-SCALING: Replicas for load balancing
-      replicas: 2
+      replicas: 1
       update_config:
         parallelism: 1
         delay: 10s
@@ -152,6 +152,12 @@ services:
     profiles:
       - core
       - full
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
   # Doctor Service
   doctor-service:
@@ -222,6 +228,12 @@ services:
     profiles:
       - core
       - full
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
   # Appointment Service - ENABLED
   appointment-service:
@@ -327,6 +339,12 @@ services:
     profiles:
       - core
       - full
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3006/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
   # Medical Records Service - ENABLED
   medical-records-service:
@@ -364,6 +382,12 @@ services:
     profiles:
       - core
       - full
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3007/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
   # ALL OTHER SERVICES DISABLED FOR DOCTOR-ONLY MODE
   # Uncomment these services when you want to enable full system

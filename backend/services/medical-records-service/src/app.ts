@@ -6,6 +6,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
+import { hipaaMiddleware } from "./middleware/hipaa-compliance.middleware";
 import medicalRecordRoutes from "./routes/medical-record.routes";
 
 const app = express();
@@ -158,6 +159,10 @@ app.get("/health", (req, res) => {
     },
   });
 });
+
+// Audit logging & PHI masking
+app.use(hipaaMiddleware.auditAccess);
+app.use(hipaaMiddleware.maskSensitiveData);
 
 // API routes
 app.use("/api/medical-records", medicalRecordRoutes);

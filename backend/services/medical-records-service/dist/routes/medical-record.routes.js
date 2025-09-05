@@ -50,11 +50,17 @@ const validateCreateVitalSigns = [
         .isISO8601()
         .withMessage("Valid recorded date is required"),
     (0, express_validator_1.body)("temperature").optional().isNumeric(),
-    (0, express_validator_1.body)("vital_signs.blood_pressure_systolic").optional().isInt({ min: 0, max: 300 }),
-    (0, express_validator_1.body)("vital_signs.blood_pressure_diastolic").optional().isInt({ min: 0, max: 200 }),
+    (0, express_validator_1.body)("vital_signs.blood_pressure_systolic")
+        .optional()
+        .isInt({ min: 0, max: 300 }),
+    (0, express_validator_1.body)("vital_signs.blood_pressure_diastolic")
+        .optional()
+        .isInt({ min: 0, max: 200 }),
     (0, express_validator_1.body)("heart_rate").optional().isInt({ min: 0, max: 300 }),
     (0, express_validator_1.body)("respiratory_rate").optional().isInt({ min: 0, max: 100 }),
-    (0, express_validator_1.body)("vital_signs.oxygen_saturation").optional().isFloat({ min: 0, max: 100 }),
+    (0, express_validator_1.body)("vital_signs.oxygen_saturation")
+        .optional()
+        .isFloat({ min: 0, max: 100 }),
     (0, express_validator_1.body)("weight").optional().isFloat({ min: 0 }),
     (0, express_validator_1.body)("height").optional().isFloat({ min: 0 }),
     (0, express_validator_1.body)("notes").optional().isString(),
@@ -130,6 +136,22 @@ router.get("/doctor/:doctorId", validateDoctorId, medicalRecordController.getMed
 router.post("/", validateCreateMedicalRecord, medicalRecordController.createMedicalRecord.bind(medicalRecordController));
 router.put("/:recordId", validateRecordId, validateUpdateMedicalRecord, medicalRecordController.updateMedicalRecord.bind(medicalRecordController));
 router.delete("/:recordId", validateRecordId, medicalRecordController.deleteMedicalRecord.bind(medicalRecordController));
+// =============================
+// VITAL SIGNS ROUTES
+// =============================
+router.post("/:recordId/vitals", validateRecordId, validateCreateVitalSigns, medicalRecordController.addVitalSigns.bind(medicalRecordController));
+router.get("/:recordId/vitals", validateRecordId, medicalRecordController.listVitalSigns.bind(medicalRecordController));
+// =============================
+// LAB RESULTS ROUTES
+// =============================
+router.post("/:recordId/lab_results", validateRecordId, validateCreateLabResult, medicalRecordController.createLabResult.bind(medicalRecordController));
+router.put("/:recordId/lab_results/:resultId", validateRecordId, medicalRecordController.updateLabResult.bind(medicalRecordController));
+router.get("/:recordId/lab_results", validateRecordId, medicalRecordController.listLabResultsByRecord.bind(medicalRecordController));
+router.get("/patient/:patientId/lab_results", validatePatientId, medicalRecordController.listLabResultsByPatient.bind(medicalRecordController));
+// =============================
+// MEDICAL HISTORY ROUTE
+// =============================
+router.get("/patient/:patientId/history", validatePatientId, medicalRecordController.getPatientHistory.bind(medicalRecordController));
 // REMOVED: Lab Results routes - lab results now stored as simple text in medical records
 // REMOVED: Vital Signs routes - vital signs now embedded as BasicVitalSigns in medical records
 // ============================================

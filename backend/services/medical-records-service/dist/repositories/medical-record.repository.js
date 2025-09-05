@@ -249,6 +249,200 @@ class MedicalRecordRepository {
             throw error;
         }
     }
+    // =============================
+    // VITAL SIGNS METHODS (history)
+    // =============================
+    async insertVital(recordId, payload, recordedBy) {
+        // Basic validation
+        if (payload.temperature &&
+            (payload.temperature < 34 || payload.temperature > 43)) {
+            throw new Error("Invalid temperature range (34-43°C)");
+        }
+        if (payload.oxygen_saturation &&
+            (payload.oxygen_saturation < 0 || payload.oxygen_saturation > 100)) {
+            throw new Error("Invalid SpO2 range (0-100%)");
+        }
+        // Calculate BMI if possible
+        let bmi = undefined;
+        if (payload.weight && payload.height) {
+            const h = payload.height / 100; // cm -> m
+            if (h > 0)
+                bmi = Number((payload.weight / (h * h)).toFixed(1));
+        }
+        const { error } = await this.supabase.from("vital_signs_history").insert({
+            vital_id: `VIT-${Date.now().toString().slice(-8)}`,
+            record_id: recordId,
+            recorded_at: payload.recorded_at,
+            recorded_by: recordedBy,
+            temperature: payload.temperature,
+            blood_pressure_systolic: payload.blood_pressure_systolic,
+            blood_pressure_diastolic: payload.blood_pressure_diastolic,
+            heart_rate: payload.heart_rate,
+            respiratory_rate: payload.respiratory_rate,
+            oxygen_saturation: payload.oxygen_saturation,
+            weight: payload.weight,
+            height: payload.height,
+            bmi,
+            notes: payload.notes,
+        });
+        if (error)
+            throw error;
+        // Optionally update basic_vitals snapshot in medical_records
+        const bp = payload.blood_pressure_systolic && payload.blood_pressure_diastolic
+            ? `${payload.blood_pressure_systolic}/${payload.blood_pressure_diastolic}`
+            : undefined;
+        const { error: updateError } = await this.supabase
+            .from("medical_records")
+            .update({
+            basic_vitals: {
+                temperature: payload.temperature,
+                blood_pressure: bp,
+                heart_rate: payload.heart_rate,
+                weight: payload.weight,
+                height: payload.height,
+            },
+            updated_at: new Date().toISOString(),
+        })
+            .eq("record_id", recordId);
+        if (updateError)
+            throw updateError;
+    }
+    async listVitals(recordId, from, to) {
+        let query = this.supabase
+            .from("vital_signs_history")
+            .select("*")
+            .eq("record_id", recordId)
+            .order("recorded_at", { ascending: false });
+        if (from)
+            query = query.gte("recorded_at", from);
+        if (to)
+            query = query.lte("recorded_at", to);
+        const { data, error } = await query;
+        if (error)
+            throw error;
+        return (data || []);
+    }
+    // =============================
+    // LAB RESULTS METHODS
+    // =============================
+    async createLabResult(recordId, payload) {
+        if (!payload.test_name || !payload.test_type || !payload.test_date) {
+            throw new Error("Missing required lab fields");
+        }
+        if (payload.status &&
+            !["pending", "completed", "cancelled"].includes(payload.status)) {
+            throw new Error("Invalid lab status");
+        }
+        const { error } = await this.supabase.from("lab_results").insert({
+            result_id: `LAB-${Date.now().toString().slice(-8)}`,
+            record_id: recordId,
+            test_name: payload.test_name,
+            test_type: payload.test_type,
+            test_date: payload.test_date,
+            result_value: payload.result_value,
+            reference_range: payload.reference_range,
+            unit: payload.unit,
+            result_date: payload.result_date,
+            lab_technician: payload.lab_technician,
+            notes: payload.notes,
+            status: payload.status || "pending",
+        });
+        if (error)
+            throw error;
+    }
+    async updateLabResult(recordId, resultId, payload) {
+        if (payload.status &&
+            !["pending", "completed", "cancelled"].includes(payload.status)) {
+            throw new Error("Invalid lab status");
+        }
+        const { error } = await this.supabase
+            .from("lab_results")
+            .update({
+            test_name: payload.test_name,
+            test_type: payload.test_type,
+            test_date: payload.test_date,
+            result_value: payload.result_value,
+            reference_range: payload.reference_range,
+            unit: payload.unit,
+            result_date: payload.result_date,
+            lab_technician: payload.lab_technician,
+            notes: payload.notes,
+            status: payload.status,
+        })
+            .eq("record_id", recordId)
+            .eq("result_id", resultId);
+        if (error)
+            throw error;
+    }
+    async listLabResultsByRecord(recordId) {
+        const { data, error } = await this.supabase
+            .from("lab_results")
+            .select("*")
+            .eq("record_id", recordId)
+            .order("test_date", { ascending: false });
+        if (error)
+            throw error;
+        return data || [];
+    }
+    async listLabResultsByPatient(patientId) {
+        const { data, error } = await this.supabase
+            .from("lab_results")
+            .select("lab_results:* , medical_records!inner(patient_id)")
+            .eq("medical_records.patient_id", patientId)
+            .order("test_date", { ascending: false });
+        if (error)
+            throw error;
+        return (data || []).map((row) => ({ ...row }));
+    }
+    // =============================
+    // MEDICAL HISTORY TIMELINE
+    // =============================
+    async getPatientHistory(patientId, from, to, type) {
+        const results = [];
+        if (!type || type === "records" || type === "all") {
+            const { data, error } = await this.supabase
+                .from("medical_records")
+                .select("record_id, visit_date, diagnosis, treatment, notes")
+                .eq("patient_id", patientId)
+                .order("visit_date", { ascending: false });
+            if (error)
+                throw error;
+            (data || []).forEach((r) => results.push({ kind: "record", at: r.visit_date, ...r }));
+        }
+        if (!type || type === "vitals" || type === "all") {
+            let q = this.supabase
+                .from("vital_signs_history")
+                .select("* , medical_records!inner(patient_id)")
+                .eq("medical_records.patient_id", patientId)
+                .order("recorded_at", { ascending: false });
+            if (from)
+                q = q.gte("recorded_at", from);
+            if (to)
+                q = q.lte("recorded_at", to);
+            const { data, error } = await q;
+            if (error)
+                throw error;
+            (data || []).forEach((v) => results.push({ kind: "vital", at: v.recorded_at, ...v }));
+        }
+        if (!type || type === "labs" || type === "all") {
+            let q = this.supabase
+                .from("lab_results")
+                .select("* , medical_records!inner(patient_id)")
+                .eq("medical_records.patient_id", patientId)
+                .order("test_date", { ascending: false });
+            if (from)
+                q = q.gte("test_date", from);
+            if (to)
+                q = q.lte("test_date", to);
+            const { data, error } = await q;
+            if (error)
+                throw error;
+            (data || []).forEach((l) => results.push({ kind: "lab", at: l.test_date, ...l }));
+        }
+        // Sort combined results by time desc
+        results.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+        return results;
+    }
     // REMOVED: Lab Results methods - lab results now stored as simple text in medical records
     // REMOVED: Vital Signs methods - vital signs now embedded as BasicVitalSigns in medical records
     // REMOVED: calculateBMI method - no longer needed in simplified system

@@ -187,6 +187,118 @@ class MedicalRecordController {
             });
         }
     }
+    // =============================
+    // VITAL SIGNS ENDPOINTS
+    // =============================
+    async addVitalSigns(req, res) {
+        try {
+            const { recordId } = req.params;
+            const userId = req.user?.id || "SYSTEM";
+            await this.medicalRecordRepository.insertVital(recordId, req.body, userId);
+            res.status(201).json({ success: true, message: "Vital signs added" });
+        }
+        catch (error) {
+            shared_1.logger.error("Error adding vital signs", { error, params: req.params });
+            res
+                .status(500)
+                .json({ success: false, message: "Internal server error" });
+        }
+    }
+    async listVitalSigns(req, res) {
+        try {
+            const { recordId } = req.params;
+            const { from, to } = req.query;
+            const data = await this.medicalRecordRepository.listVitals(recordId, from, to);
+            res.json({ success: true, data });
+        }
+        catch (error) {
+            shared_1.logger.error("Error listing vital signs", { error, params: req.params });
+            res
+                .status(500)
+                .json({ success: false, message: "Internal server error" });
+        }
+    }
+    // =============================
+    // LAB RESULTS ENDPOINTS
+    // =============================
+    async createLabResult(req, res) {
+        try {
+            const { recordId } = req.params;
+            await this.medicalRecordRepository.createLabResult(recordId, req.body);
+            res.status(201).json({ success: true, message: "Lab result created" });
+        }
+        catch (error) {
+            shared_1.logger.error("Error creating lab result", { error, body: req.body });
+            res
+                .status(500)
+                .json({ success: false, message: "Internal server error" });
+        }
+    }
+    async updateLabResult(req, res) {
+        try {
+            const { recordId, resultId } = req.params;
+            await this.medicalRecordRepository.updateLabResult(recordId, resultId, req.body);
+            res.json({ success: true, message: "Lab result updated" });
+        }
+        catch (error) {
+            shared_1.logger.error("Error updating lab result", { error, params: req.params });
+            res
+                .status(500)
+                .json({ success: false, message: "Internal server error" });
+        }
+    }
+    async listLabResultsByRecord(req, res) {
+        try {
+            const { recordId } = req.params;
+            const data = await this.medicalRecordRepository.listLabResultsByRecord(recordId);
+            res.json({ success: true, data });
+        }
+        catch (error) {
+            shared_1.logger.error("Error listing lab results by record", {
+                error,
+                params: req.params,
+            });
+            res
+                .status(500)
+                .json({ success: false, message: "Internal server error" });
+        }
+    }
+    async listLabResultsByPatient(req, res) {
+        try {
+            const { patientId } = req.params;
+            const data = await this.medicalRecordRepository.listLabResultsByPatient(patientId);
+            res.json({ success: true, data });
+        }
+        catch (error) {
+            shared_1.logger.error("Error listing lab results by patient", {
+                error,
+                params: req.params,
+            });
+            res
+                .status(500)
+                .json({ success: false, message: "Internal server error" });
+        }
+    }
+    // =============================
+    // MEDICAL HISTORY ENDPOINT
+    // =============================
+    async getPatientHistory(req, res) {
+        try {
+            const { patientId } = req.params;
+            const { from, to, type } = req.query;
+            const data = await this.medicalRecordRepository.getPatientHistory(patientId, from, to, type);
+            res.json({ success: true, data });
+        }
+        catch (error) {
+            shared_1.logger.error("Error getting patient history", {
+                error,
+                params: req.params,
+            });
+            res
+                .status(500)
+                .json({ success: false, message: "Internal server error" });
+        }
+    }
     // REMOVED: Lab Results endpoints - lab results now stored as simple text in medical records
     // REMOVED: Vital Signs endpoints - vital signs now embedded as BasicVitalSigns in medical records
     // ============================================

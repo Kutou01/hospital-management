@@ -84,6 +84,42 @@ export interface UpdateMedicalRecordRequest {
 }
 
 // REMOVED: CreateLabResultRequest - lab results now stored as simple text in medical records
+
+// Detailed Vital Signs history row
+export interface VitalSignsHistory {
+  vital_id: string;
+  record_id: string;
+  recorded_at: Date;
+  recorded_by: string;
+  temperature?: number;
+  blood_pressure_systolic?: number;
+  blood_pressure_diastolic?: number;
+  heart_rate?: number;
+  respiratory_rate?: number;
+  oxygen_saturation?: number;
+  weight?: number;
+  height?: number;
+  bmi?: number;
+  notes?: string;
+}
+
+// Detailed Lab Result row
+export interface LabResult {
+  result_id: string;
+  record_id: string;
+  test_name: string;
+  test_type: string;
+  test_date: Date;
+  result_value?: string;
+  reference_range?: string;
+  unit?: string;
+  status: "pending" | "completed" | "cancelled";
+  result_date?: Date;
+  lab_technician?: string;
+  notes?: string;
+  created_at: Date;
+}
+
 // REMOVED: CreateVitalSignsRequest - vital signs now embedded as BasicVitalSigns in medical records
 
 // ============================================
@@ -132,4 +168,31 @@ export interface UpdateEmbeddedPrescriptionRequest {
   status?: "active" | "completed" | "cancelled";
   medications?: CreateSimplifiedMedicationRequest[];
   notes?: string;
+}
+
+// Input types for Vital Signs and Lab Results
+export interface CreateVitalSignsRequest {
+  recorded_at: string;
+  temperature?: number;
+  blood_pressure_systolic?: number;
+  blood_pressure_diastolic?: number;
+  heart_rate?: number;
+  respiratory_rate?: number;
+  oxygen_saturation?: number;
+  weight?: number;
+  height?: number;
+  notes?: string;
+}
+
+export interface CreateLabResultRequest {
+  test_name: string;
+  test_type: string;
+  test_date: string;
+  result_value?: string;
+  reference_range?: string;
+  unit?: string;
+  result_date?: string;
+  lab_technician?: string;
+  notes?: string;
+  status?: "pending" | "completed" | "cancelled";
 }

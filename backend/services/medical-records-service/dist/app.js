@@ -11,6 +11,7 @@ const helmet_1 = __importDefault(require("helmet"));
 const morgan_1 = __importDefault(require("morgan"));
 const swagger_jsdoc_1 = __importDefault(require("swagger-jsdoc"));
 const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
+const hipaa_compliance_middleware_1 = require("./middleware/hipaa-compliance.middleware");
 const medical_record_routes_1 = __importDefault(require("./routes/medical-record.routes"));
 const app = (0, express_1.default)();
 // Security middleware
@@ -148,6 +149,9 @@ app.get("/health", (req, res) => {
         },
     });
 });
+// Audit logging & PHI masking
+app.use(hipaa_compliance_middleware_1.hipaaMiddleware.auditAccess);
+app.use(hipaa_compliance_middleware_1.hipaaMiddleware.maskSensitiveData);
 // API routes
 app.use("/api/medical-records", medical_record_routes_1.default);
 // 404 handler

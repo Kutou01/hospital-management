@@ -1,3 +1,4 @@
+import { getMetricsHandler, metricsMiddleware } from "@hospital/shared";
 import cors from "cors";
 import express from "express";
 import rateLimit from "express-rate-limit";
@@ -33,6 +34,10 @@ app.use(limiter);
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
+// Metrics middleware and endpoint
+app.use(metricsMiddleware("file-service"));
+app.get("/metrics", getMetricsHandler);
+
 // Health check
 app.use("/health", healthRoutes);
 
@@ -60,4 +65,3 @@ app.listen(PORT, () => {
 });
 
 export default app;
-

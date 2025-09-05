@@ -27,19 +27,13 @@
     "baseUrl": "./",
     "paths": {
       "@/*": ["src/*"],
+      "@hospital/shared": ["../../shared/dist/index.d.ts"],
       "@hospital/shared/*": ["../../shared/dist/*"]
     },
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
   },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "**/*.test.ts",
-    "**/*.spec.ts"
-  ]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"]
 }

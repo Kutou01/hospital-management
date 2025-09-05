@@ -48,7 +48,9 @@
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
     "node-cache": "^5.1.2",
-    "ws": "^8.16.0"
+    "ws": "^8.16.0",
+    "compression": "^1.7.4",
+    "prom-client": "^15.1.2"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",

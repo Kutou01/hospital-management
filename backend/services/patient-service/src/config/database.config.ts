@@ -1,5 +1,5 @@
+import { connectionPool } from "@hospital/shared/dist/database/connection-pool";
 import logger from "@hospital/shared/dist/utils/logger";
-import { connectionPool } from "@hospital/shared/src/database/connection-pool";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
 // Environment variables validation

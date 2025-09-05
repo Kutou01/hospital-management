@@ -1,4 +1,4 @@
-import { StandardApiResponse, StandardHealthCheck } from '../types/common.types';
+import { StandardApiResponse, StandardHealthCheck } from "../types/common.types";
 /**
  * Helper functions to create standardized API responses across all microservices
  */
@@ -12,7 +12,7 @@ export declare class ResponseHelper {
     /**
      * Create a successful response
      */
-    static success<T>(data: T, pagination?: StandardApiResponse['pagination']): StandardApiResponse<T>;
+    static success<T>(data: T, pagination?: StandardApiResponse["pagination"]): StandardApiResponse<T>;
     /**
      * Create an error response
      */
@@ -24,7 +24,7 @@ export declare class ResponseHelper {
     /**
      * Create a standardized health check response
      */
-    static healthCheck(status: 'healthy' | 'unhealthy' | 'degraded', dependencies?: StandardHealthCheck['dependencies'], features?: StandardHealthCheck['features']): StandardHealthCheck;
+    static healthCheck(status: "healthy" | "unhealthy" | "degraded", dependencies?: StandardHealthCheck["dependencies"], features?: StandardHealthCheck["features"]): StandardHealthCheck;
     /**
      * Create validation error response
      */
@@ -49,6 +49,10 @@ export declare class ResponseHelper {
      * Create service unavailable error response
      */
     static serviceUnavailable(service: string): StandardApiResponse<null>;
+    /**
+     * Create bad request error response
+     */
+    static badRequest(message?: string): StandardApiResponse<null>;
 }
 /**
  * Middleware to add request ID to responses

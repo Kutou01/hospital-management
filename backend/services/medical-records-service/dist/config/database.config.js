@@ -7,9 +7,18 @@ exports.dbPool = exports.supabaseAdmin = exports.connectionPool = void 0;
 exports.getSupabase = getSupabase;
 exports.testDatabaseConnection = testDatabaseConnection;
 const logger_1 = __importDefault(require("@hospital/shared/dist/utils/logger"));
-const connection_pool_1 = require("@hospital/shared/src/database/connection-pool");
-Object.defineProperty(exports, "connectionPool", { enumerable: true, get: function () { return connection_pool_1.connectionPool; } });
 const supabase_js_1 = require("@supabase/supabase-js");
+// Try to import connection pool, fallback if not available
+let connectionPool = null;
+exports.connectionPool = connectionPool;
+try {
+    const poolModule = require("@hospital/shared/dist/database/connection-pool");
+    exports.connectionPool = connectionPool = poolModule.connectionPool;
+    console.log("✅ Connection pool imported successfully");
+}
+catch (error) {
+    console.warn("⚠️ Connection pool not available, using direct client:", error);
+}
 // Environment variables validation
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -50,19 +59,35 @@ function getSupabase() {
 exports.dbPool = {
     // Execute standard query with connection pooling
     async executeQuery(queryFn) {
-        return connection_pool_1.connectionPool.executeQuery(queryFn);
+        if (connectionPool && connectionPool.executeQuery) {
+            return connectionPool.executeQuery(queryFn);
+        }
+        // Fallback to direct supabase client
+        return queryFn(exports.supabaseAdmin);
     },
     // Execute healthcare-specific FHIR validation
     async executeFHIRValidation(validationFn) {
-        return connection_pool_1.connectionPool.executeFHIRValidation(validationFn);
+        if (connectionPool && connectionPool.executeFHIRValidation) {
+            return connectionPool.executeFHIRValidation(validationFn);
+        }
+        // Fallback to direct supabase client
+        return validationFn(exports.supabaseAdmin);
     },
     // Execute diagnosis operations with high priority
     async executeDiagnosisOperation(diagnosisFn) {
-        return connection_pool_1.connectionPool.executeDiagnosisOperation(diagnosisFn);
+        if (connectionPool && connectionPool.executeDiagnosisOperation) {
+            return connectionPool.executeDiagnosisOperation(diagnosisFn);
+        }
+        // Fallback to direct supabase client
+        return diagnosisFn(exports.supabaseAdmin);
     },
     // Execute bulk operations with low priority
     async executeBulkOperation(bulkFn) {
-        return connection_pool_1.connectionPool.executeBulkOperation(bulkFn);
+        if (connectionPool && connectionPool.executeBulkOperation) {
+            return connectionPool.executeBulkOperation(bulkFn);
+        }
+        // Fallback to direct supabase client
+        return bulkFn(exports.supabaseAdmin);
     },
 };
 // Test database connection

@@ -3,7 +3,7 @@
 ## Test Information
 
 - **Date:** 2025-01-01
-- **Purpose:** Testing branch protection rules and CI/CD workflows
+- **Purpose:** Testing branch protection rule-s and CI/CD workflows
 - **Branch:** refactor/authentication-system
 
 ## Expected Results

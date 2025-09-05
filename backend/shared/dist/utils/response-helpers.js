@@ -13,7 +13,7 @@ class ResponseHelper {
     /**
      * Initialize the response helper with service information
      */
-    static initialize(serviceName, version = '1.0.0') {
+    static initialize(serviceName, version = "1.0.0") {
         this.serviceName = serviceName;
         this.serviceVersion = version;
     }
@@ -87,7 +87,7 @@ class ResponseHelper {
             version: this.serviceVersion,
             timestamp: new Date().toISOString(),
             uptime: process.uptime(),
-            environment: process.env.NODE_ENV || 'development',
+            environment: process.env.NODE_ENV || "development",
             dependencies,
             features,
             memory: {
@@ -101,7 +101,7 @@ class ResponseHelper {
      * Create validation error response
      */
     static validationError(errors) {
-        return this.error('Validation failed', 'VALIDATION_ERROR', errors);
+        return this.error("Validation failed", "VALIDATION_ERROR", errors);
     }
     /**
      * Create not found error response
@@ -110,48 +110,54 @@ class ResponseHelper {
         const message = id
             ? `${resource} with ID ${id} not found`
             : `${resource} not found`;
-        return this.error(message, 'NOT_FOUND');
+        return this.error(message, "NOT_FOUND");
     }
     /**
      * Create unauthorized error response
      */
-    static unauthorized(message = 'Authentication required') {
-        return this.error(message, 'UNAUTHORIZED');
+    static unauthorized(message = "Authentication required") {
+        return this.error(message, "UNAUTHORIZED");
     }
     /**
      * Create forbidden error response
      */
-    static forbidden(message = 'Access denied') {
-        return this.error(message, 'FORBIDDEN');
+    static forbidden(message = "Access denied") {
+        return this.error(message, "FORBIDDEN");
     }
     /**
      * Create internal server error response
      */
-    static internalError(message = 'Internal server error') {
-        return this.error(message, 'INTERNAL_ERROR');
+    static internalError(message = "Internal server error") {
+        return this.error(message, "INTERNAL_ERROR");
     }
     /**
      * Create service unavailable error response
      */
     static serviceUnavailable(service) {
-        return this.error(`${service} is currently unavailable`, 'SERVICE_UNAVAILABLE');
+        return this.error(`${service} is currently unavailable`, "SERVICE_UNAVAILABLE");
+    }
+    /**
+     * Create bad request error response
+     */
+    static badRequest(message = "Bad request") {
+        return this.error(message, "BAD_REQUEST");
     }
 }
 exports.ResponseHelper = ResponseHelper;
-ResponseHelper.serviceName = 'Unknown Service';
-ResponseHelper.serviceVersion = '1.0.0';
+ResponseHelper.serviceName = "Unknown Service";
+ResponseHelper.serviceVersion = "1.0.0";
 /**
  * Middleware to add request ID to responses
  */
 function addRequestId(req, res, next) {
-    const requestId = req.headers['x-request-id'] ||
+    const requestId = req.headers["x-request-id"] ||
         `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     req.requestId = requestId;
-    res.setHeader('X-Request-ID', requestId);
+    res.setHeader("X-Request-ID", requestId);
     // Override the original json method to add requestId to meta
     const originalJson = res.json;
     res.json = function (body) {
-        if (body && typeof body === 'object' && body.meta) {
+        if (body && typeof body === "object" && body.meta) {
             body.meta.requestId = requestId;
         }
         return originalJson.call(this, body);
@@ -163,44 +169,44 @@ function addRequestId(req, res, next) {
  */
 exports.VietnameseErrorMessages = {
     // Authentication errors
-    UNAUTHORIZED: 'Yêu cầu xác thực',
-    FORBIDDEN: 'Không có quyền truy cập',
-    INVALID_TOKEN: 'Token không hợp lệ',
-    TOKEN_EXPIRED: 'Token đã hết hạn',
+    UNAUTHORIZED: "Yêu cầu xác thực",
+    FORBIDDEN: "Không có quyền truy cập",
+    INVALID_TOKEN: "Token không hợp lệ",
+    TOKEN_EXPIRED: "Token đã hết hạn",
     // Validation errors
-    VALIDATION_ERROR: 'Dữ liệu không hợp lệ',
-    REQUIRED_FIELD: 'Trường bắt buộc',
-    INVALID_FORMAT: 'Định dạng không hợp lệ',
-    INVALID_EMAIL: 'Email không hợp lệ',
-    INVALID_PHONE: 'Số điện thoại không hợp lệ',
-    INVALID_LICENSE: 'Số giấy phép không hợp lệ',
+    VALIDATION_ERROR: "Dữ liệu không hợp lệ",
+    REQUIRED_FIELD: "Trường bắt buộc",
+    INVALID_FORMAT: "Định dạng không hợp lệ",
+    INVALID_EMAIL: "Email không hợp lệ",
+    INVALID_PHONE: "Số điện thoại không hợp lệ",
+    INVALID_LICENSE: "Số giấy phép không hợp lệ",
     // Resource errors
-    NOT_FOUND: 'Không tìm thấy',
-    ALREADY_EXISTS: 'Đã tồn tại',
-    DUPLICATE_ENTRY: 'Dữ liệu trùng lặp',
+    NOT_FOUND: "Không tìm thấy",
+    ALREADY_EXISTS: "Đã tồn tại",
+    DUPLICATE_ENTRY: "Dữ liệu trùng lặp",
     // Server errors
-    INTERNAL_ERROR: 'Lỗi hệ thống',
-    SERVICE_UNAVAILABLE: 'Dịch vụ không khả dụng',
-    DATABASE_ERROR: 'Lỗi cơ sở dữ liệu',
-    NETWORK_ERROR: 'Lỗi kết nối mạng',
+    INTERNAL_ERROR: "Lỗi hệ thống",
+    SERVICE_UNAVAILABLE: "Dịch vụ không khả dụng",
+    DATABASE_ERROR: "Lỗi cơ sở dữ liệu",
+    NETWORK_ERROR: "Lỗi kết nối mạng",
     // Business logic errors
-    APPOINTMENT_CONFLICT: 'Xung đột lịch hẹn',
-    DOCTOR_NOT_AVAILABLE: 'Bác sĩ không có lịch',
-    PATIENT_NOT_FOUND: 'Không tìm thấy bệnh nhân',
-    DOCTOR_NOT_FOUND: 'Không tìm thấy bác sĩ',
-    DEPARTMENT_NOT_FOUND: 'Không tìm thấy khoa',
+    APPOINTMENT_CONFLICT: "Xung đột lịch hẹn",
+    DOCTOR_NOT_AVAILABLE: "Bác sĩ không có lịch",
+    PATIENT_NOT_FOUND: "Không tìm thấy bệnh nhân",
+    DOCTOR_NOT_FOUND: "Không tìm thấy bác sĩ",
+    DEPARTMENT_NOT_FOUND: "Không tìm thấy khoa",
     // Payment errors
-    PAYMENT_FAILED: 'Thanh toán thất bại',
-    PAYMENT_CANCELLED: 'Thanh toán bị hủy',
-    INVALID_PAYMENT_METHOD: 'Phương thức thanh toán không hợp lệ',
-    INSUFFICIENT_FUNDS: 'Số dư không đủ',
+    PAYMENT_FAILED: "Thanh toán thất bại",
+    PAYMENT_CANCELLED: "Thanh toán bị hủy",
+    INVALID_PAYMENT_METHOD: "Phương thức thanh toán không hợp lệ",
+    INSUFFICIENT_FUNDS: "Số dư không đủ",
     // File upload errors
-    FILE_TOO_LARGE: 'File quá lớn',
-    INVALID_FILE_TYPE: 'Loại file không hợp lệ',
-    UPLOAD_FAILED: 'Tải file thất bại',
+    FILE_TOO_LARGE: "File quá lớn",
+    INVALID_FILE_TYPE: "Loại file không hợp lệ",
+    UPLOAD_FAILED: "Tải file thất bại",
     // Rate limiting
-    RATE_LIMIT_EXCEEDED: 'Vượt quá giới hạn yêu cầu',
-    TOO_MANY_REQUESTS: 'Quá nhiều yêu cầu',
+    RATE_LIMIT_EXCEEDED: "Vượt quá giới hạn yêu cầu",
+    TOO_MANY_REQUESTS: "Quá nhiều yêu cầu",
 };
 /**
  * Enhanced ResponseHelper with Vietnamese error messages
@@ -217,32 +223,32 @@ class EnhancedResponseHelper extends ResponseHelper {
      * Create validation error with Vietnamese messages
      */
     static validationErrorVi(errors) {
-        const vietnameseErrors = errors.map(error => ({
+        const vietnameseErrors = errors.map((error) => ({
             field: error.field,
             message: error.message,
-            vietnamese: this.translateValidationMessage(error.message)
+            vietnamese: this.translateValidationMessage(error.message),
         }));
-        return this.error('Dữ liệu không hợp lệ', 'VALIDATION_ERROR', vietnameseErrors);
+        return this.error("Dữ liệu không hợp lệ", "VALIDATION_ERROR", vietnameseErrors);
     }
     /**
      * Translate common validation messages to Vietnamese
      */
     static translateValidationMessage(message) {
         const translations = {
-            'is required': 'là bắt buộc',
-            'must be a valid email': 'phải là email hợp lệ',
-            'must be at least': 'phải có ít nhất',
-            'must be at most': 'không được vượt quá',
-            'must be a number': 'phải là số',
-            'must be a string': 'phải là chuỗi',
-            'must be a boolean': 'phải là true/false',
-            'must be a valid date': 'phải là ngày hợp lệ',
-            'must be unique': 'phải là duy nhất',
-            'invalid format': 'định dạng không hợp lệ',
+            "is required": "là bắt buộc",
+            "must be a valid email": "phải là email hợp lệ",
+            "must be at least": "phải có ít nhất",
+            "must be at most": "không được vượt quá",
+            "must be a number": "phải là số",
+            "must be a string": "phải là chuỗi",
+            "must be a boolean": "phải là true/false",
+            "must be a valid date": "phải là ngày hợp lệ",
+            "must be unique": "phải là duy nhất",
+            "invalid format": "định dạng không hợp lệ",
         };
         let translatedMessage = message;
         Object.entries(translations).forEach(([english, vietnamese]) => {
-            translatedMessage = translatedMessage.replace(new RegExp(english, 'gi'), vietnamese);
+            translatedMessage = translatedMessage.replace(new RegExp(english, "gi"), vietnamese);
         });
         return translatedMessage;
     }
@@ -254,15 +260,15 @@ exports.EnhancedResponseHelper = EnhancedResponseHelper;
 function asyncErrorHandler(fn) {
     return (req, res, next) => {
         Promise.resolve(fn(req, res, next)).catch((error) => {
-            console.error('Async error:', error);
+            console.error("Async error:", error);
             // Check if response was already sent
             if (res.headersSent) {
                 return next(error);
             }
             // Send standardized error response with Vietnamese message
-            const errorResponse = EnhancedResponseHelper.errorVi('INTERNAL_ERROR', 'INTERNAL_ERROR', process.env.NODE_ENV === 'development' ? { stack: error.stack } : undefined, process.env.NODE_ENV === 'production'
-                ? undefined
-                : error.message);
+            const errorResponse = EnhancedResponseHelper.errorVi("INTERNAL_ERROR", "INTERNAL_ERROR", process.env.NODE_ENV === "development"
+                ? { stack: error.stack }
+                : undefined, process.env.NODE_ENV === "production" ? undefined : error.message);
             res.status(500).json(errorResponse);
         });
     };
@@ -271,7 +277,7 @@ function asyncErrorHandler(fn) {
  * Global error handling middleware for Express
  */
 function globalErrorHandler(error, req, res, next) {
-    console.error('Global error handler:', error);
+    console.error("Global error handler:", error);
     // If response was already sent, delegate to default Express error handler
     if (res.headersSent) {
         return next(error);
@@ -279,42 +285,46 @@ function globalErrorHandler(error, req, res, next) {
     // Handle different types of errors
     let statusCode = 500;
     let errorResponse;
-    if (error.name === 'ValidationError') {
+    if (error.name === "ValidationError") {
         statusCode = 400;
-        errorResponse = EnhancedResponseHelper.errorVi('VALIDATION_ERROR', 'VALIDATION_ERROR', error.details);
+        errorResponse = EnhancedResponseHelper.errorVi("VALIDATION_ERROR", "VALIDATION_ERROR", error.details);
     }
-    else if (error.name === 'UnauthorizedError' || error.status === 401) {
+    else if (error.name === "UnauthorizedError" || error.status === 401) {
         statusCode = 401;
-        errorResponse = EnhancedResponseHelper.errorVi('UNAUTHORIZED');
+        errorResponse = EnhancedResponseHelper.errorVi("UNAUTHORIZED");
     }
-    else if (error.name === 'ForbiddenError' || error.status === 403) {
+    else if (error.name === "ForbiddenError" || error.status === 403) {
         statusCode = 403;
-        errorResponse = EnhancedResponseHelper.errorVi('FORBIDDEN');
+        errorResponse = EnhancedResponseHelper.errorVi("FORBIDDEN");
     }
-    else if (error.name === 'NotFoundError' || error.status === 404) {
+    else if (error.name === "NotFoundError" || error.status === 404) {
         statusCode = 404;
-        errorResponse = EnhancedResponseHelper.errorVi('NOT_FOUND');
+        errorResponse = EnhancedResponseHelper.errorVi("NOT_FOUND");
     }
-    else if (error.code === 'ECONNREFUSED') {
+    else if (error.code === "ECONNREFUSED") {
         statusCode = 503;
-        errorResponse = EnhancedResponseHelper.errorVi('SERVICE_UNAVAILABLE');
+        errorResponse = EnhancedResponseHelper.errorVi("SERVICE_UNAVAILABLE");
     }
-    else if (error.code === '23505') { // PostgreSQL unique violation
+    else if (error.code === "23505") {
+        // PostgreSQL unique violation
         statusCode = 409;
-        errorResponse = EnhancedResponseHelper.errorVi('DUPLICATE_ENTRY');
+        errorResponse = EnhancedResponseHelper.errorVi("DUPLICATE_ENTRY");
     }
-    else if (error.code === '23503') { // PostgreSQL foreign key violation
+    else if (error.code === "23503") {
+        // PostgreSQL foreign key violation
         statusCode = 400;
-        errorResponse = EnhancedResponseHelper.errorVi('VALIDATION_ERROR', 'FOREIGN_KEY_VIOLATION', {
-            message: 'Dữ liệu tham chiếu không tồn tại'
+        errorResponse = EnhancedResponseHelper.errorVi("VALIDATION_ERROR", "FOREIGN_KEY_VIOLATION", {
+            message: "Dữ liệu tham chiếu không tồn tại",
         });
     }
     else {
         // Default internal server error
-        errorResponse = EnhancedResponseHelper.errorVi('INTERNAL_ERROR', 'INTERNAL_ERROR', process.env.NODE_ENV === 'development' ? {
-            message: error.message,
-            stack: error.stack
-        } : undefined);
+        errorResponse = EnhancedResponseHelper.errorVi("INTERNAL_ERROR", "INTERNAL_ERROR", process.env.NODE_ENV === "development"
+            ? {
+                message: error.message,
+                stack: error.stack,
+            }
+            : undefined);
     }
     res.status(statusCode).json(errorResponse);
 }
@@ -324,7 +334,8 @@ function globalErrorHandler(error, req, res, next) {
 function validateRequiredFields(data, requiredFields) {
     const errors = [];
     for (const field of requiredFields) {
-        if (!data[field] || (typeof data[field] === 'string' && data[field].trim() === '')) {
+        if (!data[field] ||
+            (typeof data[field] === "string" && data[field].trim() === "")) {
             errors.push(`${field} is required`);
         }
     }

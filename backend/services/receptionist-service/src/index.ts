@@ -8,6 +8,10 @@ import {
   createVersioningMiddleware,
   responseTransformMiddleware,
 } from "@hospital/shared/dist/middleware/versioning.middleware";
+import {
+  getMetricsHandler,
+  metricsMiddleware,
+} from "@hospital/shared/dist/monitoring/metrics";
 import logger from "@hospital/shared/dist/utils/logger";
 import {
   ResponseHelper,
@@ -55,7 +59,11 @@ app.use(
 );
 
 // Response transformation middleware
-app.use(responseTransformMiddleware);
+app.use(responseTransformMiddleware());
+
+// Metrics middleware and endpoint
+app.use(metricsMiddleware("receptionist-service"));
+app.get("/metrics", getMetricsHandler);
 
 // Health check endpoint
 app.get("/health", (req, res) => {
@@ -114,8 +122,10 @@ const startServer = async () => {
     // Test database connection
     const dbConnected = await testDatabaseConnection();
     if (!dbConnected) {
-      logger.error("Failed to connect to database. Exiting...");
-      process.exit(1);
+      logger.warn(
+        "⚠️ Database not available. Starting Receptionist Service in degraded mode"
+      );
+      // continue to start server; /health can reflect degraded status if desired
     }
 
     httpServer.listen(PORT, () => {

@@ -5,6 +5,15 @@ import logger from "../utils/logger";
  * Hospital Management System Database Connection Pool
  * Provides optimized database connections with healthcare-specific features
  */
+// DEPRECATION GUARD: Legacy 'public' schema pool is forbidden in schema-per-service
+if (
+  process.env.NODE_ENV !== "test" &&
+  process.env.ALLOW_PUBLIC_POOL !== "true"
+) {
+  throw new Error(
+    "Deprecated: backend/shared/src/database/connection-pool.ts (schema 'public') bị chặn. Hãy dùng '@hospital/shared/dist/database/schema-aware-connection-pool'."
+  );
+}
 
 interface PoolConfig {
   maxConnections: number;
@@ -68,11 +77,11 @@ class DatabaseConnectionPool {
           autoRefreshToken: false,
         },
         db: {
-          schema: 'public',
+          schema: "public",
         },
         global: {
           headers: {
-            'x-application-name': 'hospital-management-system',
+            "x-application-name": "hospital-management-system",
           },
         },
       });
@@ -82,7 +91,9 @@ class DatabaseConnectionPool {
     }
 
     this.metrics.idleConnections = this.clients.length;
-    logger.info(`Database connection pool initialized with ${this.clients.length} connections`);
+    logger.info(
+      `Database connection pool initialized with ${this.clients.length} connections`
+    );
   }
 
   private startHealthCheck(): void {
@@ -94,31 +105,34 @@ class DatabaseConnectionPool {
   private async performHealthCheck(): Promise<void> {
     try {
       const client = await this.acquireConnection();
-      const { error } = await client.from('profiles').select('count').limit(1);
-      
+      const { error } = await client.from("profiles").select("count").limit(1);
+
       if (error) {
-        logger.warn('Database health check failed', { error: error.message });
+        logger.warn("Database health check failed", { error: error.message });
         this.metrics.errorCount++;
       }
-      
+
       this.releaseConnection(client);
     } catch (error) {
-      logger.error('Database health check error', { error });
+      logger.error("Database health check error", { error });
       this.metrics.errorCount++;
     }
   }
 
   private async acquireConnection(): Promise<SupabaseClient> {
     const startTime = Date.now();
-    
+
     while (Date.now() - startTime < this.config.acquireTimeoutMillis) {
       // Find available connection
-      const availableClient = this.clients.find(client => !this.activeClients.has(client));
-      
+      const availableClient = this.clients.find(
+        (client) => !this.activeClients.has(client)
+      );
+
       if (availableClient) {
         this.activeClients.add(availableClient);
         this.metrics.activeConnections = this.activeClients.size;
-        this.metrics.idleConnections = this.clients.length - this.activeClients.size;
+        this.metrics.idleConnections =
+          this.clients.length - this.activeClients.size;
         return availableClient;
       }
 
@@ -129,15 +143,16 @@ class DatabaseConnectionPool {
         this.activeClients.add(newClient);
         this.metrics.totalConnections++;
         this.metrics.activeConnections = this.activeClients.size;
-        this.metrics.idleConnections = this.clients.length - this.activeClients.size;
+        this.metrics.idleConnections =
+          this.clients.length - this.activeClients.size;
         return newClient;
       }
 
       // Wait a bit before retrying
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
 
-    throw new Error('Connection pool timeout: Unable to acquire connection');
+    throw new Error("Connection pool timeout: Unable to acquire connection");
   }
 
   private createNewConnection(): SupabaseClient {
@@ -150,11 +165,11 @@ class DatabaseConnectionPool {
         autoRefreshToken: false,
       },
       db: {
-        schema: 'public',
+        schema: "public",
       },
       global: {
         headers: {
-          'x-application-name': 'hospital-management-system',
+          "x-application-name": "hospital-management-system",
         },
       },
     });
@@ -163,42 +178,56 @@ class DatabaseConnectionPool {
   private releaseConnection(client: SupabaseClient): void {
     this.activeClients.delete(client);
     this.metrics.activeConnections = this.activeClients.size;
-    this.metrics.idleConnections = this.clients.length - this.activeClients.size;
+    this.metrics.idleConnections =
+      this.clients.length - this.activeClients.size;
   }
 
   // Public API methods
-  async executeQuery<T>(queryFn: (client: SupabaseClient) => Promise<T>): Promise<T> {
+  async executeQuery<T>(
+    queryFn: (client: SupabaseClient) => Promise<T>
+  ): Promise<T> {
     const client = await this.acquireConnection();
     const startTime = Date.now();
 
     try {
       const result = await queryFn(client);
-      
+
       // Update metrics
       const queryTime = Date.now() - startTime;
       this.metrics.totalQueries++;
-      this.metrics.averageQueryTime = 
-        (this.metrics.averageQueryTime * (this.metrics.totalQueries - 1) + queryTime) / this.metrics.totalQueries;
+      this.metrics.averageQueryTime =
+        (this.metrics.averageQueryTime * (this.metrics.totalQueries - 1) +
+          queryTime) /
+        this.metrics.totalQueries;
 
       return result;
     } catch (error) {
       this.metrics.errorCount++;
-      logger.error('Database query error', { error, queryTime: Date.now() - startTime });
+      logger.error("Database query error", {
+        error,
+        queryTime: Date.now() - startTime,
+      });
       throw error;
     } finally {
       this.releaseConnection(client);
     }
   }
 
-  async executeFHIRValidation<T>(validationFn: (client: SupabaseClient) => Promise<T>): Promise<T> {
+  async executeFHIRValidation<T>(
+    validationFn: (client: SupabaseClient) => Promise<T>
+  ): Promise<T> {
     return this.executeQuery(validationFn);
   }
 
-  async executeDiagnosisOperation<T>(diagnosisFn: (client: SupabaseClient) => Promise<T>): Promise<T> {
+  async executeDiagnosisOperation<T>(
+    diagnosisFn: (client: SupabaseClient) => Promise<T>
+  ): Promise<T> {
     return this.executeQuery(diagnosisFn);
   }
 
-  async executeBulkOperation<T>(bulkFn: (client: SupabaseClient) => Promise<T>): Promise<T> {
+  async executeBulkOperation<T>(
+    bulkFn: (client: SupabaseClient) => Promise<T>
+  ): Promise<T> {
     return this.executeQuery(bulkFn);
   }
 
@@ -218,7 +247,7 @@ class DatabaseConnectionPool {
     this.metrics.activeConnections = 0;
     this.metrics.idleConnections = 0;
 
-    logger.info('Database connection pool closed');
+    logger.info("Database connection pool closed");
   }
 }
 
@@ -227,4 +256,4 @@ export const connectionPool = new DatabaseConnectionPool();
 
 // Export class for custom instances
 export { DatabaseConnectionPool };
-export type { PoolConfig, ConnectionMetrics };
+export type { ConnectionMetrics, PoolConfig };

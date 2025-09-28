@@ -1,6 +1,6 @@
-import { Server as HttpServer } from 'http';
+import { Server as HttpServer } from "http";
 export interface AppointmentRealtimeEvent {
-    type: 'INSERT' | 'UPDATE' | 'DELETE';
+    type: "INSERT" | "UPDATE" | "DELETE";
     appointment_id: string;
     doctor_id?: string;
     patient_id?: string;

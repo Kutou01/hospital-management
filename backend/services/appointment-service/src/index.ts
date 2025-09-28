@@ -10,7 +10,10 @@ import helmet from "helmet";
 import { createServer } from "http";
 import morgan from "morgan";
 import appointmentRoutes from "./routes/appointment.routes";
+import checkinRoutes from "./routes/checkin.routes";
 import healthcareRoutes from "./routes/healthcare.routes";
+import queueRoutes from "./routes/queue.routes";
+import receptionistRoutes from "./routes/receptionist.routes";
 import { AppointmentRealtimeService } from "./services/realtime.service";
 
 const app = express();
@@ -46,6 +49,11 @@ app.get("/health", (req, res) => {
 // Routes
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/appointments", healthcareRoutes); // Mount healthcare routes (FHIR & Diagnosis)
+
+// Receptionist functionality routes (Phase 2B Integration)
+app.use("/api/receptionists", receptionistRoutes);
+app.use("/api/checkin", checkinRoutes);
+app.use("/api/queue", queueRoutes);
 
 // Legacy endpoint for backward compatibility
 app.get("/appointments", (req, res) => {

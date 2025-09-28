@@ -701,6 +701,18 @@ export class RestApiService {
     });
     return response.data;
   }
+
+  /**
+   * Receptionist Service API calls
+   */
+  async getReceptionistQueue(params?: {
+    date?: string;
+    doctor_id?: string;
+    department_id?: string;
+  }): Promise<StandardApiResponse> {
+    const response = await this.client.get("/api/checkin/queue", { params });
+    return response.data;
+  }
 }
 
 export default RestApiService;

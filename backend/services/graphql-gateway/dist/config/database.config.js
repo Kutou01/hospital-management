@@ -5,9 +5,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.dbPool = exports.supabaseAdmin = exports.connectionPool = void 0;
 exports.getSupabase = getSupabase;
-const logger_1 = __importDefault(require("@hospital/shared/dist/utils/logger"));
-const connection_pool_1 = require("@hospital/shared/src/database/connection-pool");
+const connection_pool_1 = require("@hospital/shared/dist/database/connection-pool");
 Object.defineProperty(exports, "connectionPool", { enumerable: true, get: function () { return connection_pool_1.connectionPool; } });
+const logger_1 = __importDefault(require("@hospital/shared/dist/utils/logger"));
 const supabase_js_1 = require("@supabase/supabase-js");
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();

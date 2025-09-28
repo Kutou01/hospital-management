@@ -144,6 +144,55 @@ export const appointmentResolvers = {
       }
     },
 
+    // Waiting queue for reception flow
+    async waitingQueue(
+      _: any,
+      {
+        doctor_id,
+        department_id,
+        date,
+      }: { doctor_id?: string; department_id?: string; date?: string },
+      context: GraphQLContext
+    ) {
+      try {
+        logger.debug("Fetching waiting queue:", {
+          doctor_id,
+          department_id,
+          date,
+          requestId: context.requestId,
+        });
+
+        const params: any = {};
+        if (doctor_id) params.doctor_id = doctor_id;
+        if (department_id) params.department_id = department_id;
+        if (date) params.date = date;
+
+        const response = await context.restApi.getReceptionistQueue(params);
+        if (!response.success) {
+          throw new Error(
+            response.error?.message ||
+              contextUtils.translate(context, "appointment.errors.fetch_failed")
+          );
+        }
+
+        const items = Array.isArray(response.data) ? response.data : [];
+        return items.map((item: any) => ({
+          appointment_id: item.appointment_id || item.id,
+          doctor_id: item.doctor_id,
+          patient_id: item.patient_id,
+          status: (item.status || "CONFIRMED").toUpperCase(),
+          scheduled_time: item.scheduled_time || item.start_time,
+          scheduled_date_time:
+            item.scheduled_date_time || item.scheduled_time || item.start_time,
+          duration: item.duration || 30,
+          checked_in_at: item.check_in_time || item.checked_in_at,
+        }));
+      } catch (error) {
+        logger.error("Error fetching waiting queue:", error);
+        throw error;
+      }
+    },
+
     // Get upcoming appointments
     async upcomingAppointments(
       _: any,

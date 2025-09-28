@@ -1,9 +1,7 @@
-import { connectionPool } from "@hospital/shared/src/database/connection-pool";
 import { SupabaseClient } from "@supabase/supabase-js";
-export { connectionPool };
-export declare const supabaseAdmin: SupabaseClient;
-export declare const supabaseFresh: SupabaseClient;
-export declare const supabaseClient: SupabaseClient;
+export declare const supabaseAdmin: SupabaseClient<any, "public", any>;
+export declare const supabaseFresh: SupabaseClient<any, "public", any>;
+export declare const supabaseClient: SupabaseClient<any, "public", any>;
 export declare const testSupabaseConnection: () => Promise<boolean>;
 export declare const initializeSupabase: () => Promise<void>;
 export declare const dbPool: {
@@ -13,8 +11,8 @@ export declare const dbPool: {
     executeBulkOperation<T>(bulkFn: (client: any) => Promise<T>): Promise<T>;
 };
 declare const _default: {
-    admin: SupabaseClient<any, "public", "public", any, any>;
-    client: SupabaseClient<any, "public", "public", any, any>;
+    admin: SupabaseClient<any, "public", any, any, any>;
+    client: SupabaseClient<any, "public", any, any, any>;
     testConnection: () => Promise<boolean>;
     dbPool: {
         executeQuery<T>(queryFn: (client: any) => Promise<T>): Promise<T>;
@@ -24,4 +22,6 @@ declare const _default: {
     };
 };
 export default _default;
+export declare function getSchemaAwareConnection(): Promise<any>;
+export declare function executeFHIRQuery<T>(queryFn: (client: any) => Promise<T>): Promise<T>;
 //# sourceMappingURL=supabase.d.ts.map

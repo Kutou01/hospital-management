@@ -439,6 +439,13 @@ class RestApiService {
         });
         return response.data;
     }
+    /**
+     * Receptionist Service API calls
+     */
+    async getReceptionistQueue(params) {
+        const response = await this.client.get("/api/checkin/queue", { params });
+        return response.data;
+    }
 }
 exports.RestApiService = RestApiService;
 exports.default = RestApiService;

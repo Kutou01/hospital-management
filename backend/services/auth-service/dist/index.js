@@ -20,6 +20,8 @@ const auth_routes_1 = __importDefault(require("./routes/auth.routes"));
 const patient_registration_routes_1 = __importDefault(require("./routes/patient-registration.routes"));
 const session_routes_1 = __importDefault(require("./routes/session.routes"));
 const user_routes_1 = __importDefault(require("./routes/user.routes"));
+const department_routes_1 = __importDefault(require("./modules/admin/routes/department.routes"));
+const orchestration_routes_1 = __importDefault(require("./modules/admin/routes/orchestration.routes"));
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 3001;
 const SERVICE_NAME = "Hospital Auth Service";
@@ -83,6 +85,9 @@ try {
     app.use("/api/auth", patient_registration_routes_1.default);
     app.use("/api/users", user_routes_1.default);
     app.use("/api/sessions", session_routes_1.default);
+    app.use("/api/admin/departments", department_routes_1.default);
+    app.use("/api/admin/orchestrate", orchestration_routes_1.default);
+    app.use("/api/departments", department_routes_1.default);
     logger_1.default.info("✅ Routes loaded successfully");
 }
 catch (error) {
@@ -105,6 +110,9 @@ app.get("/", (req, res) => {
             mfa: "/api/auth/mfa",
             users: "/api/users",
             sessions: "/api/sessions",
+            admin_departments: "/api/admin/departments",
+            admin_orchestration: "/api/admin/orchestrate",
+            departments: "/api/departments",
         },
     });
 });

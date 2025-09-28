@@ -149,6 +149,20 @@ export declare const resolvers: {
             totalCount: any;
         }>;
         todayAppointments(_: any, { doctor_id, departmentId, status }: any, context: GraphQLContext): Promise<any>;
+        waitingQueue(_: any, { doctor_id, department_id, date, }: {
+            doctor_id?: string;
+            department_id?: string;
+            date?: string;
+        }, context: GraphQLContext): Promise<{
+            appointment_id: any;
+            doctor_id: any;
+            patient_id: any;
+            status: any;
+            scheduled_time: any;
+            scheduled_date_time: any;
+            duration: any;
+            checked_in_at: any;
+        }[]>;
         upcomingAppointments(_: any, { doctor_id, patient_id, days, limit }: any, context: GraphQLContext): Promise<any>;
         availableSlots(_: any, { doctor_id, date, duration, }: {
             doctor_id: string;

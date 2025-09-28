@@ -579,58 +579,86 @@ export function createApp(): express.Application {
     })
   );
 
-  // Receptionist Service Routes - ENABLED
+  // Receptionist Service Routes - MIGRATED TO APPOINTMENT SERVICE (Phase 2B)
   app.use(
     "/api/receptionists",
     authMiddleware,
     createProxyMiddleware({
       target:
-        process.env.RECEPTIONIST_SERVICE_URL ||
-        "http://receptionist-service:3006",
+        process.env.APPOINTMENT_SERVICE_URL ||
+        "http://appointment-service:3004",
       changeOrigin: true,
       pathRewrite: {
         "^/api/receptionists": "/api/receptionists",
       },
       onError: (err: any, req: any, res: any) => {
-        console.error("Receptionist Service Proxy Error:", err);
+        console.error(
+          "Receptionist Service Proxy Error (via Appointment Service):",
+          err
+        );
         res.status(503).json({ error: "Receptionist service unavailable" });
       },
     })
   );
 
-  // Receptionist Check-in Routes - ENABLED
+  // Receptionist Check-in Routes - MIGRATED TO APPOINTMENT SERVICE (Phase 2B)
   app.use(
     "/api/checkin",
     authMiddleware,
     createProxyMiddleware({
       target:
-        process.env.RECEPTIONIST_SERVICE_URL ||
-        "http://receptionist-service:3006",
+        process.env.APPOINTMENT_SERVICE_URL ||
+        "http://appointment-service:3004",
       changeOrigin: true,
       pathRewrite: {
         "^/api/checkin": "/api/checkin",
       },
       onError: (err: any, req: any, res: any) => {
-        console.error("Receptionist Check-in Service Proxy Error:", err);
+        console.error(
+          "Check-in Service Proxy Error (via Appointment Service):",
+          err
+        );
         res.status(503).json({ error: "Check-in service unavailable" });
       },
     })
   );
 
-  // Receptionist Reports Routes - ENABLED
+  // Queue Management Routes - NEW (Phase 2B Integration)
+  app.use(
+    "/api/queue",
+    authMiddleware,
+    createProxyMiddleware({
+      target:
+        process.env.APPOINTMENT_SERVICE_URL ||
+        "http://appointment-service:3004",
+      changeOrigin: true,
+      pathRewrite: {
+        "^/api/queue": "/api/queue",
+      },
+      onError: (err: any, req: any, res: any) => {
+        console.error("Queue Management Service Proxy Error:", err);
+        res.status(503).json({ error: "Queue management service unavailable" });
+      },
+    })
+  );
+
+  // Receptionist Reports Routes - MIGRATED TO APPOINTMENT SERVICE (Phase 2B)
   app.use(
     "/api/reports",
     authMiddleware,
     createProxyMiddleware({
       target:
-        process.env.RECEPTIONIST_SERVICE_URL ||
-        "http://receptionist-service:3006",
+        process.env.APPOINTMENT_SERVICE_URL ||
+        "http://appointment-service:3004",
       changeOrigin: true,
       pathRewrite: {
         "^/api/reports": "/api/reports",
       },
       onError: (err: any, req: any, res: any) => {
-        console.error("Receptionist Reports Service Proxy Error:", err);
+        console.error(
+          "Reports Service Proxy Error (via Appointment Service):",
+          err
+        );
         res.status(503).json({ error: "Reports service unavailable" });
       },
     })
@@ -701,7 +729,7 @@ export function createApp(): express.Application {
     })
   );
 
-  // Department Service Routes - ENABLED (100% Complete)
+  // Department Service Routes - MIGRATED TO AUTH SERVICE (Phase 1)
   app.use(
     "/api/departments",
     (req, res, next) => {
@@ -713,51 +741,138 @@ export function createApp(): express.Application {
     },
     authMiddleware,
     createProxyMiddleware({
-      target:
-        process.env.DEPARTMENT_SERVICE_URL || "http://department-service:3005",
+      target: authServiceUrl, // Migrated to Auth Service
       changeOrigin: true,
       pathRewrite: {
-        "^/api/departments": "/api/departments",
+        "^/api/departments": "/api/admin/departments",
       },
+      timeout: 30000,
+      proxyTimeout: 30000,
       onError: (err: any, req: any, res: any) => {
-        console.error("Department Service Proxy Error:", err);
-        res.status(503).json({ error: "Department service unavailable" });
+        console.error(
+          "🚨 Department Service Proxy Error (via Auth Service):",
+          err
+        );
+        if (!res.headersSent) {
+          res.status(503).json({
+            error: "Department service unavailable",
+            details: err.message,
+            timestamp: new Date().toISOString(),
+          });
+        }
       },
     })
   );
 
-  // Specialty Service Routes (part of Department Service)
+  // Specialty Service Routes - MIGRATED TO AUTH SERVICE (Phase 1)
   app.use(
     "/api/specialties",
     authMiddleware,
     createProxyMiddleware({
-      target:
-        process.env.DEPARTMENT_SERVICE_URL || "http://department-service:3005",
+      target: authServiceUrl, // Migrated to Auth Service
       changeOrigin: true,
       pathRewrite: {
-        "^/api/specialties": "/api/specialties",
+        "^/api/specialties": "/api/admin/departments/specialties",
       },
+      timeout: 30000,
+      proxyTimeout: 30000,
       onError: (err: any, req: any, res: any) => {
-        console.error("Specialty Service Proxy Error:", err);
-        res.status(503).json({ error: "Specialty service unavailable" });
+        console.error(
+          "🚨 Specialty Service Proxy Error (via Auth Service):",
+          err
+        );
+        if (!res.headersSent) {
+          res.status(503).json({
+            error: "Specialty service unavailable",
+            details: err.message,
+            timestamp: new Date().toISOString(),
+          });
+        }
       },
     })
   );
 
-  // Room Service Routes (part of Department Service)
+  // Room Service Routes - MIGRATED TO AUTH SERVICE (Phase 1)
   app.use(
     "/api/rooms",
     authMiddleware,
     createProxyMiddleware({
-      target:
-        process.env.DEPARTMENT_SERVICE_URL || "http://department-service:3005",
+      target: authServiceUrl, // Migrated to Auth Service
       changeOrigin: true,
       pathRewrite: {
-        "^/api/rooms": "/api/rooms",
+        "^/api/rooms": "/api/admin/departments/rooms",
       },
+      timeout: 30000,
+      proxyTimeout: 30000,
       onError: (err: any, req: any, res: any) => {
-        console.error("Room Service Proxy Error:", err);
-        res.status(503).json({ error: "Room service unavailable" });
+        console.error("🚨 Room Service Proxy Error (via Auth Service):", err);
+        if (!res.headersSent) {
+          res.status(503).json({
+            error: "Room service unavailable",
+            details: err.message,
+            timestamp: new Date().toISOString(),
+          });
+        }
+      },
+    })
+  );
+
+  // Admin Orchestration Routes - PHASE 3B: Admin Orchestrator → Auth Service
+  app.use(
+    "/api/admin/orchestrate",
+    (req, res, next) => {
+      // Skip auth for health check
+      if (req.path === "/health") {
+        return next("route");
+      }
+      next();
+    },
+    authMiddleware,
+    createProxyMiddleware({
+      target: authServiceUrl, // Route to Auth Service
+      changeOrigin: true,
+      pathRewrite: {
+        "^/api/admin/orchestrate": "/api/admin/orchestrate",
+      },
+      timeout: 60000, // Extended timeout for complex orchestration operations
+      proxyTimeout: 60000,
+      onError: (err: any, req: any, res: any) => {
+        console.error(
+          "🚨 Admin Orchestration Proxy Error (via Auth Service):",
+          err
+        );
+        if (!res.headersSent) {
+          res.status(503).json({
+            error: "Admin orchestration service unavailable",
+            details: err.message,
+            timestamp: new Date().toISOString(),
+            service: "auth-service (orchestration)",
+          });
+        }
+      },
+      onProxyReq: (proxyReq: any, req: any, res: any) => {
+        // Log orchestration requests for monitoring
+        console.log(
+          `🎯 Orchestration Request: ${req.method} ${req.url} -> Auth Service`
+        );
+
+        // Add orchestration headers
+        proxyReq.setHeader("X-Orchestration-Gateway", "api-gateway");
+        proxyReq.setHeader(
+          "X-Request-ID",
+          req.headers["x-request-id"] || "unknown"
+        );
+
+        // Forward user context for orchestration
+        if (req.user) {
+          proxyReq.setHeader("X-User-ID", req.user.id);
+          proxyReq.setHeader("X-User-Role", req.user.role);
+        }
+      },
+      onProxyRes: (proxyRes: any, req: any, res: any) => {
+        console.log(
+          `🎯 Orchestration Response: ${proxyRes.statusCode} ${req.method} ${req.url}`
+        );
       },
     })
   );
@@ -811,15 +926,18 @@ export function createApp(): express.Application {
         "doctors",
         "patients",
         "appointments",
-        "departments",
-        "specialties",
-        "rooms",
+        "departments", // Migrated to auth service
+        "specialties", // Migrated to auth service
+        "rooms", // Migrated to auth service
         "medical-records", // Now includes prescription functionality
         "payments",
         "notifications",
+        "admin-orchestration", // Phase 3B: Admin orchestration via auth service
       ],
       mergedServices: [
         "prescriptions -> medical-records", // Prescription service merged into Medical Records
+        "departments -> auth", // Phase 1: Department service merged into Auth Service
+        "admin-orchestrator -> auth", // Phase 3: Admin Orchestrator merged into Auth Service
       ],
       disabledServices: [],
       services: serviceRegistry.getRegisteredServices(),
@@ -933,25 +1051,28 @@ export function createApp(): express.Application {
     })
   );
 
-  // Internal Department Service Routes (for service-to-service communication)
+  // Internal Department Service Routes - MIGRATED TO AUTH SERVICE (Phase 1)
   app.use(
     "/internal/departments",
     createProxyMiddleware({
-      target:
-        process.env.DEPARTMENT_SERVICE_URL || "http://department-service:3005",
+      target: authServiceUrl, // Migrated to Auth Service
       changeOrigin: true,
       pathRewrite: {
-        "^/internal/departments": "/api/departments",
+        "^/internal/departments": "/api/admin/departments",
       },
       timeout: 10000,
       proxyTimeout: 10000,
       onError: (err: any, req: any, res: any) => {
-        console.error("🚨 Internal Department Service Proxy Error:", err);
+        console.error(
+          "🚨 Internal Department Service Proxy Error (via Auth Service):",
+          err
+        );
         if (!res.headersSent) {
           res.status(503).json({
             error: "Internal department service unavailable",
             details: err.message,
             timestamp: new Date().toISOString(),
+            service: "auth-service (departments)",
           });
         }
       },
@@ -981,6 +1102,10 @@ export function createApp(): express.Application {
         auth: {
           url: process.env.AUTH_SERVICE_URL || "http://auth-service:3001",
           status: "active",
+          consolidatedServices: [
+            "departments", // Phase 1: Department functionality
+            "admin-orchestration", // Phase 3: Admin orchestration functionality
+          ],
         },
         doctors: {
           url: process.env.DOCTOR_SERVICE_URL || "http://doctor-service:3002",
@@ -1055,9 +1180,10 @@ export function createApp(): express.Application {
         "/api/doctors",
         "/api/patients",
         "/api/appointments",
-        "/api/departments",
-        "/api/specialties",
-        "/api/rooms",
+        "/api/departments", // Migrated to auth service
+        "/api/specialties", // Migrated to auth service
+        "/api/rooms", // Migrated to auth service
+        "/api/admin/orchestrate", // Phase 3B: Admin orchestration
         "/api/medical-records",
         "/api/prescriptions",
         "/api/billing",
@@ -1068,7 +1194,7 @@ export function createApp(): express.Application {
         "/internal/appointments",
         "/internal/doctors",
         "/internal/patients",
-        "/internal/departments",
+        "/internal/departments", // Migrated to auth service
       ],
     });
   });

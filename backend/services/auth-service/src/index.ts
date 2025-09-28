@@ -25,6 +25,9 @@ import authRoutes from "./routes/auth.routes";
 import patientRegistrationRoutes from "./routes/patient-registration.routes";
 import sessionRoutes from "./routes/session.routes";
 import userRoutes from "./routes/user.routes";
+// Admin module routes
+import adminDepartmentRoutes from "./modules/admin/routes/department.routes";
+import adminOrchestrationRoutes from "./modules/admin/routes/orchestration.routes";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -123,6 +126,14 @@ try {
   // app.use("/api/auth", mfaRoutes); // Temporarily disabled - MFA routes not implemented
   app.use("/api/users", userRoutes);
   app.use("/api/sessions", sessionRoutes);
+
+  // Admin module routes
+  app.use("/api/admin/departments", adminDepartmentRoutes);
+  app.use("/api/admin/orchestrate", adminOrchestrationRoutes);
+
+  // Backward compatibility routes (proxy to admin routes)
+  app.use("/api/departments", adminDepartmentRoutes);
+
   logger.info("✅ Routes loaded successfully");
 } catch (error: any) {
   logger.error("❌ Failed to load routes:", {
@@ -146,6 +157,9 @@ app.get("/", (req, res) => {
       mfa: "/api/auth/mfa",
       users: "/api/users",
       sessions: "/api/sessions",
+      admin_departments: "/api/admin/departments",
+      admin_orchestration: "/api/admin/orchestrate",
+      departments: "/api/departments", // Backward compatibility
     },
   });
 });

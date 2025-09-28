@@ -3,10 +3,10 @@ export interface Appointment {
     patient_id: string;
     doctor_id: string;
     appointment_date: string;
-    start_time: string;
-    end_time: string;
-    appointment_type: 'consultation' | 'follow_up' | 'emergency' | 'routine_checkup';
-    status: 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show';
+    appointment_time: string;
+    duration_minutes: number;
+    type: "consultation" | "follow_up" | "emergency" | "telemedicine" | "surgery" | "procedure";
+    status: "scheduled" | "confirmed" | "in_progress" | "completed" | "cancelled" | "no_show";
     reason?: string;
     notes?: string;
     diagnosis?: string;
@@ -35,19 +35,19 @@ export interface CreateAppointmentDto {
     patient_id: string;
     doctor_id: string;
     appointment_date: string;
-    start_time: string;
-    end_time: string;
-    appointment_type: 'consultation' | 'follow_up' | 'emergency' | 'routine_checkup';
+    appointment_time: string;
+    duration_minutes: number;
+    type: "consultation" | "follow_up" | "emergency" | "telemedicine" | "surgery" | "procedure";
     reason?: string;
     notes?: string;
     created_by?: string;
 }
 export interface UpdateAppointmentDto {
     appointment_date?: string;
-    start_time?: string;
-    end_time?: string;
-    appointment_type?: 'consultation' | 'follow_up' | 'emergency' | 'routine_checkup';
-    status?: 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show';
+    appointment_time?: string;
+    duration_minutes?: number;
+    type?: "consultation" | "follow_up" | "emergency" | "telemedicine" | "surgery" | "procedure";
+    status?: "scheduled" | "confirmed" | "in_progress" | "completed" | "cancelled" | "no_show";
     reason?: string;
     notes?: string;
     diagnosis?: string;
@@ -58,8 +58,8 @@ export interface AppointmentSearchFilters {
     appointment_date?: string;
     date_from?: string;
     date_to?: string;
-    status?: 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show';
-    appointment_type?: 'consultation' | 'follow_up' | 'emergency' | 'routine_checkup';
+    status?: "scheduled" | "confirmed" | "in_progress" | "completed" | "cancelled" | "no_show";
+    type?: "consultation" | "follow_up" | "emergency" | "telemedicine" | "surgery" | "procedure";
     search?: string;
 }
 export interface TimeSlot {
@@ -117,7 +117,9 @@ export interface AppointmentStats {
         consultation: number;
         follow_up: number;
         emergency: number;
-        routine_checkup: number;
+        telemedicine: number;
+        surgery: number;
+        procedure: number;
     };
 }
 export interface DoctorInfo {

@@ -12,7 +12,10 @@ const helmet_1 = __importDefault(require("helmet"));
 const http_1 = require("http");
 const morgan_1 = __importDefault(require("morgan"));
 const appointment_routes_1 = __importDefault(require("./routes/appointment.routes"));
+const checkin_routes_1 = __importDefault(require("./routes/checkin.routes"));
 const healthcare_routes_1 = __importDefault(require("./routes/healthcare.routes"));
+const queue_routes_1 = __importDefault(require("./routes/queue.routes"));
+const receptionist_routes_1 = __importDefault(require("./routes/receptionist.routes"));
 const realtime_service_1 = require("./services/realtime.service");
 const app = (0, express_1.default)();
 const httpServer = (0, http_1.createServer)(app);
@@ -39,6 +42,9 @@ app.get("/health", (req, res) => {
 });
 app.use("/api/appointments", appointment_routes_1.default);
 app.use("/api/appointments", healthcare_routes_1.default);
+app.use("/api/receptionists", receptionist_routes_1.default);
+app.use("/api/checkin", checkin_routes_1.default);
+app.use("/api/queue", queue_routes_1.default);
 app.get("/appointments", (req, res) => {
     res.json({
         message: "Appointment service is running - use /api/appointments for API endpoints",

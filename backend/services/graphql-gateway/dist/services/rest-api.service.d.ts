@@ -225,6 +225,14 @@ export declare class RestApiService {
     deleteDoctorReview(id: string): Promise<StandardApiResponse>;
     getRoom(id: string): Promise<StandardApiResponse>;
     getRooms(params: any): Promise<StandardApiResponse>;
+    /**
+     * Receptionist Service API calls
+     */
+    getReceptionistQueue(params?: {
+        date?: string;
+        doctor_id?: string;
+        department_id?: string;
+    }): Promise<StandardApiResponse>;
 }
 export default RestApiService;
 //# sourceMappingURL=rest-api.service.d.ts.map

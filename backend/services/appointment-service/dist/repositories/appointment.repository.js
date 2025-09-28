@@ -33,8 +33,8 @@ class AppointmentRepository {
                 if (filters.status) {
                     query = query.eq("status", filters.status);
                 }
-                if (filters.appointment_type) {
-                    query = query.eq("appointment_type", filters.appointment_type);
+                if (filters.type) {
+                    query = query.eq("type", filters.type);
                 }
                 if (filters.search) {
                     query = query.or(`reason.ilike.%${filters.search}%,notes.ilike.%${filters.search}%`);
@@ -51,37 +51,7 @@ class AppointmentRepository {
                 }
                 const transformedData = await Promise.all((data || []).map(async (appointment) => {
                     let doctor = null;
-                    if (appointment.doctor_id) {
-                        const { data: doctorData } = await client
-                            .from("doctors")
-                            .select(`
-              doctor_id,
-              specialty,
-              profile:profiles!profile_id (
-                full_name
-              )
-            `)
-                            .eq("doctor_id", appointment.doctor_id)
-                            .single();
-                        if (doctorData) {
-                            doctor = {
-                                doctor_id: doctorData.doctor_id,
-                                full_name: doctorData.profile?.full_name,
-                                specialty: doctorData.specialty,
-                            };
-                        }
-                    }
                     let patient = null;
-                    if (appointment.patient_id) {
-                        const { data: patientData } = await client
-                            .from("patients")
-                            .select("patient_id, gender, blood_type")
-                            .eq("patient_id", appointment.patient_id)
-                            .single();
-                        if (patientData) {
-                            patient = patientData;
-                        }
-                    }
                     return {
                         ...appointment,
                         doctor,
@@ -103,29 +73,7 @@ class AppointmentRepository {
         try {
             const { data, error } = await this.supabase
                 .from("appointments")
-                .select(`
-          *,
-          doctors!doctor_id (
-            doctor_id,
-            specialty,
-            profile:profiles!profile_id (
-              full_name,
-              phone_number,
-              email
-            )
-          ),
-          patients!patient_id (
-            patient_id,
-            gender,
-            blood_type,
-            profile:profiles!profile_id (
-              full_name,
-              date_of_birth,
-              phone_number,
-              email
-            )
-          )
-        `)
+                .select("*")
                 .eq("appointment_id", appointment_id)
                 .single();
             if (error) {
@@ -135,29 +83,7 @@ class AppointmentRepository {
                 logger_1.default.error("Error fetching appointment by ID:", error);
                 throw new Error(`Failed to fetch appointment: ${error.message}`);
             }
-            const transformedData = {
-                ...data,
-                patient: data.patients
-                    ? {
-                        patient_id: data.patients.patient_id,
-                        full_name: data.patients.profile?.full_name,
-                        date_of_birth: data.patients.profile?.date_of_birth,
-                        gender: data.patients.gender,
-                        phone_number: data.patients.profile?.phone_number,
-                        email: data.patients.profile?.email,
-                    }
-                    : undefined,
-                doctor: data.doctors
-                    ? {
-                        doctor_id: data.doctors.doctor_id,
-                        full_name: data.doctors.profile?.full_name,
-                        specialty: data.doctors.specialty,
-                        phone_number: data.doctors.profile?.phone_number,
-                        email: data.doctors.profile?.email,
-                    }
-                    : undefined,
-            };
-            return transformedData;
+            return data;
         }
         catch (error) {
             logger_1.default.error("Exception in getAppointmentById:", error);
@@ -310,7 +236,7 @@ class AppointmentRepository {
         try {
             const { data, error } = await this.supabase
                 .from("appointments")
-                .select("status, appointment_type, appointment_date, created_at");
+                .select("status, type, appointment_date, created_at");
             if (error) {
                 logger_1.default.error("Error fetching appointment stats:", error);
                 throw new Error(`Failed to fetch appointment stats: ${error.message}`);
@@ -336,15 +262,17 @@ class AppointmentRepository {
                     consultation: 0,
                     follow_up: 0,
                     emergency: 0,
-                    routine_checkup: 0,
+                    telemedicine: 0,
+                    surgery: 0,
+                    procedure: 0,
                 },
             };
             data?.forEach((appointment) => {
                 if (appointment.status in stats.byStatus) {
                     stats.byStatus[appointment.status]++;
                 }
-                if (appointment.appointment_type in stats.byType) {
-                    stats.byType[appointment.appointment_type]++;
+                if (appointment.type in stats.byType) {
+                    stats.byType[appointment.type]++;
                 }
                 const appointmentDate = new Date(appointment.appointment_date);
                 const createdDate = new Date(appointment.created_at);
@@ -443,22 +371,7 @@ class AppointmentRepository {
             }
             let query = this.supabase
                 .from("appointments")
-                .select(`
-          *,
-          doctors!doctor_id (
-            doctor_id,
-            specialty,
-            profile:profiles!profile_id (
-              full_name
-            )
-          ),
-          patients!patient_id (
-            patient_id,
-            profile:profiles!profile_id (
-              full_name
-            )
-          )
-        `)
+                .select("*")
                 .gte("appointment_date", startDate)
                 .lte("appointment_date", endDate)
                 .in("status", ["scheduled", "confirmed", "in_progress", "completed"]);
@@ -483,20 +396,9 @@ class AppointmentRepository {
                     appointment_time: appointment.appointment_time,
                     duration_minutes: appointment.duration_minutes,
                     status: appointment.status,
-                    appointment_type: appointment.appointment_type,
-                    doctor: appointment.doctors
-                        ? {
-                            doctor_id: appointment.doctors.doctor_id,
-                            full_name: appointment.doctors.profile?.full_name,
-                            specialty: appointment.doctors.specialty,
-                        }
-                        : null,
-                    patient: appointment.patients
-                        ? {
-                            patient_id: appointment.patients.patient_id,
-                            full_name: appointment.patients.profile?.full_name,
-                        }
-                        : null,
+                    type: appointment.type,
+                    doctor: null,
+                    patient: null,
                 });
             });
             return {
@@ -524,16 +426,7 @@ class AppointmentRepository {
             const endDateStr = weekEnd.toISOString().split("T")[0];
             const { data, error } = await this.supabase
                 .from("appointments")
-                .select(`
-          *,
-          patients!patient_id (
-            patient_id,
-            profile:profiles!profile_id (
-              full_name,
-              phone_number
-            )
-          )
-        `)
+                .select("*")
                 .eq("doctor_id", doctor_id)
                 .gte("appointment_date", startDateStr)
                 .lte("appointment_date", endDateStr)
@@ -567,7 +460,7 @@ class AppointmentRepository {
                     appointment_time: appointment.appointment_time,
                     duration_minutes: appointment.duration_minutes,
                     status: appointment.status,
-                    appointment_type: appointment.appointment_type,
+                    type: appointment.type,
                     reason: appointment.reason,
                     patient: appointment.patients
                         ? {
@@ -617,7 +510,7 @@ class AppointmentRepository {
             const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
             const { data: appointments, error } = await this.supabase
                 .from("appointments")
-                .select("appointment_id, status, appointment_type, appointment_date")
+                .select("appointment_id, status, type, appointment_date")
                 .eq("doctor_id", doctor_id);
             if (error) {
                 logger_1.default.error("Error fetching doctor appointment stats:", error);
@@ -642,10 +535,14 @@ class AppointmentRepository {
                 no_show: appointmentList.filter((a) => a.status === "no_show").length,
             };
             const byType = {
-                consultation: appointmentList.filter((a) => a.appointment_type === "consultation").length,
-                follow_up: appointmentList.filter((a) => a.appointment_type === "follow_up").length,
-                emergency: appointmentList.filter((a) => a.appointment_type === "emergency").length,
-                routine_checkup: appointmentList.filter((a) => a.appointment_type === "routine_checkup").length,
+                consultation: appointmentList.filter((a) => a.type === "consultation")
+                    .length,
+                follow_up: appointmentList.filter((a) => a.type === "follow_up").length,
+                emergency: appointmentList.filter((a) => a.type === "emergency").length,
+                telemedicine: appointmentList.filter((a) => a.type === "telemedicine")
+                    .length,
+                surgery: appointmentList.filter((a) => a.type === "surgery").length,
+                procedure: appointmentList.filter((a) => a.type === "procedure").length,
             };
             return {
                 total_appointments: total,

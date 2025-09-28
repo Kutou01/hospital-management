@@ -1,9 +1,14 @@
+import { getConnectionPool } from "@hospital/shared/dist/database/schema-aware-connection-pool";
 import dotenv from "dotenv";
 dotenv.config();
 
-import { connectionPool } from "@hospital/shared/dist/database/connection-pool";
+import { getSchemaForService } from "@hospital/shared/dist/config/schema-mapping";
 import logger from "@hospital/shared/dist/utils/logger";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+
+// Service configuration
+const SERVICE_NAME = "auth-service";
+const SCHEMA_NAME = getSchemaForService(SERVICE_NAME);
 
 // Supabase configuration
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -31,11 +36,10 @@ logger.info("Database configuration loaded for Auth Service", {
   connectionPooling: true,
 });
 
-// Connection Pool Integration - Primary method for database operations
-export { connectionPool };
+// Connection Pool Integration - Use schema-aware pool via helper wrappers
 
 // Legacy direct client for backward compatibility (deprecated - use connectionPool instead)
-export const supabaseAdmin: SupabaseClient = createClient(
+export const supabaseAdmin: SupabaseClient<any, "public", any> = createClient(
   supabaseUrl,
   supabaseServiceKey,
   {
@@ -44,7 +48,7 @@ export const supabaseAdmin: SupabaseClient = createClient(
       persistSession: false,
     },
     db: {
-      schema: "public",
+      schema: SCHEMA_NAME, // ✅ FIXED: Now uses auth_schema
     },
     global: {
       headers: {
@@ -57,7 +61,7 @@ export const supabaseAdmin: SupabaseClient = createClient(
 );
 
 // Fresh client for schema-sensitive operations
-export const supabaseFresh: SupabaseClient = createClient(
+export const supabaseFresh: SupabaseClient<any, "public", any> = createClient(
   supabaseUrl,
   supabaseServiceKey,
   {
@@ -66,7 +70,7 @@ export const supabaseFresh: SupabaseClient = createClient(
       persistSession: false,
     },
     db: {
-      schema: "public",
+      schema: SCHEMA_NAME, // ✅ FIXED: Now uses auth_schema
     },
     global: {
       headers: {
@@ -80,7 +84,7 @@ export const supabaseFresh: SupabaseClient = createClient(
 );
 
 // Anonymous client (for public operations)
-export const supabaseClient: SupabaseClient = createClient(
+export const supabaseClient: SupabaseClient<any, "public", any> = createClient(
   supabaseUrl,
   supabaseAnonKey,
   {
@@ -89,7 +93,7 @@ export const supabaseClient: SupabaseClient = createClient(
       persistSession: true,
     },
     db: {
-      schema: "public",
+      schema: SCHEMA_NAME, // ✅ FIXED: Now uses auth_schema
     },
   }
 );
@@ -99,55 +103,26 @@ export const testSupabaseConnection = async (): Promise<boolean> => {
   try {
     logger.info("🔍 Testing Supabase connection...");
 
-    // Test admin client connection
-    const { data: adminTest, error: adminError } = await supabaseAdmin
+    // Test schema-aware connection
+    const schemaClient = await getSchemaAwareConnection();
+    const { data: adminTest, error: adminError } = await schemaClient
       .from("profiles")
       .select("count")
       .limit(1);
 
     if (adminError) {
-      logger.error("❌ Supabase admin client connection failed:", {
+      logger.error("❌ Supabase schema-aware client connection failed:", {
         error: adminError.message,
         code: adminError.code,
         details: adminError.details,
+        schema: SCHEMA_NAME,
       });
       return false;
     }
 
-    // Test anonymous client connection
-    const { data: anonTest, error: anonError } = await supabaseClient
-      .from("profiles")
-      .select("count")
-      .limit(1);
-
-    if (anonError) {
-      logger.error("❌ Supabase anonymous client connection failed:", {
-        error: anonError.message,
-        code: anonError.code,
-        details: anonError.details,
-      });
-      return false;
-    }
-
-    // Test auth functionality
-    const { data: authTest, error: authTestError } =
-      await supabaseAdmin.auth.admin.listUsers({
-        page: 1,
-        perPage: 1,
-      });
-
-    if (authTestError) {
-      logger.error("❌ Supabase auth test failed:", {
-        error: authTestError.message,
-        code: authTestError.code,
-      });
-      return false;
-    }
-
-    logger.info("✅ Supabase connection and auth test successful", {
+    logger.info("✅ Supabase schema-aware connection test successful", {
+      schema: SCHEMA_NAME,
       profilesAccessible: true,
-      authFunctional: true,
-      userCount: authTest.users?.length || 0,
     });
 
     return true;
@@ -180,32 +155,29 @@ export const initializeSupabase = async (): Promise<void> => {
   logger.info("✅ Supabase initialized successfully");
 };
 
-// New recommended database access methods using connection pooling
+// New recommended database access methods using schema-aware connection pooling
+const pool = getConnectionPool();
 export const dbPool = {
-  // Execute standard query with connection pooling
   async executeQuery<T>(queryFn: (client: any) => Promise<T>): Promise<T> {
-    return connectionPool.executeQuery(queryFn);
+    const client = await pool.getConnection(SERVICE_NAME);
+    return queryFn(client);
   },
-
-  // Execute healthcare-specific FHIR validation
   async executeFHIRValidation<T>(
     validationFn: (client: any) => Promise<T>
   ): Promise<T> {
-    return connectionPool.executeFHIRValidation(validationFn);
+    return pool.executeFHIRValidation(SERVICE_NAME, validationFn);
   },
-
-  // Execute diagnosis operations with high priority
   async executeDiagnosisOperation<T>(
     diagnosisFn: (client: any) => Promise<T>
   ): Promise<T> {
-    return connectionPool.executeDiagnosisOperation(diagnosisFn);
+    const client = await pool.getConnection(SERVICE_NAME);
+    return diagnosisFn(client);
   },
-
-  // Execute bulk operations with low priority
   async executeBulkOperation<T>(
     bulkFn: (client: any) => Promise<T>
   ): Promise<T> {
-    return connectionPool.executeBulkOperation(bulkFn);
+    const client = await pool.getConnection(SERVICE_NAME);
+    return bulkFn(client);
   },
 };
 
@@ -215,3 +187,21 @@ export default {
   testConnection: testSupabaseConnection,
   dbPool,
 };
+
+/**
+ * Get a schema-aware connection from the pool
+ */
+export async function getSchemaAwareConnection(): Promise<any> {
+  const connectionPool = getConnectionPool();
+  return connectionPool.getConnection(SERVICE_NAME);
+}
+
+/**
+ * Execute query with FHIR validation for healthcare compliance
+ */
+export async function executeFHIRQuery<T>(
+  queryFn: (client: any) => Promise<T>
+): Promise<T> {
+  const connectionPool = getConnectionPool();
+  return connectionPool.executeFHIRValidation(SERVICE_NAME, queryFn);
+}

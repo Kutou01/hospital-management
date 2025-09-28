@@ -16,7 +16,7 @@ services:
       - DOCTOR_SERVICE_URL=http://doctor-service:3002
       - PATIENT_SERVICE_URL=http://patient-service:3003
       - APPOINTMENT_SERVICE_URL=http://appointment-service:3004
-      - DEPARTMENT_SERVICE_URL=http://department-service:3005
+      # REMOVED: DEPARTMENT_SERVICE_URL - migrated to auth-service (Phase 1)
       - RECEPTIONIST_SERVICE_URL=http://receptionist-service:3006
       - MEDICAL_RECORDS_SERVICE_URL=http://medical-records-service:3007
       # REMOVED: PRESCRIPTION_SERVICE_URL - merged into medical-records-service
@@ -88,7 +88,7 @@ services:
       - DOCTOR_SERVICE_URL=http://doctor-service:3002
       - PATIENT_SERVICE_URL=http://patient-service:3003
       - APPOINTMENT_SERVICE_URL=http://appointment-service:3004
-      - DEPARTMENT_SERVICE_URL=http://department-service:3005
+      # REMOVED: DEPARTMENT_SERVICE_URL - migrated to auth-service (Phase 1)
       - RECEPTIONIST_SERVICE_URL=http://receptionist-service:3006
       - MEDICAL_RECORDS_SERVICE_URL=http://medical-records-service:3007
       # REMOVED: PRESCRIPTION_SERVICE_URL - merged into medical-records-service
@@ -135,6 +135,9 @@ services:
       - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+      # Phase 3A: Admin Orchestrator Integration
+      - API_GATEWAY_URL=http://api-gateway:3100
+      - SERVICE_AUTH_TOKEN=${SUPABASE_SERVICE_ROLE_KEY}
     depends_on:
       - redis
       - rabbitmq
@@ -271,80 +274,80 @@ services:
       - core
       - full
 
-  # Department Service - ENABLED
-  department-service:
-    build:
-      context: .
-      dockerfile: ./services/department-service/Dockerfile
-    ports:
-      - "3005:3005"
-    environment:
-      - NODE_ENV=development
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-      - REDIS_URL=redis://redis:6379
-      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
-      - AUTH_SERVICE_URL=http://auth-service:3001
-    depends_on:
-      - redis
-      - rabbitmq
-    networks:
-      - hospital-network
-    # Resource limits
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-          cpus: "0.5"
-        reservations:
-          memory: 128M
-          cpus: "0.25"
-    profiles:
-      - core
-      - full
+  # Department Service - DECOMMISSIONED (Phase 1 - Migrated to Auth Service)
+  # department-service:
+  #   build:
+  #     context: .
+  #     dockerfile: ./services/department-service/Dockerfile
+  #   ports:
+  #     - "3005:3005"
+  #   environment:
+  #     - NODE_ENV=development
+  #     - SUPABASE_URL=${SUPABASE_URL}
+  #     - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+  #     - REDIS_URL=redis://redis:6379
+  #     - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+  #     - AUTH_SERVICE_URL=http://auth-service:3001
+  #   depends_on:
+  #     - redis
+  #     - rabbitmq
+  #   networks:
+  #     - hospital-network
+  #   # Resource limits
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 256M
+  #         cpus: "0.5"
+  #       reservations:
+  #         memory: 128M
+  #         cpus: "0.25"
+  #   profiles:
+  #     - core
+  #     - full
 
-  # Receptionist Service - ENABLED
-  receptionist-service:
-    build:
-      context: .
-      dockerfile: ./services/receptionist-service/Dockerfile
-    ports:
-      - "3006:3006"
-    env_file:
-      - ./services/receptionist-service/.env
-    environment:
-      - NODE_ENV=development
-      - PORT=3006
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-      - REDIS_URL=redis://redis:6379
-      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
-      - AUTH_SERVICE_URL=http://auth-service:3001
-      - DOCTOR_SERVICE_URL=http://doctor-service:3002
-      - PATIENT_SERVICE_URL=http://patient-service:3003
-      - APPOINTMENT_SERVICE_URL=http://appointment-service:3004
-      - DEPARTMENT_SERVICE_URL=http://department-service:3005
-      # Pure API Gateway Communication - All service calls go through API Gateway
-      - API_GATEWAY_URL=http://api-gateway:3100
-    depends_on:
-      - redis
-      - rabbitmq
-    networks:
-      - hospital-network
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: "0.25"
-    profiles:
-      - core
-      - full
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3006/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 20s
+  # Receptionist Service - DECOMMISSIONED (Phase 2B - Migrated to Appointment Service)
+  # receptionist-service:
+  #   build:
+  #     context: .
+  #     dockerfile: ./services/receptionist-service/Dockerfile
+  #   ports:
+  #     - "3006:3006"
+  #   env_file:
+  #     - ./services/receptionist-service/.env
+  #   environment:
+  #     - NODE_ENV=development
+  #     - PORT=3006
+  #     - SUPABASE_URL=${SUPABASE_URL}
+  #     - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+  #     - REDIS_URL=redis://redis:6379
+  #     - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+  #     - AUTH_SERVICE_URL=http://auth-service:3001
+  #     - DOCTOR_SERVICE_URL=http://doctor-service:3002
+  #     - PATIENT_SERVICE_URL=http://patient-service:3003
+  #     - APPOINTMENT_SERVICE_URL=http://appointment-service:3004
+  #     - DEPARTMENT_SERVICE_URL=http://department-service:3005
+  #     # Pure API Gateway Communication - All service calls go through API Gateway
+  #     - API_GATEWAY_URL=http://api-gateway:3100
+  #   depends_on:
+  #     - redis
+  #     - rabbitmq
+  #   networks:
+  #     - hospital-network
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 512M
+  #         cpus: "0.25"
+  #   profiles:
+  #     - core
+  #     - full
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:3006/health"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 20s
 
   # Medical Records Service - ENABLED
   medical-records-service:
@@ -468,44 +471,44 @@ services:
       - core
       - full
 
-  # Notification Service - ENABLED
-  notification-service:
-    build:
-      context: .
-      dockerfile: ./services/notification-service/Dockerfile
-    ports:
-      - "3011:3011"
-    env_file:
-      - ./services/notification-service/.env
-    environment:
-      - NODE_ENV=development
-      - PORT=3011
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-      - REDIS_URL=redis://redis:6379
-      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
-      - AUTH_SERVICE_URL=http://auth-service:3001
-      - SMTP_HOST=smtp.gmail.com
-      - SMTP_PORT=587
-      - SMTP_USER=your_email@gmail.com
-      - SMTP_PASS=your_app_password
-    depends_on:
-      - redis
-      - rabbitmq
-    networks:
-      - hospital-network
-    # Resource limits
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-          cpus: "0.5"
-        reservations:
-          memory: 128M
-          cpus: "0.25"
-    profiles:
-      - core
-      - full
+  # Notification Service - DECOMMISSIONED (Phase 2A - Converted to Shared Library)
+  # notification-service:
+  #   build:
+  #     context: .
+  #     dockerfile: ./services/notification-service/Dockerfile
+  #   ports:
+  #     - "3011:3011"
+  #   env_file:
+  #     - ./services/notification-service/.env
+  #   environment:
+  #     - NODE_ENV=development
+  #     - PORT=3011
+  #     - SUPABASE_URL=${SUPABASE_URL}
+  #     - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+  #     - REDIS_URL=redis://redis:6379
+  #     - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+  #     - AUTH_SERVICE_URL=http://auth-service:3001
+  #     - SMTP_HOST=smtp.gmail.com
+  #     - SMTP_PORT=587
+  #     - SMTP_USER=your_email@gmail.com
+  #     - SMTP_PASS=your_app_password
+  #   depends_on:
+  #     - redis
+  #     - rabbitmq
+  #   networks:
+  #     - hospital-network
+  #   # Resource limits
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 256M
+  #         cpus: "0.5"
+  #       reservations:
+  #         memory: 128M
+  #         cpus: "0.25"
+  #   profiles:
+  #     - core
+  #     - full
 
   # File Management Service - ENABLED (Medical Documents)
   file-service:

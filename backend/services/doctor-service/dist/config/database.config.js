@@ -3,13 +3,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.dbPool = exports.supabase = exports.supabaseAdmin = exports.connectionPool = void 0;
+exports.dbPool = exports.supabase = exports.supabaseAdmin = void 0;
 exports.getSupabase = getSupabase;
 exports.testDatabaseConnection = testDatabaseConnection;
-const connection_pool_1 = require("@hospital/shared/dist/database/connection-pool");
-Object.defineProperty(exports, "connectionPool", { enumerable: true, get: function () { return connection_pool_1.connectionPool; } });
+exports.getSchemaAwareConnection = getSchemaAwareConnection;
+exports.executeFHIRQuery = executeFHIRQuery;
+const schema_mapping_1 = require("@hospital/shared/dist/config/schema-mapping");
+const schema_aware_connection_pool_1 = require("@hospital/shared/dist/database/schema-aware-connection-pool");
 const logger_1 = __importDefault(require("@hospital/shared/dist/utils/logger"));
 const supabase_js_1 = require("@supabase/supabase-js");
+const SERVICE_NAME = "doctor-service";
+const SCHEMA_NAME = (0, schema_mapping_1.getSchemaForService)(SERVICE_NAME);
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!supabaseUrl) {
@@ -30,7 +34,7 @@ exports.supabaseAdmin = (0, supabase_js_1.createClient)(supabaseUrl, supabaseSer
         persistSession: false,
     },
     db: {
-        schema: "public",
+        schema: SCHEMA_NAME,
     },
     global: {
         headers: {
@@ -44,18 +48,22 @@ exports.supabase = exports.supabaseAdmin;
 function getSupabase() {
     return exports.supabaseAdmin;
 }
+const pool = (0, schema_aware_connection_pool_1.getConnectionPool)();
 exports.dbPool = {
     async executeQuery(queryFn) {
-        return connection_pool_1.connectionPool.executeQuery(queryFn);
+        const client = await pool.getConnection(SERVICE_NAME);
+        return queryFn(client);
     },
     async executeFHIRValidation(validationFn) {
-        return connection_pool_1.connectionPool.executeFHIRValidation(validationFn);
+        return pool.executeFHIRValidation(SERVICE_NAME, validationFn);
     },
     async executeDiagnosisOperation(diagnosisFn) {
-        return connection_pool_1.connectionPool.executeDiagnosisOperation(diagnosisFn);
+        const client = await pool.getConnection(SERVICE_NAME);
+        return diagnosisFn(client);
     },
     async executeBulkOperation(bulkFn) {
-        return connection_pool_1.connectionPool.executeBulkOperation(bulkFn);
+        const client = await pool.getConnection(SERVICE_NAME);
+        return bulkFn(client);
     },
 };
 async function testDatabaseConnection() {
@@ -78,5 +86,13 @@ async function testDatabaseConnection() {
         logger_1.default.error("Database connection test failed", { error });
         return false;
     }
+}
+async function getSchemaAwareConnection() {
+    const connectionPool = (0, schema_aware_connection_pool_1.getConnectionPool)();
+    return connectionPool.getConnection(SERVICE_NAME);
+}
+async function executeFHIRQuery(queryFn) {
+    const connectionPool = (0, schema_aware_connection_pool_1.getConnectionPool)();
+    return connectionPool.executeFHIRValidation(SERVICE_NAME, queryFn);
 }
 //# sourceMappingURL=database.config.js.map

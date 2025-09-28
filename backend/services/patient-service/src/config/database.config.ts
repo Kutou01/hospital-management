@@ -1,6 +1,11 @@
-import { connectionPool } from "@hospital/shared/dist/database/connection-pool";
+import { getSchemaForService } from "@hospital/shared/dist/config/schema-mapping";
+import { getConnectionPool } from "@hospital/shared/dist/database/schema-aware-connection-pool";
 import logger from "@hospital/shared/dist/utils/logger";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+
+// Service configuration
+const SERVICE_NAME = "patient-service";
+const SCHEMA_NAME = getSchemaForService(SERVICE_NAME);
 
 // Environment variables validation
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -20,8 +25,7 @@ logger.info("Database configuration loaded for Patient Service", {
   connectionPooling: true,
 });
 
-// Connection Pool Integration - Primary method for database operations
-export { connectionPool };
+// Connection Pool Integration - Use schema-aware pool via helper wrappers
 
 // Legacy direct client for backward compatibility (deprecated - use connectionPool instead)
 export const supabaseAdmin: SupabaseClient = createClient(
@@ -33,7 +37,7 @@ export const supabaseAdmin: SupabaseClient = createClient(
       persistSession: false,
     },
     db: {
-      schema: "public",
+      schema: SCHEMA_NAME, // ✅ FIXED: Now uses patient_schema,
     },
     global: {
       headers: {
@@ -50,33 +54,48 @@ export function getSupabase(): SupabaseClient {
   return supabaseAdmin;
 }
 
-// New recommended database access methods using connection pooling
+// New recommended database access methods using schema-aware connection pooling
+const pool = getConnectionPool();
 export const dbPool = {
-  // Execute standard query with connection pooling
   async executeQuery<T>(queryFn: (client: any) => Promise<T>): Promise<T> {
-    return connectionPool.executeQuery(queryFn);
+    const client = await pool.getConnection(SERVICE_NAME);
+    return queryFn(client);
   },
-
-  // Execute healthcare-specific FHIR validation
   async executeFHIRValidation<T>(
     validationFn: (client: any) => Promise<T>
   ): Promise<T> {
-    return connectionPool.executeFHIRValidation(validationFn);
+    return pool.executeFHIRValidation(SERVICE_NAME, validationFn);
   },
-
-  // Execute diagnosis operations with high priority
   async executeDiagnosisOperation<T>(
     diagnosisFn: (client: any) => Promise<T>
   ): Promise<T> {
-    return connectionPool.executeDiagnosisOperation(diagnosisFn);
+    const client = await pool.getConnection(SERVICE_NAME);
+    return diagnosisFn(client);
   },
-
-  // Execute bulk operations with low priority
   async executeBulkOperation<T>(
     bulkFn: (client: any) => Promise<T>
   ): Promise<T> {
-    return connectionPool.executeBulkOperation(bulkFn);
+    const client = await pool.getConnection(SERVICE_NAME);
+    return bulkFn(client);
   },
 };
 
 export default getSupabase;
+
+/**
+ * Get a schema-aware connection from the pool
+ */
+export async function getSchemaAwareConnection(): Promise<SupabaseClient> {
+  const connectionPool = getConnectionPool();
+  return connectionPool.getConnection(SERVICE_NAME);
+}
+
+/**
+ * Execute query with FHIR validation for healthcare compliance
+ */
+export async function executeFHIRQuery<T>(
+  queryFn: (client: SupabaseClient) => Promise<T>
+): Promise<T> {
+  const connectionPool = getConnectionPool();
+  return connectionPool.executeFHIRValidation(SERVICE_NAME, queryFn);
+}

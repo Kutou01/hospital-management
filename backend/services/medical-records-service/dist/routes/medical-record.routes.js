@@ -33,7 +33,6 @@ const validateUpdateMedicalRecord = [
     (0, express_validator_1.body)("status").optional().isIn(["active", "archived", "deleted"]),
 ];
 const validateCreateLabResult = [
-    (0, express_validator_1.body)("record_id").notEmpty().withMessage("Record ID is required"),
     (0, express_validator_1.body)("test_name").notEmpty().withMessage("Test name is required"),
     (0, express_validator_1.body)("test_type").notEmpty().withMessage("Test type is required"),
     (0, express_validator_1.body)("test_date").isISO8601().withMessage("Valid test date is required"),
@@ -123,10 +122,10 @@ const validateUpdatePrescription = [
         .withMessage("Quantity must be a positive integer"),
 ];
 const validatePatientId = [
-    (0, express_validator_1.param)("patient_id").notEmpty().withMessage("Patient ID is required"),
+    (0, express_validator_1.param)("patientId").notEmpty().withMessage("Patient ID is required"),
 ];
 const validateDoctorId = [
-    (0, express_validator_1.param)("doctor_id").notEmpty().withMessage("Doctor ID is required"),
+    (0, express_validator_1.param)("doctorId").notEmpty().withMessage("Doctor ID is required"),
 ];
 // Medical Records routes
 router.get("/", medicalRecordController.getAllMedicalRecords.bind(medicalRecordController));

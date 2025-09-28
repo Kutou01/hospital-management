@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
+const shared_1 = require("@hospital/shared");
 const logger_1 = __importDefault(require("@hospital/shared/dist/utils/logger"));
 const cors_1 = __importDefault(require("cors"));
 const express_1 = __importDefault(require("express"));
@@ -33,6 +34,8 @@ app.use((0, cors_1.default)());
 app.use((0, morgan_1.default)("combined"));
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
+app.use((0, shared_1.metricsMiddleware)("patient-service"));
+app.get("/metrics", shared_1.getMetricsHandler);
 app.get("/health", (req, res) => {
     res.json({
         service: "Hospital Patient Service",

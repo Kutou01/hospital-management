@@ -3,22 +3,18 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.dbPool = exports.supabaseAdmin = exports.connectionPool = void 0;
+exports.dbPool = exports.supabaseAdmin = void 0;
 exports.getSupabase = getSupabase;
 exports.testDatabaseConnection = testDatabaseConnection;
+exports.getSchemaAwareConnection = getSchemaAwareConnection;
+exports.executeFHIRQuery = executeFHIRQuery;
+const schema_mapping_1 = require("@hospital/shared/dist/config/schema-mapping");
+const schema_aware_connection_pool_1 = require("@hospital/shared/dist/database/schema-aware-connection-pool");
 const logger_1 = __importDefault(require("@hospital/shared/dist/utils/logger"));
 const supabase_js_1 = require("@supabase/supabase-js");
-// Try to import connection pool, fallback if not available
-let connectionPool = null;
-exports.connectionPool = connectionPool;
-try {
-    const poolModule = require("@hospital/shared/dist/database/connection-pool");
-    exports.connectionPool = connectionPool = poolModule.connectionPool;
-    console.log("✅ Connection pool imported successfully");
-}
-catch (error) {
-    console.warn("⚠️ Connection pool not available, using direct client:", error);
-}
+// Service configuration
+const SERVICE_NAME = "medical-records-service";
+const SCHEMA_NAME = (0, schema_mapping_1.getSchemaForService)(SERVICE_NAME);
 // Environment variables validation
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -34,6 +30,7 @@ logger_1.default.info("Database configuration loaded for Medical Records Service
     hasServiceKey: !!supabaseServiceKey,
     connectionPooling: true,
 });
+// Connection Pool Integration - Use schema-aware pool via helper wrappers
 // Legacy direct client for backward compatibility (deprecated - use connectionPool instead)
 exports.supabaseAdmin = (0, supabase_js_1.createClient)(supabaseUrl, supabaseServiceKey, {
     auth: {
@@ -41,7 +38,7 @@ exports.supabaseAdmin = (0, supabase_js_1.createClient)(supabaseUrl, supabaseSer
         persistSession: false,
     },
     db: {
-        schema: "public",
+        schema: SCHEMA_NAME, // ✅ FIXED: Now uses medical_records_schema,
     },
     global: {
         headers: {
@@ -55,39 +52,23 @@ exports.supabaseAdmin = (0, supabase_js_1.createClient)(supabaseUrl, supabaseSer
 function getSupabase() {
     return exports.supabaseAdmin;
 }
-// New recommended database access methods using connection pooling
+// New recommended database access methods using schema-aware connection pooling
+const pool = (0, schema_aware_connection_pool_1.getConnectionPool)();
 exports.dbPool = {
-    // Execute standard query with connection pooling
     async executeQuery(queryFn) {
-        if (connectionPool && connectionPool.executeQuery) {
-            return connectionPool.executeQuery(queryFn);
-        }
-        // Fallback to direct supabase client
-        return queryFn(exports.supabaseAdmin);
+        const client = await pool.getConnection(SERVICE_NAME);
+        return queryFn(client);
     },
-    // Execute healthcare-specific FHIR validation
     async executeFHIRValidation(validationFn) {
-        if (connectionPool && connectionPool.executeFHIRValidation) {
-            return connectionPool.executeFHIRValidation(validationFn);
-        }
-        // Fallback to direct supabase client
-        return validationFn(exports.supabaseAdmin);
+        return pool.executeFHIRValidation(SERVICE_NAME, validationFn);
     },
-    // Execute diagnosis operations with high priority
     async executeDiagnosisOperation(diagnosisFn) {
-        if (connectionPool && connectionPool.executeDiagnosisOperation) {
-            return connectionPool.executeDiagnosisOperation(diagnosisFn);
-        }
-        // Fallback to direct supabase client
-        return diagnosisFn(exports.supabaseAdmin);
+        const client = await pool.getConnection(SERVICE_NAME);
+        return diagnosisFn(client);
     },
-    // Execute bulk operations with low priority
     async executeBulkOperation(bulkFn) {
-        if (connectionPool && connectionPool.executeBulkOperation) {
-            return connectionPool.executeBulkOperation(bulkFn);
-        }
-        // Fallback to direct supabase client
-        return bulkFn(exports.supabaseAdmin);
+        const client = await pool.getConnection(SERVICE_NAME);
+        return bulkFn(client);
     },
 };
 // Test database connection
@@ -109,5 +90,19 @@ async function testDatabaseConnection() {
         logger_1.default.error("Database connection test exception", { error });
         return false;
     }
+}
+/**
+ * Get a schema-aware connection from the pool
+ */
+async function getSchemaAwareConnection() {
+    const connectionPool = (0, schema_aware_connection_pool_1.getConnectionPool)();
+    return connectionPool.getConnection(SERVICE_NAME);
+}
+/**
+ * Execute query with FHIR validation for healthcare compliance
+ */
+async function executeFHIRQuery(queryFn) {
+    const connectionPool = (0, schema_aware_connection_pool_1.getConnectionPool)();
+    return connectionPool.executeFHIRValidation(SERVICE_NAME, queryFn);
 }
 //# sourceMappingURL=database.config.js.map

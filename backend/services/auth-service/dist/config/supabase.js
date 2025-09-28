@@ -3,11 +3,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.dbPool = exports.initializeSupabase = exports.testSupabaseConnection = exports.supabaseClient = exports.supabaseFresh = exports.supabaseAdmin = exports.connectionPool = void 0;
+exports.dbPool = exports.initializeSupabase = exports.testSupabaseConnection = exports.supabaseClient = exports.supabaseFresh = exports.supabaseAdmin = void 0;
+exports.getSchemaAwareConnection = getSchemaAwareConnection;
+exports.executeFHIRQuery = executeFHIRQuery;
+const schema_aware_connection_pool_1 = require("@hospital/shared/dist/database/schema-aware-connection-pool");
+const dotenv_1 = __importDefault(require("dotenv"));
+dotenv_1.default.config();
+const schema_mapping_1 = require("@hospital/shared/dist/config/schema-mapping");
 const logger_1 = __importDefault(require("@hospital/shared/dist/utils/logger"));
-const connection_pool_1 = require("@hospital/shared/src/database/connection-pool");
-Object.defineProperty(exports, "connectionPool", { enumerable: true, get: function () { return connection_pool_1.connectionPool; } });
 const supabase_js_1 = require("@supabase/supabase-js");
+const SERVICE_NAME = "auth-service";
+const SCHEMA_NAME = (0, schema_mapping_1.getSchemaForService)(SERVICE_NAME);
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
@@ -33,7 +39,7 @@ exports.supabaseAdmin = (0, supabase_js_1.createClient)(supabaseUrl, supabaseSer
         persistSession: false,
     },
     db: {
-        schema: "public",
+        schema: SCHEMA_NAME,
     },
     global: {
         headers: {
@@ -49,7 +55,7 @@ exports.supabaseFresh = (0, supabase_js_1.createClient)(supabaseUrl, supabaseSer
         persistSession: false,
     },
     db: {
-        schema: "public",
+        schema: SCHEMA_NAME,
     },
     global: {
         headers: {
@@ -66,51 +72,29 @@ exports.supabaseClient = (0, supabase_js_1.createClient)(supabaseUrl, supabaseAn
         persistSession: true,
     },
     db: {
-        schema: "public",
+        schema: SCHEMA_NAME,
     },
 });
 const testSupabaseConnection = async () => {
     try {
         logger_1.default.info("🔍 Testing Supabase connection...");
-        const { data: adminTest, error: adminError } = await exports.supabaseAdmin
+        const schemaClient = await getSchemaAwareConnection();
+        const { data: adminTest, error: adminError } = await schemaClient
             .from("profiles")
             .select("count")
             .limit(1);
         if (adminError) {
-            logger_1.default.error("❌ Supabase admin client connection failed:", {
+            logger_1.default.error("❌ Supabase schema-aware client connection failed:", {
                 error: adminError.message,
                 code: adminError.code,
                 details: adminError.details,
+                schema: SCHEMA_NAME,
             });
             return false;
         }
-        const { data: anonTest, error: anonError } = await exports.supabaseClient
-            .from("profiles")
-            .select("count")
-            .limit(1);
-        if (anonError) {
-            logger_1.default.error("❌ Supabase anonymous client connection failed:", {
-                error: anonError.message,
-                code: anonError.code,
-                details: anonError.details,
-            });
-            return false;
-        }
-        const { data: authTest, error: authTestError } = await exports.supabaseAdmin.auth.admin.listUsers({
-            page: 1,
-            perPage: 1,
-        });
-        if (authTestError) {
-            logger_1.default.error("❌ Supabase auth test failed:", {
-                error: authTestError.message,
-                code: authTestError.code,
-            });
-            return false;
-        }
-        logger_1.default.info("✅ Supabase connection and auth test successful", {
+        logger_1.default.info("✅ Supabase schema-aware connection test successful", {
+            schema: SCHEMA_NAME,
             profilesAccessible: true,
-            authFunctional: true,
-            userCount: authTest.users?.length || 0,
         });
         return true;
     }
@@ -128,23 +112,28 @@ const initializeSupabase = async () => {
     const isConnected = await (0, exports.testSupabaseConnection)();
     if (!isConnected) {
         logger_1.default.error("❌ Failed to connect to Supabase. Please check your configuration.");
-        process.exit(1);
+        logger_1.default.warn("⚠️ Starting Auth Service in degraded mode (Supabase unavailable)");
+        return;
     }
     logger_1.default.info("✅ Supabase initialized successfully");
 };
 exports.initializeSupabase = initializeSupabase;
+const pool = (0, schema_aware_connection_pool_1.getConnectionPool)();
 exports.dbPool = {
     async executeQuery(queryFn) {
-        return connection_pool_1.connectionPool.executeQuery(queryFn);
+        const client = await pool.getConnection(SERVICE_NAME);
+        return queryFn(client);
     },
     async executeFHIRValidation(validationFn) {
-        return connection_pool_1.connectionPool.executeFHIRValidation(validationFn);
+        return pool.executeFHIRValidation(SERVICE_NAME, validationFn);
     },
     async executeDiagnosisOperation(diagnosisFn) {
-        return connection_pool_1.connectionPool.executeDiagnosisOperation(diagnosisFn);
+        const client = await pool.getConnection(SERVICE_NAME);
+        return diagnosisFn(client);
     },
     async executeBulkOperation(bulkFn) {
-        return connection_pool_1.connectionPool.executeBulkOperation(bulkFn);
+        const client = await pool.getConnection(SERVICE_NAME);
+        return bulkFn(client);
     },
 };
 exports.default = {
@@ -153,4 +142,12 @@ exports.default = {
     testConnection: exports.testSupabaseConnection,
     dbPool: exports.dbPool,
 };
+async function getSchemaAwareConnection() {
+    const connectionPool = (0, schema_aware_connection_pool_1.getConnectionPool)();
+    return connectionPool.getConnection(SERVICE_NAME);
+}
+async function executeFHIRQuery(queryFn) {
+    const connectionPool = (0, schema_aware_connection_pool_1.getConnectionPool)();
+    return connectionPool.executeFHIRValidation(SERVICE_NAME, queryFn);
+}
 //# sourceMappingURL=supabase.js.map

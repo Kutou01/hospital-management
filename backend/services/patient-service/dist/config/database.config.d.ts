@@ -1,6 +1,4 @@
-import { connectionPool } from "@hospital/shared/src/database/connection-pool";
 import { SupabaseClient } from "@supabase/supabase-js";
-export { connectionPool };
 export declare const supabaseAdmin: SupabaseClient;
 export declare function getSupabase(): SupabaseClient;
 export declare const dbPool: {
@@ -10,4 +8,6 @@ export declare const dbPool: {
     executeBulkOperation<T>(bulkFn: (client: any) => Promise<T>): Promise<T>;
 };
 export default getSupabase;
+export declare function getSchemaAwareConnection(): Promise<SupabaseClient>;
+export declare function executeFHIRQuery<T>(queryFn: (client: SupabaseClient) => Promise<T>): Promise<T>;
 //# sourceMappingURL=database.config.d.ts.map
